@@ -18,8 +18,15 @@ export type IpcInvokeHandlers = { readonly [C in IpcInvokeChannel]?: IpcInvokeHa
 
 type AnyHandler = (input: unknown) => unknown;
 
+export type IpcErrorReporter = (channel: string, error: unknown) => void;
+
+const ignoreErrors: IpcErrorReporter = () => undefined;
+
 export class IpcInvokeRouter {
-  constructor(private readonly handlers: IpcInvokeHandlers) {}
+  constructor(
+    private readonly handlers: IpcInvokeHandlers,
+    private readonly reportError: IpcErrorReporter = ignoreErrors,
+  ) {}
 
   async dispatch(envelope: unknown): Promise<IpcResult<unknown>> {
     const parsedEnvelope = IpcInvokeEnvelopeSchema.safeParse(envelope);
@@ -62,6 +69,7 @@ export class IpcInvokeRouter {
       }
       return { ok: true, data: parsedOutput.data };
     } catch (error) {
+      this.reportError(channel, error);
       return { ok: false, error: toApiError(error) };
     }
   }

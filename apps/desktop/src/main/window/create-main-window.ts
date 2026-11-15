@@ -1,40 +1,49 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow } from 'electron';
+import type { UrlOpener } from '../platform/url-opener';
+import type { WindowState } from '../native/window-bounds';
+import { routeExternalLinks } from './route-external-links';
 
 export interface MainWindowOptions {
   readonly preloadPath: string;
   readonly rendererUrl: string | null;
   readonly rendererFile: string;
+  readonly state: WindowState;
+  readonly opener: UrlOpener;
+  readonly icon?: string;
 }
-
-const isSafeExternalUrl = (url: string): boolean => /^https:\/\//.test(url);
 
 export const createMainWindow = async (options: MainWindowOptions): Promise<BrowserWindow> => {
   const window = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    ...(options.state.x === undefined ? {} : { x: options.state.x }),
+    ...(options.state.y === undefined ? {} : { y: options.state.y }),
+    width: options.state.width,
+    height: options.state.height,
     minWidth: 960,
     minHeight: 600,
     show: false,
     backgroundColor: '#0b0d10',
     title: 'Relay',
+    ...(options.icon === undefined ? {} : { icon: options.icon }),
     webPreferences: {
       preload: options.preloadPath,
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      nodeIntegrationInWorker: false,
       webSecurity: true,
+      webviewTag: false,
+      allowRunningInsecureContent: false,
+      spellcheck: true,
     },
   });
   window.once('ready-to-show', () => {
+    if (options.state.maximized) {
+      window.maximize();
+    }
     window.show();
   });
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isSafeExternalUrl(url)) {
-      void shell.openExternal(url);
-    }
-    return { action: 'deny' };
-  });
-  window.webContents.on('will-navigate', (event) => {
+  routeExternalLinks(window.webContents, options.opener);
+  window.webContents.on('will-attach-webview', (event) => {
     event.preventDefault();
   });
   if (options.rendererUrl !== null) {

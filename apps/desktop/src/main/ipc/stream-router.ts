@@ -9,6 +9,7 @@ import {
   IpcStreamStartEnvelopeSchema,
   isIpcStreamChannel,
 } from '@relay/shared/ipc';
+import type { IpcErrorReporter } from './invoke-router';
 import { toApiError } from './to-api-error';
 
 export type IpcStreamHandler<C extends IpcStreamChannel> = (
@@ -35,7 +36,10 @@ interface ActiveStream {
 export class IpcStreamRouter {
   private readonly active = new Map<string, ActiveStream>();
 
-  constructor(private readonly handlers: IpcStreamHandlers) {}
+  constructor(
+    private readonly handlers: IpcStreamHandlers,
+    private readonly reportError: IpcErrorReporter = () => undefined,
+  ) {}
 
   start(envelope: unknown, sink: IpcStreamSink, ownerId = 'default'): StartResult {
     const parsed = IpcStreamStartEnvelopeSchema.safeParse(envelope);
@@ -118,6 +122,7 @@ export class IpcStreamRouter {
       }
       sink({ streamId, kind: 'end' });
     } catch (error) {
+      this.reportError(channel, error);
       sink({ streamId, kind: 'error', error: toApiError(error) });
     } finally {
       this.active.delete(streamId);

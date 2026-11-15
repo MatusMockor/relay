@@ -1,0 +1,117 @@
+import type { Clock } from '@relay/engine';
+import type { NotificationMode, ThreadId, ThreadSummary } from '@relay/shared/domain';
+import type { RealtimeEvent } from '@relay/shared/realtime';
+import type { EventHub } from '../events/event-hub';
+import type { TimerHandle, Timers } from '../platform/timers';
+
+export interface MailNotification {
+  readonly title: string;
+  readonly body: string;
+  readonly threadId: ThreadId | null;
+}
+
+export interface NotificationPresenter {
+  show(notification: MailNotification): void;
+}
+
+export interface NewMailNotifierDeps {
+  readonly hub: EventHub<RealtimeEvent>;
+  readonly presenter: NotificationPresenter;
+  readonly mode: () => Promise<NotificationMode>;
+  readonly clock: Clock;
+  readonly timers: Timers;
+  readonly digestIntervalMs?: number;
+}
+
+const DEFAULT_DIGEST_INTERVAL_MS = 15 * 60_000;
+
+const senderOf = (thread: ThreadSummary): string => {
+  const [first] = thread.participants;
+  if (first === undefined) {
+    return 'Nová správa';
+  }
+  return first.name ?? first.email;
+};
+
+const digestBody = (count: number): string => {
+  if (count === 1) {
+    return 'Máte 1 novú správu';
+  }
+  if (count < 5) {
+    return `Máte ${String(count)} nové správy`;
+  }
+  return `Máte ${String(count)} nových správ`;
+};
+
+export class NewMailNotifier {
+  private readonly seen = new Map<ThreadId, number>();
+  private readonly digest = new Set<ThreadId>();
+  private startedAt = 0;
+  private unsubscribe: (() => void) | null = null;
+  private digestTimer: TimerHandle | null = null;
+
+  constructor(private readonly deps: NewMailNotifierDeps) {}
+
+  start(): void {
+    this.startedAt = this.deps.clock.now().getTime();
+    this.unsubscribe ??= this.deps.hub.subscribe((event) => {
+      if (event.type !== 'thread.upserted') {
+        return;
+      }
+      void this.consider(event.data.thread);
+    });
+  }
+
+  stop(): void {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    this.digestTimer?.cancel();
+    this.digestTimer = null;
+  }
+
+  private async consider(thread: ThreadSummary): Promise<void> {
+    if (!this.isFresh(thread)) {
+      return;
+    }
+    const mode = await this.deps.mode();
+    if (mode === 'urgent') {
+      this.deps.presenter.show({
+        title: senderOf(thread),
+        body: thread.subject,
+        threadId: thread.id,
+      });
+      return;
+    }
+    if (mode === 'digest') {
+      this.digest.add(thread.id);
+      this.scheduleDigest();
+    }
+  }
+
+  private isFresh(thread: ThreadSummary): boolean {
+    const arrivedAt = Date.parse(thread.lastMessageAt);
+    const previous = this.seen.get(thread.id) ?? this.startedAt;
+    this.seen.set(thread.id, Math.max(previous, arrivedAt));
+    return thread.unread && thread.state === 'inbox' && arrivedAt > previous;
+  }
+
+  private scheduleDigest(): void {
+    if (this.digestTimer !== null) {
+      return;
+    }
+    const interval = this.deps.digestIntervalMs ?? DEFAULT_DIGEST_INTERVAL_MS;
+    this.digestTimer = this.deps.timers.after(interval, () => {
+      this.digestTimer = null;
+      void this.flushDigest();
+    });
+  }
+
+  private async flushDigest(): Promise<void> {
+    const count = this.digest.size;
+    this.digest.clear();
+    if (count === 0 || (await this.deps.mode()) !== 'digest') {
+      return;
+    }
+    this.deps.presenter.show({ title: 'Relay', body: digestBody(count), threadId: null });
+  }
+}
