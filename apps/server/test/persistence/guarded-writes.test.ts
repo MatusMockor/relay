@@ -62,7 +62,12 @@ describe('guarded Postgres writes', () => {
     const seeded = await seedAccount(context.repositories);
     const { drafts } = context.repositories;
     const draft = await drafts.create(seeded.user.id, buildDraft(seeded));
-    await drafts.update(seeded.user.id, draft.id, { body: 'Upravené' }, at(3));
+    await drafts.update(
+      seeded.user.id,
+      draft.id,
+      { body: 'Upravené' },
+      { expected: draft.updatedAt, next: at(3) },
+    );
 
     await expect(drafts.deleteRevision(seeded.user.id, draft.id, at(0))).resolves.toBe(false);
     await expect(drafts.deleteRevision(seeded.user.id, draft.id, at(3))).resolves.toBe(true);
@@ -133,5 +138,43 @@ describe('guarded Postgres writes', () => {
     await expect(
       context.repositories.tasks.update(stranger.user.id, task.id, { updatedAt: at(3) }),
     ).resolves.toBeNull();
+  });
+
+  it('updates a draft only from the revision the caller read', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { drafts } = context.repositories;
+    const draft = await drafts.create(seeded.user.id, buildDraft(seeded));
+    const revision = { expected: draft.updatedAt, next: at(4) };
+
+    const results = await Promise.all([
+      drafts.update(seeded.user.id, draft.id, { body: 'A' }, revision),
+      drafts.update(seeded.user.id, draft.id, { body: 'B' }, revision),
+    ]);
+
+    expect(results.filter((result) => result !== null)).toHaveLength(1);
+    const stored = await drafts.findById(seeded.user.id, draft.id);
+    expect(stored?.updatedAt).toBe(at(4));
+    expect(results.find((result) => result !== null)?.body).toBe(stored?.body);
+  });
+
+  it('claims a draft for sending once until it is released or stale', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const stranger = await seedAccount(context.repositories);
+    const { drafts } = context.repositories;
+    const draft = await drafts.create(seeded.user.id, buildDraft(seeded));
+    const claim = (claimedAt: string, staleBefore: string) =>
+      drafts.claimForSend(seeded.user.id, draft.id, { claimedAt, staleBefore });
+
+    await expect(
+      drafts.claimForSend(stranger.user.id, draft.id, { claimedAt: at(1), staleBefore: at(0) }),
+    ).resolves.toBe(false);
+    const raced = await Promise.all([claim(at(1), at(0)), claim(at(1.5), at(0))]);
+    expect(raced.filter(Boolean)).toHaveLength(1);
+    const holder = raced[0] ? at(1) : at(1.5);
+    await expect(drafts.releaseSendClaim(seeded.user.id, draft.id, at(9))).resolves.toBe(false);
+    await expect(drafts.releaseSendClaim(seeded.user.id, draft.id, holder)).resolves.toBe(true);
+    await expect(claim(at(2), at(0))).resolves.toBe(true);
+    await expect(claim(at(3), at(1))).resolves.toBe(false);
+    await expect(claim(at(13), at(2.5))).resolves.toBe(true);
   });
 });

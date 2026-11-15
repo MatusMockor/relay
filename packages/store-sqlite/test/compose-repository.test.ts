@@ -92,13 +92,13 @@ describe('SqliteDraftRepository', () => {
       LOCAL_USER_ID,
       draftId('drf-1'),
       { subject: 'Ponuka v2' },
-      '2026-11-10T11:00:00.000Z',
+      { expected: '2026-11-10T10:00:00.000Z', next: '2026-11-10T11:00:00.000Z' },
     );
     const replaced = await drafts.update(
       LOCAL_USER_ID,
       draftId('drf-1'),
       { attachments: [attachment('att-3', 'c.pdf')] },
-      '2026-11-10T12:00:00.000Z',
+      { expected: '2026-11-10T11:00:00.000Z', next: '2026-11-10T12:00:00.000Z' },
     );
 
     expect(patched).toMatchObject({ subject: 'Ponuka v2', updatedAt: '2026-11-10T11:00:00.000Z' });
@@ -109,7 +109,7 @@ describe('SqliteDraftRepository', () => {
         userId('intruder'),
         draftId('drf-1'),
         { subject: 'x' },
-        '2026-11-10T13:00:00.000Z',
+        { expected: '2026-11-10T12:00:00.000Z', next: '2026-11-10T13:00:00.000Z' },
       ),
     ).toBeNull();
   });
@@ -138,6 +138,45 @@ describe('SqliteDraftRepository', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('updates a draft only from the revision the caller read', async () => {
+    const { drafts } = store.repositories;
+    await drafts.create(LOCAL_USER_ID, buildDraft());
+    const first = { expected: '2026-11-10T10:00:00.000Z', next: '2026-11-10T11:00:00.000Z' };
+
+    expect(
+      await drafts.update(LOCAL_USER_ID, draftId('drf-1'), { body: 'A' }, first),
+    ).toMatchObject({ body: 'A' });
+    expect(await drafts.update(LOCAL_USER_ID, draftId('drf-1'), { body: 'B' }, first)).toBeNull();
+    expect(await drafts.findById(LOCAL_USER_ID, draftId('drf-1'))).toMatchObject({
+      body: 'A',
+      updatedAt: '2026-11-10T11:00:00.000Z',
+    });
+  });
+
+  it('claims a draft for sending once until the claim is released or stale', async () => {
+    const { drafts } = store.repositories;
+    await drafts.create(LOCAL_USER_ID, buildDraft());
+    const claim = { claimedAt: CLAIMED_AT, staleBefore: STALE_BEFORE };
+    const later = {
+      claimedAt: '2026-11-12T08:01:00.000Z',
+      staleBefore: '2026-11-12T07:51:00.000Z',
+    };
+    const afterLease = {
+      claimedAt: '2026-11-12T08:11:01.000Z',
+      staleBefore: '2026-11-12T08:01:01.000Z',
+    };
+
+    expect(await drafts.claimForSend(userId('intruder'), draftId('drf-1'), claim)).toBe(false);
+    expect(await drafts.claimForSend(LOCAL_USER_ID, draftId('drf-1'), claim)).toBe(true);
+    expect(await drafts.claimForSend(LOCAL_USER_ID, draftId('drf-1'), later)).toBe(false);
+    expect(await drafts.releaseSendClaim(LOCAL_USER_ID, draftId('drf-1'), later.claimedAt)).toBe(
+      false,
+    );
+    expect(await drafts.releaseSendClaim(LOCAL_USER_ID, draftId('drf-1'), CLAIMED_AT)).toBe(true);
+    expect(await drafts.claimForSend(LOCAL_USER_ID, draftId('drf-1'), later)).toBe(true);
+    expect(await drafts.claimForSend(LOCAL_USER_ID, draftId('drf-1'), afterLease)).toBe(true);
+  });
+
   it('deletes a draft revision only while it is unchanged', async () => {
     const { drafts } = store.repositories;
     const created = await drafts.create(LOCAL_USER_ID, buildDraft());
@@ -145,7 +184,7 @@ describe('SqliteDraftRepository', () => {
       LOCAL_USER_ID,
       draftId('drf-1'),
       { body: 'Upravené' },
-      '2026-11-10T12:00:00.000Z',
+      { expected: created.updatedAt, next: '2026-11-10T12:00:00.000Z' },
     );
 
     expect(await drafts.deleteRevision(LOCAL_USER_ID, draftId('drf-1'), created.updatedAt)).toBe(
@@ -265,7 +304,7 @@ describe('SqliteScheduledSendRepository', () => {
 
     expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-2'), STALE_BEFORE)).toBe(false);
     expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-3'), STALE_BEFORE)).toBe(true);
-    expect(await scheduledSends.releaseStaleSending(STALE_BEFORE)).toBe(1);
+    expect(await scheduledSends.releaseStaleSending(STALE_BEFORE, [])).toBe(1);
 
     const statuses = await Promise.all(
       ['sch-1', 'sch-2', 'sch-3'].map(
@@ -273,5 +312,18 @@ describe('SqliteScheduledSendRepository', () => {
       ),
     );
     expect(statuses).toEqual(['pending', 'sending', 'cancelled']);
+  });
+
+  it('keeps stale sends that have an unconfirmed delivery in sending', async () => {
+    const { scheduledSends } = store.repositories;
+    await scheduledSends.create(buildSend());
+    await scheduledSends.create(buildSend({ id: sendId('sch-2'), draftId: draftId('drf-2') }));
+    await scheduledSends.claim(sendId('sch-1'), '2026-11-12T07:00:00.000Z');
+    await scheduledSends.claim(sendId('sch-2'), '2026-11-12T07:00:00.000Z');
+
+    expect(await scheduledSends.releaseStaleSending(STALE_BEFORE, [sendId('sch-1')])).toBe(1);
+
+    expect((await scheduledSends.findById(LOCAL_USER_ID, sendId('sch-1')))?.status).toBe('sending');
+    expect((await scheduledSends.findById(LOCAL_USER_ID, sendId('sch-2')))?.status).toBe('pending');
   });
 });

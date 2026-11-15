@@ -6,7 +6,7 @@ import { wrapUntrusted } from '../untrusted-content';
 
 type RewriteInput = Extract<AiJobInput, { kind: 'rewrite' }>;
 
-const RewriteResponseSchema = z.strictObject({ text: z.string().min(1).max(20_000) });
+const RewriteResponseSchema = z.strictObject({ text: z.string().min(1) });
 type RewriteResponse = z.infer<typeof RewriteResponseSchema>;
 
 const TASK: Localized<(instruction: string) => string> = {

@@ -1,3 +1,4 @@
+import { relative } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CliDetector } from '../src/detection/cli-detector';
 import { CliLocator } from '../src/detection/cli-locator';
@@ -61,6 +62,25 @@ describe('CliDetector', () => {
       authenticated: 'unknown',
       detail: 'unexpected',
     });
+  });
+
+  it('keeps the codex login state unknown when the status check itself fails', async () => {
+    await bin.install('codex', {
+      version: 'codex-cli 0.169.0',
+      auth: { output: 'Error checking login status: permission denied', exitCode: 1 },
+    });
+
+    expect(await stubDetector(bin.dir).detect('codex')).toMatchObject({
+      authenticated: 'unknown',
+      detail: 'Error checking login status: permission denied',
+    });
+  });
+
+  it('resolves an executable found through a relative PATH entry to an absolute path', async () => {
+    const path = await bin.install('codex', { version: '0.169.0' });
+    const locator = new CliLocator({ pathEnv: relative(process.cwd(), bin.dir), extraDirs: [] });
+
+    expect(await locator.locate('codex')).toBe(path);
   });
 
   it('finds executables in extra install locations outside PATH', async () => {

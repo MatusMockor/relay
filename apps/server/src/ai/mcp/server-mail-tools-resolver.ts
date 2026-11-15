@@ -12,12 +12,16 @@ export class ServerMailToolsResolver {
     private readonly tokens: MailToolsTokenService,
   ) {}
 
-  async resolve(job: AiJob): Promise<AiMailToolsEndpoint | null> {
+  async resolve(job: AiJob, owner: string): Promise<AiMailToolsEndpoint | null> {
     const url = this.urls.resolve(MAIL_MCP_PATH);
     if (url === null) {
       return null;
     }
-    const { token } = await this.tokens.issue({ userId: job.userId, jobId: job.id, holder: null });
+    const { token } = await this.tokens.issue({
+      userId: job.userId,
+      jobId: job.id,
+      holder: { kind: 'run', owner },
+    });
     return {
       transport: 'http',
       command: null,

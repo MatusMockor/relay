@@ -16,7 +16,7 @@ export const createApp = async (
 ): Promise<NestFastifyApplication> => {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.forRoot(config),
-    createFastifyAdapter(),
+    createFastifyAdapter(config.http.trustProxyHops),
     { logger: options.logger ?? ['fatal', 'error', 'warn', 'log'], bufferLogs: true },
   );
   configureApp(app).enableShutdownHooks();

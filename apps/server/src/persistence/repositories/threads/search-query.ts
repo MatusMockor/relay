@@ -1,20 +1,30 @@
+import { type SQL, sql } from 'drizzle-orm';
+
 const TERM_SEPARATOR = /[^\p{L}\p{M}\p{N}]+/u;
-const NON_WORD = /[^\p{L}\p{N}]+/gu;
 const MAX_TERMS = 16;
 
-export const toPrefixTsQuery = (search: string | null): string | null => {
+export const toSearchTerms = (search: string | null): string[] => {
   if (search === null) {
-    return null;
+    return [];
   }
-  const terms = search
+  return search
     .normalize('NFC')
     .toLowerCase()
     .split(TERM_SEPARATOR)
-    .map((term) => term.replace(NON_WORD, ''))
     .filter((term) => term.length > 0)
     .slice(0, MAX_TERMS);
-  if (terms.length === 0) {
-    return null;
-  }
-  return terms.map((term) => `${term}:*`).join(' & ');
+};
+
+export const prefixTsQuery = (terms: readonly string[]): SQL => {
+  const values = sql.join(
+    terms.map((term) => sql`${term}`),
+    sql`, `,
+  );
+  return sql`to_tsquery('simple', (
+    select string_agg(
+      '''' || replace(replace(relay_search_text(term), '\\', '\\\\'), '''', '''''') || ''':*',
+      ' & '
+    )
+    from unnest(array[${values}]::text[]) as term
+  ))`;
 };

@@ -51,6 +51,7 @@ export const drafts = pgTable(
       .references(() => messages.id, { onDelete: 'set null' }),
     createdAt: timestampTz('created_at').notNull(),
     updatedAt: timestampTz('updated_at').notNull(),
+    sendClaimedAt: timestampTz('send_claimed_at'),
   },
   (table) => [
     index('drafts_user_idx').on(table.userId, table.updatedAt.desc()),

@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AccountService, NotImplementedError, ValidationError } from '@relay/engine';
+import {
+  AccountService,
+  type Logger,
+  NotImplementedError,
+  PORT_TOKENS,
+  ValidationError,
+} from '@relay/engine';
 import type { CreateAccountBody } from '@relay/shared/api';
 import { EmailAddressSchema, type MailAccount, type UserId } from '@relay/shared/domain';
 import { SyncTrigger } from '../jobs/sync/sync-trigger';
@@ -13,11 +19,17 @@ export class AccountCreationService {
     private readonly accounts: AccountService,
     private readonly sync: SyncTrigger,
     @Inject(OAUTH_CODE_EXCHANGER) private readonly oauth: OAuthCodeExchanger,
+    @Inject(PORT_TOKENS.Logger) private readonly logger: Logger,
   ) {}
 
   async create(userId: UserId, body: CreateAccountBody): Promise<MailAccount> {
     const account = await this.register(userId, body);
-    await this.sync.request(userId, account.id);
+    await this.sync.request(userId, account.id).catch((error: unknown) => {
+      this.logger.error('Failed to enqueue the initial sync of a new account', {
+        accountId: account.id,
+        error,
+      });
+    });
     return account;
   }
 

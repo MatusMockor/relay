@@ -76,6 +76,38 @@ describe('CLI run lifecycle', () => {
     await expect.poll(() => isAlive(childPid), { timeout: 5_000 }).toBe(false);
   });
 
+  it('finishes a timed out run whose child holds stdio open and ignores SIGTERM', async () => {
+    await bin.install('claude', {
+      responses: [{ lines: claudeStarted(), hangMs: 60_000, spawnChild: 'stubborn' }],
+    });
+    const started = Date.now();
+
+    const events = await collect(runner.run(aiRequest(input, { timeoutMs: 800 })));
+
+    expect(events.at(-1)).toMatchObject({ type: 'failed', code: 'timeout' });
+    expect(Date.now() - started).toBeLessThan(8_000);
+    const childPid = await bin.childPid('claude');
+    await expect.poll(() => isAlive(childPid), { timeout: 5_000 }).toBe(false);
+  }, 15_000);
+
+  it('waits for the CLI to exit before the consumer stop completes', async () => {
+    await bin.install('claude', {
+      responses: [{ lines: claudeStarted(), hangMs: 60_000, termDelayMs: 500 }],
+    });
+    const iterator = runner.run(aiRequest(input))[Symbol.asyncIterator]();
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done === true || next.value.type === 'delta') {
+        break;
+      }
+    }
+
+    await iterator.return?.();
+
+    const [call] = await bin.calls('claude');
+    expect(isAlive(call?.pid ?? 0)).toBe(false);
+  });
+
   it('does not spawn anything for an already aborted signal', async () => {
     const controller = new AbortController();
     controller.abort();

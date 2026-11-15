@@ -5,6 +5,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { LoginService } from './login.service';
 import { Argon2PasswordHasher } from './passwords/argon2-password-hasher';
 import { PASSWORD_HASHER } from './passwords/password-hasher';
+import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
+import { AuthRateLimiter } from './rate-limit/auth-rate-limiter';
 import { RegistrationService } from './registration.service';
 import { ACCESS_TOKEN_AUTHENTICATOR } from './session/access-token-authenticator';
 import { DeviceRevocations } from './session/device-revocations';
@@ -28,6 +30,8 @@ import { RefreshTokenFactory } from './tokens/refresh-token-factory';
     TokenRefreshService,
     DeviceSessionService,
     DeviceRevocations,
+    AuthRateLimiter,
+    AuthRateLimitGuard,
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: ACCESS_TOKEN_AUTHENTICATOR, useClass: DeviceSessionAuthenticator },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

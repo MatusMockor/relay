@@ -7,6 +7,7 @@ import {
 } from '../support/provider-harness';
 import { rawMail } from '../support/raw-mail';
 import { collect } from '../support/collect';
+import { UidValidityChangedError } from '../../src';
 
 describe('ImapMailProvider against GreenMail', () => {
   let harness: ProviderHarness;
@@ -75,10 +76,15 @@ describe('ImapMailProvider against GreenMail', () => {
     const caughtUp = await collect(harness.provider.fetchSince('INBOX', { ...cursor, lastUid: 4 }));
     expect(caughtUp).toEqual([]);
 
-    const resynced = await collect(
+    const stale = collect(
       harness.provider.fetchSince('INBOX', { ...cursor, uidValidity: status.uidValidity + 1 }),
     );
-    expect(resynced.map((message) => message.uid)).toEqual([1, 2, 3, 4]);
+    await expect(stale).rejects.toBeInstanceOf(UidValidityChangedError);
+    await expect(stale).rejects.toMatchObject({
+      mailboxPath: 'INBOX',
+      expected: status.uidValidity + 1,
+      actual: status.uidValidity,
+    });
   });
 
   it('reports mailbox status', async () => {

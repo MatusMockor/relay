@@ -17,8 +17,5 @@ function parseCodexAuth(result: ProbeResult): AuthVerdict {
   if (result.ok && /logged in/i.test(result.output)) {
     return { authenticated: true, detail };
   }
-  if (result.exitCode !== null && result.exitCode !== 0) {
-    return { authenticated: false, detail };
-  }
   return { authenticated: 'unknown', detail };
 }

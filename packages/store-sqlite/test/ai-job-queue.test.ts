@@ -103,6 +103,31 @@ describe('SqliteAiJobRepository queue', () => {
     });
   });
 
+  it('reports a job as held only by its current owner while the lease is live', async () => {
+    const { aiJobs } = memoryRepositories();
+    const start = '2026-11-10T12:00:00.000Z';
+    await aiJobs.create(buildJob('job-1', { status: 'running' }), claimAt(start));
+    const held = (owner: string, now: string, user = LOCAL_USER_ID) =>
+      aiJobs.isHeldBy(user, jobId('job-1'), owner, now);
+
+    expect(await held('worker-a', '2026-11-10T12:01:00.000Z')).toBe(true);
+    expect(await held('worker-b', start)).toBe(false);
+    expect(await held('worker-a', start, userId('intruder'))).toBe(false);
+    expect(await held('worker-a', '2026-11-10T12:01:01.000Z')).toBe(false);
+
+    const reclaimed = '2026-11-10T12:01:01.000Z';
+    await aiJobs.claim(jobId('job-1'), claimAt(reclaimed, 'worker-b'));
+    expect(await held('worker-a', reclaimed)).toBe(false);
+    expect(await held('worker-b', reclaimed)).toBe(true);
+    await aiJobs.update(jobId('job-1'), {
+      status: 'done',
+      updatedAt: reclaimed,
+      owner: 'worker-b',
+      fromStatus: 'running',
+    });
+    expect(await held('worker-b', reclaimed)).toBe(false);
+  });
+
   it('relocates only the queued jobs of one user to another location', async () => {
     const { aiJobs } = memoryRepositories();
     await aiJobs.create(buildJob('job-1'));

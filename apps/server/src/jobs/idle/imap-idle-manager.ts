@@ -90,6 +90,10 @@ export class ImapIdleManager implements OnApplicationBootstrap, OnModuleDestroy 
   }
 
   private async restart(account: MailAccount): Promise<void> {
+    if (account.status === 'disconnected') {
+      await this.stop(account.id);
+      return;
+    }
     const current = this.sessions.get(account.id);
     if (current?.running === true && fingerprint(current.account) === fingerprint(account)) {
       return;

@@ -5,7 +5,8 @@ ARG NODE_VERSION=24.11.1
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
-    CI=true
+    CI=true \
+    COREPACK_HOME=/opt/corepack
 RUN corepack enable
 WORKDIR /app
 
@@ -33,6 +34,7 @@ RUN if [ "$INSTALL_AI_CLIS" = "true" ]; then \
       npm install -g @anthropic-ai/claude-code @openai/codex && npm cache clean --force; \
     fi
 COPY --from=deps --chown=node:node /app /app
+COPY --from=deps --chown=node:node /opt/corepack /opt/corepack
 COPY --chown=node:node packages/config packages/config
 COPY --chown=node:node packages/shared packages/shared
 COPY --chown=node:node packages/engine packages/engine

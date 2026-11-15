@@ -50,6 +50,13 @@
       "when": 1794728540272,
       "tag": "0006_pending_work",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794737752002,
+      "tag": "0007_draft_send_claim",
+      "breakpoints": true
     }
   ]
 }

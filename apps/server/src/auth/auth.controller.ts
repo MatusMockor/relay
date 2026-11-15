@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, UseGuards } from '@nestjs/common';
 import {
   api,
   type AuthSession,
@@ -11,6 +11,7 @@ import { ApiRoute } from '../http/api-route.decorator';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { LoginService } from './login.service';
 import type { Principal } from './principal';
+import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
 import { RegistrationService } from './registration.service';
 import { DeviceSessionService } from './session/device-session.service';
 import { TokenRefreshService } from './token-refresh.service';
@@ -25,6 +26,7 @@ export class AuthController {
   ) {}
 
   @ApiRoute(api.auth.register)
+  @UseGuards(AuthRateLimitGuard)
   register(
     @ApiRequest(api.auth.register) request: RequestOf<typeof api.auth.register>,
   ): Promise<AuthSession> {
@@ -32,6 +34,7 @@ export class AuthController {
   }
 
   @ApiRoute(api.auth.login)
+  @UseGuards(AuthRateLimitGuard)
   signIn(
     @ApiRequest(api.auth.login) request: RequestOf<typeof api.auth.login>,
   ): Promise<AuthSession> {
@@ -39,6 +42,7 @@ export class AuthController {
   }
 
   @ApiRoute(api.auth.refresh)
+  @UseGuards(AuthRateLimitGuard)
   rotate(
     @ApiRequest(api.auth.refresh) request: RequestOf<typeof api.auth.refresh>,
   ): Promise<TokenPair> {

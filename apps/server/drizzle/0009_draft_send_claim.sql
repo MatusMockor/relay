@@ -1,0 +1,1 @@
+ALTER TABLE "drafts" ADD COLUMN "send_claimed_at" timestamp with time zone;

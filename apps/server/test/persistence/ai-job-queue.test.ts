@@ -100,6 +100,34 @@ describe('PgAiJobRepository queue', () => {
     expect(remaining.map((job) => job.id)).not.toContain(older.id);
   });
 
+  it('reports a job as held only by its current owner while the lease is live', async () => {
+    const { userId, threadId } = await seeded();
+    const stranger = await seeded();
+    const { aiJobs } = context.repositories;
+    const job = await aiJobs.create(
+      buildJob(userId, threadId, { status: 'running' }),
+      claimAt(at(0)),
+    );
+    const held = (owner: string, now: string, user = userId) =>
+      aiJobs.isHeldBy(user, job.id, owner, now);
+
+    await expect(held('worker-a', at(0.5))).resolves.toBe(true);
+    await expect(held('worker-b', at(0.5))).resolves.toBe(false);
+    await expect(held('worker-a', at(0.5), stranger.userId)).resolves.toBe(false);
+    await expect(held('worker-a', at(2))).resolves.toBe(false);
+
+    await aiJobs.claim(job.id, claimAt(at(2), 'worker-b'));
+    await expect(held('worker-a', at(2))).resolves.toBe(false);
+    await expect(held('worker-b', at(2))).resolves.toBe(true);
+    await aiJobs.update(job.id, {
+      status: 'done',
+      updatedAt: at(2),
+      owner: 'worker-b',
+      fromStatus: 'running',
+    });
+    await expect(held('worker-b', at(2))).resolves.toBe(false);
+  });
+
   it('reclaims a running job only after its lease expired', async () => {
     const { userId, threadId } = await seeded();
     const { aiJobs } = context.repositories;

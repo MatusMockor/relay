@@ -8,7 +8,7 @@ import type { ThreadRepository } from '../../ports/thread-repository';
 import type { EngineEvents } from '../shared/engine-events';
 import type { JiraTaskEvent, JiraTaskSink } from '../sync/jira-task-sink';
 import { AiTaskBuilder, type AiTaskInput } from './ai-task-builder';
-import { jiraTaskTitle, nextJiraTaskState } from './jira-task-planner';
+import { jiraTaskStateChange, jiraTaskTitle } from './jira-task-planner';
 
 export interface TaskServiceDeps {
   readonly tasks: TaskRepository;
@@ -42,16 +42,8 @@ export class TaskService implements JiraTaskSink {
   }
 
   async applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task> {
-    const existing = await this.deps.tasks.findByJiraKey(userId, event.classification.jiraKey);
-    if (existing !== null) {
-      return this.change(userId, existing.id, {
-        threadId: event.threadId,
-        state: nextJiraTaskState(existing, event),
-        updatedAt: this.now(),
-      });
-    }
     const now = this.now();
-    return this.save(userId, {
+    const { task, created } = await this.deps.tasks.createOrGetByJiraKey({
       id: this.deps.ids.generate('task'),
       userId,
       threadId: event.threadId,
@@ -61,6 +53,15 @@ export class TaskService implements JiraTaskSink {
       state: 'open',
       source: 'jira',
       createdAt: now,
+      updatedAt: now,
+    });
+    if (created) {
+      await this.deps.events.emit(userId, 'task.upserted', { task });
+      return task;
+    }
+    return this.change(userId, task.id, {
+      threadId: event.threadId,
+      ...jiraTaskStateChange(event),
       updatedAt: now,
     });
   }

@@ -5,12 +5,16 @@ import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import type { MessageIngestor } from '../sync/message-ingestor';
 import { ComposeService } from './compose-service';
 import { DraftReferenceGuard } from './draft-reference-guard';
+import { DraftSendClaims } from './draft-send-claims';
+import { DraftSender } from './draft-sender';
 import { DraftService } from './draft-service';
 import { DraftThreadFlag } from './draft-thread-flag';
 import { OutgoingMessageBuilder } from './outgoing-message-builder';
+import { ScheduledSendConfirmations } from './scheduled-send-confirmations';
 import { ScheduledSendDelivery } from './scheduled-send-delivery';
 import { ScheduledSendService } from './scheduled-send-service';
 import { SendService } from './send-service';
+import { SentDraftCleanup } from './sent-draft-cleanup';
 import { SentMessageRecorder } from './sent-message-recorder';
 
 export const createComposeService = (
@@ -52,7 +56,14 @@ export const createComposeService = (
       clock,
       logger,
     }),
-    drafts,
+  });
+  const claims = new DraftSendClaims(repositories.drafts, logger);
+  const cleanup = new SentDraftCleanup(drafts, claims, logger);
+  const confirmations = new ScheduledSendConfirmations({
+    scheduledSends: repositories.scheduledSends,
+    pendingWork: repositories.pendingWork,
+    cleanup,
+    events,
     logger,
   });
   const scheduled = new ScheduledSendService({
@@ -61,13 +72,18 @@ export const createComposeService = (
     delivery: new ScheduledSendDelivery({
       scheduledSends: repositories.scheduledSends,
       drafts,
+      claims,
       sending,
+      cleanup,
+      confirmations,
       clock,
       logger,
     }),
+    confirmations,
     events,
     clock,
     ids,
   });
-  return new ComposeService({ drafts, sending, scheduled, clock });
+  const draftSender = new DraftSender({ drafts, claims, sending, cleanup, confirmations, clock });
+  return new ComposeService({ drafts, draftSender, sending, scheduled, clock });
 };

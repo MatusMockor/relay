@@ -147,4 +147,35 @@ describe('SqliteUnitOfWork', () => {
       'The unit of work has already finished',
     );
   });
+
+  it('refuses writes after SQLite rolled the unit back on its own', async () => {
+    store.database.sqlite.exec(
+      "CREATE TEMP TRIGGER fail_mailboxes BEFORE INSERT ON mailboxes BEGIN SELECT RAISE(ROLLBACK, 'disk full'); END",
+    );
+    const later: PromiseSettledResult<unknown>[] = [];
+
+    await expect(
+      store.unitOfWork.run(async (repositories) => {
+        await repositories.accounts.create(buildAccount());
+        await repositories.mailboxes
+          .upsertMany(accountId('acc-1'), [buildMailbox()])
+          .catch(() => undefined);
+        later.push(
+          ...(await Promise.allSettled([
+            repositories.accounts.create(
+              buildAccount({ id: accountId('acc-2'), email: 'second@relay.test' }),
+            ),
+          ])),
+          ...(await Promise.allSettled([
+            store.repositories.accounts.create(
+              buildAccount({ id: accountId('acc-3'), email: 'third@relay.test' }),
+            ),
+          ])),
+        );
+      }),
+    ).rejects.toThrow();
+
+    expect(later.map((result) => result.status)).toEqual(['rejected', 'rejected']);
+    expect(await accountIds(store)).toEqual([]);
+  });
 });

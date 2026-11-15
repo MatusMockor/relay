@@ -4,19 +4,21 @@ import type {
   MailboxRole,
   MessageFlags,
 } from '@relay/shared/domain';
-import type {
-  AppendResult,
-  Disposer,
-  FlagMutation,
-  MailboxChange,
-  MailProvider,
-  MailProviderFactory,
-  MoveResult,
-  RawMessage,
-  RemoteFlagChange,
-  RemoteMailbox,
-  RemoteMailboxStatus,
-  RemoteSyncCursor,
+import {
+  PartialMoveError,
+  UidValidityChangedError,
+  type AppendResult,
+  type Disposer,
+  type FlagMutation,
+  type MailboxChange,
+  type MailProvider,
+  type MailProviderFactory,
+  type MoveResult,
+  type RawMessage,
+  type RemoteFlagChange,
+  type RemoteMailbox,
+  type RemoteMailboxStatus,
+  type RemoteSyncCursor,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
@@ -29,7 +31,7 @@ const toRaw = (path: string, record: RemoteMessageRecord): RawMessage => ({
   internalDate: record.internalDate,
   size: record.source.byteLength,
   modseq: record.modseq.toString(),
-  source: record.source,
+  source: new Uint8Array(record.source),
 });
 
 const CREATED_ROLES: Readonly<Record<string, MailboxRole>> = {
@@ -115,9 +117,19 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage> {
+    const beforeFetch = this.server?.beforeNextFetch ?? null;
+    if (this.server !== null) {
+      this.server.beforeNextFetch = null;
+    }
+    beforeFetch?.(mailboxPath);
     const mailbox = this.streamMailbox(mailboxPath, `Cannot fetch ${mailboxPath}`);
     if (mailbox instanceof Error) {
       return failingItems(mailbox);
+    }
+    if (cursor !== null && cursor.uidValidity !== mailbox.uidValidity) {
+      return failingItems(
+        new UidValidityChangedError(mailboxPath, cursor.uidValidity, mailbox.uidValidity),
+      );
     }
     const records = [...mailbox.messages.values()]
       .filter((record) => record.uid > (cursor?.lastUid ?? 0))
@@ -161,8 +173,8 @@ export class FakeMailProvider implements MailProvider {
       const flags: Partial<MessageFlags> = {};
       mutation.add.forEach((flag) => (flags[flag] = true));
       mutation.remove.forEach((flag) => (flags[flag] = false));
-      const applied = uids.every((uid) => server.updateFlags(mailboxPath, uid, flags));
-      return applied ? Promise.resolve() : missing('A message');
+      uids.forEach((uid) => server.updateFlags(mailboxPath, uid, flags));
+      return Promise.resolve();
     });
   }
 
@@ -172,14 +184,14 @@ export class FakeMailProvider implements MailProvider {
     mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
   ): Promise<void> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
-      const applied = uids.every((uid) => {
+      uids.forEach((uid) => {
         const current = mailbox.messages.get(uid)?.keywords ?? [];
         const next = [...new Set([...current, ...mutation.add])].filter(
           (keyword) => !mutation.remove.includes(keyword),
         );
-        return server.updateKeywords(mailboxPath, uid, next);
+        server.updateKeywords(mailboxPath, uid, next);
       });
-      return applied ? Promise.resolve() : missing('A message');
+      return Promise.resolve();
     });
   }
 
@@ -193,11 +205,16 @@ export class FakeMailProvider implements MailProvider {
         const record = mailbox.messages.get(uid);
         const newUid =
           record === undefined ? null : server.tryDeliver(targetPath, record.source, record);
-        if (newUid !== null) {
+        if (newUid !== null && !server.partialMoves) {
           server.expunge(mailboxPath, uid);
+        }
+        if (newUid !== null) {
           uidMap.set(uid, newUid);
         }
       });
+      if (server.partialMoves) {
+        return Promise.reject(new PartialMoveError(mailboxPath, targetPath, uidMap));
+      }
       return Promise.resolve({ uidMap: server.uidplus ? uidMap : new Map<number, number>() });
     });
   }

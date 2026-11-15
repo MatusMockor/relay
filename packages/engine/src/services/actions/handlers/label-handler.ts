@@ -39,10 +39,9 @@ export class LabelHandler {
     );
     const { outcome, ops } = await this.deps.unitOfWork.run(async (repositories) => {
       for (const message of targets) {
-        const labelIds = add
-          ? [...message.labelIds, label.id]
-          : message.labelIds.filter((id) => id !== label.id);
-        await repositories.messages.updateLabels(message.id, labelIds);
+        await (add
+          ? repositories.messages.addLabel(message.id, label.id)
+          : repositories.messages.removeLabel(message.id, label.id));
       }
       const recorded = await recordProviderOps(
         repositories.pendingWork,

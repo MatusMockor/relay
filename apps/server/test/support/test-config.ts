@@ -15,6 +15,7 @@ export const createTestConfig = (databaseUrl: string, env: TestEnv = {}): Server
       JWT_REFRESH_SECRET: randomBytes(32).toString('base64url'),
       CREDENTIALS_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
       MAIL_ALLOW_PLAINTEXT: 'true',
+      AUTH_RATE_LIMIT_MAX: '100000',
       JOBS_ENABLED: 'false',
       IMAP_IDLE_ENABLED: 'false',
       JOBS_TICK_MS: '200',

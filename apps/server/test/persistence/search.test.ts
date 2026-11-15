@@ -50,6 +50,12 @@ describe('full-text search in queryFolder', () => {
         to: [{ name: 'Ján Kováč', email: 'jan.kovac@relay.test' }],
       },
     );
+    await seedThread(
+      context.repositories,
+      seeded,
+      { subject: 'किताब पढ़ो', lastMessageAt: at(4) },
+      { textBody: "Pozdravuje O'Neil." },
+    );
     const stranger = await seedAccount(context.repositories);
     await seedThread(context.repositories, stranger, { subject: 'Faktúra cudzia' });
   });
@@ -87,6 +93,21 @@ describe('full-text search in queryFolder', () => {
 
   it('treats query syntax characters as plain text', async () => {
     await expect(search("faktura & ! | ( ) : * ' \\")).resolves.toEqual(['Faktúra za október']);
-    await expect(search('!!!')).resolves.toEqual(['Stretnutie v piatok', 'Faktúra za október']);
+    await expect(search('!!!')).resolves.toEqual([
+      'किताब पढ़ो',
+      'Stretnutie v piatok',
+      'Faktúra za október',
+    ]);
+  });
+
+  it('keeps combining marks of a search term', async () => {
+    await expect(search('किताब')).resolves.toEqual(['किताब पढ़ो']);
+    await expect(search('पढ़ो')).resolves.toEqual(['किताब पढ़ो']);
+  });
+
+  it('normalizes letters that unaccent turns into query syntax', async () => {
+    await expect(search('ʼ')).resolves.toEqual([]);
+    await expect(search('oʼneil')).resolves.toEqual(['किताब पढ़ो']);
+    await expect(search('faktura ʼ')).resolves.toEqual(['Faktúra za október']);
   });
 });

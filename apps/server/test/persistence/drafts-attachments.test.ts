@@ -72,7 +72,7 @@ describe('PgDraftRepository', () => {
       seeded.user.id,
       draft.id,
       { subject: 'Ponuka v2', attachments: [first] },
-      at(5),
+      { expected: draft.updatedAt, next: at(5) },
     );
     expect(updated).toEqual({
       ...draft,
@@ -84,12 +84,17 @@ describe('PgDraftRepository', () => {
       seeded.user.id,
       draft.id,
       { body: 'Ahoj' },
-      at(6),
+      { expected: at(5), next: at(6) },
     );
     expect(bodyOnly).toMatchObject({ body: 'Ahoj', attachments: [first], subject: 'Ponuka v2' });
 
     await expect(
-      context.repositories.drafts.update(stranger.user.id, draft.id, { body: 'x' }, at(7)),
+      context.repositories.drafts.update(
+        stranger.user.id,
+        draft.id,
+        { body: 'x' },
+        { expected: at(6), next: at(7) },
+      ),
     ).resolves.toBeNull();
     await expect(
       context.repositories.drafts.findById(stranger.user.id, draft.id),
@@ -112,7 +117,7 @@ describe('PgDraftRepository', () => {
           seeded.user.id,
           draft.id,
           { body: 'v2', attachments: [second] },
-          at(9),
+          { expected: draft.updatedAt, next: at(9) },
         );
       },
     });

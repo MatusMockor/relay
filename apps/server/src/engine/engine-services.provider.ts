@@ -91,7 +91,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
       options: {
         aiRunnerLocation: 'server',
         settings: { defaults: SERVER_DEFAULT_USER_SETTINGS },
-        ai: { mailTools: (job) => mailTools.resolve(job) },
+        ai: { mailTools: (job, owner) => mailTools.resolve(job, owner) },
       },
     }),
 };
