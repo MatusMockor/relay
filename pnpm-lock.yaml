@@ -47,24 +47,9 @@ importers:
       '@relay/store-sqlite':
         specifier: workspace:*
         version: link:../../packages/store-sqlite
-      '@relay/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@tanstack/react-query':
-        specifier: 5.90.21
-        version: 5.90.21(react@19.2.9)
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
-      react:
-        specifier: 19.2.9
-        version: 19.2.9
-      react-dom:
-        specifier: 19.2.9
-        version: 19.2.9(react@19.2.9)
-      zustand:
-        specifier: 5.0.16
-        version: 5.0.16(@types/react@19.2.18)(react@19.2.9)
     devDependencies:
       '@electron/rebuild':
         specifier: 4.2.1
@@ -72,6 +57,12 @@ importers:
       '@relay/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@relay/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: 5.90.21
+        version: 5.90.21(react@19.2.9)
       '@testing-library/dom':
         specifier: 10.4.2
         version: 10.4.2
@@ -105,6 +96,12 @@ importers:
       jsdom:
         specifier: 26.1.0
         version: 26.1.0
+      react:
+        specifier: 19.2.9
+        version: 19.2.9
+      react-dom:
+        specifier: 19.2.9
+        version: 19.2.9(react@19.2.9)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -114,6 +111,9 @@ importers:
       vitest:
         specifier: 3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(jsdom@26.1.0)(tsx@4.23.15)(yaml@2.9.1)
+      zustand:
+        specifier: 5.0.16
+        version: 5.0.16(@types/react@19.2.18)(react@19.2.9)
 
   apps/server:
     dependencies:
