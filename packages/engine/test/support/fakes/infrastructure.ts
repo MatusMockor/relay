@@ -113,14 +113,19 @@ export class MemoryLogger implements Logger {
 
 export class MemoryCredentialVault implements ConditionalCredentialVault {
   readonly entries = new Map<AccountId, AccountCredentials>();
+  failSet: string | null = null;
+  beforeSet: (() => Promise<void>) | null = null;
 
   get(accountId: AccountId): Promise<AccountCredentials | null> {
     return Promise.resolve(this.entries.get(accountId) ?? null);
   }
 
-  set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
+  async set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
+    await this.beforeSet?.();
+    if (this.failSet !== null) {
+      throw new Error(this.failSet);
+    }
     this.entries.set(accountId, credentials);
-    return Promise.resolve();
   }
 
   setIfUnchanged(

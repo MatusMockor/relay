@@ -17,6 +17,7 @@ export interface FakeMailbox {
   readonly role: MailboxRole;
   uidValidity: number;
   uidNext: number;
+  highestModseq: bigint;
   readonly messages: Map<number, RemoteMessageRecord>;
 }
 
@@ -48,6 +49,8 @@ export class FakeMailServer {
   failConnect: string | null = null;
   failOperations: string | null = null;
   failIdleStop: string | null = null;
+  partialMoves = false;
+  beforeNextFetch: ((path: string) => void) | null = null;
   private modseq = 1n;
 
   constructor(options: FakeMailServerOptions = {}) {
@@ -63,6 +66,7 @@ export class FakeMailServer {
       role,
       uidValidity,
       uidNext: 1,
+      highestModseq: 0n,
       messages: new Map(),
     };
     this.mailboxes.set(path, mailbox);
@@ -98,11 +102,11 @@ export class FakeMailServer {
     mailbox.uidNext += 1;
     mailbox.messages.set(uid, {
       uid,
-      source,
+      source: new Uint8Array(source),
       flags: { ...NO_FLAGS, ...options.flags },
       keywords: [...(options.keywords ?? [])],
       internalDate: options.internalDate ?? DEFAULT_INTERNAL_DATE,
-      modseq: this.nextModseq(),
+      modseq: this.nextModseq(mailbox),
     });
     this.notify({ type: 'exists', mailboxPath: path, count: mailbox.messages.size });
     return uid;
@@ -114,7 +118,7 @@ export class FakeMailServer {
       return false;
     }
     record.flags = { ...record.flags, ...flags };
-    record.modseq = this.nextModseq();
+    record.modseq = this.nextModseq(this.mailbox(path));
     this.notify({ type: 'flags', mailboxPath: path, uid });
     return true;
   }
@@ -125,13 +129,16 @@ export class FakeMailServer {
       return false;
     }
     record.keywords = [...keywords];
-    record.modseq = this.nextModseq();
+    record.modseq = this.nextModseq(this.mailbox(path));
     this.notify({ type: 'flags', mailboxPath: path, uid });
     return true;
   }
 
   expunge(path: string, uid: number): void {
-    this.find(path)?.messages.delete(uid);
+    const mailbox = this.find(path);
+    if (mailbox?.messages.delete(uid) === true) {
+      this.nextModseq(mailbox);
+    }
     this.notify({ type: 'expunge', mailboxPath: path, uid });
   }
 
@@ -153,14 +160,12 @@ export class FakeMailServer {
   }
 
   highestModseq(mailbox: FakeMailbox): bigint {
-    return [...mailbox.messages.values()].reduce(
-      (max, record) => (record.modseq > max ? record.modseq : max),
-      0n,
-    );
+    return mailbox.highestModseq;
   }
 
-  private nextModseq(): bigint {
+  private nextModseq(mailbox: FakeMailbox): bigint {
     this.modseq += 1n;
+    mailbox.highestModseq = this.modseq;
     return this.modseq;
   }
 
