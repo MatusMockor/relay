@@ -4,10 +4,10 @@ AI-native mail client in the spirit of Superhuman. Desktop app for macOS and Lin
 
 ## Product modes
 
-| Mode | Who uses it | Where data lives | Mail sync | AI |
-|---|---|---|---|---|
-| **Local** | no registration | SQLite on the device | desktop main process talks IMAP/SMTP directly | local CLI only |
-| **Synced** | registered user | Postgres on the server, local SQLite cache on each device | server syncs 24/7 (IMAP IDLE) | server worker or local CLI (user setting) |
+| Mode       | Who uses it     | Where data lives                                          | Mail sync                                     | AI                                        |
+| ---------- | --------------- | --------------------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
+| **Local**  | no registration | SQLite on the device                                      | desktop main process talks IMAP/SMTP directly | local CLI only                            |
+| **Synced** | registered user | Postgres on the server, local SQLite cache on each device | server syncs 24/7 (IMAP IDLE)                 | server worker or local CLI (user setting) |
 
 - The user picks the mode on first launch: "Pokračovať bez účtu" (local) or "Pripojiť k serveru" (server URL + register/login).
 - The server URL is a per-device setting and can be changed in Settings → Server. Multiple saved servers are allowed.

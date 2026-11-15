@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig/node-library.json",
+  "include": ["vitest", "test-infra", "test", "vitest.config.ts"]
+}
