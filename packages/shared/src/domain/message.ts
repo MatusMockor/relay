@@ -1,0 +1,53 @@
+import { z } from 'zod';
+import { AddressSchema } from './address';
+import {
+  AccountIdSchema,
+  AttachmentIdSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
+  MessageIdSchema,
+  ThreadIdSchema,
+} from './ids';
+import { IsoDateTimeSchema } from './primitives';
+
+export const MessageFlagsSchema = z.object({
+  seen: z.boolean(),
+  flagged: z.boolean(),
+  answered: z.boolean(),
+});
+export type MessageFlags = z.infer<typeof MessageFlagsSchema>;
+
+export const AttachmentMetaSchema = z.object({
+  id: AttachmentIdSchema,
+  filename: z.string().nullable(),
+  contentType: z.string().min(1),
+  size: z.number().int().nonnegative(),
+  contentId: z.string().nullable(),
+  inline: z.boolean(),
+});
+export type AttachmentMeta = z.infer<typeof AttachmentMetaSchema>;
+
+export const MessageSchema = z.object({
+  id: MessageIdSchema,
+  threadId: ThreadIdSchema,
+  accountId: AccountIdSchema,
+  mailboxId: MailboxIdSchema,
+  uid: z.number().int().nonnegative(),
+  messageIdHeader: z.string().nullable(),
+  inReplyTo: z.string().nullable(),
+  references: z.array(z.string()),
+  from: AddressSchema.nullable(),
+  to: z.array(AddressSchema),
+  cc: z.array(AddressSchema),
+  bcc: z.array(AddressSchema),
+  replyTo: z.array(AddressSchema),
+  subject: z.string(),
+  date: IsoDateTimeSchema,
+  snippet: z.string(),
+  textBody: z.string().nullable(),
+  htmlBody: z.string().nullable(),
+  flags: MessageFlagsSchema,
+  labelIds: z.array(LabelIdSchema),
+  attachments: z.array(AttachmentMetaSchema),
+});
+export type Message = z.infer<typeof MessageSchema>;
