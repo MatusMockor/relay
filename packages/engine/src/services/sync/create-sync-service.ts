@@ -1,4 +1,5 @@
 import type { EngineDeps } from '../../engine-deps';
+import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { AccountSynchronizer } from './account-synchronizer';
@@ -28,6 +29,7 @@ export const createSyncComponents = (
     readonly sessions: MailProviderSessions;
     readonly tasks: JiraTaskSink;
     readonly arrivals: SyncArrivalListener;
+    readonly replayer: ProviderOpReplayer;
   },
 ): SyncComponents => {
   const { repositories, unitOfWork, idGenerator: ids, clock, logger } = deps;
@@ -36,6 +38,8 @@ export const createSyncComponents = (
   const reporter = new SyncReporter(repositories.accounts, shared.events);
   const flusher = new ChangeFlusher({
     unitOfWork,
+    pendingWork: repositories.pendingWork,
+    messages: repositories.messages,
     events: shared.events,
     tasks: shared.tasks,
     logger,
@@ -76,14 +80,17 @@ export const createSyncComponents = (
     mailboxes: repositories.mailboxes,
     messages: repositories.messages,
     syncStates: repositories.syncStates,
+    unitOfWork,
     ids,
   });
   const synchronizer = new AccountSynchronizer({
     splits: repositories.splits,
+    pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,
     mailboxSync,
     flusher,
+    replayer: shared.replayer,
     reporter,
     arrivals: shared.arrivals,
     clock,

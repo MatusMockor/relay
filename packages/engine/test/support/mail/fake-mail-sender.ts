@@ -13,12 +13,14 @@ export class FakeMailSender implements MailSender {
   failSend: string | null = null;
   failVerify: string | null = null;
   date = '2026-11-15T09:00:00.000Z';
+  beforeSend: (() => Promise<void>) | null = null;
 
-  send(
+  async send(
     account: MailAccount,
     _credentials: AccountCredentials,
     message: OutgoingMessage,
   ): Promise<SentMessage> {
+    await this.beforeSend?.();
     if (this.failSend !== null) {
       return Promise.reject(new Error(this.failSend));
     }
@@ -44,7 +46,7 @@ export class FakeMailSender implements MailSender {
       rejectedRecipients: [],
     };
     this.sent.push({ account, message, sent });
-    return Promise.resolve(sent);
+    return sent;
   }
 
   verify(_account: MailAccount, _credentials: AccountCredentials): Promise<void> {

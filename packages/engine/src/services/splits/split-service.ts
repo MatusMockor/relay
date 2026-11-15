@@ -6,6 +6,7 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { SplitPatternPolicy } from '../../ports/split-pattern-policy';
 import type { SplitRepository } from '../../ports/split-repository';
 import type { EngineEvents } from '../shared/engine-events';
+import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { SplitMembershipEvaluator } from './split-membership-evaluator';
 import { validateSplitRules } from './split-rule-validator';
 
@@ -19,13 +20,23 @@ export interface SplitServiceDeps {
 }
 
 export class SplitService {
+  private readonly serializer = new KeyedSerializer();
+
   constructor(private readonly deps: SplitServiceDeps) {}
 
   list(userId: UserId): Promise<Split[]> {
     return this.deps.splits.listByUser(userId);
   }
 
-  async replace(userId: UserId, body: ReplaceSplitsBody): Promise<Split[]> {
+  replace(userId: UserId, body: ReplaceSplitsBody): Promise<Split[]> {
+    return this.serializer.run(userId, () => this.replaceNow(userId, body));
+  }
+
+  reevaluate(userId: UserId): Promise<number> {
+    return this.serializer.run(userId, () => this.reevaluateNow(userId));
+  }
+
+  private async replaceNow(userId: UserId, body: ReplaceSplitsBody): Promise<Split[]> {
     validateSplitRules(body.splits, this.deps.patterns);
     await this.assertAccounts(userId, body);
     const knownIds = new Set((await this.deps.splits.listByUser(userId)).map((split) => split.id));
@@ -40,11 +51,11 @@ export class SplitService {
     }
     const stored = await this.deps.splits.replaceAll(userId, splits);
     await this.deps.events.emit(userId, 'splits.updated', { splits: stored });
-    await this.reevaluate(userId);
+    await this.reevaluateNow(userId);
     return stored;
   }
 
-  async reevaluate(userId: UserId): Promise<number> {
+  private async reevaluateNow(userId: UserId): Promise<number> {
     const accounts = await this.deps.accounts.listByUser(userId);
     let changed = 0;
     for (const account of accounts) {

@@ -26,6 +26,7 @@ Read `docs/ARCHITECTURE.md` before changing anything. It is the source of truth 
 - Vitest everywhere. Prefer integration tests through real collaborators.
 - Real infrastructure in tests: Postgres and GreenMail (IMAP/SMTP) from `docker-compose.test.yml`, real SQLite files or `:memory:`.
 - Mock or stub only true third-party boundaries (Google OAuth endpoints, the Claude/Codex CLIs via a stub executable). Never mock our own repositories or services.
+- In-memory implementations of engine ports (repositories, mail provider) under `packages/engine/test/support` are allowed and preferred for engine service tests: they are working infrastructure adapters, not mocks of our services. Real stores (Postgres, SQLite) are tested in their own packages.
 - Never `throw` in test code. Use assertions (`expect(...)`).
 - Never make real network requests to third parties in tests.
 

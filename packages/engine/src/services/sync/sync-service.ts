@@ -3,6 +3,7 @@ import { NotFoundError } from '../../errors';
 import type { Disposer } from '../../model/remote-mail';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { Logger } from '../../ports/logger';
+import type { MailProvider } from '../../ports/mail-provider';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { AccountSynchronizer, SyncReport } from './account-synchronizer';
@@ -60,7 +61,7 @@ export class SyncService {
     const account = await this.requireAccount(userId, accountId);
     const inbox = await this.deps.mailboxes.findByRole(accountId, 'inbox');
     const provider = await this.deps.sessions.open(account);
-    const stop = await provider.idle(inbox?.path ?? DEFAULT_INBOX_PATH, () => {
+    const stop = await this.startIdle(provider, inbox?.path ?? DEFAULT_INBOX_PATH, () => {
       this.syncAccount(userId, accountId).catch((error: unknown) => {
         this.deps.logger.warn('Sync triggered by IDLE failed', {
           accountId,
@@ -69,9 +70,25 @@ export class SyncService {
       });
     });
     return async () => {
-      await stop();
-      await provider.close();
+      try {
+        await stop();
+      } finally {
+        await provider.close();
+      }
     };
+  }
+
+  private async startIdle(
+    provider: MailProvider,
+    path: string,
+    onChange: () => void,
+  ): Promise<Disposer> {
+    try {
+      return await provider.idle(path, onChange);
+    } catch (error) {
+      await provider.close().catch(() => undefined);
+      throw error;
+    }
   }
 
   private start(userId: UserId, accountId: AccountId): Promise<SyncReport> {
