@@ -1,0 +1,7 @@
+{
+  "extends": "@relay/config/tsconfig/react-dom.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"]
+  },
+  "include": ["."]
+}
