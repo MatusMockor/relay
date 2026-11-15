@@ -69,6 +69,16 @@ export class SqliteDraftRepository implements DraftRepository {
     );
   }
 
+  deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .delete(drafts)
+          .where(and(ownedBy(userId, draftId), eq(drafts.updatedAt, updatedAt)))
+          .run().changes > 0,
+    );
+  }
+
   private replaceAttachments(
     db: RelayDb,
     draftId: string,
