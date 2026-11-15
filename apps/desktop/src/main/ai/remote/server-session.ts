@@ -34,6 +34,7 @@ export class ServerSession {
   private readonly key: string;
   private readonly refreshRequest: TokenRefreshRequest;
   private queue: Promise<unknown> = Promise.resolve();
+  private readonly refreshing = new Map<string | null, Promise<SessionAccess>>();
   private expired = false;
 
   constructor(private readonly options: ServerSessionOptions) {
@@ -49,11 +50,11 @@ export class ServerSession {
     if (this.remaining(tokens) > REFRESH_AHEAD_MS) {
       return { accessToken: tokens.accessToken, expired: false };
     }
-    return this.serialized(() => this.resolve(null));
+    return this.shared(null);
   }
 
   renew(rejected: string | null): Promise<SessionAccess> {
-    return this.serialized(() => this.resolve(rejected));
+    return this.shared(rejected);
   }
 
   async accessToken(): Promise<string | null> {
@@ -69,6 +70,7 @@ export class ServerSession {
   }
 
   save(tokens: TokenPair): Promise<void> {
+    this.refreshing.clear();
     return this.serialized(async () => {
       this.expired = false;
       await this.options.secrets.set(this.key, JSON.stringify(tokens));
@@ -76,6 +78,7 @@ export class ServerSession {
   }
 
   clear(): Promise<void> {
+    this.refreshing.clear();
     return this.serialized(async () => {
       this.expired = false;
       await this.options.secrets.delete(this.key);
@@ -84,6 +87,20 @@ export class ServerSession {
 
   private signedOut(): SessionAccess {
     return this.expired ? EXPIRED : SIGNED_OUT;
+  }
+
+  private shared(rejected: string | null): Promise<SessionAccess> {
+    const running = this.refreshing.get(rejected);
+    if (running !== undefined) {
+      return running;
+    }
+    const attempt = this.serialized(() => this.resolve(rejected)).finally(() => {
+      if (this.refreshing.get(rejected) === attempt) {
+        this.refreshing.delete(rejected);
+      }
+    });
+    this.refreshing.set(rejected, attempt);
+    return attempt;
   }
 
   private serialized<Result>(work: () => Promise<Result>): Promise<Result> {

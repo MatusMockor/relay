@@ -35,7 +35,7 @@ export class IdleSupervisor {
     const removed = [...this.slots.keys()].filter((accountId) => !wanted.has(accountId));
     await Promise.all(removed.map((accountId) => this.release(accountId)));
     await Promise.all(
-      accountIds
+      [...wanted]
         .filter((accountId) => !this.slots.has(accountId))
         .map((accountId) => this.begin(accountId)),
     );

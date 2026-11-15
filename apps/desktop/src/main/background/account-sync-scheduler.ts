@@ -19,6 +19,7 @@ export interface AccountSyncSchedulerDeps {
 export class AccountSyncScheduler implements BackgroundWorker {
   readonly name = 'account-sync';
   private readonly runners = new Map<AccountId, PeriodicRunner>();
+  private readonly draining = new Set<Promise<void>>();
   private running = false;
   private generation = 0;
   private reconciling: Promise<void> = Promise.resolve();
@@ -38,8 +39,9 @@ export class AccountSyncScheduler implements BackgroundWorker {
     this.runners.clear();
     runners.forEach((runner) => {
       runner.stop();
+      void this.drain(runner.idle());
     });
-    await Promise.all(runners.map((runner) => runner.idle()));
+    await this.idle();
   }
 
   reconcile(): Promise<void> {
@@ -64,6 +66,7 @@ export class AccountSyncScheduler implements BackgroundWorker {
       }
       runner.stop();
       this.runners.delete(accountId);
+      void this.drain(runner.idle());
     });
     accounts.forEach((account) => {
       this.ensureRunner(account);
@@ -72,16 +75,33 @@ export class AccountSyncScheduler implements BackgroundWorker {
 
   async syncNow(accountId?: AccountId): Promise<void> {
     if (accountId !== undefined) {
-      await this.runnerFor(accountId).trigger();
+      await this.triggerOne(accountId);
       return;
     }
     await Promise.all([...this.runners.values()].map((runner) => runner.trigger()));
   }
 
   idle(): Promise<void> {
-    return Promise.all([...this.runners.values()].map((runner) => runner.idle())).then(
-      () => undefined,
-    );
+    return Promise.all([
+      ...[...this.runners.values()].map((runner) => runner.idle()),
+      ...this.draining,
+    ]).then(() => undefined);
+  }
+
+  private triggerOne(accountId: AccountId): Promise<void> {
+    const existing = this.runners.get(accountId);
+    if (existing !== undefined) {
+      return existing.trigger();
+    }
+    return this.drain(this.createRunner(accountId, 0).trigger());
+  }
+
+  private drain(work: Promise<void>): Promise<void> {
+    const tracked = work.finally(() => {
+      this.draining.delete(tracked);
+    });
+    this.draining.add(tracked);
+    return tracked;
   }
 
   private ensureRunner(account: SyncableAccount): void {
@@ -94,14 +114,6 @@ export class AccountSyncScheduler implements BackgroundWorker {
     const runner = this.createRunner(account.id, intervalMs);
     this.runners.set(account.id, runner);
     runner.start(0);
-  }
-
-  private runnerFor(accountId: AccountId): PeriodicRunner {
-    const existing = this.runners.get(accountId);
-    if (existing !== undefined) {
-      return existing;
-    }
-    return this.createRunner(accountId, 0);
   }
 
   private createRunner(accountId: AccountId, intervalMs: number): PeriodicRunner {

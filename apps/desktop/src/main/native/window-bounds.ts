@@ -20,13 +20,22 @@ export const DEFAULT_WINDOW_STATE: WindowState = { width: 1440, height: 900, max
 
 const MIN_VISIBLE = 64;
 
-const overlaps = (window: Rect, display: Rect): boolean => {
+const visibleArea = (window: Rect, display: Rect): number => {
   const width =
     Math.min(window.x + window.width, display.x + display.width) - Math.max(window.x, display.x);
   const height =
     Math.min(window.y + window.height, display.y + display.height) - Math.max(window.y, display.y);
-  return width >= MIN_VISIBLE && height >= MIN_VISIBLE;
+  return width >= MIN_VISIBLE && height >= MIN_VISIBLE ? width * height : 0;
 };
+
+const mostVisibleDisplay = (window: Rect, displays: readonly Rect[]): Rect | null =>
+  displays.reduce<Rect | null>((best, display) => {
+    const area = visibleArea(window, display);
+    if (area === 0 || (best !== null && area <= visibleArea(window, best))) {
+      return best;
+    }
+    return display;
+  }, null);
 
 export const fitWindowState = (state: WindowState, displays: readonly Rect[]): WindowState => {
   const largest = displays.reduce<Rect | null>(
@@ -40,8 +49,9 @@ export const fitWindowState = (state: WindowState, displays: readonly Rect[]): W
     return { width, height, maximized: state.maximized };
   }
   const bounds = { x: state.x, y: state.y, width, height };
-  if (!displays.some((display) => overlaps(bounds, display))) {
+  const target = mostVisibleDisplay(bounds, displays);
+  if (target === null) {
     return { width, height, maximized: state.maximized };
   }
-  return { ...bounds, maximized: state.maximized };
+  return { ...bounds, y: Math.max(bounds.y, target.y), maximized: state.maximized };
 };

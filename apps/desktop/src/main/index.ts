@@ -8,6 +8,7 @@ import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platf
 import { MainWindowController } from './bootstrap/main-window-controller';
 import { electronMcpEntry } from './bootstrap/mcp-entry';
 import { startNativeShell } from './bootstrap/native-shell';
+import { createQuitGuard } from './bootstrap/quit-guard';
 import { reportFatalError } from './bootstrap/report-fatal-error';
 import { composeIpc } from './composition/compose-ipc';
 import { createLocalRuntime } from './composition/local-runtime';
@@ -24,13 +25,17 @@ import { hardenSession } from './window/harden-session';
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
 const rendererUrl = app.isPackaged ? null : (process.env.ELECTRON_RENDERER_URL ?? null);
 
-const runMain = async (): Promise<void> => {
-  let windows: MainWindowController | null = null;
-  if (!acquireSingleInstance(() => void windows?.focus())) {
-    app.quit();
-    return;
-  }
+const SHUTDOWN_DEADLINE_MS = 10_000;
 
+interface RunningApp {
+  stop(): Promise<void>;
+}
+
+interface WindowsRef {
+  current: MainWindowController | null;
+}
+
+const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   await app.whenReady();
 
   const paths = electronLocalPaths();
@@ -64,7 +69,7 @@ const runMain = async (): Promise<void> => {
   );
 
   const windowState = new WindowStateStore(paths.windowState);
-  windows = new MainWindowController(async () => {
+  const windows = new MainWindowController(async () => {
     const window = await createMainWindow({
       preloadPath: fileURLToPath(new URL('../preload/index.cjs', import.meta.url)),
       rendererUrl,
@@ -73,9 +78,10 @@ const runMain = async (): Promise<void> => {
       opener: platform.opener,
       icon: appIcon,
     });
-    trackWindowState(window, windowState);
+    trackWindowState(window, windowState, logger);
     return window;
   });
+  windowsRef.current = windows;
 
   const background = new ModeAwareBackground(
     runtime.infrastructure.deviceSettings,
@@ -98,7 +104,9 @@ const runMain = async (): Promise<void> => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      void windows.open();
+      windows.open().catch((error: unknown) => {
+        logger.error('Failed to reopen the main window', { error });
+      });
     }
   });
 
@@ -108,24 +116,48 @@ const runMain = async (): Promise<void> => {
     }
   });
 
-  let quitting = false;
-  app.on('will-quit', (event) => {
-    if (quitting) {
-      return;
-    }
-    quitting = true;
-    event.preventDefault();
-    unregisterIpc();
-    shell.dispose();
-    void Promise.all([background.stop(), remoteAi.stop()])
-      .then(() => runtime.close())
-      .catch((error: unknown) => {
-        logger.error('Shutdown failed', { error });
-      })
-      .finally(() => {
-        app.exit(0);
-      });
-  });
+  return {
+    stop: async () => {
+      unregisterIpc();
+      shell.dispose();
+      await Promise.all([background.stop(), remoteAi.stop()])
+        .then(() => runtime.close())
+        .catch((error: unknown) => {
+          logger.error('Shutdown failed', { error });
+        });
+    },
+  };
 };
 
-runMain().catch(reportFatalError);
+const runMain = (): void => {
+  const windowsRef: WindowsRef = { current: null };
+  const focusExisting = () => {
+    windowsRef.current?.focus().catch((error: unknown) => {
+      console.error('Relay could not show its window', error);
+    });
+  };
+  if (!acquireSingleInstance(focusExisting)) {
+    app.quit();
+    return;
+  }
+  const running = startApp(windowsRef);
+  app.on(
+    'will-quit',
+    createQuitGuard({
+      teardown: async () => {
+        await (await running).stop();
+      },
+      exit: () => {
+        app.exit(0);
+      },
+      timers: systemTimers,
+      deadlineMs: SHUTDOWN_DEADLINE_MS,
+      onTimeout: () => {
+        console.error('Relay shutdown did not finish in time, exiting anyway');
+      },
+    }),
+  );
+  running.catch(reportFatalError);
+};
+
+runMain();
