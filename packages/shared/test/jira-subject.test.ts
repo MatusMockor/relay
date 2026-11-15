@@ -22,6 +22,11 @@ describe('stripJiraSubject', () => {
     expect(stripJiraSubject('[JIRA] (CMS-2170) Other issue', KEY)).toBe('(CMS-2170) Other issue');
   });
 
+  it('strips alternating reply prefixes and Jira tags', () => {
+    expect(stripJiraSubject('RE: [JIRA] RE: [JIRA] (CMS-217) Editor', KEY)).toBe('Editor');
+    expect(stripJiraSubject('[JIRA] Fwd: RE: (CMS-217) Editor', KEY)).toBe('Editor');
+  });
+
   it('returns an empty title when only the prefix and key are present', () => {
     expect(stripJiraSubject('[JIRA] (CMS-217)', KEY)).toBe('');
   });
