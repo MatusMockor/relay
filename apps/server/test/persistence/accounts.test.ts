@@ -1,6 +1,7 @@
 import { ConflictError } from '@relay/engine';
 import { describe, expect, it } from 'vitest';
 import { at, buildAccount, buildUser } from './support/fixtures';
+import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
 import { usePgTestContext } from './support/pg-test-context';
 
 describe('PgAccountRepository', () => {
@@ -54,6 +55,27 @@ describe('PgAccountRepository', () => {
     await expect(primaries()).resolves.toEqual([second.id]);
     await context.repositories.accounts.setPrimary(user.id, first.id);
     await expect(primaries()).resolves.toEqual([first.id]);
+  });
+
+  it('keeps the current primary when the target account is deleted while switching', async () => {
+    const user = await createUser();
+    const primary = await context.repositories.accounts.create(
+      buildAccount(user.id, { isPrimary: true }),
+    );
+    const target = await context.repositories.accounts.create(buildAccount(user.id));
+    const deleter = await openLockHolder(context.url);
+    await deleter.query('DELETE FROM mail_accounts WHERE id = $1', [target.id]);
+
+    const switching = context.repositories.accounts.update(user.id, target.id, {
+      isPrimary: true,
+    });
+    await waitForLockWaiters(context.url);
+    await deleter.commit();
+
+    await expect(switching).resolves.toBeNull();
+    await expect(
+      context.repositories.accounts.findById(user.id, primary.id),
+    ).resolves.toMatchObject({ isPrimary: true });
   });
 
   it('updates fields and status', async () => {

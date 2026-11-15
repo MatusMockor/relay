@@ -8,7 +8,16 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import { sql } from 'drizzle-orm';
-import { customType, index, integer, jsonb, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
+import {
+  customType,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { mailAccounts } from './accounts';
 import { timestampTz } from './columns';
 import { messages } from './messages';
@@ -88,6 +97,6 @@ export const draftAttachments = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.draftId, table.attachmentId] }),
-    index('draft_attachments_attachment_idx').on(table.attachmentId),
+    uniqueIndex('draft_attachments_attachment_unique').on(table.attachmentId),
   ],
 );

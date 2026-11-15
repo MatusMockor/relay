@@ -11,6 +11,8 @@ export interface TestDatabase {
 export interface TestDatabaseOptions {
   readonly adminUrl?: string;
   readonly migrate?: boolean;
+  readonly name?: string;
+  readonly migrationsFolder?: string;
 }
 
 const withAdminClient = async <Result>(
@@ -36,20 +38,29 @@ export const createTestDatabase = async (
   options: TestDatabaseOptions = {},
 ): Promise<TestDatabase> => {
   const adminUrl = options.adminUrl ?? testInfra.postgres.url;
-  const name = `relay_test_${randomBytes(6).toString('hex')}`;
+  const name = options.name ?? `relay_test_${randomBytes(6).toString('hex')}`;
   await withAdminClient(adminUrl, (client) =>
     client.query(`CREATE DATABASE "${name}" TEMPLATE template0`),
   );
   const url = databaseUrlFor(adminUrl, name);
-  if (options.migrate !== false) {
-    await runMigrations({ databaseUrl: url });
-  }
-  return {
-    url,
-    drop: async () => {
-      await withAdminClient(adminUrl, (client) =>
-        client.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`),
-      );
-    },
+  const drop = async (): Promise<void> => {
+    await withAdminClient(adminUrl, (client) =>
+      client.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`),
+    );
   };
+  if (options.migrate === false) {
+    return { url, drop };
+  }
+  const failure = await runMigrations({
+    databaseUrl: url,
+    migrationsFolder: options.migrationsFolder,
+  }).then(
+    () => null,
+    (error: unknown) => (error instanceof Error ? error : new Error(String(error))),
+  );
+  if (failure !== null) {
+    await drop().catch(() => undefined);
+    return Promise.reject(failure);
+  }
+  return { url, drop };
 };

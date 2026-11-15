@@ -34,10 +34,10 @@ const hasDraft = sql`exists(
   select 1 from ${drafts} where ${drafts.inReplyToThreadId} = ${threads.id}
 )`;
 
-const hasPendingScheduledSend = sql`exists(
+const hasActiveScheduledSend = sql`exists(
   select 1 from ${scheduledSends}
   join ${drafts} on ${drafts.id} = ${scheduledSends.draftId}
-  where ${drafts.inReplyToThreadId} = ${threads.id} and ${scheduledSends.status} = 'pending'
+  where ${drafts.inReplyToThreadId} = ${threads.id} and ${scheduledSends.status} in ('pending', 'sending')
 )`;
 
 export interface FolderViewFilterInput {
@@ -56,7 +56,7 @@ const FOLDER_VIEW_FILTERS: Readonly<Record<FolderView, (input: FolderViewFilterI
   tasks: () => sql`${notTrashed} and ${hasOpenTask}`,
   sent: () => sql`${notTrashed} and ${hasSentMessage}`,
   drafts: () => sql`${notTrashed} and ${hasDraft}`,
-  scheduled: () => sql`${notTrashed} and ${hasPendingScheduledSend}`,
+  scheduled: () => sql`${notTrashed} and ${hasActiveScheduledSend}`,
 };
 
 export const folderViewFilter = (input: FolderViewFilterInput): SQL =>

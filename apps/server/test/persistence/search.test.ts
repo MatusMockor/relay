@@ -79,6 +79,12 @@ describe('full-text search in queryFolder', () => {
     await expect(search('cudzia')).resolves.toEqual([]);
   });
 
+  it('splits terms on punctuation', async () => {
+    await expect(search('faktura,oktober')).resolves.toEqual(['Faktúra za október']);
+    await expect(search('stretnutie;piatok')).resolves.toEqual(['Stretnutie v piatok']);
+    await expect(search('faktura,piatok')).resolves.toEqual([]);
+  });
+
   it('treats query syntax characters as plain text', async () => {
     await expect(search("faktura & ! | ( ) : * ' \\")).resolves.toEqual(['Faktúra za október']);
     await expect(search('!!!')).resolves.toEqual(['Stretnutie v piatok', 'Faktúra za október']);

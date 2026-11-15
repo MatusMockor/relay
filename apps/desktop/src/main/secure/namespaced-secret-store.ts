@@ -18,6 +18,10 @@ export class NamespacedSecretStore implements SecretStore {
     return this.inner.delete(this.qualify(key));
   }
 
+  replace(key: string, expected: string, next: string): Promise<boolean> {
+    return this.inner.replace(this.qualify(key), expected, next);
+  }
+
   private qualify(key: string): string {
     return `${this.namespace}/${key}`;
   }

@@ -1,6 +1,6 @@
 import type { ScheduledSendRepository } from '@relay/engine';
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, lte } from 'drizzle-orm';
+import { and, asc, eq, isNull, lt, lte, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toScheduledSend, toScheduledSendRow } from '../mappers/scheduled-send-mapper';
 import { toTimestamp } from '../mappers/timestamp';
@@ -8,6 +8,19 @@ import { assertPageLimit } from '../pagination/page-limit';
 import { scheduledSends } from '../schema';
 
 const isPending = eq(scheduledSends.status, 'pending');
+
+const isStaleSending = (staleBefore: string) =>
+  and(
+    eq(scheduledSends.status, 'sending'),
+    or(isNull(scheduledSends.claimedTs), lt(scheduledSends.claimedTs, toTimestamp(staleBefore))),
+  );
+
+const claimedBy = (scheduledSendId: ScheduledSendId, claimedAt: string) =>
+  and(
+    eq(scheduledSends.id, scheduledSendId),
+    eq(scheduledSends.status, 'sending'),
+    eq(scheduledSends.claimedTs, toTimestamp(claimedAt)),
+  );
 
 export class SqliteScheduledSendRepository implements ScheduledSendRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -55,46 +68,61 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
     });
   }
 
-  claim(scheduledSendId: ScheduledSendId): Promise<boolean> {
+  claim(scheduledSendId: ScheduledSendId, claimedAt: string): Promise<boolean> {
     return this.executor.execute(
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'sending' })
+          .set({ status: 'sending', claimedTs: toTimestamp(claimedAt) })
           .where(and(eq(scheduledSends.id, scheduledSendId), isPending))
           .run().changes > 0,
     );
   }
 
-  markSent(scheduledSendId: ScheduledSendId, sentAt: string): Promise<void> {
-    return this.executor.execute((db) => {
-      db.update(scheduledSends)
-        .set({ status: 'sent', sentAt, error: null })
-        .where(eq(scheduledSends.id, scheduledSendId))
-        .run();
-    });
-  }
-
-  markFailed(scheduledSendId: ScheduledSendId, error: string): Promise<void> {
-    return this.executor.execute((db) => {
-      db.update(scheduledSends)
-        .set({ status: 'failed', error })
-        .where(eq(scheduledSends.id, scheduledSendId))
-        .run();
-    });
-  }
-
-  cancel(userId: UserId, scheduledSendId: ScheduledSendId): Promise<boolean> {
+  releaseStaleSending(staleBefore: string): Promise<number> {
     return this.executor.execute(
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'cancelled' })
+          .set({ status: 'pending', claimedTs: null })
+          .where(isStaleSending(staleBefore))
+          .run().changes,
+    );
+  }
+
+  markSent(scheduledSendId: ScheduledSendId, sentAt: string, claimedAt: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(scheduledSends)
+          .set({ status: 'sent', sentAt, error: null, claimedTs: null })
+          .where(claimedBy(scheduledSendId, claimedAt))
+          .run().changes > 0,
+    );
+  }
+
+  markFailed(scheduledSendId: ScheduledSendId, error: string, claimedAt: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(scheduledSends)
+          .set({ status: 'failed', error, claimedTs: null })
+          .where(claimedBy(scheduledSendId, claimedAt))
+          .run().changes > 0,
+    );
+  }
+
+  cancel(userId: UserId, scheduledSendId: ScheduledSendId, staleBefore: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(scheduledSends)
+          .set({ status: 'cancelled', claimedTs: null })
           .where(
             and(
               eq(scheduledSends.userId, userId),
               eq(scheduledSends.id, scheduledSendId),
-              isPending,
+              or(isPending, isStaleSending(staleBefore)),
             ),
           )
           .run().changes > 0,

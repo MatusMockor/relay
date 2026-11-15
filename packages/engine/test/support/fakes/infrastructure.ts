@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type {
   AccountCredentials,
   AccountId,
@@ -12,7 +13,7 @@ import type {
   AttachmentStore,
   AttachmentUpload,
   Clock,
-  CredentialVault,
+  ConditionalCredentialVault,
   EventPublisher,
   IdGenerator,
   LogContext,
@@ -110,7 +111,7 @@ export class MemoryLogger implements Logger {
   }
 }
 
-export class MemoryCredentialVault implements CredentialVault {
+export class MemoryCredentialVault implements ConditionalCredentialVault {
   readonly entries = new Map<AccountId, AccountCredentials>();
 
   get(accountId: AccountId): Promise<AccountCredentials | null> {
@@ -120,6 +121,18 @@ export class MemoryCredentialVault implements CredentialVault {
   set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
     this.entries.set(accountId, credentials);
     return Promise.resolve();
+  }
+
+  setIfUnchanged(
+    accountId: AccountId,
+    expected: AccountCredentials,
+    next: AccountCredentials,
+  ): Promise<boolean> {
+    if (!isDeepStrictEqual(this.entries.get(accountId) ?? null, expected)) {
+      return Promise.resolve(false);
+    }
+    this.entries.set(accountId, next);
+    return Promise.resolve(true);
   }
 
   delete(accountId: AccountId): Promise<void> {

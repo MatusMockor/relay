@@ -2,6 +2,7 @@ import { ConflictError } from '@relay/engine';
 import type { Label } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { at, buildMessage, buildThread, newId, seedAccount, seedThread } from './support/fixtures';
+import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
 import { usePgTestContext } from './support/pg-test-context';
 
 describe('PgLabelRepository', () => {
@@ -147,6 +148,36 @@ describe('PgMessageRepository', () => {
       mailboxId: seeded.mailboxes.sent.id,
       uid: 99,
     });
+  });
+
+  it('replaces labels as a whole when another replacement holds the message', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const label = (name: string): Label => ({
+      id: newId('label'),
+      accountId: seeded.account.id,
+      name,
+      color: null,
+    });
+    const first = label('Prvý');
+    const second = label('Druhý');
+    await context.repositories.labels.upsert(first);
+    await context.repositories.labels.upsert(second);
+    const { message } = await seedThread(context.repositories, seeded);
+    const holder = await openLockHolder(context.url);
+    await holder.query('SELECT 1 FROM messages WHERE id = $1 FOR UPDATE', [message.id]);
+    await holder.query(
+      'INSERT INTO message_labels (message_id, label_id, user_id) VALUES ($1, $2, $3)',
+      [message.id, first.id, seeded.user.id],
+    );
+
+    const replacing = context.repositories.messages.updateLabels(message.id, [second.id]);
+    await waitForLockWaiters(context.url);
+    await holder.commit();
+    await replacing;
+
+    await expect(
+      context.repositories.messages.findById(seeded.user.id, message.id),
+    ).resolves.toMatchObject({ labelIds: [second.id] });
   });
 
   it('lists uids and deletes by uid returning affected threads', async () => {

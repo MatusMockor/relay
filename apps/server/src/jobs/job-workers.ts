@@ -29,6 +29,7 @@ export class JobWorkers {
   }
 
   async register(): Promise<void> {
+    await this.guard('scheduled-send-recovery', () => this.compose.recoverStaleScheduled());
     await this.queue.register(QUEUES.syncAccount, (data) => this.syncAccount(data));
     await this.queue.register(QUEUES.dueReminders, () => this.fireReminders());
     await this.queue.register(QUEUES.dueScheduledSends, () => this.sendScheduled());

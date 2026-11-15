@@ -1,7 +1,7 @@
 import type { SplitMatchSubject } from '@relay/engine';
 import type { Split, SplitId, SplitRule, UserId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { isUnsafeRegex, RuleSplitMatcher } from '../../src';
+import { isUnsafeRegex, MAX_MATCH_INPUT_LENGTH, RuleSplitMatcher } from '../../src';
 
 const split = (id: string, rules: SplitRule[], order = 0): Split => ({
   id: id as SplitId,
@@ -86,7 +86,7 @@ describe('RuleSplitMatcher', () => {
     expect(await matcher.match({ message: subject(), jira: null, splits })).toEqual(['a', 'b']);
   });
 
-  it.each(['^(a+)+$', '(a|aa)*b', '(\\w+\\s?)*$', '(x)\\1'])(
+  it.each(['^(a+)+$', '(a|aa)*b', '(\\w+\\s?)*$', '(x)\\1', '^((a+))+$', 'a+a+$'])(
     'refuses the catastrophic pattern %s without hanging',
     async (pattern) => {
       const message = subject({ subject: `${'a'.repeat(5_000)}!` });
@@ -96,6 +96,18 @@ describe('RuleSplitMatcher', () => {
       expect(await matcher.match({ message, jira: null, splits })).toEqual([]);
     },
   );
+
+  it('only matches subject patterns against the capped subject', async () => {
+    const message = subject({ subject: `${'x'.repeat(MAX_MATCH_INPUT_LENGTH)}needle` });
+    const splits = [
+      split('s', [{ type: 'subjectRegex', pattern: 'needle', caseSensitive: false }]),
+    ];
+
+    expect(await matcher.match({ message, jira: null, splits })).toEqual([]);
+    expect(
+      await matcher.match({ message: subject({ subject: 'a needle' }), jira: null, splits }),
+    ).toEqual(['s']);
+  });
 
   it('keeps ordinary patterns usable', () => {
     expect(['^faktúra', 'WEB-\\d+', '(alert|warning):', '[a-z]{2,5}'].map(isUnsafeRegex)).toEqual([

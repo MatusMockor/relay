@@ -35,6 +35,7 @@ describe('runMigrations', () => {
       'mailboxes',
       'message_labels',
       'messages',
+      'pending_work',
       'refresh_tokens',
       'reminders',
       'scheduled_sends',

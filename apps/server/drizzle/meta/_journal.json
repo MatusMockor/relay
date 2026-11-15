@@ -36,6 +36,34 @@
       "when": 1794720382566,
       "tag": "0004_ai_job_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794726275169,
+      "tag": "0005_subject_hash_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794726825020,
+      "tag": "0006_scheduled_send_claims",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794727468057,
+      "tag": "0007_unique_draft_references",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794728540654,
+      "tag": "0008_pending_work",
+      "breakpoints": true
     }
   ]
 }

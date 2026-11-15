@@ -21,8 +21,7 @@ export class MailboxReconciler {
 
   async reset(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<void> {
     const uids = await this.deps.messages.listUids(mailbox.id);
-    const threadIds = await this.deps.messages.deleteByUids(mailbox.id, uids);
-    context.changes.expunged(threadIds, role);
+    await this.expunge(context, mailbox, role, uids);
     await this.deps.syncStates.delete(mailbox.id);
   }
 
@@ -33,8 +32,19 @@ export class MailboxReconciler {
     if (missing.length === 0) {
       return;
     }
-    const threadIds = await this.deps.messages.deleteByUids(mailbox.id, missing);
-    context.changes.expunged(threadIds, role);
+    await this.expunge(context, mailbox, role, missing);
+  }
+
+  private expunge(
+    context: SyncContext,
+    mailbox: Mailbox,
+    role: MailboxRole,
+    uids: readonly number[],
+  ): Promise<void> {
+    return this.deps.unitOfWork.run(async (repositories) => {
+      const threadIds = await repositories.messages.deleteByUids(mailbox.id, uids);
+      await context.journal.expunged(repositories.pendingWork, threadIds, role);
+    });
   }
 
   async flagChanges(
@@ -56,7 +66,7 @@ export class MailboxReconciler {
       if (message === null) {
         continue;
       }
-      const changed = await this.deps.unitOfWork.run(async (repositories) => {
+      await this.deps.unitOfWork.run(async (repositories) => {
         const labelIds = await this.deps.keywordLabels.resolve(
           repositories.labels,
           context.account.id,
@@ -71,11 +81,10 @@ export class MailboxReconciler {
         if (labelsChanged) {
           await repositories.messages.updateLabels(message.id, labelIds);
         }
-        return flagsChanged || labelsChanged;
+        if (flagsChanged || labelsChanged) {
+          await context.journal.touched(repositories.pendingWork, message.threadId);
+        }
       });
-      if (changed) {
-        context.changes.touched(message.threadId);
-      }
     }
   }
 }

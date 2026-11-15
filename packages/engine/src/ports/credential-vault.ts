@@ -5,3 +5,11 @@ export interface CredentialVault {
   set(accountId: AccountId, credentials: AccountCredentials): Promise<void>;
   delete(accountId: AccountId): Promise<void>;
 }
+
+export interface ConditionalCredentialVault extends CredentialVault {
+  setIfUnchanged(
+    accountId: AccountId,
+    expected: AccountCredentials,
+    next: AccountCredentials,
+  ): Promise<boolean>;
+}

@@ -18,6 +18,7 @@ const REPOSITORY_TOKENS = {
   aiResults: PORT_TOKENS.AiResultRepository,
   aiJobs: PORT_TOKENS.AiJobRepository,
   syncStates: PORT_TOKENS.SyncStateRepository,
+  pendingWork: PORT_TOKENS.PendingWorkRepository,
 } as const satisfies Record<keyof Repositories, symbol>;
 
 const KEYS = Object.keys(REPOSITORY_TOKENS) as (keyof Repositories)[];
