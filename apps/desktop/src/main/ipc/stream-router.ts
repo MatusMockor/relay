@@ -26,17 +26,18 @@ type StartResult = IpcResult<{ ok: true }>;
 
 interface ActiveStream {
   readonly streamId: string;
+  readonly ownerId: string;
   readonly channel: IpcStreamChannel;
   readonly controller: AbortController;
   readonly sink: IpcStreamSink;
 }
 
 export class IpcStreamRouter {
-  private readonly active = new Map<string, AbortController>();
+  private readonly active = new Map<string, ActiveStream>();
 
   constructor(private readonly handlers: IpcStreamHandlers) {}
 
-  start(envelope: unknown, sink: IpcStreamSink): StartResult {
+  start(envelope: unknown, sink: IpcStreamSink, ownerId = 'default'): StartResult {
     const parsed = IpcStreamStartEnvelopeSchema.safeParse(envelope);
     if (!parsed.success) {
       return {
@@ -64,12 +65,15 @@ export class IpcStreamRouter {
       const message = `Invalid input for "${channel}"`;
       return { ok: false, error: { code: 'validation_failed', message } };
     }
-    const controller = new AbortController();
-    this.active.set(streamId, controller);
-    void this.pump(
-      { streamId, channel, controller, sink },
-      handler(parsedInput.data, controller.signal),
-    );
+    const stream: ActiveStream = {
+      streamId,
+      ownerId,
+      channel,
+      controller: new AbortController(),
+      sink,
+    };
+    this.active.set(streamId, stream);
+    void this.pump(stream, () => handler(parsedInput.data, stream.controller.signal));
     return { ok: true, data: { ok: true } };
   }
 
@@ -78,20 +82,29 @@ export class IpcStreamRouter {
     if (!parsed.success) {
       return;
     }
-    this.active.get(parsed.data.streamId)?.abort();
+    this.active.get(parsed.data.streamId)?.controller.abort();
   }
 
-  cancelAll(): void {
-    this.active.forEach((controller) => {
-      controller.abort();
+  cancelOwner(ownerId: string): void {
+    this.active.forEach((stream) => {
+      if (stream.ownerId !== ownerId) {
+        return;
+      }
+      stream.controller.abort();
     });
   }
 
-  private async pump(stream: ActiveStream, events: AsyncIterable<unknown>): Promise<void> {
+  cancelAll(): void {
+    this.active.forEach((stream) => {
+      stream.controller.abort();
+    });
+  }
+
+  private async pump(stream: ActiveStream, open: () => AsyncIterable<unknown>): Promise<void> {
     const { streamId, channel, controller, sink } = stream;
     const eventSchema = ipcStreamChannels[channel].event;
     try {
-      for await (const event of events) {
+      for await (const event of open()) {
         if (controller.signal.aborted) {
           break;
         }

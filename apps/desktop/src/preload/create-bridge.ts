@@ -1,3 +1,4 @@
+import type { ApiErrorBody } from '@relay/shared/api';
 import {
   IPC_INVOKE,
   IPC_STREAM_CANCEL,
@@ -17,6 +18,10 @@ export interface IpcRendererPort {
 }
 
 type AnyHandlers = IpcStreamHandlers<unknown>;
+
+const transportError: ApiErrorBody = { code: 'internal', message: 'IPC transport failed' };
+
+const transportFailure = (): IpcResult<never> => ({ ok: false, error: transportError });
 
 export const createRelayBridge = (ipc: IpcRendererPort, newStreamId: () => string): RelayBridge => {
   const streams = new Map<string, AnyHandlers>();
@@ -44,25 +49,26 @@ export const createRelayBridge = (ipc: IpcRendererPort, newStreamId: () => strin
   });
 
   const invoke = (channel: string, input: unknown) =>
-    ipc.invoke(IPC_INVOKE, { channel, input }) as Promise<IpcResult<never>>;
+    (ipc.invoke(IPC_INVOKE, { channel, input }) as Promise<IpcResult<never>>).catch(
+      transportFailure,
+    );
 
   const subscribe = (channel: string, handlers: AnyHandlers, input: unknown) => {
     const streamId = newStreamId();
     streams.set(streamId, handlers);
-    void (
-      ipc.invoke(IPC_STREAM_START, { streamId, channel, input }) as Promise<IpcResult<unknown>>
-    ).then((result) => {
-      if (result.ok) {
-        return;
-      }
-      streams.delete(streamId);
-      handlers.onError?.(result.error);
-    });
+    void (ipc.invoke(IPC_STREAM_START, { streamId, channel, input }) as Promise<IpcResult<unknown>>)
+      .catch(transportFailure)
+      .then((result) => {
+        if (result.ok || !streams.delete(streamId)) {
+          return;
+        }
+        handlers.onError?.(result.error);
+      });
     return () => {
       if (!streams.delete(streamId)) {
         return;
       }
-      void ipc.invoke(IPC_STREAM_CANCEL, { streamId });
+      ipc.invoke(IPC_STREAM_CANCEL, { streamId }).catch(() => undefined);
     };
   };
 
