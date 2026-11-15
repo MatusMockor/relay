@@ -1,32 +1,7 @@
-import type { DraftContent } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { deliverMail, present, seedAccount } from '../support/fixtures';
-import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
-
-const PETER = { name: 'Peter Kral', email: 'peter@partner.test' };
-
-const setup = async (engine: TestEngine) => {
-  const seeded = await seedAccount(engine);
-  deliverMail(seeded.server, 'INBOX', { id: 'm1', subject: 'Offer' });
-  await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
-  const thread = present(
-    (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 50 })).items[0],
-  );
-  const [message] = await engine.repositories.messages.listByThread(USER_ID, thread.id);
-  const reply: DraftContent = {
-    accountId: seeded.account.id,
-    to: [PETER],
-    cc: [],
-    bcc: [],
-    subject: 'Re: Offer',
-    body: 'Sounds good',
-    inReplyToThreadId: thread.id,
-    inReplyToMessageId: present(message).id,
-    attachments: [],
-  };
-  engine.events.clear();
-  return { ...seeded, thread, reply };
-};
+import { setupReply as setup } from '../support/compose-setup';
+import { present } from '../support/fixtures';
+import { createTestEngine, USER_ID } from '../support/test-engine';
 
 describe('ComposeService', () => {
   it('tracks reply drafts on the thread', async () => {

@@ -12,4 +12,5 @@ export interface DraftRepository {
     updatedAt: string,
   ): Promise<Draft | null>;
   delete(userId: UserId, draftId: DraftId): Promise<boolean>;
+  deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean>;
 }

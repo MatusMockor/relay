@@ -1,14 +1,16 @@
-import type { Mailbox, MailboxRole } from '@relay/shared/domain';
+import type { Mailbox } from '@relay/shared/domain';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { SyncContext } from './sync-context';
 
 export interface MailboxRefresherDeps {
   readonly mailboxes: MailboxRepository;
   readonly messages: MessageRepository;
   readonly syncStates: SyncStateRepository;
+  readonly unitOfWork: UnitOfWork;
   readonly ids: IdGenerator;
 }
 
@@ -63,9 +65,10 @@ export class MailboxRefresher {
 
   private async forget(context: SyncContext, mailbox: Mailbox): Promise<void> {
     const uids = await this.deps.messages.listUids(mailbox.id);
-    const threadIds = await this.deps.messages.deleteByUids(mailbox.id, uids);
-    const role: MailboxRole = mailbox.role;
-    context.changes.expunged(threadIds, role);
+    await this.deps.unitOfWork.run(async (repositories) => {
+      const threadIds = await repositories.messages.deleteByUids(mailbox.id, uids);
+      await context.journal.expunged(repositories.pendingWork, threadIds, mailbox.role);
+    });
     await this.deps.syncStates.delete(mailbox.id);
   }
 }

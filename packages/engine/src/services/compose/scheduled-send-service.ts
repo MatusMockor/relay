@@ -4,20 +4,20 @@ import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { ScheduledSendRepository } from '../../ports/scheduled-send-repository';
 import type { EngineEvents } from '../shared/engine-events';
-import { errorMessage } from '../shared/mail-provider-sessions';
 import type { DraftService } from './draft-service';
-import type { SendService } from './send-service';
+import type { ScheduledSendDelivery } from './scheduled-send-delivery';
 
 export interface ScheduledSendServiceDeps {
   readonly scheduledSends: ScheduledSendRepository;
   readonly drafts: DraftService;
-  readonly sending: SendService;
+  readonly delivery: ScheduledSendDelivery;
   readonly events: EngineEvents;
   readonly clock: Clock;
   readonly ids: IdGenerator;
 }
 
 export const DEFAULT_SCHEDULED_SEND_BATCH = 50;
+export const SCHEDULED_SEND_LEASE_MS = 600_000;
 
 export class ScheduledSendService {
   constructor(private readonly deps: ScheduledSendServiceDeps) {}
@@ -32,7 +32,7 @@ export class ScheduledSendService {
       throw new ValidationError('Scheduled time must be in the future');
     }
     const draft = await this.deps.drafts.require(userId, draftId);
-    const scheduledSend = await this.deps.scheduledSends.create({
+    const scheduledSend = await this.create({
       id: this.deps.ids.generate('scheduledSend'),
       userId,
       accountId: draft.accountId,
@@ -48,7 +48,11 @@ export class ScheduledSendService {
   }
 
   async cancel(userId: UserId, scheduledSendId: ScheduledSendId): Promise<void> {
-    const cancelled = await this.deps.scheduledSends.cancel(userId, scheduledSendId);
+    const cancelled = await this.deps.scheduledSends.cancel(
+      userId,
+      scheduledSendId,
+      this.staleBefore(),
+    );
     const current = await this.deps.scheduledSends.findById(userId, scheduledSendId);
     if (current === null) {
       throw new NotFoundError('Scheduled send', scheduledSendId);
@@ -59,14 +63,20 @@ export class ScheduledSendService {
     await this.deps.events.emit(userId, 'scheduledSend.upserted', { scheduledSend: current });
   }
 
+  recoverStale(): Promise<number> {
+    return this.deps.scheduledSends.releaseStaleSending(this.staleBefore());
+  }
+
   async sendDue(limit = DEFAULT_SCHEDULED_SEND_BATCH): Promise<ScheduledSend[]> {
+    await this.recoverStale();
     const due = await this.deps.scheduledSends.listDue(this.deps.clock.now().toISOString(), limit);
     const processed: ScheduledSend[] = [];
     for (const item of due) {
-      if (!(await this.deps.scheduledSends.claim(item.id))) {
+      const claimedAt = this.deps.clock.now().toISOString();
+      if (!(await this.deps.scheduledSends.claim(item.id, claimedAt))) {
         continue;
       }
-      await this.deliver(item);
+      await this.deps.delivery.deliver(item, claimedAt);
       const current = await this.deps.scheduledSends.findById(item.userId, item.id);
       if (current !== null) {
         await this.deps.events.emit(item.userId, 'scheduledSend.upserted', {
@@ -78,13 +88,16 @@ export class ScheduledSendService {
     return processed;
   }
 
-  private async deliver(item: ScheduledSend): Promise<void> {
-    try {
-      const draft = await this.deps.drafts.require(item.userId, item.draftId);
-      await this.deps.sending.sendNow(item.userId, draft, draft.id);
-      await this.deps.scheduledSends.markSent(item.id, this.deps.clock.now().toISOString());
-    } catch (error) {
-      await this.deps.scheduledSends.markFailed(item.id, errorMessage(error));
-    }
+  private create(scheduledSend: ScheduledSend): Promise<ScheduledSend> {
+    return this.deps.scheduledSends.create(scheduledSend).catch((error: unknown) => {
+      if (error instanceof ConflictError) {
+        throw new ConflictError('The draft already has a scheduled send', { cause: error });
+      }
+      throw error;
+    });
+  }
+
+  private staleBefore(): string {
+    return new Date(this.deps.clock.now().getTime() - SCHEDULED_SEND_LEASE_MS).toISOString();
   }
 }
