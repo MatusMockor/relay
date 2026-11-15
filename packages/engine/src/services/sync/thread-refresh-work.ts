@@ -45,7 +45,8 @@ const resolveState = (
   messages: readonly Message[],
   inboxIds: ReadonlySet<MailboxId>,
 ): ThreadState => {
-  if (work.arrivedIn.includes('inbox')) {
+  const stillInInbox = messages.some((message) => inboxIds.has(message.mailboxId));
+  if (work.arrivedIn.includes('inbox') && stillInInbox) {
     return 'inbox';
   }
   if (existing === null) {
@@ -53,7 +54,6 @@ const resolveState = (
       ? 'trash'
       : 'done';
   }
-  const stillInInbox = messages.some((message) => inboxIds.has(message.mailboxId));
   if (work.expungedFromInbox && existing.state === 'inbox' && !stillInInbox) {
     return 'done';
   }

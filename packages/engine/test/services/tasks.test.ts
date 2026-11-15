@@ -1,6 +1,7 @@
 import type { ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
+import { MemoryTaskRepository } from '../support/memory/memory-task-repository';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
 describe('TaskService', () => {
@@ -90,5 +91,56 @@ describe('TaskService', () => {
       title: 'Opraviť prihlásenie',
       state: 'open',
     });
+  });
+
+  it('keeps a task the user closed when a Jira event does not reopen it', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', {
+      id: 'j1',
+      from: { name: 'Jira', email: 'jira@company.test' },
+      subject: '[REL-3] Fix login',
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const task = present((await engine.services.tasks.list(USER_ID, { limit: 5 })).items[0]);
+    const tasks = engine.repositories.tasks;
+    expect(tasks).toBeInstanceOf(MemoryTaskRepository);
+    (tasks as MemoryTaskRepository).beforeUpdate = () => {
+      engine.db.tables.tasks.set(task.id, { ...task, state: 'done' });
+    };
+
+    await engine.services.tasks.applyJiraEvent(USER_ID, {
+      threadId: present(task.threadId),
+      classification: { jiraKey: 'REL-3', eventKind: 'status', actor: null },
+      title: '[REL-3] Fix login',
+    });
+
+    expect(await engine.repositories.tasks.findById(USER_ID, task.id)).toMatchObject({
+      state: 'done',
+    });
+  });
+
+  it('creates one task when two events of a new Jira issue arrive together', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'm1' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 5 })).items[0],
+    );
+    const event = {
+      threadId: thread.id,
+      classification: { jiraKey: 'REL-9', eventKind: 'other', actor: null },
+      title: '[REL-9] Export',
+    } as const;
+
+    const [first, second] = await Promise.all([
+      engine.services.tasks.applyJiraEvent(USER_ID, event),
+      engine.services.tasks.applyJiraEvent(USER_ID, event),
+    ]);
+
+    expect(second.id).toBe(first.id);
+    const page = await engine.services.tasks.list(USER_ID, { limit: 50 });
+    expect(page.items.map((task) => task.jiraKey)).toEqual(['REL-9']);
   });
 });

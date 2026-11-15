@@ -35,3 +35,29 @@ export class NotImplementedError extends EngineError {
     super('not_implemented', `${feature} is not implemented`, options);
   }
 }
+
+export class PartialMoveError extends ProviderError {
+  constructor(
+    readonly sourcePath: string,
+    readonly targetPath: string,
+    readonly uidMap: ReadonlyMap<number, number>,
+    options?: ErrorOptions,
+  ) {
+    super(
+      `IMAP move from ${sourcePath} to ${targetPath} failed after the messages were copied and the copies could not be rolled back`,
+      options,
+    );
+  }
+}
+
+export class UidValidityChangedError extends ProviderError {
+  constructor(
+    readonly mailboxPath: string,
+    readonly expected: number,
+    readonly actual: number,
+  ) {
+    super(
+      `UIDVALIDITY of ${mailboxPath} changed from ${String(expected)} to ${String(actual)}, the sync cursor is stale`,
+    );
+  }
+}

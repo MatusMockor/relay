@@ -68,9 +68,29 @@ export class AccountRegistration {
     try {
       await this.deps.vault.set(created.id, input.credentials);
     } catch (error) {
-      await this.deps.accounts.delete(userId, created.id);
+      await this.rollback(userId, created, existing);
       throw error;
     }
     return created;
+  }
+
+  private async rollback(
+    userId: UserId,
+    created: MailAccount,
+    existing: readonly MailAccount[],
+  ): Promise<void> {
+    await this.deps.accounts.delete(userId, created.id);
+    const previous = existing.find((candidate) => candidate.isPrimary);
+    if (!created.isPrimary || previous === undefined) {
+      return;
+    }
+    const remaining = await this.deps.accounts.listByUser(userId);
+    if (
+      remaining.some((account) => account.isPrimary) ||
+      !remaining.some((account) => account.id === previous.id)
+    ) {
+      return;
+    }
+    await this.deps.accounts.setPrimary(userId, previous.id);
   }
 }

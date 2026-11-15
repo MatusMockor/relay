@@ -13,5 +13,6 @@ export interface PendingWorkRepository {
     accountId: AccountId,
     kind: Kind,
   ): Promise<PendingWork<Kind>[]>;
+  listByKind<Kind extends PendingWorkKind>(kind: Kind): Promise<PendingWork<Kind>[]>;
   remove(works: readonly PendingWork[]): Promise<void>;
 }

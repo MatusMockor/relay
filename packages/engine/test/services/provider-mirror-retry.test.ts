@@ -94,4 +94,22 @@ describe('mirroring thread actions that the provider rejected', () => {
     const current = await engine.repositories.threads.findById(USER_ID, thread.id);
     expect(current?.state).toBe('inbox');
   });
+
+  it('keeps the copies of a move whose source could not be removed and never copies again', async () => {
+    const engine = createTestEngine();
+    const { server, thread, account } = await syncedThread(engine);
+    server.partialMoves = true;
+
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'done' });
+    server.partialMoves = false;
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(remoteUids(server, 'Archive')).toHaveLength(1);
+    expect(pendingOps(engine)).toEqual([]);
+    const [message] = await engine.repositories.messages.listByThread(USER_ID, thread.id);
+    const archive = present(await engine.repositories.mailboxes.findByRole(account.id, 'archive'));
+    expect(message).toMatchObject({ mailboxId: archive.id, uid: remoteUids(server, 'Archive')[0] });
+    expect(engine.db.tables.messages.size).toBe(1);
+  });
 });

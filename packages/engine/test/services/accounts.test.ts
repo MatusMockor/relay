@@ -74,6 +74,46 @@ describe('AccountService', () => {
     ).rejects.toMatchObject({ code: 'conflict' });
   });
 
+  it('keeps the previous primary account when storing credentials fails', async () => {
+    const engine = createTestEngine();
+    withServer(engine, 'alice@example.com');
+    withServer(engine, 'alice@work.test');
+    const first = await engine.services.accounts.create(USER_ID, imapBody('alice@example.com'));
+    engine.events.clear();
+    engine.vault.failSet = 'keychain locked';
+
+    await expect(
+      engine.services.accounts.create(USER_ID, { ...imapBody('alice@work.test'), isPrimary: true }),
+    ).rejects.toThrow('keychain locked');
+
+    const accounts = await engine.services.accounts.list(USER_ID);
+    expect(accounts.map((account) => [account.id, account.isPrimary])).toEqual([[first.id, true]]);
+    expect(engine.vault.entries.size).toBe(1);
+    expect(engine.events.ofType('account.upserted')).toEqual([]);
+  });
+
+  it('keeps a primary account chosen while the failing registration was in flight', async () => {
+    const engine = createTestEngine();
+    withServer(engine, 'alice@example.com');
+    withServer(engine, 'alice@home.test');
+    withServer(engine, 'alice@work.test');
+    const first = await engine.services.accounts.create(USER_ID, imapBody('alice@example.com'));
+    const home = await engine.services.accounts.create(USER_ID, imapBody('alice@home.test'));
+    engine.vault.failSet = 'keychain locked';
+    engine.vault.beforeSet = () =>
+      engine.services.accounts.update(USER_ID, home.id, { isPrimary: true }).then(() => undefined);
+
+    await expect(
+      engine.services.accounts.create(USER_ID, { ...imapBody('alice@work.test'), isPrimary: true }),
+    ).rejects.toThrow('keychain locked');
+
+    const accounts = await engine.services.accounts.list(USER_ID);
+    expect(accounts.map((account) => [account.id, account.isPrimary])).toEqual([
+      [first.id, false],
+      [home.id, true],
+    ]);
+  });
+
   it('refuses accounts whose connection test fails', async () => {
     const engine = createTestEngine();
     withServer(engine, 'alice@example.com');
