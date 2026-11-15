@@ -1,6 +1,6 @@
 import type {
   Clock,
-  CredentialVault,
+  ConditionalCredentialVault,
   IdGenerator,
   JiraClassifier,
   MailProviderFactory,
@@ -24,7 +24,7 @@ import type { GoogleClientConfigSource } from '../oauth/google-client-config-sou
 import { LazyGoogleTokenRefresher } from '../oauth/lazy-google-token-refresher';
 
 export interface MailAdaptersInput {
-  readonly vault: CredentialVault;
+  readonly vault: ConditionalCredentialVault;
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly messages: MessageRepository;
