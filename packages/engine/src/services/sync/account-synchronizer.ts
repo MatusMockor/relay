@@ -1,4 +1,5 @@
 import type { AccountId, MailAccount, Mailbox, MailboxRole, UserId } from '@relay/shared/domain';
+import { UidValidityChangedError } from '../../errors';
 import type { PendingWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
@@ -8,7 +9,7 @@ import type { SplitRepository } from '../../ports/split-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
 import type { MailboxRefresher } from './mailbox-refresher';
-import type { MailboxSynchronizer } from './mailbox-synchronizer';
+import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync-arrivals';
 import type { SyncContext, SyncStats } from './sync-context';
 import type { SyncOptions } from './sync-options';
@@ -122,13 +123,35 @@ export class AccountSynchronizer {
     });
     const passes = [];
     for (const [mailbox, role] of selected) {
-      passes.push(await this.deps.mailboxSync.fetch(context, mailbox, role));
+      const pass = await this.fetchPass(context, mailbox, role);
+      if (pass !== null) {
+        passes.push(pass);
+      }
     }
     for (const pass of passes) {
       await this.deps.mailboxSync.reconcile(context, pass);
     }
     await this.deps.flusher.flush(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
+  }
+
+  private async fetchPass(
+    context: SyncContext,
+    mailbox: Mailbox,
+    role: MailboxRole,
+  ): Promise<MailboxPass | null> {
+    try {
+      return await this.deps.mailboxSync.fetch(context, mailbox, role);
+    } catch (error) {
+      if (!(error instanceof UidValidityChangedError)) {
+        throw error;
+      }
+      this.deps.logger.warn('Mailbox UIDVALIDITY changed during the sync, retrying next time', {
+        accountId: context.account.id,
+        mailboxId: mailbox.id,
+      });
+      return null;
+    }
   }
 
   private select(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {
