@@ -1,4 +1,4 @@
-import type { FactoryProvider, Provider } from '@nestjs/common';
+import { type FactoryProvider, Logger, type Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PORT_TOKENS } from '@relay/engine';
 import { SERVER_PORT_TOKENS } from '../core/tokens';
@@ -19,6 +19,8 @@ import { createPgRepositories } from './repositories/create-pg-repositories';
 import { PgMessageAttachmentLookup } from './repositories/messages/pg-message-attachment-lookup';
 import type { ServerRepositories } from '../core/ports/server-unit-of-work';
 import { PgUnitOfWork } from './unit-of-work/pg-unit-of-work';
+
+const idleClientLogger = new Logger('Postgres');
 
 export const configProviderFrom = (config: PersistenceConfig | undefined): Provider => {
   if (config !== undefined) {
@@ -51,6 +53,9 @@ const connectionProvider: FactoryProvider<PostgresConnection> = {
     return openPostgresConnection({
       url: config.databaseUrl,
       maxConnections: config.maxConnections,
+      onIdleClientError: (error) => {
+        idleClientLogger.warn(`Idle Postgres client failed: ${error.message}`);
+      },
     });
   },
 };
