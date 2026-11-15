@@ -2,12 +2,12 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ReminderScheduler } from '../reminders/reminder-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import { LabelHandler } from './handlers/label-handler';
 import { ReadStateHandler } from './handlers/read-state-handler';
 import { StateMoveHandler } from './handlers/state-move-handler';
 import { MessageActionsService } from './message-actions-service';
 import { ProviderMirror } from './provider-mirror';
+import type { ProviderOpReplayer } from './provider-op-replayer';
 
 export const createMessageActionsService = (
   deps: EngineDeps,
@@ -15,13 +15,13 @@ export const createMessageActionsService = (
     readonly events: EngineEvents;
     readonly sessions: MailProviderSessions;
     readonly reminders: ReminderScheduler;
-    readonly roleMailboxes: RoleMailboxEnsurer;
+    readonly replayer: ProviderOpReplayer;
   },
 ): MessageActionsService => {
-  const { repositories, unitOfWork, logger } = deps;
+  const { repositories, unitOfWork, logger, clock } = deps;
   const mirror = new ProviderMirror({
-    mailboxes: repositories.mailboxes,
     sessions: shared.sessions,
+    replayer: shared.replayer,
     logger,
   });
   return new MessageActionsService({
@@ -29,15 +29,14 @@ export const createMessageActionsService = (
     messages: repositories.messages,
     accounts: repositories.accounts,
     stateMoves: new StateMoveHandler({
-      threads: repositories.threads,
-      messages: repositories.messages,
       mailboxes: repositories.mailboxes,
+      pendingWork: repositories.pendingWork,
+      unitOfWork,
       mirror,
-      roleMailboxes: shared.roleMailboxes,
-      logger,
+      clock,
     }),
-    readState: new ReadStateHandler({ unitOfWork, mirror }),
-    labels: new LabelHandler({ labels: repositories.labels, unitOfWork, mirror }),
+    readState: new ReadStateHandler({ unitOfWork, mirror, clock }),
+    labels: new LabelHandler({ labels: repositories.labels, unitOfWork, mirror, clock }),
     reminders: shared.reminders,
     events: shared.events,
   });

@@ -64,4 +64,31 @@ describe('TaskService', () => {
       engine.services.tasks.update('user_bob' as typeof USER_ID, task.id, { state: 'done' }),
     ).rejects.toMatchObject({ code: 'not_found' });
   });
+
+  it('keeps a title edited while a Jira event updates the task', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', {
+      id: 'j1',
+      from: { name: 'Jira', email: 'jira@company.test' },
+      subject: '[REL-3] Fix login',
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const task = present((await engine.services.tasks.list(USER_ID, { limit: 5 })).items[0]);
+    await engine.services.tasks.update(USER_ID, task.id, { state: 'done' });
+
+    await Promise.all([
+      engine.services.tasks.applyJiraEvent(USER_ID, {
+        threadId: present(task.threadId),
+        classification: { jiraKey: 'REL-3', eventKind: 'comment', actor: null },
+        title: '[REL-3] Fix login',
+      }),
+      engine.services.tasks.update(USER_ID, task.id, { title: 'Opraviť prihlásenie' }),
+    ]);
+
+    expect(await engine.repositories.tasks.findById(USER_ID, task.id)).toMatchObject({
+      title: 'Opraviť prihlásenie',
+      state: 'open',
+    });
+  });
 });

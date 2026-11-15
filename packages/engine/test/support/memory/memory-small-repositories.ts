@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type {
   AccountId,
   AiJob,
@@ -37,6 +38,18 @@ export class MemorySettingsRepository implements SettingsRepository {
   save(userId: UserId, settings: UserSettings): Promise<UserSettings> {
     this.db.tables.settings.set(userId, settings);
     return Promise.resolve(settings);
+  }
+
+  saveIfUnchanged(
+    userId: UserId,
+    expected: UserSettings | null,
+    next: UserSettings,
+  ): Promise<boolean> {
+    if (!isDeepStrictEqual(this.db.tables.settings.get(userId) ?? null, expected)) {
+      return Promise.resolve(false);
+    }
+    this.db.tables.settings.set(userId, next);
+    return Promise.resolve(true);
   }
 }
 
@@ -88,8 +101,6 @@ const sourceOf = (job: AiJob): string | null =>
   'sourceMessageId' in job.input ? (job.input.sourceMessageId ?? null) : null;
 
 export class MemoryAiJobRepository implements AiJobRepository {
-  private readonly unindexed = new Set<AiJobId>();
-
   constructor(private readonly db: MemoryDatabase) {}
 
   findById(userId: UserId, jobId: AiJobId): Promise<AiJob | null> {
@@ -100,7 +111,7 @@ export class MemoryAiJobRepository implements AiJobRepository {
   create(job: AiJob, claim?: AiJobClaim): Promise<AiJob> {
     this.db.tables.aiJobs.set(job.id, job);
     if (claim !== undefined) {
-      this.unindexed.add(job.id);
+      this.db.tables.unindexedAiJobs.add(job.id);
       this.db.tables.aiJobLeases.set(job.id, { owner: claim.owner, leaseUntil: claim.leaseUntil });
     }
     return Promise.resolve(job);
@@ -137,7 +148,7 @@ export class MemoryAiJobRepository implements AiJobRepository {
     const active = [...this.db.tables.aiJobs.values()].find(
       (existing) =>
         source !== null &&
-        !this.unindexed.has(existing.id) &&
+        !this.db.tables.unindexedAiJobs.has(existing.id) &&
         existing.userId === job.userId &&
         existing.kind === job.kind &&
         ACTIVE_STATUSES.includes(existing.status) &&
@@ -221,6 +232,8 @@ export class MemoryAiJobRepository implements AiJobRepository {
 }
 
 export class MemorySyncStateRepository implements SyncStateRepository {
+  failSaveFor: MailboxId | null = null;
+
   constructor(private readonly db: MemoryDatabase) {}
 
   find(mailboxId: MailboxId): Promise<MailboxSyncState | null> {
@@ -234,6 +247,9 @@ export class MemorySyncStateRepository implements SyncStateRepository {
   }
 
   save(state: MailboxSyncState): Promise<void> {
+    if (state.mailboxId === this.failSaveFor) {
+      return Promise.reject(new Error('disk full'));
+    }
     this.db.tables.syncStates.set(state.mailboxId, state);
     return Promise.resolve();
   }

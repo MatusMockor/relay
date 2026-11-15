@@ -18,6 +18,7 @@ import type { MailboxRepository } from './ports/mailbox-repository';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
 import type { MessageParser } from './ports/message-parser';
 import type { MessageRepository } from './ports/message-repository';
+import type { PendingWorkRepository } from './ports/pending-work-repository';
 import type { ReminderRepository } from './ports/reminder-repository';
 import type { ScheduledSendRepository } from './ports/scheduled-send-repository';
 import type { SettingsRepository } from './ports/settings-repository';
@@ -45,6 +46,7 @@ export const PORT_TOKENS = {
   AiResultRepository: Symbol.for('relay.engine.AiResultRepository'),
   AiJobRepository: Symbol.for('relay.engine.AiJobRepository'),
   SyncStateRepository: Symbol.for('relay.engine.SyncStateRepository'),
+  PendingWorkRepository: Symbol.for('relay.engine.PendingWorkRepository'),
   MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
@@ -79,6 +81,7 @@ export interface PortRegistry {
   AiResultRepository: AiResultRepository;
   AiJobRepository: AiJobRepository;
   SyncStateRepository: SyncStateRepository;
+  PendingWorkRepository: PendingWorkRepository;
   MessageAttachmentLookup: MessageAttachmentLookup;
   UnitOfWork: UnitOfWork;
   MailProviderFactory: MailProviderFactory;

@@ -17,6 +17,7 @@ export interface ThreadRepository {
     threadId: ThreadId,
     change: ThreadStateChange,
   ): Promise<ThreadSummary | null>;
+  setHasDraft(userId: UserId, threadId: ThreadId, hasDraft: boolean): Promise<ThreadSummary | null>;
   setAiOneLiner(threadId: ThreadId, oneLiner: string | null): Promise<void>;
   delete(threadId: ThreadId): Promise<void>;
 }

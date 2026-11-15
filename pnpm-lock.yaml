@@ -325,6 +325,9 @@ importers:
 
   packages/mail-core:
     dependencies:
+      '@eslint-community/regexpp':
+        specifier: 4.12.3
+        version: 4.12.3
       '@relay/engine':
         specifier: workspace:*
         version: link:../engine
