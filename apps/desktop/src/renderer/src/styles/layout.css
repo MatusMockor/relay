@@ -1,0 +1,373 @@
+.app {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.a-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  container: main / inline-size;
+}
+.a-top {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 18px 32px 14px;
+  min-height: 62px;
+}
+.a-tabs {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.a-tabs::-webkit-scrollbar {
+  display: none;
+}
+.a-tab {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--faint);
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+  position: relative;
+  padding-bottom: 8px;
+  flex: none;
+  white-space: nowrap;
+}
+.a-tab:hover {
+  color: var(--muted);
+}
+.a-tab b {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--faint);
+}
+.a-tab.on {
+  color: var(--fg);
+}
+.a-tab.on b {
+  color: var(--accent);
+}
+.a-tab.on::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--fg);
+}
+.a-top .right {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  flex: none;
+}
+.srch {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 2px;
+  border-radius: 7px;
+}
+.srch:hover {
+  color: var(--fg2);
+}
+.qbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 290px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.qbox input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: 0;
+  color: var(--fg);
+  font-size: 13.5px;
+}
+.qbox input::placeholder {
+  color: var(--muted);
+}
+.me-btn {
+  border-radius: 50%;
+}
+.me-btn:hover .av {
+  box-shadow: 0 0 0 2px var(--line);
+}
+.a-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+.a-title h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+.a-title h2 .ico {
+  color: var(--muted);
+}
+.a-title h2 b {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.a-title .sub {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.lt-btn {
+  margin-right: -14px;
+}
+.fold {
+  flex: none;
+  width: 214px;
+  background: var(--panel);
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px 12px;
+  gap: 2px;
+  overflow: auto;
+  container: fold / inline-size;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.fold .compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 9px;
+  background: var(--raised);
+  color: var(--fg);
+  font-weight: 500;
+  width: 100%;
+}
+.fold .compose:hover {
+  background: var(--hover);
+}
+.fold .compose .kbd {
+  margin-left: auto;
+}
+.f {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--fg2);
+  font-size: 13.5px;
+  width: 100%;
+}
+.f:hover {
+  background: var(--hover);
+}
+.f.on {
+  background: var(--sel);
+  color: var(--fg);
+  font-weight: 600;
+}
+.f .fl {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f .n {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.f.on .n {
+  color: var(--accent);
+}
+.fold h5 {
+  margin: 16px 10px 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+}
+.fold-foot {
+  margin-top: auto;
+  padding: 16px 10px 2px;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.fold-foot .stat {
+  font-size: 12px;
+  color: var(--muted);
+}
+.fold-foot .stat:hover {
+  color: var(--fg2);
+}
+.fold-foot .proto {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.acct {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: -4px -2px 12px;
+}
+.acct-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 9px;
+}
+.acct-btn:hover,
+.acct-btn[aria-expanded='true'] {
+  background: var(--hover);
+}
+.acct-btn .t {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+.acct-btn .t b {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-btn .t small {
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-btn > svg {
+  flex: none;
+  color: var(--faint);
+  margin-left: auto;
+}
+.acct .hide {
+  flex: none;
+  color: var(--faint);
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.acct .hide:hover {
+  background: var(--hover);
+  color: var(--fg2);
+}
+.acm .pi {
+  min-height: 44px;
+}
+.acm .pi .lb {
+  display: grid;
+  line-height: 1.3;
+}
+.acm .pi .lb small {
+  margin-left: 0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}
+.acm .pi.cur .lb {
+  color: var(--fg);
+  font-weight: 600;
+}
+.loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+  gap: 8px;
+}
+@container main (max-width: 700px) {
+  .a-top {
+    padding: 16px 20px 12px;
+    gap: 18px;
+  }
+  .a-tabs {
+    gap: 18px;
+  }
+  .a-title .sub {
+    display: none;
+  }
+}
+@container main (max-width: 540px) {
+  .a-top {
+    gap: 12px;
+    padding: 14px 14px 10px;
+  }
+  .a-tabs {
+    gap: 14px;
+  }
+  .a-tab {
+    font-size: 14px;
+    gap: 5px;
+  }
+  .a-top .right {
+    gap: 6px;
+  }
+}
+@container fold (max-width: 190px) {
+  .acct-btn {
+    gap: 8px;
+    padding: 6px;
+  }
+  .acct-btn > svg {
+    display: none;
+  }
+  .f {
+    gap: 8px;
+    padding: 7px 8px;
+  }
+}
