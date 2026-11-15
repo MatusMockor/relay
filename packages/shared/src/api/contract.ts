@@ -9,6 +9,7 @@ import { healthEndpoints } from './endpoints/health';
 import { labelsEndpoints } from './endpoints/labels';
 import { settingsEndpoints } from './endpoints/settings';
 import { splitsEndpoints } from './endpoints/splits';
+import { syncEndpoints } from './endpoints/sync';
 import { tasksEndpoints } from './endpoints/tasks';
 import { threadsEndpoints } from './endpoints/threads';
 
@@ -25,6 +26,7 @@ export const api = {
   tasks: tasksEndpoints,
   splits: splitsEndpoints,
   settings: settingsEndpoints,
+  sync: syncEndpoints,
   ai: aiEndpoints,
 } as const;
 

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { DraftAttachmentSchema, MAX_ATTACHMENT_BYTES } from '../../domain/draft';
+import { AttachmentIdSchema } from '../../domain/ids';
+import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
 
 const MAX_BASE64_LENGTH = Math.ceil(MAX_ATTACHMENT_BYTES / 3) * 4;
@@ -18,5 +20,12 @@ export const attachmentsEndpoints = {
     auth: 'user',
     body: UploadAttachmentBodySchema,
     response: DraftAttachmentSchema,
+  }),
+  content: defineEndpoint({
+    method: 'GET',
+    path: '/attachments/:id/content',
+    auth: 'user',
+    params: idParamsOf(AttachmentIdSchema),
+    response: z.unknown(),
   }),
 };

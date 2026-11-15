@@ -11,7 +11,7 @@ describe('ipc channel map', () => {
   it('namespaces every channel', () => {
     const names = [...Object.keys(ipcInvokeChannels), ...Object.keys(ipcStreamChannels)];
     names.forEach((name) => {
-      expect(name).toMatch(/^(app|settings|secure|ai|local)\.[a-zA-Z.]+$/);
+      expect(name).toMatch(/^(app|settings|secure|session|ai|oauth|local)\.[a-zA-Z.]+$/);
     });
   });
 
@@ -27,6 +27,16 @@ describe('ipc channel map', () => {
     expect(input.safeParse({ key: 'server.token', value: 'x' }).success).toBe(true);
     expect(input.safeParse({ key: '../etc/passwd', value: 'x' }).success).toBe(false);
     expect(ipcInvokeChannels['app.getInfo'].input.safeParse(undefined).success).toBe(true);
+  });
+
+  it('accepts only http server URLs for session channels', () => {
+    const { input } = ipcInvokeChannels['session.getAccessToken'];
+    expect(input.safeParse({ serverUrl: 'https://mail.example' }).success).toBe(true);
+    expect(input.safeParse({ serverUrl: 'http://127.0.0.1:3000', rejected: 'jwt' }).success).toBe(
+      true,
+    );
+    expect(input.safeParse({ serverUrl: 'file:///etc/passwd' }).success).toBe(false);
+    expect(input.safeParse({ serverUrl: 'mail.example' }).success).toBe(false);
   });
 
   it('makes input optional only for channels without input', () => {

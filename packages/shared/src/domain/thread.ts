@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { AddressSchema } from './address';
-import { AccountIdSchema, LabelIdSchema, SplitIdSchema, ThreadIdSchema } from './ids';
+import {
+  AccountIdSchema,
+  AiJobIdSchema,
+  LabelIdSchema,
+  SplitIdSchema,
+  ThreadIdSchema,
+} from './ids';
 import { MessageSchema } from './message';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
 
@@ -18,6 +24,7 @@ export const ThreadSummarySchema = z.object({
   snippet: z.string(),
   aiOneLiner: z.string().nullable(),
   jiraKey: JiraKeySchema.nullable(),
+  jiraActor: z.string().min(1).nullable().default(null),
   splitIds: z.array(SplitIdSchema),
   labelIds: z.array(LabelIdSchema),
   state: ThreadStateSchema,
@@ -48,3 +55,15 @@ export const ThreadDetailSchema = z.object({
   replySuggestions: z.array(ReplySuggestionSchema),
 });
 export type ThreadDetail = z.infer<typeof ThreadDetailSchema>;
+
+export const ThreadAiKindSchema = z.enum(['summary', 'replySuggestions']);
+export type ThreadAiKind = z.infer<typeof ThreadAiKindSchema>;
+
+export const ThreadAiJobRefSchema = z.object({ kind: ThreadAiKindSchema, jobId: AiJobIdSchema });
+export type ThreadAiJobRef = z.infer<typeof ThreadAiJobRefSchema>;
+
+export const ThreadAiStateSchema = z.object({
+  pending: z.array(ThreadAiKindSchema),
+  jobs: z.array(ThreadAiJobRefSchema).default([]),
+});
+export type ThreadAiState = z.infer<typeof ThreadAiStateSchema>;

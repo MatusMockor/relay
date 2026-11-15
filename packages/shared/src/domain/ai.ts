@@ -3,6 +3,7 @@ import {
   AiJobIdSchema,
   AiResultIdSchema,
   DraftIdSchema,
+  MessageIdSchema,
   ThreadIdSchema,
   UserIdSchema,
 } from './ids';
@@ -21,6 +22,7 @@ export const AiTaskKindSchema = z.enum([
   'replySuggestions',
   'chatAnswer',
   'rewrite',
+  'createTask',
 ]);
 export type AiTaskKind = z.infer<typeof AiTaskKindSchema>;
 
@@ -30,10 +32,24 @@ export const ChatTurnSchema = z.object({
 });
 export type ChatTurn = z.infer<typeof ChatTurnSchema>;
 
+const SourceMessageIdSchema = MessageIdSchema.nullable().optional();
+
 export const AiJobInputSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('oneLiner'), threadId: ThreadIdSchema }),
-  z.object({ kind: z.literal('summary'), threadId: ThreadIdSchema }),
-  z.object({ kind: z.literal('replySuggestions'), threadId: ThreadIdSchema }),
+  z.object({
+    kind: z.literal('oneLiner'),
+    threadId: ThreadIdSchema,
+    sourceMessageId: SourceMessageIdSchema,
+  }),
+  z.object({
+    kind: z.literal('summary'),
+    threadId: ThreadIdSchema,
+    sourceMessageId: SourceMessageIdSchema,
+  }),
+  z.object({
+    kind: z.literal('replySuggestions'),
+    threadId: ThreadIdSchema,
+    sourceMessageId: SourceMessageIdSchema,
+  }),
   z.object({
     kind: z.literal('chatAnswer'),
     question: z.string().min(1).max(10_000),
@@ -46,6 +62,11 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     instruction: z.string().min(1).max(2_000),
     draftId: DraftIdSchema.nullable(),
   }),
+  z.object({
+    kind: z.literal('createTask'),
+    threadId: ThreadIdSchema,
+    hint: z.string().min(1).max(2_000).nullable(),
+  }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;
 
@@ -57,8 +78,18 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     checklist: z.array(ChecklistItemSchema),
   }),
   z.object({ kind: z.literal('replySuggestions'), suggestions: z.array(ReplySuggestionSchema) }),
-  z.object({ kind: z.literal('chatAnswer'), text: z.string().min(1) }),
+  z.object({
+    kind: z.literal('chatAnswer'),
+    text: z.string().min(1),
+    references: z.array(ThreadIdSchema).max(20).default([]),
+  }),
   z.object({ kind: z.literal('rewrite'), text: z.string().min(1) }),
+  z.object({
+    kind: z.literal('createTask'),
+    threadId: ThreadIdSchema,
+    title: z.string().min(1).max(500),
+    aiWhat: z.string().min(1).max(2_000),
+  }),
 ]);
 export type AiOutput = z.infer<typeof AiOutputSchema>;
 export type AiOutputOf<K extends AiTaskKind> = Extract<AiOutput, { kind: K }>;
@@ -67,6 +98,7 @@ export const AiResultSchema = z.object({
   id: AiResultIdSchema,
   userId: UserIdSchema,
   threadId: ThreadIdSchema.nullable(),
+  sourceMessageId: MessageIdSchema.nullable().default(null),
   runner: AiRunnerKindSchema,
   output: AiOutputSchema,
   createdAt: IsoDateTimeSchema,
