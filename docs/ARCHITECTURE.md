@@ -62,7 +62,7 @@ shared  ◄── engine ◄── store-sqlite
 - **Ports** (interfaces, one per file) in `engine/src/ports/`:
   - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
   - `UnitOfWork.run(work)` passes transaction-bound `Repositories` to `work`.
-  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`.
+  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`.
   - AI: `AiRunner` (`run(request): AsyncIterable<AiEvent>`), `AiRunnerRegistry`.
   - infrastructure: `EventPublisher`, `Clock`, `IdGenerator`, `Logger`.
 - Engine-internal types (raw/parsed messages, sync cursors, pages, AI requests) live in `engine/src/model/`. They never cross the wire.
@@ -88,7 +88,7 @@ shared  ◄── engine ◄── store-sqlite
 - Jobs: pg-boss (sync per account, reminders, scheduled sends, AI jobs). No Redis.
 - Auth: email + password (argon2id), optional TOTP later. Access JWT (15 min) + rotating refresh token bound to a `Device`. Devices can be listed and revoked.
 - Mail credentials encrypted at rest (AES-256-GCM, key from `CREDENTIALS_ENCRYPTION_KEY`).
-- Realtime: WebSocket gateway on `/realtime`. The client sends `hello` (`apiVersion`, access token) first; the server answers `welcome` and then pushes `event` messages carrying a `RealtimeEvent`: `thread.upserted`, `thread.removed`, `message.upserted`, `task.upserted`, `account.status`, `ai.job.updated`, `settings.updated`, `sync.progress` (`shared/src/realtime`).
+- Realtime: WebSocket gateway on `/realtime`. The client sends `hello` (`apiVersion`, access token) first; the server answers `welcome` and then pushes `event` messages carrying a `RealtimeEvent`: `thread.upserted`, `thread.removed`, `message.upserted`, `task.upserted`, `account.status`, `account.upserted`, `account.removed`, `draft.upserted`, `draft.removed`, `scheduledSend.upserted`, `splits.updated`, `ai.job.updated`, `settings.updated`, `sync.progress` (`shared/src/realtime`).
 - API contract lives in `shared/src/api`: every endpoint is `{ method, path, auth, params?, query?, body?, response }` built from zod schemas and grouped by area in `api`. The server validates requests with `parseEndpointRequest`; clients build URLs with `buildUrl` and are typed by `EndpointRequest` / `EndpointResponse`. Errors use `{ error: { code, message, issues? } }` (`ApiErrorCode` -> HTTP status in `API_ERROR_HTTP_STATUS`), lists use cursor pagination (`{ items, nextCursor }`).
 - Dev runtime: `vite-node` with SWC (decorator metadata) runs `src/main.ts` directly from TypeScript, the same pipeline Vitest uses. A production bundle is still to be decided.
 - Deploy: `docker compose up` (server + postgres). Optional Cloudflare Tunnel for remote HTTPS access without open ports. Cloudflare Access is not used because the app has its own login.

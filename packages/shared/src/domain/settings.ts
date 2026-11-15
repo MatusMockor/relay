@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AiRunnerKindSchema, AiRunnerLocationSchema } from './ai';
 import { AccountIdSchema } from './ids';
+import { ServerUrlSchema } from './primitives';
 
 export const NotificationModeSchema = z.enum(['off', 'digest', 'urgent']);
 export type NotificationMode = z.infer<typeof NotificationModeSchema>;
@@ -55,7 +56,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 
 export const SavedServerSchema = z.object({
   name: z.string().min(1).max(100),
-  url: z.url({ protocol: /^https?$/ }),
+  url: ServerUrlSchema,
 });
 export type SavedServer = z.infer<typeof SavedServerSchema>;
 
@@ -71,7 +72,7 @@ export type PanelWidths = z.infer<typeof PanelWidthsSchema>;
 
 export const DeviceSettingsSchema = z.object({
   savedServers: z.array(SavedServerSchema),
-  activeServerUrl: z.url({ protocol: /^https?$/ }).nullable(),
+  activeServerUrl: ServerUrlSchema.nullable(),
   mode: AppModeSchema.nullable(),
   panelWidths: PanelWidthsSchema,
   selectedAccountId: AccountIdSchema.nullable(),

@@ -2,6 +2,7 @@ import type { AccountRepository } from './ports/account-repository';
 import type { AiJobRepository } from './ports/ai-job-repository';
 import type { AiResultRepository } from './ports/ai-result-repository';
 import type { AiRunnerRegistry } from './ports/ai-runner-registry';
+import type { AttachmentStore } from './ports/attachment-store';
 import type { Clock } from './ports/clock';
 import type { CredentialVault } from './ports/credential-vault';
 import type { DraftRepository } from './ports/draft-repository';
@@ -45,6 +46,7 @@ export const PORT_TOKENS = {
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
   MailSender: Symbol.for('relay.engine.MailSender'),
   CredentialVault: Symbol.for('relay.engine.CredentialVault'),
+  AttachmentStore: Symbol.for('relay.engine.AttachmentStore'),
   MessageParser: Symbol.for('relay.engine.MessageParser'),
   ThreadResolver: Symbol.for('relay.engine.ThreadResolver'),
   JiraClassifier: Symbol.for('relay.engine.JiraClassifier'),
@@ -75,6 +77,7 @@ export interface PortRegistry {
   MailProviderFactory: MailProviderFactory;
   MailSender: MailSender;
   CredentialVault: CredentialVault;
+  AttachmentStore: AttachmentStore;
   MessageParser: MessageParser;
   ThreadResolver: ThreadResolver;
   JiraClassifier: JiraClassifier;

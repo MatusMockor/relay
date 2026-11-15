@@ -1,4 +1,5 @@
 import type { Address } from '@relay/shared/domain';
+import type { MessageHeaders } from './split-match-subject';
 
 export interface ParsedAttachment {
   readonly filename: string | null;
@@ -23,6 +24,6 @@ export interface ParsedMessage {
   readonly textBody: string | null;
   readonly htmlBody: string | null;
   readonly snippet: string;
-  readonly headers: ReadonlyMap<string, readonly string[]>;
+  readonly headers: MessageHeaders;
   readonly attachments: readonly ParsedAttachment[];
 }

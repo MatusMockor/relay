@@ -1,10 +1,13 @@
 import { z } from 'zod';
-import { AccountStatusSchema } from '../domain/account';
+import { AccountStatusSchema, MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { AccountIdSchema, MailboxIdSchema, ThreadIdSchema } from '../domain/ids';
+import { DraftSchema } from '../domain/draft';
+import { AccountIdSchema, DraftIdSchema, MailboxIdSchema, ThreadIdSchema } from '../domain/ids';
 import { MessageSchema } from '../domain/message';
 import { IsoDateTimeSchema } from '../domain/primitives';
+import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsSchema } from '../domain/settings';
+import { SplitSchema } from '../domain/split';
 import { TaskSchema } from '../domain/task';
 import { ThreadSummarySchema } from '../domain/thread';
 
@@ -59,6 +62,30 @@ export const SyncProgressEventSchema = event(
   }),
 );
 
+export const AccountUpsertedEventSchema = event(
+  'account.upserted',
+  z.object({ account: MailAccountSchema }),
+);
+
+export const AccountRemovedEventSchema = event(
+  'account.removed',
+  z.object({ accountId: AccountIdSchema }),
+);
+
+export const DraftUpsertedEventSchema = event('draft.upserted', z.object({ draft: DraftSchema }));
+
+export const DraftRemovedEventSchema = event('draft.removed', z.object({ draftId: DraftIdSchema }));
+
+export const ScheduledSendUpsertedEventSchema = event(
+  'scheduledSend.upserted',
+  z.object({ scheduledSend: ScheduledSendSchema }),
+);
+
+export const SplitsUpdatedEventSchema = event(
+  'splits.updated',
+  z.object({ splits: z.array(SplitSchema) }),
+);
+
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
@@ -68,6 +95,12 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   AiJobUpdatedEventSchema,
   SettingsUpdatedEventSchema,
   SyncProgressEventSchema,
+  AccountUpsertedEventSchema,
+  AccountRemovedEventSchema,
+  DraftUpsertedEventSchema,
+  DraftRemovedEventSchema,
+  ScheduledSendUpsertedEventSchema,
+  SplitsUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
 export type RealtimeEventType = RealtimeEvent['type'];

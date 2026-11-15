@@ -3,6 +3,7 @@ export type * from './ai-job-repository';
 export type * from './ai-result-repository';
 export type * from './ai-runner';
 export type * from './ai-runner-registry';
+export type * from './attachment-store';
 export type * from './clock';
 export type * from './credential-vault';
 export type * from './draft-repository';

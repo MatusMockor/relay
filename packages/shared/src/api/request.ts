@@ -18,7 +18,11 @@ export const buildPath = (
     if (value === undefined) {
       throw new Error(`Missing path parameter "${name}" for ${endpoint.method} ${endpoint.path}`);
     }
-    return encodeURIComponent(String(value));
+    const segment = String(value);
+    if (segment === '' || segment === '.' || segment === '..') {
+      throw new Error(`Invalid path parameter "${name}" for ${endpoint.method} ${endpoint.path}`);
+    }
+    return encodeURIComponent(segment);
   });
 
 const encodePair = (key: string, value: string | number | boolean): string =>
@@ -46,6 +50,9 @@ export const buildUrl = <E extends EndpointDefinition>(
     params?: Record<string, string | number>;
     query?: Record<string, QueryValue>;
   };
+  if (/[?#]/.test(baseUrl)) {
+    throw new Error(`Base URL must not contain a query or fragment: ${baseUrl}`);
+  }
   const base = baseUrl.replace(/\/+$/, '');
   return `${base}${buildPath(endpoint, parts.params)}${buildQueryString(parts.query)}`;
 };

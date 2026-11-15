@@ -12,12 +12,13 @@ import {
   SendResponseSchema,
   UpdateDraftBodySchema,
 } from '../api/endpoints/compose';
+import { UploadAttachmentBodySchema } from '../api/endpoints/attachments';
 import { LabelListQuerySchema } from '../api/endpoints/labels';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import { ThreadListQuerySchema, ThreadPageSchema } from '../api/endpoints/threads';
 import { MailAccountSchema } from '../domain/account';
-import { DraftSchema } from '../domain/draft';
+import { DraftAttachmentSchema, DraftSchema } from '../domain/draft';
 import {
   AccountIdSchema,
   DraftIdSchema,
@@ -78,6 +79,7 @@ export const localInvokeChannels = {
     DraftSchema,
   ),
   'local.drafts.delete': invokeChannel(z.object({ draftId: DraftIdSchema }), OkResponseSchema),
+  'local.attachments.upload': invokeChannel(UploadAttachmentBodySchema, DraftAttachmentSchema),
   'local.send': invokeChannel(SendBodySchema, SendResponseSchema),
   'local.scheduled.list': invokeChannel(z.undefined(), z.array(ScheduledSendSchema)),
   'local.scheduled.cancel': invokeChannel(

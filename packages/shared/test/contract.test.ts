@@ -41,6 +41,7 @@ describe('api contract', () => {
         'PATCH /drafts/:id',
         'DELETE /drafts/:id',
         'POST /send',
+        'POST /attachments',
         'DELETE /scheduled/:id',
         'GET /tasks',
         'PATCH /tasks/:id',

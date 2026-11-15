@@ -3,6 +3,7 @@ export * from './contract';
 export * from './endpoint';
 export * from './endpoints/accounts';
 export * from './endpoints/ai';
+export * from './endpoints/attachments';
 export * from './endpoints/auth';
 export * from './endpoints/compose';
 export * from './endpoints/devices';

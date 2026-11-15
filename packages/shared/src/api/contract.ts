@@ -1,6 +1,7 @@
 import type { EndpointDefinition } from './endpoint';
 import { accountsEndpoints, oauthEndpoints } from './endpoints/accounts';
 import { aiEndpoints } from './endpoints/ai';
+import { attachmentsEndpoints } from './endpoints/attachments';
 import { authEndpoints } from './endpoints/auth';
 import { composeEndpoints } from './endpoints/compose';
 import { devicesEndpoints } from './endpoints/devices';
@@ -20,6 +21,7 @@ export const api = {
   threads: threadsEndpoints,
   labels: labelsEndpoints,
   compose: composeEndpoints,
+  attachments: attachmentsEndpoints,
   tasks: tasksEndpoints,
   splits: splitsEndpoints,
   settings: settingsEndpoints,

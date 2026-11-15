@@ -1,7 +1,23 @@
 import { z } from 'zod';
 import { AddressSchema } from './address';
-import { AccountIdSchema, DraftIdSchema, MessageIdSchema, ThreadIdSchema } from './ids';
+import {
+  AccountIdSchema,
+  AttachmentIdSchema,
+  DraftIdSchema,
+  MessageIdSchema,
+  ThreadIdSchema,
+} from './ids';
 import { IsoDateTimeSchema } from './primitives';
+
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+export const DraftAttachmentSchema = z.object({
+  id: AttachmentIdSchema,
+  filename: z.string().min(1).max(255),
+  contentType: z.string().min(1).max(255),
+  size: z.number().int().nonnegative().max(MAX_ATTACHMENT_BYTES),
+});
+export type DraftAttachment = z.infer<typeof DraftAttachmentSchema>;
 
 export const DraftContentSchema = z.object({
   accountId: AccountIdSchema,
@@ -12,6 +28,7 @@ export const DraftContentSchema = z.object({
   body: z.string(),
   inReplyToThreadId: ThreadIdSchema.nullable(),
   inReplyToMessageId: MessageIdSchema.nullable(),
+  attachments: z.array(DraftAttachmentSchema).max(50).default([]),
 });
 export type DraftContent = z.infer<typeof DraftContentSchema>;
 

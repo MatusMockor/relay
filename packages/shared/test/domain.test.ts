@@ -4,6 +4,8 @@ import {
   DEFAULT_DEVICE_SETTINGS,
   DEFAULT_USER_SETTINGS,
   DeviceSettingsSchema,
+  DraftContentSchema,
+  ServerUrlSchema,
   SplitSchema,
   ThreadIdSchema,
   UserSettingsPatchSchema,
@@ -51,5 +53,33 @@ describe('domain schemas', () => {
 
   it('rejects empty ids', () => {
     expect(ThreadIdSchema.safeParse('').success).toBe(false);
+  });
+});
+
+describe('ids and server urls', () => {
+  it('accepts only url-safe ids', () => {
+    expect(ThreadIdSchema.safeParse('thr_01JABC-x').success).toBe(true);
+    expect(ThreadIdSchema.safeParse('..').success).toBe(false);
+    expect(ThreadIdSchema.safeParse('a/b').success).toBe(false);
+  });
+
+  it('rejects server urls with a query or fragment', () => {
+    expect(ServerUrlSchema.safeParse('https://relay.example.com').success).toBe(true);
+    expect(ServerUrlSchema.safeParse('https://relay.example.com/?tenant=1').success).toBe(false);
+    expect(ServerUrlSchema.safeParse('ftp://relay.example.com').success).toBe(false);
+  });
+
+  it('defaults draft attachments to an empty list', () => {
+    const draft = DraftContentSchema.parse({
+      accountId: 'acc_1',
+      to: [],
+      cc: [],
+      bcc: [],
+      subject: 'Ahoj',
+      body: '',
+      inReplyToThreadId: null,
+      inReplyToMessageId: null,
+    });
+    expect(draft.attachments).toEqual([]);
   });
 });

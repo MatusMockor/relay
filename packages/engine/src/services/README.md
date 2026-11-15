@@ -42,9 +42,9 @@ Ports: `ReminderRepository`, `ThreadRepository`, `UnitOfWork`, `EventPublisher`,
 
 ### `ComposeService`
 
-Draft CRUD, immediate send (SMTP + append to Sent + thread linkage), scheduled send creation / cancellation, sending due scheduled sends.
+Draft CRUD, attachment upload, immediate send (SMTP + append to Sent + thread linkage), scheduled send creation / cancellation, sending due scheduled sends.
 
-Ports: `DraftRepository`, `ScheduledSendRepository`, `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository`, `MailSender`, `MailProviderFactory`, `CredentialVault`, `UnitOfWork`, `EventPublisher`, `Clock`, `IdGenerator`
+Ports: `DraftRepository`, `AttachmentStore`, `ScheduledSendRepository`, `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository`, `MailSender`, `MailProviderFactory`, `CredentialVault`, `UnitOfWork`, `EventPublisher`, `Clock`, `IdGenerator`
 
 ### `TaskService`
 
@@ -56,7 +56,7 @@ Ports: `TaskRepository`, `ThreadRepository`, `EventPublisher`, `Clock`, `IdGener
 
 List and replace splits (validating regex rules), re-evaluate split membership for existing threads after a change.
 
-Ports: `SplitRepository`, `ThreadRepository`, `MessageRepository`, `SplitMatcher`, `MessageParser`, `UnitOfWork`, `IdGenerator`
+Ports: `SplitRepository`, `ThreadRepository`, `MessageRepository` (`listMatchSubjects` returns the stored from / subject / headers), `SplitMatcher`, `UnitOfWork`, `IdGenerator`
 
 ### `AiService`
 

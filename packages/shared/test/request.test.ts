@@ -78,3 +78,14 @@ describe('endpoint typing', () => {
     expectTypeOf<EndpointResponse<typeof api.threads.action>>().toEqualTypeOf<ThreadSummary>();
   });
 });
+
+describe('url safety', () => {
+  it('refuses dot segments and base urls with a query or fragment', () => {
+    expect(() =>
+      buildUrl('http://localhost:3000', api.threads.get, { params: { id: '..' } }),
+    ).toThrow(/Invalid path parameter "id"/);
+    expect(() => buildUrl('https://relay.example.com/?tenant=1', api.health.get, {})).toThrow(
+      /must not contain a query or fragment/,
+    );
+  });
+});

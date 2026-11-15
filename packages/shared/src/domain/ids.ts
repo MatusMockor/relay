@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const EntityIdBaseSchema = z.string().min(1).max(128);
+const EntityIdBaseSchema = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
 
 export const UserIdSchema = EntityIdBaseSchema.brand<'UserId'>();
 export const DeviceIdSchema = EntityIdBaseSchema.brand<'DeviceId'>();

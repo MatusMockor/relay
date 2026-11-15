@@ -4,10 +4,16 @@ import { ClientMessageSchema, REALTIME_EVENT_TYPES, ServerMessageSchema } from '
 describe('realtime protocol', () => {
   it('lists every server event type', () => {
     expect([...REALTIME_EVENT_TYPES].sort()).toEqual([
+      'account.removed',
       'account.status',
+      'account.upserted',
       'ai.job.updated',
+      'draft.removed',
+      'draft.upserted',
       'message.upserted',
+      'scheduledSend.upserted',
       'settings.updated',
+      'splits.updated',
       'sync.progress',
       'task.upserted',
       'thread.removed',
