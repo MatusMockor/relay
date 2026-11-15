@@ -11,7 +11,8 @@ export type ProviderPresetId =
   | 'zoznam'
   | 'azet'
   | 'pobox'
-  | 'centrum';
+  | 'centrum'
+  | 'atlas';
 
 export interface ProviderPreset {
   readonly id: ProviderPresetId;
@@ -132,8 +133,18 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
     id: 'centrum',
     label: 'Centrum.sk',
     provider: 'imap',
-    domains: ['centrum.sk', 'atlas.sk'],
+    domains: ['centrum.sk'],
     imap: tls('imap.centrum.sk'),
+    smtp: tls('smtp.centrum.sk', 465),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  atlas: {
+    id: 'atlas',
+    label: 'Atlas.sk',
+    provider: 'imap',
+    domains: ['atlas.sk'],
+    imap: tls('imap.atlas.sk'),
     smtp: tls('smtp.centrum.sk', 465),
     supportsOAuth: false,
     requiresAppPassword: false,

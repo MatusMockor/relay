@@ -1,5 +1,6 @@
 import { type MoveResult, PartialMoveError, ProviderError } from '@relay/engine';
 import type { ImapFlow, MailboxObject } from 'imapflow';
+import { hasCapability } from './imap-capabilities';
 import type { ImapConnection } from './imap-connection';
 import { requireAccepted } from './imap-results';
 import { searchUids, sortedUids } from './uid-batches';
@@ -37,11 +38,12 @@ const restoreSource = async (client: ImapFlow, uids: readonly number[]): Promise
   return 'intact';
 };
 
-const deleteCopies = async (client: ImapFlow, copies: readonly number[]): Promise<void> => {
-  if (!client.capabilities.has('UIDPLUS')) {
+const deleteCopies = async (client: ImapFlow, copies: readonly number[]): Promise<number[]> => {
+  if (!hasCapability(client, 'UIDPLUS')) {
     throw new ProviderError('IMAP server lost UIDPLUS, the copies cannot be expunged by UID');
   }
   requireAccepted('expunge', await client.messageDelete([...copies], { uid: true }));
+  return searchUids(client, { uid: copies.join(',') });
 };
 
 const copiesOf = (uids: readonly number[], uidMap: ReadonlyMap<number, number>): number[] =>
@@ -77,7 +79,7 @@ export const rollbackMove = async (
   if (source === 'partial') {
     throw partial(failure);
   }
-  await connection
+  const remaining = await connection
     .withMailbox(move.targetPath, ROLLBACK, (client, mailbox) => {
       requireUidValidity(mailbox, targetUidValidity);
       return deleteCopies(client, copies);
@@ -85,6 +87,15 @@ export const rollbackMove = async (
     .catch((error: unknown) => {
       throw partial(error);
     });
+  const leftover = new ProviderError(
+    `IMAP EXPUNGE left ${String(remaining.length)} of ${String(copies.length)} copies in ${move.targetPath}`,
+  );
+  if (remaining.length === copies.length) {
+    throw partial(leftover);
+  }
+  if (remaining.length > 0) {
+    throw leftover;
+  }
   throw new ProviderError(
     `IMAP move from ${move.sourcePath} to ${move.targetPath} failed and the copies were rolled back: ${failure.message}`,
     { cause: failure.cause },
