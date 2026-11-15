@@ -52,9 +52,12 @@ export class MemoryTaskRepository implements TaskRepository {
     if (this.failUpsert !== null) {
       return Promise.reject(new Error(this.failUpsert));
     }
-    const existing = this.jiraDuplicate(task);
+    const existing = this.byUser(task.userId).find((stored) => stored.jiraKey === task.jiraKey);
     if (existing !== undefined) {
       return Promise.resolve({ task: existing, created: false });
+    }
+    if (this.db.tables.tasks.has(task.id)) {
+      return Promise.reject(new ConflictError(`Task ${task.id} already exists`));
     }
     this.db.tables.tasks.set(task.id, task);
     return Promise.resolve({ task, created: true });
