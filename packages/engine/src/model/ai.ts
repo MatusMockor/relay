@@ -13,6 +13,7 @@ export interface AiMailToolsEndpoint {
   readonly args: readonly string[];
   readonly url: string | null;
   readonly headers: Readonly<Record<string, string>>;
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 export interface AiRequest {

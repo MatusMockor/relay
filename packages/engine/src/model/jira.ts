@@ -5,4 +5,5 @@ export type JiraEventKind = 'mention' | 'assigned' | 'comment' | 'status' | 'oth
 export interface JiraClassification {
   readonly jiraKey: JiraKey;
   readonly eventKind: JiraEventKind;
+  readonly actor: string | null;
 }
