@@ -1,0 +1,1 @@
+ALTER TABLE `drafts` ADD `send_claimed_ts` integer;

@@ -1,5 +1,5 @@
 import { normalizeSubject } from '@relay/engine';
-import { eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 import { messages } from '../schema';
 import type { SqliteDatabase } from './sqlite-database';
 
@@ -16,16 +16,19 @@ export const backfillNormalizedSubjects = (database: SqliteDatabase): number => 
     return 0;
   }
   let updated = 0;
+  let lastSeq = 0;
   for (;;) {
     const rows = database.db
       .select({ seq: messages.seq, subject: messages.subject })
       .from(messages)
-      .where(isNull(messages.normalizedSubject))
+      .where(and(isNull(messages.normalizedSubject), gt(messages.seq, lastSeq)))
+      .orderBy(asc(messages.seq))
       .limit(BATCH_SIZE)
       .all();
     if (rows.length === 0) {
       return updated;
     }
+    lastSeq = rows[rows.length - 1]?.seq ?? lastSeq;
     database.sqlite.transaction(() => {
       rows.forEach((row) => {
         database.db

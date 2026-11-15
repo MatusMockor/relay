@@ -89,6 +89,19 @@ describe('SqliteThreadRepository.queryFolder full-text search', () => {
     expect(await folderIds(store, { search: 'faktura', view: 'done' })).toEqual(['t-invoice']);
   });
 
+  it('splits a term at an embedded quote like the index does', async () => {
+    await addThread(
+      store,
+      work,
+      't-monitor',
+      { lastMessageAt: '2026-11-12T10:00:00.000Z' },
+      { subject: 'Ponuka 27"monitor', textBody: 'Cena platí do piatku.' },
+    );
+
+    expect(await folderIds(store, { search: '27"monitor' })).toEqual(['t-monitor']);
+    expect(await folderIds(store, { search: '27"mon' })).toEqual(['t-monitor']);
+  });
+
   it('follows message updates and deletions', async () => {
     const { messages } = store.repositories;
     await messages.upsert(
@@ -103,7 +116,7 @@ describe('SqliteThreadRepository.queryFolder full-text search', () => {
       NO_HEADERS,
     );
     expect(await folderIds(store, { search: 'dobropis' })).toEqual(['t-invoice']);
-    expect(await folderIds(store, { search: 'october' })).toEqual([]);
+    expect(await folderIds(store, { search: 'oktober' })).toEqual([]);
 
     await messages.deleteByUids(work.inbox.id, [900]);
     expect(await folderIds(store, { search: 'dobropis' })).toEqual([]);
