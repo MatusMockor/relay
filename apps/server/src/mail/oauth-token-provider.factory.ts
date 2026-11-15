@@ -1,4 +1,4 @@
-import type { Clock, CredentialVault } from '@relay/engine';
+import type { Clock, ConditionalCredentialVault } from '@relay/engine';
 import {
   GoogleOAuthTokenRefresher,
   type OAuthTokenProvider,
@@ -9,7 +9,7 @@ import { toGoogleClientConfig } from './google-client-config';
 
 export const createOAuthTokenProvider = (
   google: GoogleOAuthConfig | null,
-  vault: CredentialVault,
+  vault: ConditionalCredentialVault,
   clock: Clock,
 ): OAuthTokenProvider =>
   new RefreshingOAuthTokenProvider({
