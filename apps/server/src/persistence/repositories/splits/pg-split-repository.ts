@@ -1,10 +1,28 @@
-import { ForbiddenError, type SplitRepository } from '@relay/engine';
-import type { AccountId, Split, UserId } from '@relay/shared/domain';
-import { and, asc, eq, isNull, notInArray, or, sql } from 'drizzle-orm';
+import { ConflictError, ForbiddenError, type SplitRepository } from '@relay/engine';
+import type { AccountId, Split, SplitId, UserId } from '@relay/shared/domain';
+import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { splits } from '../../schema';
 import { assertOwned, lockUser } from '../../support/ownership';
 import { toSplit, toSplitInsert } from './split.mapper';
+
+const assertIdsAvailable = async (
+  db: DbExecutor,
+  userId: UserId,
+  splitIds: readonly SplitId[],
+): Promise<void> => {
+  if (splitIds.length === 0) {
+    return;
+  }
+  const [taken] = await db
+    .select({ id: splits.id })
+    .from(splits)
+    .where(and(inArray(splits.id, [...splitIds]), ne(splits.userId, userId)))
+    .limit(1);
+  if (taken !== undefined) {
+    throw new ConflictError(`Split ${taken.id} is already in use`);
+  }
+};
 
 export class PgSplitRepository implements SplitRepository {
   constructor(private readonly db: DbExecutor) {}
@@ -42,6 +60,7 @@ export class PgSplitRepository implements SplitRepository {
         await assertOwned(tx, 'Account', userId, accountId);
       }
       const keepIds = items.map((split) => split.id);
+      await assertIdsAvailable(tx, userId, keepIds);
       await tx
         .delete(splits)
         .where(
@@ -51,7 +70,7 @@ export class PgSplitRepository implements SplitRepository {
           ),
         );
       if (items.length > 0) {
-        await tx
+        const written = await tx
           .insert(splits)
           .values(items.map(toSplitInsert))
           .onConflictDoUpdate({
@@ -64,7 +83,11 @@ export class PgSplitRepository implements SplitRepository {
               exclusive: sql`excluded.exclusive`,
             },
             setWhere: eq(splits.userId, userId),
-          });
+          })
+          .returning({ id: splits.id });
+        if (written.length < new Set(keepIds).size) {
+          throw new ConflictError('A split id is already in use');
+        }
       }
       return new PgSplitRepository(tx).listByUser(userId);
     });

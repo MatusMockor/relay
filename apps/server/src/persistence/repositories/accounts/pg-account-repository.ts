@@ -80,7 +80,7 @@ export class PgAccountRepository implements AccountRepository {
       if (changes.isPrimary === true) {
         await lockUser(tx, userId);
       }
-      const existing = await repository.findById(userId, accountId);
+      const existing = await repository.lockOwned(userId, accountId);
       if (existing === null) {
         return null;
       }
@@ -121,6 +121,15 @@ export class PgAccountRepository implements AccountRepository {
       .where(ownedBy(userId, accountId))
       .returning({ id: mailAccounts.id });
     return rows.length > 0;
+  }
+
+  private async lockOwned(userId: UserId, accountId: AccountId): Promise<MailAccount | null> {
+    const [row] = await this.db
+      .select()
+      .from(mailAccounts)
+      .where(ownedBy(userId, accountId))
+      .for('update');
+    return row === undefined ? null : toMailAccount(row);
   }
 
   private async clearPrimary(userId: UserId): Promise<void> {

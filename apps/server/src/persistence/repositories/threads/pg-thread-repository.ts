@@ -91,6 +91,14 @@ export class PgThreadRepository implements ThreadRepository {
     return this.findById(userId, threadId);
   }
 
+  setHasDraft(
+    userId: UserId,
+    threadId: ThreadId,
+    _hasDraft: boolean,
+  ): Promise<ThreadSummary | null> {
+    return this.findById(userId, threadId);
+  }
+
   async setAiOneLiner(threadId: ThreadId, oneLiner: string | null): Promise<void> {
     await this.db.update(threads).set({ aiOneLiner: oneLiner }).where(eq(threads.id, threadId));
   }

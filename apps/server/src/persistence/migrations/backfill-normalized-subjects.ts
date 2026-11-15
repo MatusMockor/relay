@@ -30,12 +30,16 @@ export const backfillNormalizedSubjects = async (client: pg.Client): Promise<num
     if (rows.length === 0) {
       return updated;
     }
-    await client.query(
+    const result = await client.query(
       `UPDATE messages AS m SET normalized_subject = v.normalized
-       FROM unnest($1::text[], $2::text[]) AS v(id, normalized)
-       WHERE m.id = v.id`,
-      [rows.map((row) => row.id), rows.map((row) => normalizeSubject(row.subject).value)],
+       FROM unnest($1::text[], $2::text[], $3::text[]) AS v(id, subject, normalized)
+       WHERE m.id = v.id AND m.subject = v.subject AND m.normalized_subject IS NULL`,
+      [
+        rows.map((row) => row.id),
+        rows.map((row) => row.subject),
+        rows.map((row) => normalizeSubject(row.subject).value),
+      ],
     );
-    updated += rows.length;
+    updated += result.rowCount ?? 0;
   }
 };

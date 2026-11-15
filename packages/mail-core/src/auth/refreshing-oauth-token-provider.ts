@@ -1,4 +1,4 @@
-import { ProviderError, type Clock, type CredentialVault } from '@relay/engine';
+import { ProviderError, type Clock, type ConditionalCredentialVault } from '@relay/engine';
 import type {
   AccountId,
   MailAccount,
@@ -9,7 +9,7 @@ import type { OAuthTokenProvider, OAuthTokenRefresher } from './oauth-token-prov
 
 export interface RefreshingOAuthTokenProviderOptions {
   readonly refreshers: Partial<Record<OAuthProviderKind, OAuthTokenRefresher>>;
-  readonly vault: CredentialVault;
+  readonly vault: ConditionalCredentialVault;
   readonly clock: Clock;
   readonly expirySkewSeconds?: number;
 }
@@ -70,7 +70,17 @@ export class RefreshingOAuthTokenProvider implements OAuthTokenProvider {
       throw new ProviderError(`No OAuth token refresher configured for ${credentials.provider}`);
     }
     const refreshed = await refresher.refresh(credentials);
-    await this.options.vault.set(accountId, refreshed);
-    return refreshed;
+    if (await this.options.vault.setIfUnchanged(accountId, credentials, refreshed)) {
+      return refreshed;
+    }
+    return this.storedAfterConflict(accountId);
+  }
+
+  private async storedAfterConflict(accountId: AccountId): Promise<OAuthCredentials> {
+    const stored = await this.options.vault.get(accountId);
+    if (stored?.kind !== 'oauth') {
+      throw new ProviderError(`OAuth credentials of account ${accountId} changed during refresh`);
+    }
+    return stored;
   }
 }

@@ -4,6 +4,7 @@ export * from './drafts';
 export * from './labels';
 export * from './mailboxes';
 export * from './messages';
+export * from './pending-work';
 export * from './scheduled-sends';
 export * from './settings';
 export * from './splits';

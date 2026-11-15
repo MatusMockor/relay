@@ -1,8 +1,9 @@
-import type { Page, TaskQuery, TaskRepository } from '@relay/engine';
+import type { Page, TaskChanges, TaskQuery, TaskRepository } from '@relay/engine';
 import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
 import { and, asc, desc, eq, lt, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toTask, toTaskRow } from '../mappers/task-mapper';
+import { toTimestamp } from '../mappers/timestamp';
 import { assertPageLimit } from '../pagination/page-limit';
 import { timeIdCursor } from '../pagination/time-id-cursor';
 import { toPage } from '../pagination/to-page';
@@ -79,6 +80,18 @@ export class SqliteTaskRepository implements TaskRepository {
       const { id: _id, ...changes } = row;
       db.insert(tasks).values(row).onConflictDoUpdate({ target: tasks.id, set: changes }).run();
       return task;
+    });
+  }
+
+  update(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task | null> {
+    return this.executor.execute((db) => {
+      const owned = and(eq(tasks.userId, userId), eq(tasks.id, taskId));
+      db.update(tasks)
+        .set({ ...changes, updatedTs: toTimestamp(changes.updatedAt) })
+        .where(owned)
+        .run();
+      const row = db.select().from(tasks).where(owned).get();
+      return row === undefined ? null : toTask(row);
     });
   }
 

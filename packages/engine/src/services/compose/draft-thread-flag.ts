@@ -14,13 +14,11 @@ export class DraftThreadFlag {
     if (threadId === null) {
       return;
     }
-    const thread = await this.threads.findById(userId, threadId);
+    const hasDraft = (await this.drafts.findByThread(userId, threadId)) !== null;
+    const thread = await this.threads.setHasDraft(userId, threadId, hasDraft);
     if (thread === null) {
       return;
     }
-    const hasDraft = (await this.drafts.findByThread(userId, threadId)) !== null;
-    const current =
-      thread.hasDraft === hasDraft ? thread : await this.threads.upsert({ ...thread, hasDraft });
-    await this.events.emit(userId, 'thread.upserted', { thread: current });
+    await this.events.emit(userId, 'thread.upserted', { thread });
   }
 }

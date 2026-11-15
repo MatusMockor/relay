@@ -22,6 +22,10 @@ export class UserSettingsReader {
     private readonly policy: UserSettingsPolicy = DEFAULT_USER_SETTINGS_POLICY,
   ) {}
 
+  get defaults(): UserSettings {
+    return this.policy.defaults;
+  }
+
   async read(userId: UserId): Promise<UserSettings> {
     return this.effective((await this.settings.find(userId)) ?? this.policy.defaults);
   }

@@ -1,11 +1,7 @@
-import type { Task, ThreadId, UserId } from '@relay/shared/domain';
-import type { JiraClassification } from '../../model/jira';
+import type { Task, UserId } from '@relay/shared/domain';
+import type { JiraEventWork } from '../../model/pending-work';
 
-export interface JiraTaskEvent {
-  readonly threadId: ThreadId;
-  readonly classification: JiraClassification;
-  readonly title: string;
-}
+export type JiraTaskEvent = JiraEventWork;
 
 export interface JiraTaskSink {
   applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task>;

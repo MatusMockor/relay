@@ -50,8 +50,11 @@ const toRemote = (mailbox: FakeMailbox): RemoteMailbox => ({
 const missing = (what: string): Promise<never> =>
   Promise.reject(new Error(`${what} does not exist`));
 
+type ChangeListener = (change: MailboxChange) => void;
+
 export class FakeMailProvider implements MailProvider {
   private connected = false;
+  private readonly listeners = new Set<ChangeListener>();
 
   constructor(
     private readonly server: FakeMailServer | null,
@@ -112,9 +115,9 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage> {
-    const mailbox = this.connected ? this.server?.find(mailboxPath) : null;
-    if (mailbox == null) {
-      return failingItems(new Error(`Cannot fetch ${mailboxPath}`));
+    const mailbox = this.streamMailbox(mailboxPath, `Cannot fetch ${mailboxPath}`);
+    if (mailbox instanceof Error) {
+      return failingItems(mailbox);
     }
     const records = [...mailbox.messages.values()]
       .filter((record) => record.uid > (cursor?.lastUid ?? 0))
@@ -123,9 +126,9 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange> {
-    const mailbox = this.connected ? this.server?.find(mailboxPath) : null;
-    if (mailbox == null) {
-      return failingItems(new Error(`Cannot fetch flags of ${mailboxPath}`));
+    const mailbox = this.streamMailbox(mailboxPath, `Cannot fetch flags of ${mailboxPath}`);
+    if (mailbox instanceof Error) {
+      return failingItems(mailbox);
     }
     const since = BigInt(sinceModseq);
     return asyncItems(
@@ -216,25 +219,44 @@ export class FakeMailProvider implements MailProvider {
 
   idle(mailboxPath: string, onChange: (change: MailboxChange) => void): Promise<Disposer> {
     return this.withMailbox(mailboxPath, (_mailbox, server) => {
-      const listener = (change: MailboxChange): void => {
+      const listener: ChangeListener = (change) => {
         if (change.mailboxPath === mailboxPath) {
           onChange(change);
         }
       };
       server.listeners.add(listener);
+      this.listeners.add(listener);
       return Promise.resolve(() => {
+        if (server.failIdleStop !== null) {
+          return Promise.reject(new Error(server.failIdleStop));
+        }
         server.listeners.delete(listener);
+        this.listeners.delete(listener);
         return Promise.resolve();
       });
     });
   }
 
   close(): Promise<void> {
+    this.listeners.forEach((listener) => this.server?.listeners.delete(listener));
+    this.listeners.clear();
     if (this.connected && this.server !== null) {
       this.server.openConnections -= 1;
     }
     this.connected = false;
     return Promise.resolve();
+  }
+
+  private streamMailbox(path: string, failure: string): FakeMailbox | Error {
+    const server = this.connected ? this.server : null;
+    const mailbox = server?.find(path) ?? null;
+    if (server === null || mailbox === null) {
+      return new Error(failure);
+    }
+    if (server.failOperations !== null) {
+      return new Error(server.failOperations);
+    }
+    return mailbox;
   }
 
   private withMailbox<Result>(

@@ -1,10 +1,9 @@
-import type { MailboxRole } from '@relay/shared/domain';
 import type { RawMessage } from '../../model/remote-mail';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { ChangeFlusher } from './change-flusher';
-import type { IngestOutcome, MessageIngestor } from './message-ingestor';
+import type { MessageIngestor } from './message-ingestor';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { SyncContext } from './sync-context';
 import type { SyncOptions } from './sync-options';
@@ -27,7 +26,6 @@ export class NewMessageFetcher {
   async fetch(context: SyncContext, pass: MailboxPass): Promise<void> {
     const window = await syncWindow(context, pass, this.deps.options, this.deps.clock);
     const knownModseq = pass.state === null ? pass.status.highestModseq : pass.state.highestModseq;
-    const publishMessages = pass.state !== null;
     let lastUid = window.cursor.lastUid;
     let processed = 0;
     for await (const raw of context.provider.fetchSince(pass.mailbox.path, window.cursor)) {
@@ -37,17 +35,11 @@ export class NewMessageFetcher {
         await this.ingest(context, pass, raw);
       }
       if (processed % this.deps.options.batchSize === 0) {
-        await this.checkpoint(
-          context,
-          pass,
-          lastUid,
-          pass.state?.highestModseq ?? null,
-          publishMessages,
-        );
+        await this.checkpoint(context, pass, lastUid, pass.state?.highestModseq ?? null);
         await this.progress(context, pass, processed, window.expected);
       }
     }
-    await this.checkpoint(context, pass, lastUid, knownModseq, publishMessages);
+    await this.checkpoint(context, pass, lastUid, knownModseq);
     await this.progress(context, pass, processed, Math.max(window.expected, processed));
   }
 
@@ -58,6 +50,8 @@ export class NewMessageFetcher {
         account: context.account,
         mailbox: pass.mailbox,
         splits: context.splits,
+        journal: context.journal,
+        publish: pass.state !== null,
       },
       raw,
     );
@@ -70,29 +64,8 @@ export class NewMessageFetcher {
       });
       return;
     }
-    this.record(context, pass.role, outcome);
-  }
-
-  private record(
-    context: SyncContext,
-    role: MailboxRole,
-    outcome: Exclude<IngestOutcome, { kind: 'skipped' }>,
-  ): void {
-    if (outcome.kind === 'existing') {
-      context.changes.touched(outcome.message.threadId);
-      return;
-    }
-    context.stats.newMessages += 1;
-    context.changes.arrived(outcome.message, role, outcome.splitIds);
-    if (role === 'inbox') {
-      context.arrivals.push({ message: outcome.message, headers: outcome.parsed.headers });
-    }
-    if (outcome.jira !== null) {
-      context.changes.jira({
-        threadId: outcome.message.threadId,
-        classification: outcome.jira,
-        title: outcome.parsed.subject,
-      });
+    if (outcome.kind === 'created') {
+      context.stats.newMessages += 1;
     }
   }
 
@@ -101,9 +74,8 @@ export class NewMessageFetcher {
     pass: MailboxPass,
     lastUid: number,
     highestModseq: string | null,
-    publishMessages: boolean,
   ): Promise<void> {
-    await this.deps.flusher.flush(context, { publishMessages });
+    await this.deps.flusher.flush(context);
     await this.deps.syncStates.save({
       accountId: context.account.id,
       mailboxId: pass.mailbox.id,

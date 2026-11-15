@@ -1,7 +1,7 @@
 import type { RawMessage } from '@relay/engine';
 import type { ImapConnection } from './imap-connection';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
-import { sortedUids } from './uid-batches';
+import { searchUids } from './uid-batches';
 
 export const listUids = (connection: ImapConnection, path: string): Promise<number[]> =>
   connection.withMailbox(
@@ -11,7 +11,7 @@ export const listUids = (connection: ImapConnection, path: string): Promise<numb
       if (mailbox.exists === 0) {
         return [];
       }
-      return sortedUids(await client.search({ all: true }, { uid: true }));
+      return searchUids(client, { all: true });
     },
   );
 

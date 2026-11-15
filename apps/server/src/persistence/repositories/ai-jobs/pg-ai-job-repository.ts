@@ -111,17 +111,11 @@ export class PgAiJobRepository implements AiJobRepository {
   }
 
   async enqueueIfAbsent(job: AiJob): Promise<AiJobEnqueueResult> {
-    const values = toAiJobInsert(job);
-    const [created] = await this.db.insert(aiJobs).values(values).onConflictDoNothing().returning();
-    if (created !== undefined) {
-      return { job: toAiJob(created), created: true };
+    const first = await this.insertOrFindActive(job);
+    if (first.created || first.job !== null) {
+      return first;
     }
-    const condition = sameActiveSource(values);
-    if (condition === null) {
-      return { job: null, created: false };
-    }
-    const [active] = await this.db.select().from(aiJobs).where(condition).limit(1);
-    return { job: active === undefined ? null : toAiJob(active), created: false };
+    return this.insertOrFindActive(job);
   }
 
   async lockResultSlot(job: AiJob): Promise<void> {
@@ -167,5 +161,19 @@ export class PgAiJobRepository implements AiJobRepository {
       )
       .returning();
     return rows.map(toAiJob);
+  }
+
+  private async insertOrFindActive(job: AiJob): Promise<AiJobEnqueueResult> {
+    const values = toAiJobInsert(job);
+    const [created] = await this.db.insert(aiJobs).values(values).onConflictDoNothing().returning();
+    if (created !== undefined) {
+      return { job: toAiJob(created), created: true };
+    }
+    const condition = sameActiveSource(values);
+    if (condition === null) {
+      return { job: null, created: false };
+    }
+    const [active] = await this.db.select().from(aiJobs).where(condition).limit(1);
+    return { job: active === undefined ? null : toAiJob(active), created: false };
   }
 }

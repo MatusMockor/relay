@@ -85,6 +85,7 @@ export class PgMessageRepository implements MessageRepository {
       .where(
         and(
           eq(messages.accountId, accountId),
+          sql`md5(${messages.normalizedSubject}) = md5(${normalizedSubject})`,
           eq(messages.normalizedSubject, normalizedSubject),
           gte(messages.date, window.since),
           lte(messages.date, window.until),

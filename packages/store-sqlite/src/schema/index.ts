@@ -7,6 +7,7 @@ export * from './labels';
 export * from './mailboxes';
 export * from './message-labels';
 export * from './messages';
+export * from './pending-work';
 export * from './reminders';
 export * from './scheduled-sends';
 export * from './settings';

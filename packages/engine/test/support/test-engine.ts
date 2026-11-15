@@ -5,6 +5,7 @@ import {
   type EngineServices,
   type Repositories,
   type SettingsOptions,
+  type SplitMatcher,
   type SyncOptions,
 } from '../../src';
 import {
@@ -34,6 +35,7 @@ export interface TestEngineOptions {
   readonly sync?: Partial<SyncOptions>;
   readonly ai?: Partial<AiOptions>;
   readonly settings?: SettingsOptions;
+  readonly splitMatcher?: SplitMatcher;
 }
 
 export interface TestEngine {
@@ -78,7 +80,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     messageParser: new SimpleMessageParser(),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
-    splitMatcher: new RuleSplitMatcher(),
+    splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
     aiRunnerRegistry: runners,
     eventPublisher: events,
     clock,

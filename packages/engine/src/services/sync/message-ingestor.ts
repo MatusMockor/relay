@@ -6,6 +6,7 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { JiraClassifier } from '../../ports/jira-classifier';
 import type { MessageParser } from '../../ports/message-parser';
 import type { MessageRepository } from '../../ports/message-repository';
+import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { SplitMatcher } from '../../ports/split-matcher';
 import type { ThreadResolver } from '../../ports/thread-resolver';
 import type { UnitOfWork } from '../../ports/unit-of-work';
@@ -14,12 +15,15 @@ import { PENDING_UID } from '../shared/pending-uid';
 import type { KeywordLabels } from './keyword-labels';
 import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
+import type { SyncJournal } from './sync-journal';
 
 export interface IngestTarget {
   readonly userId: UserId;
   readonly account: MailAccount;
   readonly mailbox: Mailbox;
   readonly splits: readonly Split[];
+  readonly journal: SyncJournal | null;
+  readonly publish: boolean;
 }
 
 export type IngestOutcome =
@@ -51,7 +55,7 @@ export class MessageIngestor {
     const location = { mailboxId: target.mailbox.id, uid: raw.uid };
     const known = await this.deps.messages.findByLocation(location);
     if (known !== null) {
-      return this.refreshKnown(target, known, raw);
+      return this.refreshKnown(target, known, raw, false);
     }
     const parsed = await this.deps.parser.parse(raw.source).catch((error: unknown) => error);
     if (!isParsed(parsed)) {
@@ -59,8 +63,7 @@ export class MessageIngestor {
     }
     const pending = await this.findPending(target, parsed);
     if (pending !== null) {
-      await this.deps.messages.move(pending.id, location);
-      return this.refreshKnown(target, { ...pending, ...location }, raw);
+      return this.refreshKnown(target, { ...pending, ...location }, raw, true);
     }
     return this.create(target, raw, parsed);
   }
@@ -94,17 +97,49 @@ export class MessageIngestor {
         },
         this.deps.ids,
       );
-      return repositories.messages.upsert(built, parsed.headers);
+      const stored = await repositories.messages.upsert(built, parsed.headers);
+      await this.journalArrival(repositories.pendingWork, target, stored, parsed, jira, splitIds);
+      return stored;
     });
     return { kind: 'created', message, parsed, jira, splitIds };
+  }
+
+  private async journalArrival(
+    work: PendingWorkRepository,
+    target: IngestTarget,
+    message: Message,
+    parsed: ParsedMessage,
+    jira: JiraClassification | null,
+    splitIds: readonly SplitId[],
+  ): Promise<void> {
+    const { journal } = target;
+    if (journal === null) {
+      return;
+    }
+    await journal.arrived(work, message, target.mailbox.role, splitIds, {
+      publish: target.publish,
+      headers: parsed.headers,
+    });
+    if (jira !== null) {
+      await journal.jira(work, message.id, {
+        threadId: message.threadId,
+        classification: jira,
+        title: parsed.subject,
+      });
+    }
   }
 
   private async refreshKnown(
     target: IngestTarget,
     known: Message,
     raw: RawMessage,
+    relocated: boolean,
   ): Promise<IngestOutcome> {
     return this.deps.unitOfWork.run(async (repositories) => {
+      if (relocated) {
+        await repositories.messages.move(known.id, { mailboxId: known.mailboxId, uid: known.uid });
+      }
+      await target.journal?.touched(repositories.pendingWork, known.threadId);
       const labelIds = await this.deps.keywordLabels.resolve(
         repositories.labels,
         target.account.id,

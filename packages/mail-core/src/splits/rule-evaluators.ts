@@ -30,8 +30,9 @@ const matchesFromAddress: RuleEvaluator<'fromAddress'> = (rule, context) =>
   senderEmail(context) === rule.address.toLowerCase();
 
 const matchesSubjectRegex: RuleEvaluator<'subjectRegex'> = (rule, context) =>
-  context.regex.get(rule.pattern, rule.caseSensitive ? 'u' : 'iu')?.test(context.message.subject) ??
-  false;
+  context.regex
+    .get(rule.pattern, rule.caseSensitive ? 'u' : 'iu')
+    ?.test(capped(context.message.subject)) ?? false;
 
 const matchesHeader: RuleEvaluator<'header'> = (rule, context) => {
   const regex = context.regex.get(rule.pattern, 'iu');

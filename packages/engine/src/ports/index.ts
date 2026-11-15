@@ -20,6 +20,7 @@ export type * from './mailbox-repository';
 export type * from './message-attachment-lookup';
 export type * from './message-parser';
 export type * from './message-repository';
+export type * from './pending-work-repository';
 export type * from './reminder-repository';
 export type * from './repositories';
 export type * from './scheduled-send-repository';

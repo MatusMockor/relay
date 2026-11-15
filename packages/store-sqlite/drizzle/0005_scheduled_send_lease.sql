@@ -1,0 +1,3 @@
+ALTER TABLE `scheduled_sends` ADD `claimed_ts` integer;--> statement-breakpoint
+UPDATE `scheduled_sends` SET `status` = 'cancelled' WHERE `status` IN ('pending', 'sending') AND EXISTS (SELECT 1 FROM `scheduled_sends` AS `kept` WHERE `kept`.`draft_id` = `scheduled_sends`.`draft_id` AND `kept`.`status` IN ('pending', 'sending') AND (`kept`.`created_at` < `scheduled_sends`.`created_at` OR (`kept`.`created_at` = `scheduled_sends`.`created_at` AND `kept`.`id` < `scheduled_sends`.`id`)));--> statement-breakpoint
+CREATE UNIQUE INDEX `scheduled_sends_active_draft_idx` ON `scheduled_sends` (`draft_id`) WHERE status in ('pending', 'sending');

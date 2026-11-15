@@ -1,0 +1,5 @@
+DELETE FROM "draft_attachments" AS "duplicate" USING "draft_attachments" AS "kept" WHERE "duplicate"."attachment_id" = "kept"."attachment_id" AND "kept"."draft_id" < "duplicate"."draft_id";--> statement-breakpoint
+DROP INDEX "draft_attachments_attachment_idx";--> statement-breakpoint
+CREATE UNIQUE INDEX "draft_attachments_attachment_unique" ON "draft_attachments" USING btree ("attachment_id");--> statement-breakpoint
+UPDATE "scheduled_sends" AS "duplicate" SET "status" = 'cancelled', "claimed_at" = NULL FROM "scheduled_sends" AS "kept" WHERE "duplicate"."draft_id" = "kept"."draft_id" AND "duplicate"."status" IN ('pending', 'sending') AND "kept"."status" IN ('pending', 'sending') AND ("kept"."created_at" < "duplicate"."created_at" OR ("kept"."created_at" = "duplicate"."created_at" AND "kept"."id" < "duplicate"."id"));--> statement-breakpoint
+CREATE UNIQUE INDEX "scheduled_sends_active_draft_idx" ON "scheduled_sends" USING btree ("draft_id") WHERE "scheduled_sends"."status" in ('pending', 'sending');

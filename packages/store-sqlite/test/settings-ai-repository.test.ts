@@ -58,6 +58,20 @@ describe('SqliteSettingsRepository', () => {
     expect(await settings.find(LOCAL_USER_ID)).toEqual(changed);
     expect(await settings.find(userId('intruder'))).toBeNull();
   });
+
+  it('saves only when the stored settings still match the expected value', async () => {
+    const { settings } = store.repositories;
+    const compact = { ...DEFAULT_USER_SETTINGS, density: 'compact' as const };
+    const notified = { ...DEFAULT_USER_SETTINGS, notifications: 'urgent' as const };
+
+    expect(await settings.saveIfUnchanged(LOCAL_USER_ID, null, compact)).toBe(true);
+    expect(await settings.saveIfUnchanged(LOCAL_USER_ID, null, notified)).toBe(false);
+    expect(await settings.saveIfUnchanged(LOCAL_USER_ID, DEFAULT_USER_SETTINGS, notified)).toBe(
+      false,
+    );
+    expect(await settings.saveIfUnchanged(LOCAL_USER_ID, compact, notified)).toBe(true);
+    expect(await settings.find(LOCAL_USER_ID)).toEqual(notified);
+  });
 });
 
 describe('SqliteAiResultRepository and SqliteAiJobRepository', () => {

@@ -3,7 +3,7 @@ import type { Task, TaskId, UserId } from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
-import type { TaskRepository } from '../../ports/task-repository';
+import type { TaskChanges, TaskRepository } from '../../ports/task-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { EngineEvents } from '../shared/engine-events';
 import type { JiraTaskEvent, JiraTaskSink } from '../sync/jira-task-sink';
@@ -33,13 +33,8 @@ export class TaskService implements JiraTaskSink {
     });
   }
 
-  async update(userId: UserId, taskId: TaskId, patch: UpdateTaskBody): Promise<Task> {
-    const task = await this.deps.tasks.findById(userId, taskId);
-    if (task === null) {
-      throw new NotFoundError('Task', taskId);
-    }
-    return this.save(userId, {
-      ...task,
+  update(userId: UserId, taskId: TaskId, patch: UpdateTaskBody): Promise<Task> {
+    return this.change(userId, taskId, {
       ...(patch.state === undefined ? {} : { state: patch.state }),
       ...(patch.title === undefined ? {} : { title: patch.title }),
       updatedAt: this.now(),
@@ -49,8 +44,7 @@ export class TaskService implements JiraTaskSink {
   async applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task> {
     const existing = await this.deps.tasks.findByJiraKey(userId, event.classification.jiraKey);
     if (existing !== null) {
-      return this.save(userId, {
-        ...existing,
+      return this.change(userId, existing.id, {
         threadId: event.threadId,
         state: nextJiraTaskState(existing, event),
         updatedAt: this.now(),
@@ -73,6 +67,15 @@ export class TaskService implements JiraTaskSink {
 
   async createFromAi(userId: UserId, input: AiTaskInput): Promise<Task> {
     return this.save(userId, await this.aiTasks.build(this.deps.threads, userId, input));
+  }
+
+  private async change(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task> {
+    const task = await this.deps.tasks.update(userId, taskId, changes);
+    if (task === null) {
+      throw new NotFoundError('Task', taskId);
+    }
+    await this.deps.events.emit(userId, 'task.upserted', { task });
+    return task;
   }
 
   private async save(userId: UserId, task: Task): Promise<Task> {

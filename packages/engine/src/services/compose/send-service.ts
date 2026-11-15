@@ -1,4 +1,4 @@
-import type { DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
+import type { Draft, DraftContent, ThreadId, UserId } from '@relay/shared/domain';
 import { NotFoundError, ProviderError, ValidationError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { CredentialVault } from '../../ports/credential-vault';
@@ -30,7 +30,7 @@ export class SendService {
   async sendNow(
     userId: UserId,
     content: DraftContent,
-    draftId: DraftId | null,
+    sentDraft: Draft | null,
   ): Promise<SentOutcome> {
     if (content.to.length + content.cc.length + content.bcc.length === 0) {
       throw new ValidationError('A message needs at least one recipient');
@@ -50,10 +50,10 @@ export class SendService {
         throw new ProviderError(`Sending failed: ${errorMessage(error)}`, { cause: error });
       });
     const threadId = await this.deps.recorder.record(userId, account, sent);
-    if (draftId !== null) {
-      await this.deps.drafts.delete(userId, draftId).catch((error: unknown) => {
+    if (sentDraft !== null) {
+      await this.deps.drafts.deleteSent(userId, sentDraft).catch((error: unknown) => {
         this.deps.logger.warn('Removing a sent draft failed', {
-          draftId,
+          draftId: sentDraft.id,
           error: errorMessage(error),
         });
       });

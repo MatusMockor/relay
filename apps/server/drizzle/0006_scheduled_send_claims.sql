@@ -1,0 +1,1 @@
+ALTER TABLE "scheduled_sends" ADD COLUMN "claimed_at" timestamp with time zone;

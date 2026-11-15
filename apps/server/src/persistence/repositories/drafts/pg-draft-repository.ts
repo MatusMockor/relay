@@ -1,14 +1,24 @@
 import type { DraftRepository } from '@relay/engine';
-import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  Draft,
+  DraftAttachment,
+  DraftContent,
+  DraftId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 import { and, desc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { drafts } from '../../schema';
 import { assertOwned } from '../../support/ownership';
 import { toDate } from '../../support/timestamps';
-import { loadDraftAttachments, replaceDraftAttachments } from './draft-attachments-store';
+import { replaceDraftAttachments } from './draft-attachments-store';
+import { draftSelection } from './draft-selection';
 import { toDraft, toDraftInsert, toDraftUpdate } from './draft.mapper';
 
-type DraftRow = typeof drafts.$inferSelect;
+type StoredDraftRow = typeof drafts.$inferSelect & { attachments: DraftAttachment[] };
+
+const toStoredDraft = ({ attachments, ...row }: StoredDraftRow): Draft => toDraft(row, attachments);
 
 const assertDraftReferences = async (
   db: DbExecutor,
@@ -25,31 +35,31 @@ export class PgDraftRepository implements DraftRepository {
 
   async listByUser(userId: UserId): Promise<Draft[]> {
     const rows = await this.db
-      .select()
+      .select(draftSelection)
       .from(drafts)
       .where(eq(drafts.userId, userId))
       .orderBy(desc(drafts.updatedAt), desc(drafts.id));
-    return this.withAttachments(rows);
+    return rows.map(toStoredDraft);
   }
 
   async findById(userId: UserId, draftId: DraftId): Promise<Draft | null> {
     const rows = await this.db
-      .select()
+      .select(draftSelection)
       .from(drafts)
       .where(and(eq(drafts.userId, userId), eq(drafts.id, draftId)));
-    const [draft] = await this.withAttachments(rows);
-    return draft ?? null;
+    const [row] = rows;
+    return row === undefined ? null : toStoredDraft(row);
   }
 
   async findByThread(userId: UserId, threadId: ThreadId): Promise<Draft | null> {
     const rows = await this.db
-      .select()
+      .select(draftSelection)
       .from(drafts)
       .where(and(eq(drafts.userId, userId), eq(drafts.inReplyToThreadId, threadId)))
       .orderBy(desc(drafts.updatedAt), desc(drafts.id))
       .limit(1);
-    const [draft] = await this.withAttachments(rows);
-    return draft ?? null;
+    const [row] = rows;
+    return row === undefined ? null : toStoredDraft(row);
   }
 
   async create(userId: UserId, draft: Draft): Promise<Draft> {
@@ -103,11 +113,17 @@ export class PgDraftRepository implements DraftRepository {
     return rows.length > 0;
   }
 
-  private async withAttachments(rows: readonly DraftRow[]): Promise<Draft[]> {
-    const attachmentsByDraft = await loadDraftAttachments(
-      this.db,
-      rows.map((row) => row.id),
-    );
-    return rows.map((row) => toDraft(row, attachmentsByDraft.get(row.id) ?? []));
+  async deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean> {
+    const rows = await this.db
+      .delete(drafts)
+      .where(
+        and(
+          eq(drafts.userId, userId),
+          eq(drafts.id, draftId),
+          eq(drafts.updatedAt, toDate(updatedAt)),
+        ),
+      )
+      .returning({ id: drafts.id });
+    return rows.length > 0;
   }
 }

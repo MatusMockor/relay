@@ -1,7 +1,9 @@
 import type { AccountId, SplitId } from '@relay/shared/domain';
 import type { SplitInput } from '@relay/shared/api';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { deliverMail, seedAccount } from '../support/fixtures';
+import { GatedSplitMatcher } from '../support/mail/gated-split-matcher';
+import { RuleSplitMatcher } from '../support/mail/rule-split-matcher';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const partners: SplitInput = {
@@ -40,6 +42,28 @@ const splitIdsBySubject = (engine: TestEngine) => {
 };
 
 describe('SplitService', () => {
+  it('applies the membership of the latest splits when replacements overlap', async () => {
+    const matcher = new GatedSplitMatcher(new RuleSplitMatcher());
+    const engine = createTestEngine({ splitMatcher: matcher });
+    await syncedInbox(engine);
+
+    matcher.hold();
+    const stale = engine.services.splits.replace(USER_ID, { splits: [partners] });
+    await vi.waitFor(() => {
+      expect(matcher.heldCount).toBeGreaterThan(0);
+    });
+    matcher.stopHolding();
+    const newer = engine.services.splits.replace(USER_ID, { splits: [jira] });
+    matcher.releaseHeld();
+    const [, latest] = await Promise.all([stale, newer]);
+
+    expect(splitIdsBySubject(engine)).toEqual({
+      'Subject p1': [],
+      'Subject n1': [],
+      '[REL-3] Fix login': latest.map((split) => split.id),
+    });
+  });
+
   it('replaces splits and re-evaluates existing threads', async () => {
     const engine = createTestEngine();
     await syncedInbox(engine);
