@@ -201,6 +201,7 @@ describe('Google OAuth helpers', () => {
       const vault = new InMemoryCredentialVault();
       const provider = createProvider(vault);
       const expiring = { ...base, expiresAt: '2026-11-15T10:00:30.000Z' };
+      vault.entries.set(account.id, expiring);
 
       const tokens = await Promise.all([
         provider.getAccessToken(account, expiring),

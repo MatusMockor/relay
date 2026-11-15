@@ -1,7 +1,9 @@
 import type { Label, LabelId, ThreadSummary } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../../errors';
+import type { Clock } from '../../../ports/clock';
 import type { LabelRepository } from '../../../ports/label-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
+import { recordProviderOps } from '../../shared/provider-ops';
 import { refreshThread } from '../../shared/thread-refresh';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
@@ -11,6 +13,7 @@ export interface LabelHandlerDeps {
   readonly labels: LabelRepository;
   readonly unitOfWork: UnitOfWork;
   readonly mirror: ProviderMirror;
+  readonly clock: Clock;
 }
 
 export class LabelHandler {
@@ -34,21 +37,31 @@ export class LabelHandler {
     const targets = context.messages.filter(
       (message) => message.labelIds.includes(label.id) !== add,
     );
-    const outcome = await this.deps.unitOfWork.run(async (repositories) => {
+    const { outcome, ops } = await this.deps.unitOfWork.run(async (repositories) => {
       for (const message of targets) {
         const labelIds = add
           ? [...message.labelIds, label.id]
           : message.labelIds.filter((id) => id !== label.id);
         await repositories.messages.updateLabels(message.id, labelIds);
       }
-      return refreshThread(repositories, context.userId, context.account.id, context.thread.id);
+      const recorded = await recordProviderOps(
+        repositories.pendingWork,
+        context.account.id,
+        targets.map((message) => ({
+          messageId: message.id,
+          change: { kind: 'keyword', keyword: label.name, value: add } as const,
+        })),
+        this.deps.clock.now().toISOString(),
+      );
+      const refreshed = await refreshThread(
+        repositories,
+        context.userId,
+        context.account.id,
+        context.thread.id,
+      );
+      return { outcome: refreshed, ops: recorded };
     });
-    await this.deps.mirror.apply(context.account, targets, (provider, batch) =>
-      provider.setKeywords(batch.mailbox.path, batch.uids, {
-        add: add ? [label.name] : [],
-        remove: add ? [] : [label.name],
-      }),
-    );
+    await this.deps.mirror.apply(context.account, ops);
     return requireUpserted(outcome, context.thread.id);
   }
 

@@ -13,8 +13,10 @@ export interface RawMessageSpec {
   readonly headers?: Readonly<Record<string, string>>;
 }
 
+const quoteDisplayName = (name: string): string => `"${name.replace(/[\\"]/g, '\\$&')}"`;
+
 export const formatAddress = (address: Address): string =>
-  address.name === null ? address.email : `${address.name} <${address.email}>`;
+  address.name === null ? address.email : `${quoteDisplayName(address.name)} <${address.email}>`;
 
 export const buildRawMessage = (spec: RawMessageSpec): Uint8Array => {
   const lines = [

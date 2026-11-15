@@ -4,6 +4,7 @@ import { type MemoryDatabase, offsetPage } from './memory-database';
 import { ThreadFolderFilter } from './thread-folder-filter';
 
 export class MemoryThreadRepository implements ThreadRepository {
+  failUpsert: string | null = null;
   private readonly filter: ThreadFolderFilter;
 
   constructor(private readonly db: MemoryDatabase) {
@@ -34,8 +35,27 @@ export class MemoryThreadRepository implements ThreadRepository {
   }
 
   upsert(thread: ThreadSummary): Promise<ThreadSummary> {
-    this.db.tables.threads.set(thread.id, thread);
-    return Promise.resolve(thread);
+    if (this.failUpsert !== null) {
+      return Promise.reject(new Error(this.failUpsert));
+    }
+    const stored = this.db.tables.threads.get(thread.id);
+    const saved = stored === undefined ? thread : { ...thread, hasDraft: stored.hasDraft };
+    this.db.tables.threads.set(thread.id, saved);
+    return Promise.resolve(saved);
+  }
+
+  setHasDraft(
+    userId: UserId,
+    threadId: ThreadId,
+    hasDraft: boolean,
+  ): Promise<ThreadSummary | null> {
+    const thread = this.db.tables.threads.get(threadId);
+    if (thread === undefined || !this.db.ownsAccount(userId, thread.accountId)) {
+      return Promise.resolve(null);
+    }
+    const updated: ThreadSummary = { ...thread, hasDraft };
+    this.db.tables.threads.set(threadId, updated);
+    return Promise.resolve(updated);
   }
 
   updateState(

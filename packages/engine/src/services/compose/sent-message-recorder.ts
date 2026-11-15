@@ -47,6 +47,8 @@ export class SentMessageRecorder {
           account,
           mailbox: sentBox,
           splits: await this.deps.splits.listForAccount(userId, account.id),
+          journal: null,
+          publish: false,
         },
         {
           mailboxPath: sentBox.path,
