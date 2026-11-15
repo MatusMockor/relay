@@ -1,4 +1,5 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { accounts } from './accounts';
 
 export const scheduledSends = sqliteTable(
@@ -15,12 +16,16 @@ export const scheduledSends = sqliteTable(
     status: text('status').notNull(),
     error: text('error'),
     sentAt: text('sent_at'),
+    claimedTs: integer('claimed_ts'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [
     index('scheduled_sends_status_due_idx').on(table.status, table.scheduledTs),
     index('scheduled_sends_user_idx').on(table.userId, table.status, table.scheduledTs),
     index('scheduled_sends_draft_idx').on(table.draftId),
+    uniqueIndex('scheduled_sends_active_draft_idx')
+      .on(table.draftId)
+      .where(sql`status in ('pending', 'sending')`),
   ],
 );
 

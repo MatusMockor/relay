@@ -1,4 +1,11 @@
-import type { AccountId, SplitId, ThreadId, ThreadSummary, UserId } from '@relay/shared/domain';
+import type {
+  AccountId,
+  Split,
+  SplitId,
+  ThreadId,
+  ThreadSummary,
+  UserId,
+} from '@relay/shared/domain';
 import type { JiraClassification } from '../../model/jira';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { SplitMatcher } from '../../ports/split-matcher';
@@ -43,11 +50,13 @@ export class SplitMembershipEvaluator {
       }
       cursor = page.nextCursor;
     } while (cursor !== null);
-    return this.apply(accountId, threads, membership);
+    return this.apply(userId, accountId, splits, threads, membership);
   }
 
   private apply(
+    userId: UserId,
     accountId: AccountId,
+    splits: readonly Split[],
     threads: ReadonlyMap<ThreadId, ThreadSummary | null>,
     membership: ReadonlyMap<ThreadId, ReadonlySet<SplitId>>,
   ): Promise<ThreadSummary[]> {
@@ -56,6 +65,10 @@ export class SplitMembershipEvaluator {
       return thread !== null && !sameMembers(thread.splitIds, [...members]);
     });
     return this.deps.unitOfWork.run(async (repositories) => {
+      const current = await repositories.splits.listForAccount(userId, accountId);
+      if (!sameSplits(current, splits)) {
+        return [];
+      }
       const saved: ThreadSummary[] = [];
       for (const [threadId, members] of changed) {
         const current = await repositories.threads.findByIdForAccount(accountId, threadId);
@@ -83,3 +96,6 @@ export class SplitMembershipEvaluator {
 
 const jiraOf = (thread: ThreadSummary | null): JiraClassification | null =>
   thread?.jiraKey == null ? null : { jiraKey: thread.jiraKey, eventKind: 'other', actor: null };
+
+const sameSplits = (current: readonly Split[], evaluated: readonly Split[]): boolean =>
+  JSON.stringify(current) === JSON.stringify(evaluated);

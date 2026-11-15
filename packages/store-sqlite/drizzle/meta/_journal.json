@@ -36,6 +36,20 @@
       "when": 1794720325535,
       "tag": "0004_ai_job_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794726753923,
+      "tag": "0005_scheduled_send_lease",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794728540272,
+      "tag": "0006_pending_work",
+      "breakpoints": true
     }
   ]
 }

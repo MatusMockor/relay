@@ -1,11 +1,10 @@
-import type { MailboxRole, ThreadState, ThreadSummary } from '@relay/shared/domain';
+import type { MailboxRole, Message, ThreadState, ThreadSummary } from '@relay/shared/domain';
 import { NotFoundError } from '../../../errors';
-import type { Logger } from '../../../ports/logger';
+import type { Clock } from '../../../ports/clock';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
-import type { MessageRepository } from '../../../ports/message-repository';
-import type { ThreadRepository } from '../../../ports/thread-repository';
-import { PENDING_UID } from '../../shared/pending-uid';
-import type { RoleMailboxEnsurer } from '../../shared/role-mailbox-ensurer';
+import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
+import type { UnitOfWork } from '../../../ports/unit-of-work';
+import { pendingMoveRoles, recordProviderOps } from '../../shared/provider-ops';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
 
@@ -25,12 +24,11 @@ const STATE_MOVES: Readonly<Record<StateMoveAction, StateMove>> = {
 };
 
 export interface StateMoveHandlerDeps {
-  readonly threads: ThreadRepository;
-  readonly messages: MessageRepository;
   readonly mailboxes: MailboxRepository;
+  readonly pendingWork: PendingWorkRepository;
+  readonly unitOfWork: UnitOfWork;
   readonly mirror: ProviderMirror;
-  readonly roleMailboxes: RoleMailboxEnsurer;
-  readonly logger: Logger;
+  readonly clock: Clock;
 }
 
 export class StateMoveHandler {
@@ -38,39 +36,37 @@ export class StateMoveHandler {
 
   async handle(context: ThreadActionContext, action: StateMoveAction): Promise<ThreadSummary> {
     const move = STATE_MOVES[action];
-    const thread = await this.deps.threads.updateState(context.userId, context.thread.id, {
-      state: move.state,
-      remindAt: context.thread.remindAt,
+    const sources = await this.sources(context, move);
+    const { thread, ops } = await this.deps.unitOfWork.run(async (repositories) => {
+      const updated = await repositories.threads.updateState(context.userId, context.thread.id, {
+        state: move.state,
+        remindAt: context.thread.remindAt,
+      });
+      if (updated === null) {
+        throw new NotFoundError('Thread', context.thread.id);
+      }
+      const recorded = await recordProviderOps(
+        repositories.pendingWork,
+        context.account.id,
+        sources.map((message) => ({
+          messageId: message.id,
+          change: { kind: 'move', role: move.to } as const,
+        })),
+        this.deps.clock.now().toISOString(),
+      );
+      return { thread: updated, ops: recorded };
     });
-    if (thread === null) {
-      throw new NotFoundError('Thread', context.thread.id);
-    }
-    await this.mirror(context, move);
+    await this.deps.mirror.apply(context.account, ops);
     return thread;
   }
 
-  private async mirror(context: ThreadActionContext, move: StateMove): Promise<void> {
+  private async sources(context: ThreadActionContext, move: StateMove): Promise<Message[]> {
     const mailboxes = await this.deps.mailboxes.listForSync(context.account.id);
-    const sourceIds = new Set(
-      mailboxes.filter((mailbox) => move.from.includes(mailbox.role)).map((mailbox) => mailbox.id),
-    );
-    const sources = context.messages.filter((message) => sourceIds.has(message.mailboxId));
-    await this.deps.mirror.apply(context.account, sources, async (provider, batch) => {
-      const target = await this.deps.roleMailboxes.ensure(context.account, move.to, provider);
-      if (target === null) {
-        this.deps.logger.warn('No target mailbox for thread move', {
-          accountId: context.account.id,
-          role: move.to,
-        });
-        return;
-      }
-      const result = await provider.move(batch.mailbox.path, batch.uids, target.path);
-      for (const message of batch.messages) {
-        await this.deps.messages.move(message.id, {
-          mailboxId: target.id,
-          uid: result.uidMap.get(message.uid) ?? PENDING_UID,
-        });
-      }
+    const roles = new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.role]));
+    const pending = await pendingMoveRoles(this.deps.pendingWork, context.account.id);
+    return context.messages.filter((message) => {
+      const role = pending.get(message.id) ?? roles.get(message.mailboxId);
+      return role !== undefined && move.from.includes(role);
     });
   }
 }

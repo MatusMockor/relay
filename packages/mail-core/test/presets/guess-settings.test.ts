@@ -13,6 +13,7 @@ describe('provider presets', () => {
       'websupport',
       'zoznam',
       'azet',
+      'pobox',
       'centrum',
     ]);
     for (const preset of listProviderPresets()) {
@@ -45,6 +46,16 @@ describe('provider presets', () => {
     expect(guess).toMatchObject({ presetId, provider, confidence: 'preset' });
     expect(guess?.settings.imap.host).toBe(imapHost);
     expect(guess?.settings.username).toBe(email);
+  });
+
+  it('maps pobox.sk to its own IMAP host and the Centrum SMTP host', () => {
+    expect(guessSettings('jana@pobox.sk')).toMatchObject({
+      presetId: 'pobox',
+      settings: {
+        imap: { host: 'imap.pobox.sk', port: 993, secure: true },
+        smtp: { host: 'smtp.centrum.sk', port: 465, secure: true },
+      },
+    });
   });
 
   it('falls back to imap.<domain> and smtp.<domain> for unknown domains', () => {

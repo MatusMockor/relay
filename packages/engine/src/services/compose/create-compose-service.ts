@@ -4,9 +4,11 @@ import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import type { MessageIngestor } from '../sync/message-ingestor';
 import { ComposeService } from './compose-service';
+import { DraftReferenceGuard } from './draft-reference-guard';
 import { DraftService } from './draft-service';
 import { DraftThreadFlag } from './draft-thread-flag';
 import { OutgoingMessageBuilder } from './outgoing-message-builder';
+import { ScheduledSendDelivery } from './scheduled-send-delivery';
 import { ScheduledSendService } from './scheduled-send-service';
 import { SendService } from './send-service';
 import { SentMessageRecorder } from './sent-message-recorder';
@@ -24,8 +26,11 @@ export const createComposeService = (
   const { events } = shared;
   const drafts = new DraftService({
     drafts: repositories.drafts,
-    accounts: repositories.accounts,
-    threads: repositories.threads,
+    references: new DraftReferenceGuard(
+      repositories.drafts,
+      repositories.accounts,
+      repositories.threads,
+    ),
     attachments: deps.attachmentStore,
     threadFlag: new DraftThreadFlag(repositories.drafts, repositories.threads, events),
     events,
@@ -53,7 +58,13 @@ export const createComposeService = (
   const scheduled = new ScheduledSendService({
     scheduledSends: repositories.scheduledSends,
     drafts,
-    sending,
+    delivery: new ScheduledSendDelivery({
+      scheduledSends: repositories.scheduledSends,
+      drafts,
+      sending,
+      clock,
+      logger,
+    }),
     events,
     clock,
     ids,

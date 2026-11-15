@@ -37,6 +37,9 @@ const buildDraft = (overrides: Partial<Draft> = {}): Draft => ({
   ...overrides,
 });
 
+const CLAIMED_AT = '2026-11-12T08:00:00.000Z';
+const STALE_BEFORE = '2026-11-12T07:50:00.000Z';
+
 const buildSend = (overrides: Partial<ScheduledSend> = {}): ScheduledSend => ({
   id: sendId('sch-1'),
   userId: LOCAL_USER_ID,
@@ -121,6 +124,38 @@ describe('SqliteDraftRepository', () => {
       store.database.sqlite.prepare('select count(*) as count from draft_attachments').get(),
     ).toEqual({ count: 0 });
   });
+
+  it('refuses to attach the same attachment to a second draft', async () => {
+    const { drafts } = store.repositories;
+    await drafts.create(LOCAL_USER_ID, buildDraft());
+
+    await expect(
+      drafts.create(LOCAL_USER_ID, buildDraft({ id: draftId('drf-2') })),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(await drafts.findById(LOCAL_USER_ID, draftId('drf-2'))).toBeNull();
+    expect(
+      (await drafts.findById(LOCAL_USER_ID, draftId('drf-1')))?.attachments.length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('deletes a draft revision only while it is unchanged', async () => {
+    const { drafts } = store.repositories;
+    const created = await drafts.create(LOCAL_USER_ID, buildDraft());
+    await drafts.update(
+      LOCAL_USER_ID,
+      draftId('drf-1'),
+      { body: 'Upravené' },
+      '2026-11-10T12:00:00.000Z',
+    );
+
+    expect(await drafts.deleteRevision(LOCAL_USER_ID, draftId('drf-1'), created.updatedAt)).toBe(
+      false,
+    );
+    expect(
+      await drafts.deleteRevision(LOCAL_USER_ID, draftId('drf-1'), '2026-11-10T12:00:00.000Z'),
+    ).toBe(true);
+    expect(await drafts.findById(LOCAL_USER_ID, draftId('drf-1'))).toBeNull();
+  });
 });
 
 describe('SqliteScheduledSendRepository', () => {
@@ -141,10 +176,18 @@ describe('SqliteScheduledSendRepository', () => {
       buildSend({ id: sendId('s-late'), scheduledAt: '2026-11-12T10:00:00+02:00' }),
     );
     await scheduledSends.create(
-      buildSend({ id: sendId('s-early'), scheduledAt: '2026-11-12T07:00:00.000Z' }),
+      buildSend({
+        id: sendId('s-early'),
+        draftId: draftId('drf-2'),
+        scheduledAt: '2026-11-12T07:00:00.000Z',
+      }),
     );
     await scheduledSends.create(
-      buildSend({ id: sendId('s-future'), scheduledAt: '2026-12-01T07:00:00.000Z' }),
+      buildSend({
+        id: sendId('s-future'),
+        draftId: draftId('drf-3'),
+        scheduledAt: '2026-12-01T07:00:00.000Z',
+      }),
     );
 
     expect((await scheduledSends.listPending(LOCAL_USER_ID)).map((send) => send.id)).toEqual([
@@ -161,13 +204,19 @@ describe('SqliteScheduledSendRepository', () => {
   it('claims a send only once and records the outcome', async () => {
     const { scheduledSends } = store.repositories;
     await scheduledSends.create(buildSend());
-    await scheduledSends.create(buildSend({ id: sendId('sch-2') }));
+    await scheduledSends.create(buildSend({ id: sendId('sch-2'), draftId: draftId('drf-2') }));
 
-    expect(await scheduledSends.claim(sendId('sch-1'))).toBe(true);
-    expect(await scheduledSends.claim(sendId('sch-1'))).toBe(false);
-    await scheduledSends.markSent(sendId('sch-1'), '2026-11-12T08:00:05.000Z');
-    await scheduledSends.claim(sendId('sch-2'));
-    await scheduledSends.markFailed(sendId('sch-2'), 'SMTP 550');
+    expect(await scheduledSends.claim(sendId('sch-1'), CLAIMED_AT)).toBe(true);
+    expect(await scheduledSends.claim(sendId('sch-1'), CLAIMED_AT)).toBe(false);
+    expect(
+      await scheduledSends.markSent(sendId('sch-1'), '2026-11-12T08:00:05.000Z', STALE_BEFORE),
+    ).toBe(false);
+    expect(
+      await scheduledSends.markSent(sendId('sch-1'), '2026-11-12T08:00:05.000Z', CLAIMED_AT),
+    ).toBe(true);
+    await scheduledSends.claim(sendId('sch-2'), CLAIMED_AT);
+    expect(await scheduledSends.markFailed(sendId('sch-2'), 'SMTP 550', CLAIMED_AT)).toBe(true);
+    expect(await scheduledSends.markFailed(sendId('sch-2'), 'SMTP 551', CLAIMED_AT)).toBe(false);
 
     expect(await scheduledSends.findById(LOCAL_USER_ID, sendId('sch-1'))).toMatchObject({
       status: 'sent',
@@ -184,9 +233,45 @@ describe('SqliteScheduledSendRepository', () => {
     const { scheduledSends } = store.repositories;
     await scheduledSends.create(buildSend());
 
-    expect(await scheduledSends.cancel(userId('intruder'), sendId('sch-1'))).toBe(false);
-    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-1'))).toBe(true);
-    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-1'))).toBe(false);
-    expect(await scheduledSends.claim(sendId('sch-1'))).toBe(false);
+    expect(await scheduledSends.cancel(userId('intruder'), sendId('sch-1'), STALE_BEFORE)).toBe(
+      false,
+    );
+    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-1'), STALE_BEFORE)).toBe(true);
+    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-1'), STALE_BEFORE)).toBe(false);
+    expect(await scheduledSends.claim(sendId('sch-1'), CLAIMED_AT)).toBe(false);
+  });
+
+  it('rejects a second active send for the same draft', async () => {
+    const { scheduledSends } = store.repositories;
+    await scheduledSends.create(buildSend());
+
+    await expect(scheduledSends.create(buildSend({ id: sendId('sch-2') }))).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-1'), STALE_BEFORE);
+    await expect(scheduledSends.create(buildSend({ id: sendId('sch-2') }))).resolves.toMatchObject({
+      status: 'pending',
+    });
+  });
+
+  it('returns only stale sending rows to pending and cancels them after the lease', async () => {
+    const { scheduledSends } = store.repositories;
+    await scheduledSends.create(buildSend());
+    await scheduledSends.create(buildSend({ id: sendId('sch-2'), draftId: draftId('drf-2') }));
+    await scheduledSends.create(buildSend({ id: sendId('sch-3'), draftId: draftId('drf-3') }));
+    await scheduledSends.claim(sendId('sch-1'), '2026-11-12T07:00:00.000Z');
+    await scheduledSends.claim(sendId('sch-2'), '2026-11-12T07:55:00.000Z');
+    await scheduledSends.claim(sendId('sch-3'), '2026-11-12T07:00:00.000Z');
+
+    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-2'), STALE_BEFORE)).toBe(false);
+    expect(await scheduledSends.cancel(LOCAL_USER_ID, sendId('sch-3'), STALE_BEFORE)).toBe(true);
+    expect(await scheduledSends.releaseStaleSending(STALE_BEFORE)).toBe(1);
+
+    const statuses = await Promise.all(
+      ['sch-1', 'sch-2', 'sch-3'].map(
+        async (id) => (await scheduledSends.findById(LOCAL_USER_ID, sendId(id)))?.status,
+      ),
+    );
+    expect(statuses).toEqual(['pending', 'sending', 'cancelled']);
   });
 });

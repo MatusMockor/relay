@@ -5,6 +5,7 @@ import type { DraftRepository } from './draft-repository';
 import type { LabelRepository } from './label-repository';
 import type { MailboxRepository } from './mailbox-repository';
 import type { MessageRepository } from './message-repository';
+import type { PendingWorkRepository } from './pending-work-repository';
 import type { ReminderRepository } from './reminder-repository';
 import type { ScheduledSendRepository } from './scheduled-send-repository';
 import type { SettingsRepository } from './settings-repository';
@@ -28,4 +29,5 @@ export interface Repositories {
   readonly aiResults: AiResultRepository;
   readonly aiJobs: AiJobRepository;
   readonly syncStates: SyncStateRepository;
+  readonly pendingWork: PendingWorkRepository;
 }

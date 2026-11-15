@@ -2,13 +2,13 @@ import type { UpdateAccountBody } from '@relay/shared/api';
 import type { AccountCredentials, MailAccount, UserId } from '@relay/shared/domain';
 import { NotFoundError, ProviderError, ValidationError } from '../../errors';
 import type { AccountChanges, AccountRepository } from '../../ports/account-repository';
-import type { CredentialVault } from '../../ports/credential-vault';
+import type { ConditionalCredentialVault } from '../../ports/credential-vault';
 import { type ConnectionTester, describeFailure } from './connection-tester';
 
 export class AccountUpdater {
   constructor(
     private readonly accounts: AccountRepository,
-    private readonly vault: CredentialVault,
+    private readonly vault: ConditionalCredentialVault,
     private readonly tester: ConnectionTester,
   ) {}
 
@@ -29,8 +29,8 @@ export class AccountUpdater {
     const updated = await this.accounts
       .update(userId, account.id, changes satisfies AccountChanges)
       .catch(async (error: unknown) => {
-        if (previous !== null) {
-          await this.vault.set(account.id, previous);
+        if (previous !== null && credentials !== null) {
+          await this.vault.setIfUnchanged(account.id, credentials, previous);
         }
         return Promise.reject(error instanceof Error ? error : new Error(String(error)));
       });

@@ -54,7 +54,7 @@ export class SqliteThreadRepository implements ThreadRepository {
   upsert(thread: ThreadSummary): Promise<ThreadSummary> {
     return this.executor.execute((db) => {
       const row = toThreadRow(accountOwnerOf(db, thread.accountId), thread);
-      const { id: _id, ...changes } = row;
+      const { id: _id, hasDraft: _hasDraft, ...changes } = row;
       db.insert(threads).values(row).onConflictDoUpdate({ target: threads.id, set: changes }).run();
       db.delete(threadSplits).where(eq(threadSplits.threadId, thread.id)).run();
       const splitIds = [...new Set(thread.splitIds)];
@@ -63,7 +63,7 @@ export class SqliteThreadRepository implements ThreadRepository {
           .values(splitIds.map((splitId) => ({ threadId: thread.id, splitId })))
           .run();
       }
-      return thread;
+      return this.findWhere(db, eq(threads.id, thread.id)) ?? thread;
     });
   }
 
@@ -75,6 +75,18 @@ export class SqliteThreadRepository implements ThreadRepository {
     return this.executor.execute((db) => {
       const owned = and(eq(threads.userId, userId), eq(threads.id, threadId));
       db.update(threads).set({ state: change.state, remindAt: change.remindAt }).where(owned).run();
+      return this.findWhere(db, owned);
+    });
+  }
+
+  setHasDraft(
+    userId: UserId,
+    threadId: ThreadId,
+    hasDraft: boolean,
+  ): Promise<ThreadSummary | null> {
+    return this.executor.execute((db) => {
+      const owned = and(eq(threads.userId, userId), eq(threads.id, threadId));
+      db.update(threads).set({ hasDraft }).where(owned).run();
       return this.findWhere(db, owned);
     });
   }

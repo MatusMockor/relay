@@ -235,4 +235,27 @@ describe('SyncService incremental sync', () => {
     expect(server.listeners.size).toBe(0);
     expect(server.openConnections).toBe(0);
   });
+
+  it('closes the connection when IDLE cannot start', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    server.failOperations = 'IDLE not supported';
+
+    await expect(engine.services.sync.watchAccount(USER_ID, account.id)).rejects.toThrow(
+      'IDLE not supported',
+    );
+
+    expect(server.openConnections).toBe(0);
+  });
+
+  it('closes the connection when stopping IDLE fails', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    const stop = await engine.services.sync.watchAccount(USER_ID, account.id);
+    server.failIdleStop = 'Connection reset';
+
+    await expect(stop()).rejects.toThrow('Connection reset');
+
+    expect(server.openConnections).toBe(0);
+  });
 });

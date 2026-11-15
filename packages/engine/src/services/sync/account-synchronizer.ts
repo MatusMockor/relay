@@ -1,6 +1,9 @@
 import type { AccountId, MailAccount, Mailbox, MailboxRole, UserId } from '@relay/shared/domain';
+import type { PendingWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
+import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { Logger } from '../../ports/logger';
+import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { SplitRepository } from '../../ports/split-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
@@ -10,7 +13,7 @@ import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync
 import type { SyncContext, SyncStats } from './sync-context';
 import type { SyncOptions } from './sync-options';
 import type { SyncReporter } from './sync-reporter';
-import { ThreadChangeSet } from './thread-change-set';
+import { SyncJournal } from './sync-journal';
 
 export interface SyncReport {
   readonly accountId: AccountId;
@@ -22,10 +25,12 @@ export interface SyncReport {
 
 export interface AccountSynchronizerDeps {
   readonly splits: SplitRepository;
+  readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
   readonly mailboxSync: MailboxSynchronizer;
   readonly flusher: ChangeFlusher;
+  readonly replayer: ProviderOpReplayer;
   readonly reporter: SyncReporter;
   readonly arrivals: SyncArrivalListener;
   readonly clock: Clock;
@@ -39,6 +44,7 @@ export class AccountSynchronizer {
   async run(userId: UserId, account: MailAccount): Promise<SyncReport> {
     const stats: SyncStats = { newMessages: 0, updatedThreads: 0 };
     const arrivals: InboxArrival[] = [];
+    const arrivalWork: PendingWork<'message-effects'>[] = [];
     const startedAt = this.deps.clock.now().toISOString();
     const { reporter } = this.deps;
     await reporter.status(userId, account.id, 'syncing', {
@@ -59,9 +65,10 @@ export class AccountSynchronizer {
           provider,
           splits: [],
           mailboxRoles: new Map(),
-          changes: new ThreadChangeSet(),
+          journal: new SyncJournal(account.id, this.deps.clock),
           stats,
           arrivals,
+          arrivalWork,
         }),
       );
     } catch (error) {
@@ -81,13 +88,17 @@ export class AccountSynchronizer {
       processed: stats.newMessages,
       total: null,
     });
-    await this.notifyArrivals({ userId, account, startedAt, arrivals });
+    await this.notifyArrivals({ userId, account, startedAt, arrivals }, arrivalWork);
     return { accountId: account.id, ok: true, error: null, ...stats };
   }
 
-  private async notifyArrivals(batch: SyncArrivalBatch): Promise<void> {
+  private async notifyArrivals(
+    batch: SyncArrivalBatch,
+    work: readonly PendingWork<'message-effects'>[],
+  ): Promise<void> {
     try {
       await this.deps.arrivals.onArrivals(batch);
+      await this.deps.pendingWork.remove(work);
     } catch (error) {
       this.deps.logger.warn('Handling new inbox mail failed', {
         accountId: batch.account.id,
@@ -100,6 +111,8 @@ export class AccountSynchronizer {
     const splits = await this.deps.splits.listForAccount(base.userId, base.account.id);
     const context: SyncContext = { ...base, splits };
     const mailboxes = await this.deps.refresher.refresh(context);
+    await this.deps.replayer.replayPending(context.account, context.provider);
+    await this.deps.flusher.flush(context);
     const selected = this.select(mailboxes);
     await this.deps.reporter.progress(context.userId, context.account.id, {
       mailboxId: null,
@@ -114,7 +127,8 @@ export class AccountSynchronizer {
     for (const pass of passes) {
       await this.deps.mailboxSync.reconcile(context, pass);
     }
-    await this.deps.flusher.flush(context, { publishMessages: true });
+    await this.deps.flusher.flush(context);
+    await this.deps.replayer.replayPending(context.account, context.provider);
   }
 
   private select(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {
