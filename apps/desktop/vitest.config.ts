@@ -6,6 +6,9 @@ export default mergeConfig(
   relayVitestPreset,
   defineConfig({
     plugins: [react()],
-    test: { testTransformMode: { ssr: ['**/test/integration/**/*.test.{ts,tsx}'] } },
+    test: {
+      setupFiles: ['src/renderer/test/support/testing-library-setup.ts'],
+      testTransformMode: { ssr: ['**/test/integration/**/*.test.{ts,tsx}'] },
+    },
   }),
 );

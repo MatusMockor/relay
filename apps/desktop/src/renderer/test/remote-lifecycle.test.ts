@@ -7,6 +7,7 @@ import { RendererTokenSession } from '../src/data/remote/RendererTokenSession';
 import { MemoryTokenStore } from '../src/data/remote/TokenStore';
 import { type ContractServer, startContractServer } from './support/contract-server';
 import { tokens } from './support/fixtures';
+import { gate } from './support/gate';
 
 const EXPIRED = '2000-01-01T00:00:00.000Z';
 
@@ -52,27 +53,31 @@ describe('remote session lifecycle', () => {
 
   it('does not bring back tokens that were cleared while a refresh was running', async () => {
     await store.save(tokens('access-1', 'refresh-1', EXPIRED));
-    server.handle('auth.refresh', () => ({ delayMs: 80, body: tokens('access-2') }));
+    const refresh = gate();
+    server.handle('auth.refresh', () => ({ holdUntil: refresh.wait(), body: tokens('access-2') }));
     const session = sessionWith();
     const pending = session.accessToken();
-    await pause(20);
+    await waitUntil(() => server.requests.some((request) => request.key === 'auth.refresh'));
     await session.clear();
+    refresh.open();
     expect(await pending).toBeNull();
     expect(await store.load()).toBeNull();
   });
 
   it('keeps a newer login when an older refresh is rejected', async () => {
     await store.save(tokens('access-1', 'refresh-1', EXPIRED));
+    const refresh = gate();
     server.handle('auth.refresh', () => ({
-      delayMs: 80,
+      holdUntil: refresh.wait(),
       status: 401,
       body: { error: { code: 'unauthorized', message: 'Neplatný token' } },
     }));
     const expired: string[] = [];
     const session = sessionWith(() => expired.push('expired'));
     const pending = session.accessToken();
-    await pause(20);
+    await waitUntil(() => server.requests.some((request) => request.key === 'auth.refresh'));
     await session.save(tokens('access-new'));
+    refresh.open();
     expect(await pending).toBe('access-new');
     expect((await store.load())?.accessToken).toBe('access-new');
     expect(expired).toEqual([]);

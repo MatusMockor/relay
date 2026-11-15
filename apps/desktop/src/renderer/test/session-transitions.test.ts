@@ -7,13 +7,14 @@ import { useSessionStore } from '../src/session/session-store';
 import { SessionController } from '../src/session/SessionController';
 import { type ContractServer, startContractServer } from './support/contract-server';
 import { session, tokens } from './support/fixtures';
+import { type Gate, gate } from './support/gate';
 import { memoryStorage, resetStores } from './support/render-app';
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const slowLoads = (store: TokenStore, delayMs: number): TokenStore => ({
+const heldLoads = (store: TokenStore, held: Gate): TokenStore => ({
   load: async () => {
-    await pause(delayMs);
+    await held.wait();
     return store.load();
   },
   save: (pair) => store.save(pair),
@@ -49,7 +50,9 @@ describe('session transitions between servers', () => {
     await second.close();
   });
 
-  const platformWith = async (slowUrl: string | null): Promise<BrowserPlatform> => {
+  const platformWith = async (
+    held: { readonly url: string; readonly gate: Gate } | null,
+  ): Promise<BrowserPlatform> => {
     const base = createBrowserPlatform(memoryStorage());
     await base.tokenStore(first.url).save(tokens('access-first'));
     await base.tokenStore(second.url).save(tokens('access-second'));
@@ -60,18 +63,20 @@ describe('session transitions between servers', () => {
           ...hooks,
           baseUrl: serverUrl,
           tokens:
-            serverUrl === slowUrl
-              ? slowLoads(base.tokenStore(serverUrl), 100)
+            serverUrl === held?.url
+              ? heldLoads(base.tokenStore(serverUrl), held.gate)
               : base.tokenStore(serverUrl),
         }),
     };
   };
 
   it('keeps the server that was picked last when an older switch finishes later', async () => {
-    const platform = await platformWith(first.url);
+    const firstLoad = gate();
+    const platform = await platformWith({ url: first.url, gate: firstLoad });
     controller = new SessionController(platform, useSessionStore);
     const older = controller.switchServer(first.url);
     await controller.switchServer(second.url);
+    firstLoad.open();
     await older;
     expect(useSessionStore.getState().services?.serverUrl).toBe(second.url);
     expect((await platform.deviceSettings()).activeServerUrl).toBe(second.url);
@@ -80,19 +85,22 @@ describe('session transitions between servers', () => {
   it('drops a login that finishes after the user left the server step', async () => {
     first.handle('auth.login', () => ({ body: session('access-login') }));
     const base = await platformWith(null);
+    const remembering = gate();
+    let remembered = false;
     const platform: BrowserPlatform = {
       ...base,
       updateDeviceSettings: async (patch) => {
-        await pause(100);
+        remembered = true;
+        await remembering.wait();
         return base.updateDeviceSettings(patch);
       },
     };
     controller = new SessionController(platform, useSessionStore);
     await controller.verifyServer(first.url);
     const login = controller.authenticate('login', { email: 'jan@domov.sk', password: 'heslo123' });
-    await waitUntil(() => first.requests.some((request) => request.key === 'accounts.list'));
-    await pause(30);
+    await waitUntil(() => remembered);
     controller.goTo('welcome', null);
+    remembering.open();
     await login;
     const state = useSessionStore.getState();
     expect(state.phase).toBe('onboarding');
@@ -101,16 +109,17 @@ describe('session transitions between servers', () => {
   });
 
   it('ignores a session expiry reported by a server that is no longer active', async () => {
-    first.handle('auth.me', () => ({ status: 401, delayMs: 120, body: UNAUTHORIZED }));
+    const me = gate();
+    first.handle('auth.me', () => ({ status: 401, holdUntil: me.wait(), body: UNAUTHORIZED }));
     first.handle('auth.refresh', () => ({ status: 401, body: UNAUTHORIZED }));
     controller = new SessionController(await platformWith(null), useSessionStore);
     const older = controller.switchServer(first.url);
-    await pause(30);
+    await waitUntil(() => first.requests.some((request) => request.key === 'auth.me'));
     await controller.switchServer(second.url);
+    me.open();
     await older;
-    await pause(50);
+    await waitUntil(() => first.requests.some((request) => request.key === 'auth.refresh'));
     const state = useSessionStore.getState();
-    expect(first.requests.some((request) => request.key === 'auth.refresh')).toBe(true);
     expect(state.phase).toBe('ready');
     expect(state.services?.serverUrl).toBe(second.url);
   });

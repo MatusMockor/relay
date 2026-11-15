@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { AiRunRequest, ThreadId } from '@relay/shared';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { setUi, useUiStore } from '../src/state/ui-store';
@@ -83,8 +83,9 @@ describe('reply composer', () => {
     await settle(50);
     expect(useUiStore.getState().reply?.busy).toBe(true);
     gates[1]?.open();
-    await settle(50);
-    expect(useUiStore.getState().reply?.busy).toBe(false);
+    await waitFor(() => {
+      expect(useUiStore.getState().reply?.busy).toBe(false);
+    });
   });
 
   it('restores a reply whose save failed without a stale busy flag', async () => {
@@ -109,8 +110,9 @@ describe('reply composer', () => {
     aiGate.open();
     await settle(50);
     saveGate.open();
-    await settle(50);
-    expect(useUiStore.getState().reply?.busy).toBe(false);
+    await waitFor(() => {
+      expect(useUiStore.getState().reply?.busy).toBe(false);
+    });
     expect(screen.getByRole('textbox', { name: 'Odpoveď' }).hasAttribute('readonly')).toBe(false);
   });
 
