@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FolderViewSchema } from '../../domain/folder-view';
 import { AccountIdSchema, LabelIdSchema, SplitIdSchema, ThreadIdSchema } from '../../domain/ids';
 import {
+  ChecklistItemIdSchema,
   ChecklistItemSchema,
   ThreadAiStateSchema,
   ThreadDetailSchema,
@@ -25,7 +26,7 @@ export const ThreadPageSchema = pageSchemaOf(ThreadSummarySchema);
 export type ThreadPage = z.infer<typeof ThreadPageSchema>;
 
 export const UpdateChecklistItemBodySchema = z.object({
-  itemId: z.string().min(1).max(200),
+  itemId: ChecklistItemIdSchema,
   done: z.boolean(),
 });
 export type UpdateChecklistItemBody = z.infer<typeof UpdateChecklistItemBodySchema>;
