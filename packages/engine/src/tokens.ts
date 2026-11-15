@@ -2,6 +2,7 @@ import type { AccountRepository } from './ports/account-repository';
 import type { AiJobRepository } from './ports/ai-job-repository';
 import type { AiResultRepository } from './ports/ai-result-repository';
 import type { AiRunnerRegistry } from './ports/ai-runner-registry';
+import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { AttachmentStore } from './ports/attachment-store';
 import type { Clock } from './ports/clock';
 import type { CredentialVault } from './ports/credential-vault';
@@ -14,12 +15,15 @@ import type { Logger } from './ports/logger';
 import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MailboxRepository } from './ports/mailbox-repository';
+import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
 import type { MessageParser } from './ports/message-parser';
 import type { MessageRepository } from './ports/message-repository';
+import type { PendingWorkRepository } from './ports/pending-work-repository';
 import type { ReminderRepository } from './ports/reminder-repository';
 import type { ScheduledSendRepository } from './ports/scheduled-send-repository';
 import type { SettingsRepository } from './ports/settings-repository';
 import type { SplitMatcher } from './ports/split-matcher';
+import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { SplitRepository } from './ports/split-repository';
 import type { SyncStateRepository } from './ports/sync-state-repository';
 import type { TaskRepository } from './ports/task-repository';
@@ -42,15 +46,19 @@ export const PORT_TOKENS = {
   AiResultRepository: Symbol.for('relay.engine.AiResultRepository'),
   AiJobRepository: Symbol.for('relay.engine.AiJobRepository'),
   SyncStateRepository: Symbol.for('relay.engine.SyncStateRepository'),
+  PendingWorkRepository: Symbol.for('relay.engine.PendingWorkRepository'),
+  MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
   MailSender: Symbol.for('relay.engine.MailSender'),
   CredentialVault: Symbol.for('relay.engine.CredentialVault'),
   AttachmentStore: Symbol.for('relay.engine.AttachmentStore'),
+  AttachmentExtractor: Symbol.for('relay.engine.AttachmentExtractor'),
   MessageParser: Symbol.for('relay.engine.MessageParser'),
   ThreadResolver: Symbol.for('relay.engine.ThreadResolver'),
   JiraClassifier: Symbol.for('relay.engine.JiraClassifier'),
   SplitMatcher: Symbol.for('relay.engine.SplitMatcher'),
+  SplitPatternPolicy: Symbol.for('relay.engine.SplitPatternPolicy'),
   AiRunnerRegistry: Symbol.for('relay.engine.AiRunnerRegistry'),
   EventPublisher: Symbol.for('relay.engine.EventPublisher'),
   Clock: Symbol.for('relay.engine.Clock'),
@@ -73,15 +81,19 @@ export interface PortRegistry {
   AiResultRepository: AiResultRepository;
   AiJobRepository: AiJobRepository;
   SyncStateRepository: SyncStateRepository;
+  PendingWorkRepository: PendingWorkRepository;
+  MessageAttachmentLookup: MessageAttachmentLookup;
   UnitOfWork: UnitOfWork;
   MailProviderFactory: MailProviderFactory;
   MailSender: MailSender;
   CredentialVault: CredentialVault;
   AttachmentStore: AttachmentStore;
+  AttachmentExtractor: AttachmentExtractor;
   MessageParser: MessageParser;
   ThreadResolver: ThreadResolver;
   JiraClassifier: JiraClassifier;
   SplitMatcher: SplitMatcher;
+  SplitPatternPolicy: SplitPatternPolicy;
   AiRunnerRegistry: AiRunnerRegistry;
   EventPublisher: EventPublisher;
   Clock: Clock;

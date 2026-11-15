@@ -1,4 +1,8 @@
+export * from './create-engine-services';
+export type * from './engine-deps';
 export * from './errors';
 export type * from './model';
 export type * from './ports';
+export * from './services';
 export * from './tokens';
+export * from './subjects/normalize-subject';

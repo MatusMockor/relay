@@ -5,11 +5,26 @@ export interface TaskQuery extends PageRequest {
   readonly state: TaskState | null;
 }
 
+export interface TaskChanges {
+  readonly threadId?: ThreadId | null;
+  readonly title?: string;
+  readonly aiWhat?: string | null;
+  readonly state?: TaskState;
+  readonly updatedAt: string;
+}
+
+export interface JiraTaskCreation {
+  readonly task: Task;
+  readonly created: boolean;
+}
+
 export interface TaskRepository {
   list(userId: UserId, query: TaskQuery): Promise<Page<Task>>;
   findById(userId: UserId, taskId: TaskId): Promise<Task | null>;
   findByJiraKey(userId: UserId, jiraKey: JiraKey): Promise<Task | null>;
   findByThread(userId: UserId, threadId: ThreadId): Promise<Task[]>;
   upsert(task: Task): Promise<Task>;
+  createOrGetByJiraKey(task: Task & { readonly jiraKey: JiraKey }): Promise<JiraTaskCreation>;
+  update(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task | null>;
   delete(userId: UserId, taskId: TaskId): Promise<boolean>;
 }

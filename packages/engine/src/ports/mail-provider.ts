@@ -15,6 +15,7 @@ import type { MessageFlags } from '@relay/shared/domain';
 export interface MailProvider {
   connect(): Promise<void>;
   listMailboxes(): Promise<RemoteMailbox[]>;
+  createMailbox(name: string): Promise<RemoteMailbox>;
   status(mailboxPath: string): Promise<RemoteMailboxStatus>;
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage>;
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange>;
