@@ -47,6 +47,7 @@ export class FakeMailServer {
   openConnections = 0;
   failConnect: string | null = null;
   failOperations: string | null = null;
+  failIdleStop: string | null = null;
   private modseq = 1n;
 
   constructor(options: FakeMailServerOptions = {}) {
@@ -125,6 +126,7 @@ export class FakeMailServer {
     }
     record.keywords = [...keywords];
     record.modseq = this.nextModseq();
+    this.notify({ type: 'flags', mailboxPath: path, uid });
     return true;
   }
 
