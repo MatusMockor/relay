@@ -9,13 +9,15 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@relay/engine": "workspace:*",
     "@relay/shared": "workspace:*",
     "better-sqlite3": "13.2.0",
-    "drizzle-orm": "0.45.4"
+    "drizzle-orm": "0.45.4",
+    "zod": "4.1.13"
   },
   "devDependencies": {
     "@relay/config": "workspace:*",
