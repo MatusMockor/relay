@@ -75,6 +75,7 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   aiResults: PORT_TOKENS.AiResultRepository,
   aiJobs: PORT_TOKENS.AiJobRepository,
   syncStates: PORT_TOKENS.SyncStateRepository,
+  pendingWork: PORT_TOKENS.PendingWorkRepository,
   users: SERVER_PORT_TOKENS.UserRepository,
   devices: SERVER_PORT_TOKENS.DeviceRepository,
   refreshTokens: SERVER_PORT_TOKENS.RefreshTokenRepository,

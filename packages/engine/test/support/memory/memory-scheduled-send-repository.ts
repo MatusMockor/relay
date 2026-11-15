@@ -1,8 +1,12 @@
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import type { ScheduledSendRepository } from '../../../src';
+import { ConflictError, type ScheduledSendRepository } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
+const ACTIVE = new Set<ScheduledSend['status']>(['pending', 'sending']);
+
 export class MemoryScheduledSendRepository implements ScheduledSendRepository {
+  failMarkSent = 0;
+
   constructor(private readonly db: MemoryDatabase) {}
 
   listPending(userId: UserId): Promise<ScheduledSend[]> {
@@ -27,42 +31,84 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
   }
 
   create(scheduledSend: ScheduledSend): Promise<ScheduledSend> {
+    const duplicate = this.all().some(
+      (item) => item.draftId === scheduledSend.draftId && ACTIVE.has(item.status),
+    );
+    if (duplicate && ACTIVE.has(scheduledSend.status)) {
+      return Promise.reject(new ConflictError('The record conflicts with an existing record'));
+    }
     this.db.tables.scheduledSends.set(scheduledSend.id, scheduledSend);
     return Promise.resolve(scheduledSend);
   }
 
-  claim(scheduledSendId: ScheduledSendId): Promise<boolean> {
+  claim(scheduledSendId: ScheduledSendId, claimedAt: string): Promise<boolean> {
     const item = this.db.tables.scheduledSends.get(scheduledSendId);
     if (item?.status !== 'pending') {
       return Promise.resolve(false);
     }
     this.db.tables.scheduledSends.set(scheduledSendId, { ...item, status: 'sending' });
+    this.db.tables.scheduledSendClaims.set(scheduledSendId, claimedAt);
     return Promise.resolve(true);
   }
 
-  markSent(scheduledSendId: ScheduledSendId, sentAt: string): Promise<void> {
-    return this.patch(scheduledSendId, { status: 'sent', sentAt, error: null });
+  releaseStaleSending(staleBefore: string): Promise<number> {
+    const stale = this.all().filter((item) => this.isStaleSending(item, staleBefore));
+    stale.forEach((item) => {
+      this.write(item.id, { status: 'pending' });
+    });
+    return Promise.resolve(stale.length);
   }
 
-  markFailed(scheduledSendId: ScheduledSendId, error: string): Promise<void> {
-    return this.patch(scheduledSendId, { status: 'failed', error });
+  markSent(scheduledSendId: ScheduledSendId, sentAt: string, claimedAt: string): Promise<boolean> {
+    if (this.failMarkSent > 0) {
+      this.failMarkSent -= 1;
+      return Promise.reject(new Error('database is locked'));
+    }
+    return Promise.resolve(
+      this.settle(scheduledSendId, claimedAt, { status: 'sent', sentAt, error: null }),
+    );
   }
 
-  cancel(userId: UserId, scheduledSendId: ScheduledSendId): Promise<boolean> {
+  markFailed(scheduledSendId: ScheduledSendId, error: string, claimedAt: string): Promise<boolean> {
+    return Promise.resolve(this.settle(scheduledSendId, claimedAt, { status: 'failed', error }));
+  }
+
+  cancel(userId: UserId, scheduledSendId: ScheduledSendId, staleBefore: string): Promise<boolean> {
     const item = this.db.tables.scheduledSends.get(scheduledSendId);
-    if (item?.userId !== userId || item.status !== 'pending') {
+    if (item?.userId !== userId) {
       return Promise.resolve(false);
     }
-    this.db.tables.scheduledSends.set(scheduledSendId, { ...item, status: 'cancelled' });
+    if (item.status !== 'pending' && !this.isStaleSending(item, staleBefore)) {
+      return Promise.resolve(false);
+    }
+    this.write(scheduledSendId, { status: 'cancelled' });
     return Promise.resolve(true);
   }
 
-  private patch(id: ScheduledSendId, changes: Partial<ScheduledSend>): Promise<void> {
+  private settle(id: ScheduledSendId, claimedAt: string, changes: Partial<ScheduledSend>): boolean {
     const item = this.db.tables.scheduledSends.get(id);
-    if (item !== undefined) {
-      this.db.tables.scheduledSends.set(id, { ...item, ...changes });
+    if (item?.status !== 'sending' || this.db.tables.scheduledSendClaims.get(id) !== claimedAt) {
+      return false;
     }
-    return Promise.resolve();
+    this.write(id, changes);
+    return true;
+  }
+
+  private isStaleSending(item: ScheduledSend, staleBefore: string): boolean {
+    if (item.status !== 'sending') {
+      return false;
+    }
+    const claimedAt = this.db.tables.scheduledSendClaims.get(item.id);
+    return claimedAt === undefined || Date.parse(claimedAt) < Date.parse(staleBefore);
+  }
+
+  private write(id: ScheduledSendId, changes: Partial<ScheduledSend>): void {
+    const item = this.db.tables.scheduledSends.get(id);
+    if (item === undefined) {
+      return;
+    }
+    this.db.tables.scheduledSends.set(id, { ...item, ...changes });
+    this.db.tables.scheduledSendClaims.delete(id);
   }
 
   private all(): ScheduledSend[] {

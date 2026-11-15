@@ -4,7 +4,7 @@ import type { AiRunnerRegistry } from './ports/ai-runner-registry';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { AttachmentStore } from './ports/attachment-store';
 import type { Clock } from './ports/clock';
-import type { CredentialVault } from './ports/credential-vault';
+import type { ConditionalCredentialVault } from './ports/credential-vault';
 import type { EventPublisher } from './ports/event-publisher';
 import type { IdGenerator } from './ports/id-generator';
 import type { JiraClassifier } from './ports/jira-classifier';
@@ -46,7 +46,7 @@ export interface EngineDeps {
   readonly unitOfWork: UnitOfWork;
   readonly mailProviderFactory: MailProviderFactory;
   readonly mailSender: MailSender;
-  readonly credentialVault: CredentialVault;
+  readonly credentialVault: ConditionalCredentialVault;
   readonly attachmentStore: AttachmentStore;
   readonly messageAttachmentLookup?: MessageAttachmentLookup;
   readonly attachmentExtractor?: AttachmentExtractor;

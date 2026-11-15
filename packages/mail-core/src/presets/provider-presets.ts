@@ -9,6 +9,7 @@ export type ProviderPresetId =
   | 'websupport'
   | 'zoznam'
   | 'azet'
+  | 'pobox'
   | 'centrum';
 
 export interface ProviderPreset {
@@ -100,9 +101,19 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
     id: 'azet',
     label: 'Azet.sk',
     provider: 'imap',
-    domains: ['azet.sk', 'post.sk', 'pobox.sk'],
+    domains: ['azet.sk', 'post.sk'],
     imap: tls('imap.azet.sk'),
     smtp: tls('smtp.azet.sk', 465),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  pobox: {
+    id: 'pobox',
+    label: 'Pobox.sk',
+    provider: 'imap',
+    domains: ['pobox.sk'],
+    imap: tls('imap.pobox.sk'),
+    smtp: tls('smtp.centrum.sk', 465),
     supportsOAuth: false,
     requiresAppPassword: false,
   },

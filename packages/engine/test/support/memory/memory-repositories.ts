@@ -5,6 +5,7 @@ import { MemoryDraftRepository } from './memory-draft-repository';
 import { MemoryLabelRepository } from './memory-label-repository';
 import { MemoryMailboxRepository } from './memory-mailbox-repository';
 import { MemoryMessageRepository } from './memory-message-repository';
+import { MemoryPendingWorkRepository } from './memory-pending-work-repository';
 import { MemoryReminderRepository } from './memory-reminder-repository';
 import { MemoryScheduledSendRepository } from './memory-scheduled-send-repository';
 import {
@@ -32,6 +33,7 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   aiResults: new MemoryAiResultRepository(db),
   aiJobs: new MemoryAiJobRepository(db),
   syncStates: new MemorySyncStateRepository(db),
+  pendingWork: new MemoryPendingWorkRepository(db),
 });
 
 export class MemoryUnitOfWork implements UnitOfWork {

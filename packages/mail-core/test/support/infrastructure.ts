@@ -1,4 +1,4 @@
-import type { Clock, CredentialVault, IdGenerator } from '@relay/engine';
+import type { Clock, ConditionalCredentialVault, IdGenerator } from '@relay/engine';
 import type { AccountCredentials, AccountId, EntityIdMap, EntityKind } from '@relay/shared/domain';
 
 export class FixedClock implements Clock {
@@ -22,7 +22,7 @@ export class SequentialIdGenerator implements IdGenerator {
   }
 }
 
-export class InMemoryCredentialVault implements CredentialVault {
+export class InMemoryCredentialVault implements ConditionalCredentialVault {
   readonly entries = new Map<AccountId, AccountCredentials>();
 
   get(accountId: AccountId): Promise<AccountCredentials | null> {
@@ -37,5 +37,18 @@ export class InMemoryCredentialVault implements CredentialVault {
   delete(accountId: AccountId): Promise<void> {
     this.entries.delete(accountId);
     return Promise.resolve();
+  }
+
+  setIfUnchanged(
+    accountId: AccountId,
+    expected: AccountCredentials,
+    next: AccountCredentials,
+  ): Promise<boolean> {
+    const current = this.entries.get(accountId);
+    if (current === undefined || JSON.stringify(current) !== JSON.stringify(expected)) {
+      return Promise.resolve(false);
+    }
+    this.entries.set(accountId, next);
+    return Promise.resolve(true);
   }
 }

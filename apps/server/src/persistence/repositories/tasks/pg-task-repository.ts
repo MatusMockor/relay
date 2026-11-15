@@ -1,4 +1,10 @@
-import { ConflictError, type Page, type TaskQuery, type TaskRepository } from '@relay/engine';
+import {
+  ConflictError,
+  type Page,
+  type TaskChanges,
+  type TaskQuery,
+  type TaskRepository,
+} from '@relay/engine';
 import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
@@ -6,6 +12,7 @@ import { tasks } from '../../schema';
 import { isUniqueViolation } from '../../support/postgres-errors';
 import { decodeCursor, pageOf } from '../../support/cursor';
 import { assertOwned } from '../../support/ownership';
+import { toDate } from '../../support/timestamps';
 import { toTask, toTaskInsert } from './task.mapper';
 
 export class PgTaskRepository implements TaskRepository {
@@ -82,6 +89,15 @@ export class PgTaskRepository implements TaskRepository {
       }
       throw error;
     }
+  }
+
+  async update(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task | null> {
+    const [row] = await this.db
+      .update(tasks)
+      .set({ ...changes, updatedAt: toDate(changes.updatedAt) })
+      .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)))
+      .returning();
+    return row === undefined ? null : toTask(row);
   }
 
   async delete(userId: UserId, taskId: TaskId): Promise<boolean> {

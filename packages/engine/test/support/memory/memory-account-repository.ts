@@ -3,6 +3,9 @@ import type { AccountChanges, AccountRepository, AccountStatusChange } from '../
 import type { MemoryDatabase } from './memory-database';
 
 export class MemoryAccountRepository implements AccountRepository {
+  beforeUpdate: (() => Promise<void>) | null = null;
+  failUpdate: string | null = null;
+
   constructor(private readonly db: MemoryDatabase) {}
 
   listByUser(userId: UserId): Promise<MailAccount[]> {
@@ -32,18 +35,22 @@ export class MemoryAccountRepository implements AccountRepository {
     return Promise.resolve(account);
   }
 
-  update(
+  async update(
     userId: UserId,
     accountId: AccountId,
     changes: AccountChanges,
   ): Promise<MailAccount | null> {
+    await this.beforeUpdate?.();
+    if (this.failUpdate !== null) {
+      return Promise.reject(new Error(this.failUpdate));
+    }
     const account = this.db.tables.accounts.get(accountId);
     if (account?.userId !== userId) {
-      return Promise.resolve(null);
+      return null;
     }
     const updated: MailAccount = { ...account, ...changes };
     this.db.tables.accounts.set(accountId, updated);
-    return Promise.resolve(updated);
+    return updated;
   }
 
   setPrimary(userId: UserId, accountId: AccountId): Promise<void> {

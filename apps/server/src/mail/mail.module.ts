@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import {
   type Clock,
-  type CredentialVault,
+  type ConditionalCredentialVault,
   type IdGenerator,
   type MessageRepository,
   PORT_TOKENS,
@@ -30,7 +30,7 @@ const OAUTH_TOKEN_PROVIDER = Symbol.for('relay.server.OAuthTokenProvider');
     {
       provide: OAUTH_TOKEN_PROVIDER,
       inject: [SERVER_CONFIG, PORT_TOKENS.CredentialVault, PORT_TOKENS.Clock],
-      useFactory: (config: ServerConfig, vault: CredentialVault, clock: Clock) =>
+      useFactory: (config: ServerConfig, vault: ConditionalCredentialVault, clock: Clock) =>
         createOAuthTokenProvider(config.google, vault, clock),
     },
     {

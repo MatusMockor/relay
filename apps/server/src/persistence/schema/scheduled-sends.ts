@@ -6,7 +6,7 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import { sql } from 'drizzle-orm';
-import { index, pgTable, text } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { mailAccounts } from './accounts';
 import { timestampTz } from './columns';
 import { drafts } from './drafts';
@@ -32,6 +32,7 @@ export const scheduledSends = pgTable(
     status: text('status').$type<ScheduledSendStatus>().notNull(),
     error: text('error'),
     sentAt: timestampTz('sent_at'),
+    claimedAt: timestampTz('claimed_at'),
     createdAt: timestampTz('created_at').notNull(),
   },
   (table) => [
@@ -40,5 +41,8 @@ export const scheduledSends = pgTable(
       .on(table.scheduledAt)
       .where(sql`${table.status} = 'pending'`),
     index('scheduled_sends_draft_idx').on(table.draftId),
+    uniqueIndex('scheduled_sends_active_draft_idx')
+      .on(table.draftId)
+      .where(sql`${table.status} in ('pending', 'sending')`),
   ],
 );

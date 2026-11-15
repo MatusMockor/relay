@@ -2,25 +2,22 @@ import type { CreateDraftBody, UpdateDraftBody, UploadAttachmentBody } from '@re
 import {
   type Draft,
   type DraftAttachment,
-  type DraftContent,
   type DraftId,
   MAX_ATTACHMENT_BYTES,
   type UserId,
 } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
-import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentStore } from '../../ports/attachment-store';
 import type { Clock } from '../../ports/clock';
 import type { DraftRepository } from '../../ports/draft-repository';
 import type { IdGenerator } from '../../ports/id-generator';
-import type { ThreadRepository } from '../../ports/thread-repository';
 import type { EngineEvents } from '../shared/engine-events';
+import type { DraftReferenceGuard } from './draft-reference-guard';
 import type { DraftThreadFlag } from './draft-thread-flag';
 
 export interface DraftServiceDeps {
   readonly drafts: DraftRepository;
-  readonly accounts: AccountRepository;
-  readonly threads: ThreadRepository;
+  readonly references: DraftReferenceGuard;
   readonly attachments: AttachmentStore;
   readonly threadFlag: DraftThreadFlag;
   readonly events: EngineEvents;
@@ -47,7 +44,7 @@ export class DraftService {
   }
 
   async create(userId: UserId, content: CreateDraftBody): Promise<Draft> {
-    await this.assertReferences(userId, content);
+    await this.deps.references.assert(userId, null, content);
     const now = this.deps.clock.now().toISOString();
     const draft = await this.deps.drafts.create(userId, {
       ...content,
@@ -62,12 +59,12 @@ export class DraftService {
 
   async update(userId: UserId, draftId: DraftId, patch: UpdateDraftBody): Promise<Draft> {
     const current = await this.require(userId, draftId);
-    await this.assertReferences(userId, { ...current, ...patch });
+    await this.deps.references.assert(userId, draftId, { ...current, ...patch });
     const draft = await this.deps.drafts.update(
       userId,
       draftId,
       patch,
-      this.deps.clock.now().toISOString(),
+      this.nextRevision(current.updatedAt),
     );
     if (draft === null) {
       throw new NotFoundError('Draft', draftId);
@@ -81,11 +78,15 @@ export class DraftService {
   async delete(userId: UserId, draftId: DraftId): Promise<void> {
     const draft = await this.require(userId, draftId);
     await this.deps.drafts.delete(userId, draftId);
-    for (const attachment of draft.attachments) {
-      await this.deps.attachments.delete(userId, attachment.id);
+    await this.removed(userId, draft);
+  }
+
+  async deleteSent(userId: UserId, draft: Draft): Promise<boolean> {
+    if (!(await this.deps.drafts.deleteRevision(userId, draft.id, draft.updatedAt))) {
+      return false;
     }
-    await this.deps.events.emit(userId, 'draft.removed', { draftId });
-    await this.deps.threadFlag.sync(userId, draft.inReplyToThreadId);
+    await this.removed(userId, draft);
+    return true;
   }
 
   async uploadAttachment(userId: UserId, body: UploadAttachmentBody): Promise<DraftAttachment> {
@@ -100,17 +101,16 @@ export class DraftService {
     });
   }
 
-  private async assertReferences(userId: UserId, content: DraftContent): Promise<void> {
-    const account = await this.deps.accounts.findById(userId, content.accountId);
-    if (account === null) {
-      throw new NotFoundError('Account', content.accountId);
+  private nextRevision(previous: string): string {
+    const now = this.deps.clock.now().getTime();
+    return new Date(Math.max(now, Date.parse(previous) + 1)).toISOString();
+  }
+
+  private async removed(userId: UserId, draft: Draft): Promise<void> {
+    for (const attachment of draft.attachments) {
+      await this.deps.attachments.delete(userId, attachment.id);
     }
-    if (content.inReplyToThreadId === null) {
-      return;
-    }
-    const thread = await this.deps.threads.findById(userId, content.inReplyToThreadId);
-    if (thread === null) {
-      throw new NotFoundError('Thread', content.inReplyToThreadId);
-    }
+    await this.deps.events.emit(userId, 'draft.removed', { draftId: draft.id });
+    await this.deps.threadFlag.sync(userId, draft.inReplyToThreadId);
   }
 }

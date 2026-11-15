@@ -24,7 +24,7 @@ import type {
   UserId,
   UserSettings,
 } from '@relay/shared/domain';
-import type { MailboxSyncState, MessageHeaders } from '../../../src';
+import type { MailboxSyncState, MessageHeaders, PendingWork } from '../../../src';
 
 export interface StoredDraft {
   readonly userId: UserId;
@@ -43,11 +43,14 @@ export class MemoryTables {
   readonly reminders = new Map<ReminderId, Reminder>();
   readonly drafts = new Map<DraftId, StoredDraft>();
   readonly scheduledSends = new Map<ScheduledSendId, ScheduledSend>();
+  readonly scheduledSendClaims = new Map<ScheduledSendId, string>();
   readonly settings = new Map<UserId, UserSettings>();
   readonly aiResults: AiResult[] = [];
   readonly aiJobs = new Map<AiJobId, AiJob>();
   readonly aiJobLeases = new Map<AiJobId, { owner: string; leaseUntil: string }>();
+  readonly unindexedAiJobs = new Set<AiJobId>();
   readonly syncStates = new Map<MailboxId, MailboxSyncState>();
+  readonly pendingWork = new Map<string, PendingWork>();
 }
 
 export class MemoryDatabase {

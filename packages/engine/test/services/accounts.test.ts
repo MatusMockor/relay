@@ -1,6 +1,7 @@
 import type { CreateAccountBody } from '@relay/shared/api';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, standardServer } from '../support/fixtures';
+import { MemoryAccountRepository } from '../support/memory/memory-account-repository';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const imapBody = (email: string, password = 'secret'): CreateAccountBody => ({
@@ -162,6 +163,32 @@ describe('AccountService', () => {
     server.password = 'rotated';
     await engine.services.accounts.update(USER_ID, account.id, { password: 'rotated' });
     expect(await engine.vault.get(account.id)).toEqual({ kind: 'password', password: 'rotated' });
+  });
+
+  it('restores the old password after a failed update unless another update replaced it', async () => {
+    const engine = createTestEngine();
+    const server = withServer(engine, 'alice@example.com');
+    const account = await engine.services.accounts.create(USER_ID, imapBody('alice@example.com'));
+    const accounts = engine.repositories.accounts;
+    expect(accounts).toBeInstanceOf(MemoryAccountRepository);
+    const memoryAccounts = accounts as MemoryAccountRepository;
+    server.password = 'first';
+    memoryAccounts.failUpdate = 'disk full';
+
+    await expect(
+      engine.services.accounts.update(USER_ID, account.id, { password: 'first' }),
+    ).rejects.toThrow('disk full');
+    expect(await engine.vault.get(account.id)).toEqual({ kind: 'password', password: 'secret' });
+
+    memoryAccounts.beforeUpdate = () =>
+      engine.vault.set(account.id, { kind: 'password', password: 'concurrent' });
+    await expect(
+      engine.services.accounts.update(USER_ID, account.id, { password: 'first' }),
+    ).rejects.toThrow('disk full');
+    expect(await engine.vault.get(account.id)).toEqual({
+      kind: 'password',
+      password: 'concurrent',
+    });
   });
 
   it('deletes an account with its data and promotes the next primary', async () => {

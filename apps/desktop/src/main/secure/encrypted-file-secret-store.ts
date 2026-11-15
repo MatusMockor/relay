@@ -32,20 +32,36 @@ export class EncryptedFileSecretStore implements SecretStore {
     return entries.get(key) ?? null;
   }
 
-  set(key: string, value: string): Promise<void> {
-    return this.mutate((entries) => entries.set(key, value));
+  async set(key: string, value: string): Promise<void> {
+    await this.mutate((entries) => {
+      entries.set(key, value);
+      return true;
+    });
   }
 
-  delete(key: string): Promise<void> {
-    return this.mutate((entries) => entries.delete(key));
+  async delete(key: string): Promise<void> {
+    await this.mutate((entries) => entries.delete(key));
   }
 
-  private mutate(change: (entries: Entries) => unknown): Promise<void> {
+  replace(key: string, expected: string, next: string): Promise<boolean> {
+    return this.mutate((entries) => {
+      if (entries.get(key) !== expected) {
+        return false;
+      }
+      entries.set(key, next);
+      return true;
+    });
+  }
+
+  private mutate(change: (entries: Entries) => boolean): Promise<boolean> {
     const next = this.pending.then(async () => {
       const entries = new Map(await this.load());
-      change(entries);
+      if (!change(entries)) {
+        return false;
+      }
       await this.persist(entries);
       this.entries = entries;
+      return true;
     });
     this.pending = next.catch(() => undefined);
     return next;

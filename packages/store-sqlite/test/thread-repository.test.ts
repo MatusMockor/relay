@@ -51,6 +51,22 @@ describe('SqliteThreadRepository', () => {
     });
   });
 
+  it('changes the draft flag only through setHasDraft', async () => {
+    const { threads } = store.repositories;
+    await threads.upsert(buildThread({ hasDraft: false }));
+    await threads.updateState(LOCAL_USER_ID, threadId('thr-1'), { state: 'done', remindAt: null });
+
+    const flagged = await threads.setHasDraft(LOCAL_USER_ID, threadId('thr-1'), true);
+    const refreshed = await threads.upsert(buildThread({ hasDraft: false, messageCount: 4 }));
+
+    expect(flagged).toMatchObject({ hasDraft: true, state: 'done' });
+    expect(refreshed).toMatchObject({ hasDraft: true, messageCount: 4 });
+    expect(await threads.setHasDraft(userId('intruder'), threadId('thr-1'), false)).toBeNull();
+    expect(await threads.findById(LOCAL_USER_ID, threadId('thr-1'))).toMatchObject({
+      hasDraft: true,
+    });
+  });
+
   it('updates the state, reminder and one-liner', async () => {
     const { threads } = store.repositories;
     await threads.upsert(buildThread());

@@ -1,4 +1,4 @@
-import type { CredentialVault } from '@relay/engine';
+import type { ConditionalCredentialVault } from '@relay/engine';
 import {
   type AccountCredentials,
   AccountCredentialsSchema,
@@ -10,6 +10,9 @@ import type { PgAccountCredentialStore } from './pg-account-credential-store';
 
 const associatedDataFor = (accountId: AccountId): string => `relay:credentials:${accountId}`;
 
+const serialize = (credentials: AccountCredentials): string =>
+  JSON.stringify(AccountCredentialsSchema.parse(credentials));
+
 const parseJson = (raw: string): unknown => {
   try {
     return JSON.parse(raw);
@@ -18,7 +21,7 @@ const parseJson = (raw: string): unknown => {
   }
 };
 
-export class AesGcmCredentialVault implements CredentialVault {
+export class AesGcmCredentialVault implements ConditionalCredentialVault {
   constructor(
     private readonly store: PgAccountCredentialStore,
     private readonly cipher: AesGcmCipher,
@@ -29,6 +32,30 @@ export class AesGcmCredentialVault implements CredentialVault {
     if (envelope === null) {
       return null;
     }
+    return this.open(accountId, envelope);
+  }
+
+  async set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
+    await this.store.save(accountId, this.seal(accountId, credentials));
+  }
+
+  async setIfUnchanged(
+    accountId: AccountId,
+    expected: AccountCredentials,
+    next: AccountCredentials,
+  ): Promise<boolean> {
+    const envelope = await this.store.find(accountId);
+    if (envelope === null || serialize(this.open(accountId, envelope)) !== serialize(expected)) {
+      return false;
+    }
+    return this.store.replace(accountId, envelope, this.seal(accountId, next));
+  }
+
+  async delete(accountId: AccountId): Promise<void> {
+    await this.store.delete(accountId);
+  }
+
+  private open(accountId: AccountId, envelope: string): AccountCredentials {
     const plaintext = this.cipher.decrypt(envelope, associatedDataFor(accountId));
     const parsed = AccountCredentialsSchema.safeParse(parseJson(plaintext));
     if (!parsed.success) {
@@ -37,12 +64,7 @@ export class AesGcmCredentialVault implements CredentialVault {
     return parsed.data;
   }
 
-  async set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
-    const plaintext = JSON.stringify(AccountCredentialsSchema.parse(credentials));
-    await this.store.save(accountId, this.cipher.encrypt(plaintext, associatedDataFor(accountId)));
-  }
-
-  async delete(accountId: AccountId): Promise<void> {
-    await this.store.delete(accountId);
+  private seal(accountId: AccountId, credentials: AccountCredentials): string {
+    return this.cipher.encrypt(serialize(credentials), associatedDataFor(accountId));
   }
 }

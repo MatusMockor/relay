@@ -22,6 +22,7 @@ import { listMailboxes } from './list-mailboxes';
 import { mailboxStatus } from './mailbox-status';
 import { fetchMessage, listUids } from './message-reads';
 import { appendMessage, moveMessages, setFlags, storeFlags } from './message-writes';
+import { requireBatchSize } from './uid-batches';
 
 export interface ImapMailProviderOptions {
   readonly fetchBatchSize?: number;
@@ -33,12 +34,14 @@ const DEFAULT_FETCH_BATCH_SIZE = 50;
 export class ImapMailProvider implements MailProvider {
   private readonly connection: ImapConnection;
   private readonly watchers = new Set<IdleWatcher>();
+  private readonly fetchBatchSize: number;
 
   constructor(
     private readonly factory: ImapClientFactory,
     private readonly options: ImapMailProviderOptions = {},
   ) {
     this.connection = new ImapConnection(factory);
+    this.fetchBatchSize = requireBatchSize(options.fetchBatchSize ?? DEFAULT_FETCH_BATCH_SIZE);
   }
 
   async connect(): Promise<void> {
@@ -60,8 +63,7 @@ export class ImapMailProvider implements MailProvider {
   }
 
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage> {
-    const batchSize = this.options.fetchBatchSize ?? DEFAULT_FETCH_BATCH_SIZE;
-    return fetchSince(this.connection, mailboxPath, cursor, batchSize);
+    return fetchSince(this.connection, mailboxPath, cursor, this.fetchBatchSize);
   }
 
   async *fetchFlagChanges(
@@ -110,8 +112,12 @@ export class ImapMailProvider implements MailProvider {
       onChange,
       this.options.idle ?? DEFAULT_IDLE_OPTIONS,
     );
-    await watcher.start();
     this.watchers.add(watcher);
+    await watcher.start().catch(async (error: unknown) => {
+      this.watchers.delete(watcher);
+      await watcher.dispose();
+      throw error;
+    });
     return async () => {
       this.watchers.delete(watcher);
       await watcher.dispose();

@@ -56,6 +56,10 @@ export class ComposeService {
     return this.deps.scheduled.cancel(userId, scheduledSendId);
   }
 
+  recoverStaleScheduled(): Promise<number> {
+    return this.deps.scheduled.recoverStale();
+  }
+
   sendDueScheduled(limit?: number): Promise<ScheduledSend[]> {
     return this.deps.scheduled.sendDue(limit);
   }
@@ -73,7 +77,7 @@ export class ComposeService {
       return { status: 'sent', ...(await this.deps.sending.sendNow(userId, body.draft, null)) };
     }
     const draft = await this.deps.drafts.require(userId, body.draftId);
-    return { status: 'sent', ...(await this.deps.sending.sendNow(userId, draft, draft.id)) };
+    return { status: 'sent', ...(await this.deps.sending.sendNow(userId, draft, draft)) };
   }
 
   private isFuture(at: string | undefined): at is string {

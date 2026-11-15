@@ -2,6 +2,7 @@ import type { EngineDeps } from './engine-deps';
 import type { AccountService } from './services/accounts/account-service';
 import { createAccountService } from './services/accounts/create-account-service';
 import { createMessageActionsService } from './services/actions/create-message-actions-service';
+import { ProviderOpReplayer } from './services/actions/provider-op-replayer';
 import type { MessageActionsService } from './services/actions/message-actions-service';
 import type { AiService } from './services/ai/ai-service';
 import type { AttachmentContentService } from './services/attachments/attachment-content-service';
@@ -76,11 +77,18 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     clock,
     ids,
   });
+  const replayer = new ProviderOpReplayer({
+    messages: repositories.messages,
+    mailboxes: repositories.mailboxes,
+    pendingWork: repositories.pendingWork,
+    roleMailboxes,
+    logger: deps.logger,
+  });
   const actions = createMessageActionsService(deps, {
     events,
     sessions,
     reminders,
-    roleMailboxes,
+    replayer,
   });
   const threads = new ThreadQueryService({
     threads: repositories.threads,
@@ -94,6 +102,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     sessions,
     tasks,
     arrivals: ai.oneLiners,
+    replayer,
   });
   return {
     accounts: createAccountService(deps, { events }),
