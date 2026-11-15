@@ -10,6 +10,7 @@ import { SqliteLabelRepository } from './repositories/sqlite-label-repository';
 import { SqliteMailboxRepository } from './repositories/sqlite-mailbox-repository';
 import { SqliteMessageAttachmentLookup } from './repositories/sqlite-message-attachment-lookup';
 import { SqliteMessageRepository } from './repositories/sqlite-message-repository';
+import { SqlitePendingWorkRepository } from './repositories/sqlite-pending-work-repository';
 import { SqliteReminderRepository } from './repositories/sqlite-reminder-repository';
 import { SqliteScheduledSendRepository } from './repositories/sqlite-scheduled-send-repository';
 import { SqliteSettingsRepository } from './repositories/sqlite-settings-repository';
@@ -33,6 +34,7 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   aiResults: new SqliteAiResultRepository(executor),
   aiJobs: new SqliteAiJobRepository(executor),
   syncStates: new SqliteSyncStateRepository(executor),
+  pendingWork: new SqlitePendingWorkRepository(executor),
 });
 
 export const createSqliteRepositories = (database: SqliteDatabase): Repositories =>

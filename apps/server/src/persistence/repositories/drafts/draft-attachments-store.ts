@@ -1,33 +1,9 @@
-import type { AttachmentId, DraftAttachment, DraftId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { ConflictError } from '@relay/engine';
+import type { AttachmentId, DraftId, UserId } from '@relay/shared/domain';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { attachments, draftAttachments } from '../../schema';
-
-export const loadDraftAttachments = async (
-  db: DbExecutor,
-  draftIds: readonly DraftId[],
-): Promise<Map<DraftId, DraftAttachment[]>> => {
-  const grouped = new Map<DraftId, DraftAttachment[]>();
-  if (draftIds.length === 0) {
-    return grouped;
-  }
-  const rows = await db
-    .select({
-      draftId: draftAttachments.draftId,
-      id: attachments.id,
-      filename: attachments.filename,
-      contentType: attachments.contentType,
-      size: attachments.size,
-    })
-    .from(draftAttachments)
-    .innerJoin(attachments, eq(attachments.id, draftAttachments.attachmentId))
-    .where(inArray(draftAttachments.draftId, [...draftIds]))
-    .orderBy(asc(draftAttachments.position));
-  for (const { draftId, ...attachment } of rows) {
-    grouped.set(draftId, [...(grouped.get(draftId) ?? []), attachment]);
-  }
-  return grouped;
-};
+import { isUniqueViolation } from '../../support/postgres-errors';
 
 export const replaceDraftAttachments = async (
   db: DbExecutor,
@@ -44,11 +20,18 @@ export const replaceDraftAttachments = async (
     .from(attachments)
     .where(and(eq(attachments.userId, userId), inArray(attachments.id, [...attachmentIds])));
   const ownedIds = new Set(owned.map((row) => row.id));
-  const values = attachmentIds
+  const values = [...new Set(attachmentIds)]
     .filter((id) => ownedIds.has(id))
     .map((attachmentId, position) => ({ draftId, attachmentId, userId, position }));
   if (values.length === 0) {
     return;
   }
-  await db.insert(draftAttachments).values(values).onConflictDoNothing();
+  try {
+    await db.insert(draftAttachments).values(values);
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new ConflictError('An attachment is already used by another draft', { cause: error });
+    }
+    throw error;
+  }
 };

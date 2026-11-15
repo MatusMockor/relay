@@ -2,7 +2,7 @@ import { ProviderError, type RawMessage, type RemoteSyncCursor } from '@relay/en
 import type { MailboxObject } from 'imapflow';
 import type { ImapConnection } from './imap-connection';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
-import { chunk, sortedUids } from './uid-batches';
+import { chunk, searchUids } from './uid-batches';
 
 const READ = { operation: 'fetch', retryOnDisconnect: true } as const;
 
@@ -32,8 +32,8 @@ const pendingUids = (
     if (mailbox.exists === 0) {
       return { uidValidity, uids: [] };
     }
-    const found = await client.search({ uid: `${String(fromUid)}:*` }, { uid: true });
-    return { uidValidity, uids: sortedUids(found, fromUid) };
+    const uids = await searchUids(client, { uid: `${String(fromUid)}:*` }, fromUid);
+    return { uidValidity, uids };
   });
 
 const fetchBatch = (

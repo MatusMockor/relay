@@ -1,6 +1,23 @@
 import type { Address } from '@relay/shared/domain';
 import type { MessageParser, ParsedMessage } from '../../../src';
 
+const LIST_TOKEN = /"(?:[^"\\]|\\.)*"|<[^>]*>|[^,"<]+|,|./g;
+const QUOTED_STRING = /^"((?:[^"\\]|\\.)*)"$/;
+
+const splitAddressList = (value: string): string[] =>
+  (value.match(LIST_TOKEN) ?? []).reduce<string[]>(
+    (parts, token) =>
+      token === ',' ? [...parts, ''] : [...parts.slice(0, -1), `${parts.at(-1) ?? ''}${token}`],
+    [''],
+  );
+
+const displayName = (value: string): string | null => {
+  const trimmed = value.trim();
+  const quoted = QUOTED_STRING.exec(trimmed);
+  const name = quoted === null ? trimmed : (quoted[1] ?? '').replace(/\\(.)/g, '$1');
+  return name === '' ? null : name;
+};
+
 const parseAddress = (value: string): Address | null => {
   const trimmed = value.trim();
   if (trimmed === '') {
@@ -10,13 +27,11 @@ const parseAddress = (value: string): Address | null => {
   if (match === null) {
     return { name: null, email: trimmed };
   }
-  const name = (match[1] ?? '').trim();
-  return { name: name === '' ? null : name, email: (match[2] ?? '').trim() };
+  return { name: displayName(match[1] ?? ''), email: (match[2] ?? '').trim() };
 };
 
 const parseAddresses = (value: string | undefined): Address[] =>
-  (value ?? '')
-    .split(',')
+  splitAddressList(value ?? '')
     .map(parseAddress)
     .filter((address): address is Address => address !== null);
 

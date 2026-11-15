@@ -75,6 +75,11 @@ describe('parseEnv', () => {
     expect(config.http.port).toBe(3000);
   });
 
+  it('accepts a socket Postgres URL with an empty host', () => {
+    const databaseUrl = 'postgresql://relay@/relay?host=%2Fvar%2Frun%2Fpostgresql';
+    expect(parseEnv({ ...required, DATABASE_URL: databaseUrl }).DATABASE_URL).toBe(databaseUrl);
+  });
+
   it('rejects missing and invalid values with a readable message', () => {
     expect(() => parseEnv({ ...required, PORT: 'abc', DATABASE_URL: 'mysql://x' })).toThrow(
       /Invalid server environment: PORT: .*; DATABASE_URL: /,

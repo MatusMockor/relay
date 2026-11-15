@@ -1,0 +1,2 @@
+DROP INDEX "messages_account_subject_idx";--> statement-breakpoint
+CREATE INDEX "messages_account_subject_hash_idx" ON "messages" USING btree ("account_id",md5("normalized_subject"),"date" DESC NULLS LAST);

@@ -83,6 +83,32 @@ describe('SqliteTaskRepository and SqliteReminderRepository', () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it('updates only the given task fields of the owner', async () => {
+    const { tasks } = store.repositories;
+    await tasks.upsert(buildTask());
+    await tasks.update(LOCAL_USER_ID, taskId('tsk-1'), {
+      title: 'Nový názov',
+      updatedAt: '2026-11-10T11:00:00.000Z',
+    });
+
+    const updated = await tasks.update(LOCAL_USER_ID, taskId('tsk-1'), {
+      state: 'waiting',
+      updatedAt: '2026-11-10T12:00:00.000Z',
+    });
+
+    expect(updated).toMatchObject({
+      title: 'Nový názov',
+      state: 'waiting',
+      updatedAt: '2026-11-10T12:00:00.000Z',
+    });
+    expect(
+      await tasks.update(userId('intruder'), taskId('tsk-1'), {
+        state: 'done',
+        updatedAt: '2026-11-10T13:00:00.000Z',
+      }),
+    ).toBeNull();
+  });
+
   it('deletes tasks and detaches them when their thread disappears', async () => {
     const { tasks, threads } = store.repositories;
     await tasks.upsert(buildTask());

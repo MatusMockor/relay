@@ -31,6 +31,7 @@ describe('PgThreadRepository.queryFolder', () => {
   let split: Split;
   let label: Label;
   const named = new Map<string, ThreadSummary>();
+  const scheduledSendId = newId('scheduledSend');
 
   const ids = async (userId: UserId, overrides: Partial<ThreadFolderQuery>) =>
     (await context.repositories.threads.queryFolder(userId, query(overrides))).items.map(
@@ -116,7 +117,7 @@ describe('PgThreadRepository.queryFolder', () => {
       updatedAt: at(10),
     });
     await context.repositories.scheduledSends.create({
-      id: newId('scheduledSend'),
+      id: scheduledSendId,
       userId: work.user.id,
       accountId: work.account.id,
       draftId,
@@ -161,6 +162,14 @@ describe('PgThreadRepository.queryFolder', () => {
     await expect(ids(work.user.id, { view: 'tasks' })).resolves.toEqual(['task']);
     await expect(ids(work.user.id, { view: 'drafts' })).resolves.toEqual(['draft']);
     await expect(ids(work.user.id, { view: 'scheduled' })).resolves.toEqual(['draft']);
+  });
+
+  it('keeps a scheduled send in the scheduled view while it is being sent', async () => {
+    await context.repositories.scheduledSends.claim(scheduledSendId, at(600));
+    await expect(ids(work.user.id, { view: 'scheduled' })).resolves.toEqual(['draft']);
+
+    await context.repositories.scheduledSends.markFailed(scheduledSendId, 'SMTP 550', at(600));
+    await expect(ids(work.user.id, { view: 'scheduled' })).resolves.toEqual([]);
   });
 
   it('paginates with a stable cursor even when new threads arrive', async () => {

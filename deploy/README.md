@@ -17,15 +17,15 @@ cp deploy/.env.example deploy/.env
 
 Fill in `deploy/.env`:
 
-| Variable                                               | What to put there                                                                                                 |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_PASSWORD`                                    | a long random password (`openssl rand -base64 24`)                                                                |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`              | two different random secrets, at least 32 characters (`openssl rand -base64 48`)                                  |
-| `CREDENTIALS_ENCRYPTION_KEY`                           | 32 random bytes as base64 (`openssl rand -base64 32`). Encrypts mail passwords and OAuth tokens. Back it up.      |
-| `PUBLIC_URL`                                           | the URL clients use, e.g. `https://relay.example.com`                                                             |
-| `REGISTRATION_ENABLED`                                 | `true` while you create accounts, then `false` to close the server                                                |
-| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | the Google OAuth client used by the desktop app (see Gmail below). Leave empty if you don't use Gmail.            |
-| `RELAY_BIND_ADDRESS`, `RELAY_PORT`                     | where the server port is published on the host. Default `127.0.0.1:3000` (only reachable locally / by the tunnel) |
+| Variable                                               | What to put there                                                                                                                              |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`                                    | a long random hex password (`openssl rand -hex 24`). It goes unencoded into `DATABASE_URL`, so use only letters, digits, `-`, `_`, `.` and `~` |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`              | two different random secrets, at least 32 characters (`openssl rand -base64 48`)                                                               |
+| `CREDENTIALS_ENCRYPTION_KEY`                           | 32 random bytes as base64 (`openssl rand -base64 32`). Encrypts mail passwords and OAuth tokens. Back it up.                                   |
+| `PUBLIC_URL`                                           | the URL clients use, e.g. `https://relay.example.com`                                                                                          |
+| `REGISTRATION_ENABLED`                                 | `true` while you create accounts, then `false` to close the server                                                                             |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | the Google OAuth client used by the desktop app (see Gmail below). Leave empty if you don't use Gmail.                                         |
+| `RELAY_BIND_ADDRESS`, `RELAY_PORT`                     | where the server port is published on the host. Default `127.0.0.1:3000` (only reachable locally / by the tunnel)                              |
 
 Start it:
 

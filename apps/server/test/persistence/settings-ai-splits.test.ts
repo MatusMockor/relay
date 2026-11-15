@@ -1,7 +1,8 @@
-import { ForbiddenError } from '@relay/engine';
+import { ConflictError, ForbiddenError } from '@relay/engine';
 import type { AiJob, Split, UserId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { at, buildUser, defaultSettings, newId, seedAccount, seedThread } from './support/fixtures';
+import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
 import { usePgTestContext } from './support/pg-test-context';
 
 describe('PgSettingsRepository', () => {
@@ -59,6 +60,44 @@ describe('PgSplitRepository', () => {
     await expect(
       context.repositories.splits.replaceAll(owner.id, [buildSplit(other.id)]),
     ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('rejects split ids of another user before deleting anything', async () => {
+    const owner = await context.repositories.users.create(buildUser(), 'hash');
+    const other = await context.repositories.users.create(buildUser(), 'hash');
+    const own = buildSplit(owner.id);
+    const foreign = buildSplit(other.id);
+    await context.repositories.splits.replaceAll(owner.id, [own]);
+    await context.repositories.splits.replaceAll(other.id, [foreign]);
+
+    await expect(
+      context.repositories.splits.replaceAll(owner.id, [{ ...foreign, userId: owner.id }]),
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    await expect(context.repositories.splits.listByUser(owner.id)).resolves.toEqual([own]);
+    await expect(context.repositories.splits.listByUser(other.id)).resolves.toEqual([foreign]);
+  });
+  it('rolls back when another user commits the same new split id meanwhile', async () => {
+    const owner = await context.repositories.users.create(buildUser(), 'hash');
+    const other = await context.repositories.users.create(buildUser(), 'hash');
+    const own = buildSplit(owner.id);
+    await context.repositories.splits.replaceAll(owner.id, [own]);
+    const contested = newId('split');
+    const holder = await openLockHolder(context.url);
+    await holder.query(
+      `INSERT INTO splits (id, user_id, account_id, name, position, rules, exclusive)
+       VALUES ($1, $2, NULL, 'cudzí', 0, '[]'::jsonb, false)`,
+      [contested, other.id],
+    );
+
+    const rejected = expect(
+      context.repositories.splits.replaceAll(owner.id, [buildSplit(owner.id, { id: contested })]),
+    ).rejects.toBeInstanceOf(ConflictError);
+    await waitForLockWaiters(context.url);
+    await holder.commit();
+
+    await rejected;
+    await expect(context.repositories.splits.listByUser(owner.id)).resolves.toEqual([own]);
   });
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PostgresUrlSchema } from '../persistence/config/persistence-config';
 
 const SecretSchema = z.string().min(32, 'must be at least 32 characters');
 
@@ -17,7 +18,7 @@ export const EnvSchema = z.object({
   HOST: z.string().min(1).default('0.0.0.0'),
   PORT: z.coerce.number<number | string>().int().min(0).max(65_535).default(3000),
   PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(),
-  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  DATABASE_URL: PostgresUrlSchema,
   DATABASE_MIGRATE_ON_START: z.stringbool().default(true),
   DATABASE_POOL_MAX: PositiveIntSchema(10),
   JWT_ACCESS_SECRET: SecretSchema,

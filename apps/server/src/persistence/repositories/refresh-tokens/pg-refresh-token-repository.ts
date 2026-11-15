@@ -15,6 +15,15 @@ const lockFamily = async (db: DbExecutor, familyId: string): Promise<void> => {
   );
 };
 
+const isActiveDeviceLocked = async (db: DbExecutor, deviceId: DeviceId): Promise<boolean> => {
+  const [row] = await db
+    .select({ revokedAt: devices.revokedAt })
+    .from(devices)
+    .where(eq(devices.id, deviceId))
+    .for('share');
+  return row !== undefined && row.revokedAt === null;
+};
+
 export class PgRefreshTokenRepository implements RefreshTokenRepository {
   constructor(private readonly db: DbExecutor) {}
 
@@ -58,6 +67,9 @@ export class PgRefreshTokenRepository implements RefreshTokenRepository {
   ): Promise<RefreshTokenRecord | null> {
     return this.db.transaction(async (tx) => {
       await lockFamily(tx, next.familyId);
+      if (!(await isActiveDeviceLocked(tx, next.deviceId))) {
+        return null;
+      }
       const rotated = await tx
         .update(refreshTokens)
         .set({ rotatedAt: toDate(now) })
@@ -88,9 +100,15 @@ export class PgRefreshTokenRepository implements RefreshTokenRepository {
   }
 
   async revokeDevice(deviceId: DeviceId, revokedAt: string): Promise<void> {
-    await this.db
-      .update(refreshTokens)
-      .set({ revokedAt: toDate(revokedAt) })
-      .where(and(eq(refreshTokens.deviceId, deviceId), isNull(refreshTokens.revokedAt)));
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(devices)
+        .set({ revokedAt: sql`coalesce(${devices.revokedAt}, ${toDate(revokedAt)})` })
+        .where(eq(devices.id, deviceId));
+      await tx
+        .update(refreshTokens)
+        .set({ revokedAt: toDate(revokedAt) })
+        .where(and(eq(refreshTokens.deviceId, deviceId), isNull(refreshTokens.revokedAt)));
+    });
   }
 }

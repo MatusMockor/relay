@@ -48,14 +48,17 @@ describe('DefaultMailProviderFactory with XOAUTH2', () => {
     });
     const account = buildAccount(user, { provider: 'gmail' });
 
-    const provider = factory.create(account, {
+    const expired = {
       kind: 'oauth',
       provider: 'gmail',
       accessToken: 'expired-token',
       refreshToken: 'refresh-token',
       expiresAt: '2026-11-15T09:00:00.000Z',
       scope: 'https://mail.google.com/',
-    });
+    } as const;
+    vault.entries.set(account.id, expired);
+
+    const provider = factory.create(account, expired);
     await provider.connect();
     const mailboxes = await provider.listMailboxes();
     await provider.close();

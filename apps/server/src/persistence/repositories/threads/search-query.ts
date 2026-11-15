@@ -1,4 +1,4 @@
-const TERM_SEPARATOR = /[\s@._/:+-]+/u;
+const TERM_SEPARATOR = /[^\p{L}\p{M}\p{N}]+/u;
 const NON_WORD = /[^\p{L}\p{N}]+/gu;
 const MAX_TERMS = 16;
 

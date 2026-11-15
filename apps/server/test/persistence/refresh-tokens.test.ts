@@ -3,6 +3,7 @@ import type { Device, User } from '@relay/shared/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { NewRefreshToken } from '../../src/core/model/refresh-token';
 import { at, buildDevice, buildUser } from './support/fixtures';
+import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
 import { usePgTestContext } from './support/pg-test-context';
 
 describe('PgRefreshTokenRepository', () => {
@@ -103,5 +104,69 @@ describe('PgRefreshTokenRepository', () => {
     await expect(
       context.repositories.refreshTokens.findByHash(token.tokenHash),
     ).resolves.toMatchObject({ revokedAt: at(2) });
+  });
+
+  it('revokes the device itself together with its tokens', async () => {
+    const token = await context.repositories.refreshTokens.store(buildToken());
+
+    await context.repositories.refreshTokens.revokeDevice(device.id, at(2));
+
+    await expect(context.repositories.devices.findActive(user.id, device.id)).resolves.toBeNull();
+    await expect(
+      context.repositories.refreshTokens.findByHash(token.tokenHash),
+    ).resolves.toMatchObject({ revokedAt: at(2) });
+  });
+
+  it('refuses to rotate a token of a revoked device', async () => {
+    const current = await context.repositories.refreshTokens.store(buildToken());
+    await context.repositories.devices.revoke(user.id, device.id, at(1));
+    const next = buildToken();
+
+    await expect(
+      context.repositories.refreshTokens.rotate(current.id, next, at(2)),
+    ).resolves.toBeNull();
+    await expect(context.repositories.refreshTokens.findByHash(next.tokenHash)).resolves.toBeNull();
+  });
+
+  it('does not rotate while a device revocation is being committed', async () => {
+    const current = await context.repositories.refreshTokens.store(buildToken());
+    const revoker = await openLockHolder(context.url);
+    await revoker.query('UPDATE devices SET revoked_at = $2 WHERE id = $1', [device.id, at(1)]);
+    const next = buildToken();
+
+    const rotating = context.repositories.refreshTokens.rotate(current.id, next, at(2));
+    await waitForLockWaiters(context.url);
+    await revoker.commit();
+
+    await expect(rotating).resolves.toBeNull();
+    await expect(context.repositories.refreshTokens.findByHash(next.tokenHash)).resolves.toBeNull();
+  });
+
+  it('revokes a successor that a concurrent rotation commits', async () => {
+    const successor = buildToken();
+    const rotator = await openLockHolder(context.url);
+    await rotator.query('SELECT 1 FROM devices WHERE id = $1 FOR SHARE', [device.id]);
+    await rotator.query(
+      `INSERT INTO refresh_tokens (id, user_id, device_id, family_id, token_hash, expires_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        successor.id,
+        successor.userId,
+        successor.deviceId,
+        successor.familyId,
+        successor.tokenHash,
+        successor.expiresAt,
+        successor.createdAt,
+      ],
+    );
+
+    const revoking = context.repositories.refreshTokens.revokeDevice(device.id, at(3));
+    await waitForLockWaiters(context.url);
+    await rotator.commit();
+    await revoking;
+
+    await expect(
+      context.repositories.refreshTokens.findByHash(successor.tokenHash),
+    ).resolves.toMatchObject({ revokedAt: at(3) });
   });
 });
