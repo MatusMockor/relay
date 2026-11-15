@@ -92,6 +92,33 @@ describe('Popover placement', () => {
   });
 });
 
+describe('Popover on window resize', () => {
+  const initialWidth = window.innerWidth;
+
+  afterEach(() => {
+    window.innerWidth = initialWidth;
+  });
+
+  it('moves back inside the viewport when the window gets narrower', () => {
+    window.innerWidth = 1200;
+    const anchor = { left: 900, right: 960, top: 100, bottom: 130 };
+    render(
+      <Popover anchor={anchor} label="Výber" onClose={() => undefined}>
+        obsah
+      </Popover>,
+    );
+    const pop = document.querySelector<HTMLElement>('.pop');
+    expect(pop?.style.left).toBe('900px');
+
+    act(() => {
+      window.innerWidth = 1000;
+      window.dispatchEvent(new Event('resize'));
+    });
+
+    expect(pop?.style.left).toBe('702px');
+  });
+});
+
 describe('ResizeHandle drag cleanup', () => {
   it('removes the drag class from the body when unmounted mid-drag', () => {
     vi.stubGlobal(

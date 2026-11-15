@@ -49,6 +49,34 @@ describe('demo mail client', () => {
     expect((await client.listScheduled()).filter((item) => item.accountId === EFA)).toEqual([]);
   });
 
+  it('drops the scheduled send of a draft that is deleted or sent right away', async () => {
+    const client = demoClient();
+    const content = {
+      accountId: EFA,
+      to: [{ name: null, email: 'jana@firma.sk' }],
+      cc: [],
+      bcc: [],
+      subject: 'Plán na piatok',
+      body: 'Ahoj.',
+      inReplyToThreadId: null,
+      inReplyToMessageId: null,
+      attachments: [],
+    };
+    const deleted = await client.createDraft(content);
+    const sent = await client.createDraft(content);
+    const scheduledAt = '2026-11-20T08:00:00.000Z';
+    await client.send({ source: 'draft', draftId: deleted.id, scheduledAt });
+    await client.send({ source: 'draft', draftId: sent.id, scheduledAt });
+    const pendingFor = async () =>
+      (await client.listScheduled())
+        .map((item) => item.draftId)
+        .filter((draftId) => draftId === deleted.id || draftId === sent.id);
+    expect(await pendingFor()).toEqual([deleted.id, sent.id]);
+    await client.deleteDraft(deleted.id);
+    await client.send({ source: 'draft', draftId: sent.id });
+    expect(await pendingFor()).toEqual([]);
+  });
+
   it('keeps the drafts folder in step with reply drafts', async () => {
     const client = demoClient();
     const inDrafts = async (threadId: string) =>

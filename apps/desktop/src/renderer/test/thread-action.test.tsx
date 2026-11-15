@@ -26,18 +26,14 @@ describe('thread actions on the detail cache', () => {
   let client: MailClient;
   let queryClient: QueryClient;
   let stored: ThreadSummary;
+  let store: MemoryTokenStore;
 
   beforeEach(async () => {
     server = await startContractServer();
     stored = serverThread('Faktúra za október');
-    const store = new MemoryTokenStore();
+    store = new MemoryTokenStore();
     await store.save(tokens('access-1'));
-    client = createRemoteMailClient({
-      http: new HttpApi({
-        baseUrl: server.url,
-        session: new RendererTokenSession({ baseUrl: server.url, tokens: store }),
-      }),
-    });
+    client = remoteClient();
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
 
@@ -48,11 +44,19 @@ describe('thread actions on the detail cache', () => {
     await server.close();
   });
 
-  const renderAction = () => {
+  const remoteClient = () =>
+    createRemoteMailClient({
+      http: new HttpApi({
+        baseUrl: server.url,
+        session: new RendererTokenSession({ baseUrl: server.url, tokens: store }),
+      }),
+    });
+
+  const renderAction = (mailClient = client, cache = queryClient) => {
     const wrapper = ({ children }: { readonly children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={cache}>
         <ServicesProvider
-          services={{ mode: 'synced', client, server: null, serverUrl: server.url }}
+          services={{ mode: 'synced', client: mailClient, server: null, serverUrl: server.url }}
         >
           {children}
         </ServicesProvider>
@@ -160,5 +164,105 @@ describe('thread actions on the detail cache', () => {
     await settled();
     expect(result.current.detail.data?.thread.unread).toBe(true);
     expect(result.current.detail.data?.thread.state).toBe('inbox');
+  });
+
+  it('does not make a new session wait for an action of the old session', async () => {
+    const hung = gate();
+    let actions = 0;
+    server.handle('threads.get', () => ({ body: serverDetail(stored, []) }));
+    server.handle('threads.action', () => {
+      actions += 1;
+      return { holdUntil: actions === 1 ? hung.wait() : undefined, body: stored };
+    });
+    const older = renderAction();
+    await waitFor(() => {
+      expect(older.result.current.detail.data?.thread.state).toBe('inbox');
+    });
+    act(() => {
+      older.result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'done' } });
+    });
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(1);
+    });
+    client.dispose();
+    const nextClient = remoteClient();
+    const nextCache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const newer = renderAction(nextClient, nextCache);
+    await waitFor(() => {
+      expect(newer.result.current.detail.data?.thread.state).toBe('inbox');
+    });
+    act(() => {
+      newer.result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'markUnread' } });
+    });
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(2);
+    });
+    hung.open();
+    await waitFor(() => {
+      expect(nextCache.isMutating() + queryClient.isMutating()).toBe(0);
+    });
+    nextClient.dispose();
+    nextCache.clear();
+  });
+
+  it('keeps detail fetched during an action that then fails', async () => {
+    const failure = gate();
+    let summary: string | null = null;
+    server.handle('threads.get', () => ({
+      body: serverDetail(stored, [], summary === null ? {} : { aiSummary: summary }),
+    }));
+    server.handle('threads.action', () => ({
+      holdUntil: failure.wait(),
+      status: 500,
+      body: FAILURE,
+    }));
+    const { result } = renderAction();
+    await waitFor(() => {
+      expect(result.current.detail.data?.thread.state).toBe('inbox');
+    });
+    act(() => {
+      result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'done' } });
+    });
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(1);
+    });
+    summary = 'Peter posiela faktúru';
+    act(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.thread(THREAD_ID) });
+    });
+    await waitFor(() => {
+      expect(result.current.detail.data?.aiSummary).toBe('Peter posiela faktúru');
+    });
+    failure.open();
+    await settled();
+    expect(result.current.detail.data?.aiSummary).toBe('Peter posiela faktúru');
+    expect(result.current.detail.data?.thread.state).toBe('inbox');
+  });
+
+  it('loads the detail again when an action cancelled its first fetch', async () => {
+    const first = gate();
+    let reads = 0;
+    server.handle('threads.get', () => {
+      reads += 1;
+      return { holdUntil: reads === 1 ? first.wait() : undefined, body: serverDetail(stored, []) };
+    });
+    server.handle('threads.action', () => {
+      stored = { ...stored, state: 'done' };
+      return { body: stored };
+    });
+    const { result } = renderAction();
+    await waitFor(() => {
+      expect(count('threads.get')).toBe(1);
+    });
+    act(() => {
+      result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'done' } });
+    });
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(1);
+    });
+    first.open();
+    await waitFor(() => {
+      expect(result.current.detail.data?.thread.state).toBe('done');
+    });
   });
 });

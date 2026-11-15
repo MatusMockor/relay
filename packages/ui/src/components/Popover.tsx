@@ -54,12 +54,16 @@ export function Popover({
       setPosition(placement(anchor, align, width, element?.offsetHeight ?? 0));
     };
     place();
+    window.addEventListener('resize', place);
     if (element === null || typeof ResizeObserver === 'undefined') {
-      return;
+      return () => {
+        window.removeEventListener('resize', place);
+      };
     }
     const observer = new ResizeObserver(place);
     observer.observe(element);
     return () => {
+      window.removeEventListener('resize', place);
       observer.disconnect();
     };
   }, [anchor, align, width]);

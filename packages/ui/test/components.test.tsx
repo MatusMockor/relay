@@ -9,6 +9,7 @@ import {
   Segmented,
   Sheet,
   Switch,
+  Tabs,
   hasOpenLayer,
 } from '../src';
 
@@ -154,6 +155,43 @@ describe('Sheet focus', () => {
     fireEvent.click(last);
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.activeElement).toBe(opener);
+  });
+});
+
+describe('Sheet Tab boundaries', () => {
+  const TABS = [
+    { key: 'contact', label: 'Kontakt' },
+    { key: 'ai', label: 'AI' },
+    { key: 'calendar', label: 'Kalendár' },
+  ] as const;
+
+  it('wraps from the selected tab past tabs that are not Tab stops', () => {
+    render(
+      <Sheet label="Panel" onClose={() => undefined}>
+        <button type="button">Prvé</button>
+        <Tabs label="Pravý panel" items={TABS} active="contact" onSelect={() => undefined} />
+      </Sheet>,
+    );
+    const selected = screen.getByRole('tab', { name: 'Kontakt' });
+    selected.focus();
+    fireEvent.keyDown(selected, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Prvé' }));
+  });
+
+  it('wraps from the last visible control past controls in a hidden container', () => {
+    render(
+      <Sheet label="Panel" onClose={() => undefined}>
+        <button type="button">Prvé</button>
+        <button type="button">Posledné</button>
+        <div hidden>
+          <button type="button">Skryté</button>
+        </div>
+      </Sheet>,
+    );
+    const last = screen.getByRole('button', { name: 'Posledné' });
+    last.focus();
+    fireEvent.keyDown(last, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Prvé' }));
   });
 });
 

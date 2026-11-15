@@ -208,18 +208,25 @@ describe('panel widths', () => {
     const base = createBrowserPlatform(storageWith({ mode: 'local' }));
     const held = gate();
     let reads = 0;
+    const stale: number[] = [];
     const platform: Platform = {
       ...base,
       deviceSettings: async () => {
         reads += 1;
-        if (reads > 1) {
-          await held.wait();
+        const settings = await base.deviceSettings();
+        if (reads === 1) {
+          return settings;
         }
-        return base.deviceSettings();
+        stale.push(settings.panelWidths.sidebar);
+        await held.wait();
+        return settings;
       },
     };
     renderApp({ platform, demo: demoClient });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
+    await waitFor(() => {
+      expect(stale).toEqual([232]);
+    });
     act(() => {
       setUi((state) => ({ widths: { ...state.widths, sidebar: 320 } }));
     });

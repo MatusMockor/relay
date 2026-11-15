@@ -40,6 +40,9 @@ export class RemoteAiRuns {
         }
         jobId = job.id;
         listener({ type: 'started', runner: job.runner });
+        if (!live()) {
+          return;
+        }
         const run: Run = { listener, finished: false, timer: null };
         this.runs.set(job.id, run);
         this.update(job);

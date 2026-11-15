@@ -6,6 +6,7 @@ import {
   bodyChars,
   descendants,
   isAlternation,
+  isCharAtom,
   isNullable,
   isRepeating,
   isVariable,
@@ -30,27 +31,52 @@ const hasBackreference = (nodes: readonly AST.Node[]): boolean =>
 const hasNestedVariableRepetition = (nodes: readonly AST.Node[]): boolean =>
   nodes.some((node) => isRepeating(node) && descendants(node.element).some(isVariable));
 
-const hasOverlappingNeighbours = (alternative: AST.Alternative, overlap: CharOverlap): boolean => {
-  const elements = alternative.elements;
-  return elements.some((element, index) => {
-    const tails = edgeLoops(element, 'last');
-    if (tails.length === 0) {
+const isFixedCharRun = (node: AST.Element): boolean =>
+  isCharAtom(node) ||
+  (node.type === 'Quantifier' && node.min === node.max && isCharAtom(node.element));
+
+const absorbing = (
+  tails: readonly AST.Quantifier[],
+  next: AST.Element,
+  overlap: CharOverlap,
+): AST.Quantifier[] => {
+  if (!isFixedCharRun(next)) {
+    return [];
+  }
+  return tails.filter(
+    (tail) => isCharAtom(tail.element) && overlap.between(bodyChars(tail.element), bodyChars(next)),
+  );
+};
+
+const overlapsLaterLoop = (
+  tails: readonly AST.Quantifier[],
+  rest: readonly AST.Element[],
+  overlap: CharOverlap,
+): boolean => {
+  let open = tails;
+  for (const next of rest) {
+    if (open.length === 0) {
       return false;
     }
-    for (const next of elements.slice(index + 1)) {
-      const heads = edgeLoops(next, 'first');
-      const overlapping = tails.some((tail) =>
-        heads.some((head) => overlap.between(bodyChars(tail.element), bodyChars(head.element))),
-      );
-      if (overlapping) {
-        return true;
-      }
-      if (!isNullable(next)) {
-        return false;
-      }
+    const heads = edgeLoops(next, 'first');
+    const overlapping = open.some((tail) =>
+      heads.some((head) => overlap.between(bodyChars(tail.element), bodyChars(head.element))),
+    );
+    if (overlapping) {
+      return true;
     }
-    return false;
-  });
+    if (!isNullable(next)) {
+      open = absorbing(open, next, overlap);
+    }
+  }
+  return false;
+};
+
+const hasOverlappingNeighbours = (alternative: AST.Alternative, overlap: CharOverlap): boolean => {
+  const elements = alternative.elements;
+  return elements.some((element, index) =>
+    overlapsLaterLoop(edgeLoops(element, 'last'), elements.slice(index + 1), overlap),
+  );
 };
 
 const hasAmbiguousBranches = (

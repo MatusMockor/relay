@@ -1,5 +1,6 @@
 import type { DraftContent, Message, SendBody, SendResponse } from '@relay/shared';
 import { MailClientError } from '../errors';
+import { removeDraft } from './demo-drafts';
 import type { DemoState } from './demo-state';
 import { demoIds } from './seed/ids';
 
@@ -60,7 +61,7 @@ const dropDraft = (state: DemoState, body: SendBody): void => {
   if (body.source !== 'draft') {
     return;
   }
-  state.drafts = state.drafts.filter((draft) => draft.id !== body.draftId);
+  removeDraft(state, body.draftId);
 };
 
 export const demoSend = (state: DemoState, body: SendBody, now: Date): SendResponse => {

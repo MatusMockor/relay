@@ -1,4 +1,4 @@
-import type { AccountId, ThreadId, ThreadSummary } from '@relay/shared';
+import type { AccountId, DraftId, ThreadId, ThreadSummary } from '@relay/shared';
 import type { DemoState } from './demo-state';
 
 export const syncDraftFlags = (
@@ -25,4 +25,9 @@ export const dropAccountData = (state: DemoState, accountId: AccountId): void =>
   [...state.threads.entries()]
     .filter(([, item]) => item.summary.accountId === accountId)
     .forEach(([key]) => state.threads.delete(key));
+};
+
+export const removeDraft = (state: DemoState, draftId: DraftId): void => {
+  state.drafts = state.drafts.filter((item) => item.id !== draftId);
+  state.scheduled = state.scheduled.filter((item) => item.draftId !== draftId);
 };
