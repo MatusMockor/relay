@@ -96,6 +96,23 @@ describe('MailparserMessageParser', () => {
     expect(message.messageIdHeader).toBeNull();
     expect(message.references).toEqual([]);
   });
+
+  it('keeps internationalized domains in their ASCII form', async () => {
+    const parser = new MailparserMessageParser(
+      new FixedClock(new Date('2026-01-02T03:04:05.000Z')),
+    );
+    const source = new TextEncoder().encode(
+      'From: Alica <alice@xn--bcher-kva.de>\r\nTo: =?utf-8?Q?J=C3=BAlia?= <julia@bücher.de>, bob@relay.test\r\nSubject: x\r\n\r\nbody\r\n',
+    );
+
+    const message = await parser.parse(source);
+
+    expect(message.from).toEqual({ name: 'Alica', email: 'alice@xn--bcher-kva.de' });
+    expect(message.to).toEqual([
+      { name: 'Júlia', email: 'julia@xn--bcher-kva.de' },
+      { name: null, email: 'bob@relay.test' },
+    ]);
+  });
 });
 
 describe('buildSnippet', () => {
