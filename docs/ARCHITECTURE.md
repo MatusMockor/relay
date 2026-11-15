@@ -59,14 +59,25 @@ shared  ◄── engine ◄── store-sqlite
 
 ## Hexagonal core (`@relay/engine`)
 
-- **Ports** (interfaces) in `engine/src/ports/`: `UserScopedRepositories` such as `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`; plus `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `Clock`, `IdGenerator`, `AiRunner`, `EventPublisher`, `UnitOfWork`.
+- **Ports** (interfaces, one per file) in `engine/src/ports/`:
+  - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
+  - `UnitOfWork.run(work)` passes transaction-bound `Repositories` to `work`.
+  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`.
+  - AI: `AiRunner` (`run(request): AsyncIterable<AiEvent>`), `AiRunnerRegistry`.
+  - infrastructure: `EventPublisher`, `Clock`, `IdGenerator`, `Logger`.
+- Engine-internal types (raw/parsed messages, sync cursors, pages, AI requests) live in `engine/src/model/`. They never cross the wire.
+- `PORT_TOKENS` (`engine/src/tokens.ts`) gives every port a `Symbol.for('relay.engine.<Port>')` token, used by Nest providers and the desktop composition root.
+- `EngineError` subclasses (`NotFoundError`, `ValidationError`, `ConflictError`, `ForbiddenError`, `ProviderError`, `NotImplementedError`) carry an `ApiErrorCode`; HTTP and IPC adapters map them to the shared error shape.
 - **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AiService`.
 - All database access goes through repository ports. No service, controller or IPC handler talks to Drizzle directly.
 - Server implements the ports with Postgres + Drizzle; local mode implements them with SQLite + Drizzle (`store-sqlite`). The same services run in both places.
 
 ## Domain model (see `packages/shared/src/domain`)
 
-`User`, `Device`, `MailAccount` (provider: `imap` | `gmail` | `outlook`, color, isPrimary, sync interval), `Mailbox` (role: inbox, sent, drafts, trash, archive, custom), `Message`, `Thread`, `Label`, `Split` (rule-based view of the inbox), `Task` (one per Jira issue or created by AI), `Reminder`, `Draft`, `ScheduledSend`, `AiResult` (one-liner, summary, reply suggestions, chat), `UserSettings`.
+`User`, `Device`, `MailAccount` (provider: `imap` | `gmail` | `outlook`, color, isPrimary, sync interval, status), `ImapSmtpSettings`, `AccountCredentials` (password or OAuth tokens, never sent to clients), `Mailbox` (role: inbox, sent, drafts, trash, archive, spam, custom), `Message`, `ThreadSummary` / `ThreadDetail`, `ThreadAction`, `Label`, `Split` (rule-based view of the inbox), `Task` (one per Jira issue or created by AI), `Reminder`, `Draft`, `ScheduledSend`, `AiJob` / `AiResult` / `AiEvent`, `UserSettings` (synced), `DeviceSettings` (device-only), `FolderView`.
+
+- Ids are branded strings (`UserId`, `ThreadId`, ...) and timestamps are ISO 8601 strings with offset, so the same types work over HTTP, WebSocket and IPC.
+- A `Split` matches a message when any of its rules matches. `accountId: null` means the split applies to the unified inbox. An `exclusive` split removes matching threads from the main inbox.
 
 "Done" = archive (IMAP move to archive mailbox / Gmail remove INBOX label). Read state, done, trash and labels are mirrored back to the mail provider so other clients see them too.
 
@@ -77,21 +88,25 @@ shared  ◄── engine ◄── store-sqlite
 - Jobs: pg-boss (sync per account, reminders, scheduled sends, AI jobs). No Redis.
 - Auth: email + password (argon2id), optional TOTP later. Access JWT (15 min) + rotating refresh token bound to a `Device`. Devices can be listed and revoked.
 - Mail credentials encrypted at rest (AES-256-GCM, key from `CREDENTIALS_ENCRYPTION_KEY`).
-- Realtime: WebSocket gateway, events defined in `shared/src/realtime` (e.g. `thread.updated`, `message.created`, `task.updated`, `ai.result`).
-- API contract (routes + zod request/response schemas) lives in `shared/src/api`; the server validates with it and the desktop client is typed by it.
+- Realtime: WebSocket gateway on `/realtime`. The client sends `hello` (`apiVersion`, access token) first; the server answers `welcome` and then pushes `event` messages carrying a `RealtimeEvent`: `thread.upserted`, `thread.removed`, `message.upserted`, `task.upserted`, `account.status`, `ai.job.updated`, `settings.updated`, `sync.progress` (`shared/src/realtime`).
+- API contract lives in `shared/src/api`: every endpoint is `{ method, path, auth, params?, query?, body?, response }` built from zod schemas and grouped by area in `api`. The server validates requests with `parseEndpointRequest`; clients build URLs with `buildUrl` and are typed by `EndpointRequest` / `EndpointResponse`. Errors use `{ error: { code, message, issues? } }` (`ApiErrorCode` -> HTTP status in `API_ERROR_HTTP_STATUS`), lists use cursor pagination (`{ items, nextCursor }`).
+- Dev runtime: `vite-node` with SWC (decorator metadata) runs `src/main.ts` directly from TypeScript, the same pipeline Vitest uses. A production bundle is still to be decided.
 - Deploy: `docker compose up` (server + postgres). Optional Cloudflare Tunnel for remote HTTPS access without open ports. Cloudflare Access is not used because the app has its own login.
 
 ## Desktop (`apps/desktop`)
 
 - Electron + electron-vite + React 19 + TanStack Query + Zustand. Same look on macOS and Linux.
 - `renderer` only knows the `MailClient` interface (`apps/desktop/src/renderer/data/MailClient.ts`). `RemoteMailClient` uses HTTP + WS, and `LocalMailClient` uses typed IPC to the main process.
+- IPC contract lives in `shared/src/ipc`: a channel map of zod schemas (`app.*`, `settings.device.*`, `secure.*`, `ai.*`, `local.*`). The preload exposes `window.relay: RelayBridge` with `invoke(channel, input)` (one Electron channel `relay:invoke`, returns `IpcResult`) and `subscribe(channel, handlers, input)` for streams (`ai.run`, `local.events`). Main validates input and output of every call (`IpcInvokeRouter`, `IpcStreamRouter`).
+- `pnpm --filter @relay/desktop dev:web` serves the renderer alone on port 5173. `window.relay` is then absent and the renderer must handle it.
+- Windows run with `contextIsolation`, `sandbox` and no Node integration; the preload is bundled as CommonJS. CSP is injected into the built `index.html`.
 - `main` hosts the `LocalEngine` for local mode, secure storage (Electron `safeStorage`) for tokens and local credentials, the local AI runner, and native features (tray, notifications, global shortcuts, auto-update later).
 - HTML mail is rendered in a sandboxed iframe (no scripts, remote images blocked by default).
-- UI follows the approved prototype `prototypes/app-a` (dark tokens, Inter + JetBrains Mono, split inbox, folder sidebar, right panel with Kontakt / AI / Kalendár, resizable panels, multiple accounts, command palette, keyboard-first).
+- UI follows the approved prototype `design/prototype/app-a.html` (dark tokens, Inter + JetBrains Mono, split inbox, folder sidebar, right panel with Kontakt / AI / Kalendár, resizable panels, multiple accounts, command palette, keyboard-first).
 
 ## AI (`@relay/ai`)
 
-- `AiRunner` port: `run(request: AiRequest): AsyncIterable<AiEvent>`. Implementations: `ClaudeCodeRunner` (`claude -p --output-format stream-json`) and `CodexRunner` (`codex exec --json`), each spawning the CLI with a mail MCP server attached.
+- `AiRunner` port: `run(request: AiRequest): AsyncIterable<AiEvent>` (`AiEvent` is defined in `shared` so it can be streamed over IPC unchanged). Implementations: `ClaudeCodeRunner` (`claude -p --output-format stream-json`) and `CodexRunner` (`codex exec --json`), each spawning the CLI with a mail MCP server attached.
 - Runner location is a user setting: `server` (server AI worker uses the CLIs installed on the server) or `local` (the desktop main process uses the CLIs installed on this machine). Like T3 Code environments.
 - `CliDetector` reports which CLIs are installed and logged in on the current machine, shown in Settings → AI.
 - Tasks: one-line summary, thread summary + checklist, reply suggestions, rewrite draft, free-form chat over mail, create task from mail.
@@ -103,6 +118,11 @@ shared  ◄── engine ◄── store-sqlite
 - Gmail: OAuth 2 (desktop loopback + PKCE in local mode, server web flow in synced mode) then XOAUTH2 over IMAP/SMTP. Needs a Google Cloud OAuth client ID configured via env/settings.
 - Outlook / Microsoft 365: same pattern, later.
 - `SmtpMailSender` (nodemailer). `MimeParser` (mailparser). `ThreadBuilder` (Message-ID / References / In-Reply-To). `JiraClassifier` (sender + headers + subject patterns, outputs split + task events).
+
+## Tooling
+
+- Internal packages are consumed as TypeScript source (`exports` -> `src`, `moduleResolution: Bundler`, extensionless imports). Vitest, electron-vite and vite-node resolve them, so there is no build step for development or tests.
+- Versions are pinned exactly. Native modules (`better-sqlite3`, `argon2`) are allowed to run install scripts via `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
 
 ## Engineering standards
 
