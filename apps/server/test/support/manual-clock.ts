@@ -1,0 +1,21 @@
+import type { Clock } from '@relay/engine';
+
+export class ManualClock implements Clock {
+  private current: number;
+
+  constructor(start: Date = new Date()) {
+    this.current = start.getTime();
+  }
+
+  now(): Date {
+    return new Date(this.current);
+  }
+
+  advance(ms: number): void {
+    this.current += ms;
+  }
+
+  set(date: Date): void {
+    this.current = date.getTime();
+  }
+}

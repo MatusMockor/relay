@@ -1,15 +1,12 @@
 import 'reflect-metadata';
-import { ConfigService } from '@nestjs/config';
 import { createApp } from './app.factory';
-import type { Env } from './config/env';
+import { parseEnv } from './config/env';
+import { toServerConfig } from './config/server-config';
 
 const bootstrap = async (): Promise<void> => {
-  const app = await createApp();
-  const config = app.get<ConfigService<Env, true>>(ConfigService);
-  await app.listen({
-    host: config.get('HOST', { infer: true }),
-    port: config.get('PORT', { infer: true }),
-  });
+  const config = toServerConfig(parseEnv(process.env));
+  const app = await createApp(config);
+  await app.listen({ host: config.http.host, port: config.http.port });
 };
 
 await bootstrap();

@@ -1,0 +1,16 @@
+**/node_modules
+**/.turbo
+**/dist
+**/out
+**/coverage
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+.git
+apps/desktop
+packages/ui
+packages/store-sqlite
+design
+docs
+deploy

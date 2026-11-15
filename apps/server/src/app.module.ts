@@ -1,12 +1,60 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { parseEnv } from './config/env';
+import { type DynamicModule, Module } from '@nestjs/common';
+import { AccountsModule } from './accounts/accounts.module';
+import { AiModule } from './ai/ai.module';
+import { AiRuntimeModule } from './ai/ai-runtime.module';
+import { AttachmentsModule } from './attachments/attachments.module';
+import { AuthModule } from './auth/auth.module';
+import { ComposeModule } from './compose/compose.module';
+import { ServerConfigModule } from './config/config.module';
+import type { ServerConfig } from './config/server-config';
+import { DevicesModule } from './devices/devices.module';
+import { EngineModule } from './engine/engine.module';
+import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
+import { HttpModule } from './http/http.module';
+import { InfrastructureModule } from './infrastructure/infrastructure.module';
+import { JobsModule } from './jobs/jobs.module';
+import { LabelsModule } from './labels/labels.module';
+import { MailModule } from './mail/mail.module';
+import { PersistenceModule } from './persistence';
+import { toPersistenceConfig } from './persistence-config.factory';
+import { RealtimeModule } from './realtime/realtime.module';
+import { SettingsModule } from './settings/settings.module';
+import { SplitsModule } from './splits/splits.module';
+import { SyncModule } from './sync/sync.module';
+import { TasksModule } from './tasks/tasks.module';
+import { ThreadsModule } from './threads/threads.module';
 
-@Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true, cache: true, validate: parseEnv }),
-    HealthModule,
-  ],
-})
-export class AppModule {}
+@Module({})
+export class AppModule {
+  static forRoot(config: ServerConfig): DynamicModule {
+    return {
+      module: AppModule,
+      imports: [
+        ServerConfigModule.forRoot(config),
+        InfrastructureModule,
+        EventsModule,
+        HttpModule,
+        PersistenceModule.forRoot({ config: toPersistenceConfig(config) }),
+        MailModule,
+        AiRuntimeModule,
+        EngineModule,
+        JobsModule,
+        AuthModule,
+        DevicesModule,
+        RealtimeModule,
+        HealthModule,
+        AiModule,
+        ThreadsModule,
+        LabelsModule,
+        TasksModule,
+        ComposeModule,
+        AttachmentsModule,
+        SplitsModule,
+        AccountsModule,
+        SettingsModule,
+        SyncModule,
+      ],
+    };
+  }
+}
