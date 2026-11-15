@@ -1,0 +1,53 @@
+{
+  "name": "@relay/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite-node --watch src/main.ts",
+    "start": "vite-node src/main.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.10",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "11.2.10",
+    "@nestjs/jwt": "11.0.2",
+    "@nestjs/platform-fastify": "11.2.10",
+    "@nestjs/platform-ws": "11.2.10",
+    "@nestjs/websockets": "11.2.10",
+    "@relay/ai": "workspace:*",
+    "@relay/engine": "workspace:*",
+    "@relay/mail-core": "workspace:*",
+    "@relay/mcp-mail": "workspace:*",
+    "@relay/shared": "workspace:*",
+    "argon2": "0.44.0",
+    "drizzle-orm": "0.45.4",
+    "fastify": "5.12.8",
+    "pg": "8.16.3",
+    "pg-boss": "10.4.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "ws": "8.18.3",
+    "zod": "4.1.13"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "11.2.10",
+    "@relay/config": "workspace:*",
+    "@swc/core": "1.13.21",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.15.6",
+    "@types/ws": "8.18.1",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "unplugin-swc": "1.6.0",
+    "vite": "7.3.8",
+    "vite-node": "3.2.4",
+    "vitest": "3.2.7"
+  }
+}
