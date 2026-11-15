@@ -67,6 +67,15 @@ describe('CodexRunner', () => {
       expect.arrayContaining(['--ephemeral', '--ignore-user-config', '--skip-git-repo-check']),
     );
     expect(args.at(-1)).toBe('-');
+    const overrides = args.filter((_arg, index) => args[index - 1] === '-c');
+    expect(overrides).toEqual(
+      expect.arrayContaining([
+        'features.shell_tool=false',
+        'features.unified_exec=false',
+        'features.view_image=false',
+        'web_search="disabled"',
+      ]),
+    );
     expect(args).toEqual(
       expect.arrayContaining([
         `mcp_servers.mail.command="${STDIO_TOOLS.command ?? ''}"`,

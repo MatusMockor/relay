@@ -33,6 +33,7 @@ export {
   type ImapTimeouts,
 } from './imap/imap-client-factory';
 export { ImapMailProvider, type ImapMailProviderOptions } from './imap/imap-mail-provider';
+export { PartialMoveError, UidValidityChangedError } from '@relay/engine';
 export { DEFAULT_IDLE_OPTIONS, type IdleWatcherOptions } from './imap/idle-watcher';
 export { detectMailboxRole, type MailboxRoleInput } from './imap/mailbox-roles';
 export {

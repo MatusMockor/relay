@@ -9,7 +9,8 @@ export interface StubResponse {
   readonly stderr?: string;
   readonly hangMs?: number;
   readonly lineDelayMs?: number;
-  readonly spawnChild?: boolean;
+  readonly spawnChild?: boolean | 'stubborn';
+  readonly termDelayMs?: number;
 }
 
 export interface StubSpec {

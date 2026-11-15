@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const isMissingFile = (error: unknown): boolean =>
@@ -31,7 +31,12 @@ export class AtomicFile {
     this.sequence += 1;
     const temporary = `${this.path}.${String(process.pid)}.${String(this.sequence)}.tmp`;
     await mkdir(dirname(this.path), { recursive: true });
-    await writeFile(temporary, content, { mode: 0o600 });
-    await rename(temporary, this.path);
+    try {
+      await writeFile(temporary, content, { mode: 0o600 });
+      await rename(temporary, this.path);
+    } catch (error) {
+      await rm(temporary, { force: true }).catch(() => undefined);
+      throw error;
+    }
   }
 }

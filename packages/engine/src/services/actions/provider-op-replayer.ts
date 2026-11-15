@@ -1,4 +1,5 @@
 import type { MailAccount, Mailbox, Message } from '@relay/shared/domain';
+import { PartialMoveError } from '../../errors';
 import type { ProviderChange } from '../../model/pending-work';
 import type { Logger } from '../../ports/logger';
 import type { MailProvider } from '../../ports/mail-provider';
@@ -110,12 +111,34 @@ export class ProviderOpReplayer {
     if (target === null) {
       throw new Error(`No ${change.role} mailbox to move messages to`);
     }
-    const result = await provider.move(mailbox.path, uids, target.path);
+    const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
     for (const message of batch.messages) {
       await this.deps.messages.move(message.id, {
         mailboxId: target.id,
-        uid: result.uidMap.get(message.uid) ?? PENDING_UID,
+        uid: uidMap.get(message.uid) ?? PENDING_UID,
       });
+    }
+  }
+
+  private async move(
+    account: MailAccount,
+    provider: MailProvider,
+    sourcePath: string,
+    uids: readonly number[],
+    targetPath: string,
+  ): Promise<ReadonlyMap<number, number>> {
+    try {
+      return (await provider.move(sourcePath, uids, targetPath)).uidMap;
+    } catch (error) {
+      if (!(error instanceof PartialMoveError)) {
+        throw error;
+      }
+      this.deps.logger.warn('A move left the copied messages in the target mailbox', {
+        accountId: account.id,
+        sourcePath,
+        targetPath,
+      });
+      return error.uidMap;
     }
   }
 

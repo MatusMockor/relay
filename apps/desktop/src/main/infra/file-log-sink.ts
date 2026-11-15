@@ -2,11 +2,45 @@ import { createWriteStream, mkdirSync, type WriteStream } from 'node:fs';
 import { dirname } from 'node:path';
 import type { LogRecord, LogSink } from './log-sink';
 
-const serializeError = (_key: string, value: unknown): unknown => {
+const serializeValue = (_key: string, value: unknown): unknown => {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
   if (!(value instanceof Error)) {
     return value;
   }
   return { name: value.name, message: value.message, stack: value.stack };
+};
+
+const withoutRepeats = (): ((key: string, value: unknown) => unknown) => {
+  const seen = new WeakSet<object>();
+  return (key, value) => {
+    const serialized = serializeValue(key, value);
+    if (typeof serialized !== 'object' || serialized === null) {
+      return serialized;
+    }
+    if (seen.has(serialized)) {
+      return '[Circular]';
+    }
+    seen.add(serialized);
+    return serialized;
+  };
+};
+
+const formatWithoutRepeats = (record: LogRecord): string => {
+  try {
+    return JSON.stringify(record, withoutRepeats());
+  } catch {
+    return JSON.stringify({ ...record, context: { unserializable: true } });
+  }
+};
+
+const formatRecord = (record: LogRecord): string => {
+  try {
+    return JSON.stringify(record, serializeValue);
+  } catch {
+    return formatWithoutRepeats(record);
+  }
 };
 
 export class FileLogSink implements LogSink {
@@ -26,7 +60,7 @@ export class FileLogSink implements LogSink {
     if (this.broken) {
       return;
     }
-    this.stream.write(`${JSON.stringify(record, serializeError)}\n`);
+    this.stream.write(`${formatRecord(record)}\n`);
   }
 
   close(): Promise<void> {

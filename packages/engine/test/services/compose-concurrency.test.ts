@@ -64,4 +64,75 @@ describe('ComposeService concurrency', () => {
     });
     expect(await engine.attachments.get(USER_ID, attachment.id)).not.toBeNull();
   });
+
+  it('sends a draft once when two sends of it overlap', async () => {
+    const engine = createTestEngine();
+    const { reply } = await setupReply(engine);
+    const draft = await engine.services.compose.createDraft(USER_ID, reply);
+    const send = () =>
+      engine.services.compose.send(USER_ID, { source: 'draft', draftId: draft.id });
+
+    const results = await Promise.allSettled([send(), send()]);
+
+    expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect(results.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { code: 'conflict' },
+    });
+    expect(engine.sender.sent).toHaveLength(1);
+    expect(await engine.services.compose.listDrafts(USER_ID)).toEqual([]);
+  });
+
+  it('lets a draft be sent again after a failed send', async () => {
+    const engine = createTestEngine();
+    const { reply } = await setupReply(engine);
+    const draft = await engine.services.compose.createDraft(USER_ID, reply);
+    engine.sender.failSend = 'connection reset';
+
+    await expect(
+      engine.services.compose.send(USER_ID, { source: 'draft', draftId: draft.id }),
+    ).rejects.toMatchObject({ code: 'provider_error' });
+    engine.sender.failSend = null;
+    const response = await engine.services.compose.send(USER_ID, {
+      source: 'draft',
+      draftId: draft.id,
+    });
+
+    expect(response.status).toBe('sent');
+    expect(engine.sender.sent).toHaveLength(1);
+  });
+
+  it('sends a scheduled draft once when it is also sent by hand', async () => {
+    const engine = createTestEngine();
+    const { reply } = await setupReply(engine);
+    const draft = await engine.services.compose.createDraft(USER_ID, reply);
+    await engine.services.compose.send(USER_ID, {
+      source: 'draft',
+      draftId: draft.id,
+      scheduledAt: '2026-11-15T11:00:00.000Z',
+    });
+    engine.clock.set('2026-11-15T11:00:01.000Z');
+
+    await Promise.allSettled([
+      engine.services.compose.sendDueScheduled(),
+      engine.services.compose.send(USER_ID, { source: 'draft', draftId: draft.id }),
+    ]);
+
+    expect(engine.sender.sent).toHaveLength(1);
+  });
+
+  it('rejects a draft update based on a revision that changed meanwhile', async () => {
+    const engine = createTestEngine();
+    const { reply } = await setupReply(engine);
+    const draft = await engine.services.compose.createDraft(USER_ID, reply);
+
+    const results = await Promise.allSettled([
+      engine.services.compose.updateDraft(USER_ID, draft.id, { body: 'First' }),
+      engine.services.compose.updateDraft(USER_ID, draft.id, { body: 'Second' }),
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual(['fulfilled', 'rejected']);
+    expect(results[1]).toMatchObject({ reason: { code: 'conflict' } });
+    const [stored] = await engine.services.compose.listDrafts(USER_ID);
+    expect(stored?.body).toBe('First');
+  });
 });

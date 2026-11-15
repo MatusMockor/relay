@@ -16,9 +16,11 @@ describe('parseEnv', () => {
       host: '0.0.0.0',
       port: 3000,
       publicUrl: 'http://localhost:3000',
+      trustProxyHops: 1,
     });
     expect(config.auth.accessTokenTtlSeconds).toBe(900);
     expect(config.auth.registrationEnabled).toBe(true);
+    expect(config.auth.rateLimit).toEqual({ maxRequests: 20, windowMs: 60_000 });
     expect(config.google).toBeNull();
     expect(config.jobs).toEqual({
       enabled: true,
@@ -46,6 +48,7 @@ describe('parseEnv', () => {
       parseEnv({
         ...required,
         PORT: '4100',
+        TRUST_PROXY_HOPS: '0',
         REGISTRATION_ENABLED: 'false',
         GOOGLE_OAUTH_CLIENT_ID: 'client',
         GOOGLE_OAUTH_CLIENT_SECRET: 'secret',
@@ -54,6 +57,7 @@ describe('parseEnv', () => {
     );
     expect(config.http.port).toBe(4100);
     expect(config.http.publicUrl).toBe('https://relay.example.com');
+    expect(config.http.trustProxyHops).toBe(0);
     expect(config.auth.registrationEnabled).toBe(false);
     expect(config.google).toEqual({
       clientId: 'client',

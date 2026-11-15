@@ -1,4 +1,5 @@
 import type { GreenMailUser } from '@relay/config/test-infra';
+import { type EventPublisher, PORT_TOKENS } from '@relay/engine';
 import { api } from '@relay/shared/api';
 import type { ImapFlow } from 'imapflow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -87,6 +88,13 @@ describe('mail flow against GreenMail', () => {
 
     const idle = app.app.get(ImapIdleManager);
     await expect.poll(() => idle.watching(work.id), { timeout: 10_000 }).toBe(true);
+    await expect.poll(() => idle.watching(personal.id), { timeout: 10_000 }).toBe(true);
+    await app.app.get<EventPublisher>(PORT_TOKENS.EventPublisher).publish(session.user.id, {
+      type: 'account.upserted',
+      at: app.clock.now().toISOString(),
+      data: { account: { ...personal, status: 'disconnected' } },
+    });
+    await expect.poll(() => idle.watching(personal.id), { timeout: 10_000 }).toBe(false);
     await ownerImap.append(
       'INBOX',
       rawMail({ from: partner.email, to: owner.email, subject: 'Pushed by IDLE', body: 'Now' }),

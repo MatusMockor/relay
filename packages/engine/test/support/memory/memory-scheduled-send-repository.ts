@@ -51,8 +51,10 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
     return Promise.resolve(true);
   }
 
-  releaseStaleSending(staleBefore: string): Promise<number> {
-    const stale = this.all().filter((item) => this.isStaleSending(item, staleBefore));
+  releaseStaleSending(staleBefore: string, keep: readonly ScheduledSendId[]): Promise<number> {
+    const stale = this.all().filter(
+      (item) => this.isStaleSending(item, staleBefore) && !keep.includes(item.id),
+    );
     stale.forEach((item) => {
       this.write(item.id, { status: 'pending' });
     });

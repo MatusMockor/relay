@@ -17,12 +17,19 @@ export class SyncScheduler {
     const now = this.clock.now().getTime();
     const accounts = await this.accounts.listSyncable();
     const due = accounts.filter((account) => this.isDue(account, now));
-    await Promise.all(
-      due.map(async (account) => {
-        this.requestedAt.set(account.id, now);
-        await this.trigger.request(account.userId, account.id);
-      }),
-    );
+    await Promise.all(due.map((account) => this.request(account, now)));
+  }
+
+  private async request(account: MailAccount, now: number): Promise<void> {
+    this.requestedAt.set(account.id, now);
+    try {
+      await this.trigger.request(account.userId, account.id);
+    } catch (error) {
+      if (this.requestedAt.get(account.id) === now) {
+        this.requestedAt.delete(account.id);
+      }
+      throw error;
+    }
   }
 
   private isDue(account: MailAccount, now: number): boolean {

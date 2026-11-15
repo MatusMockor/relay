@@ -4,7 +4,7 @@ import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { messageLabels, messages, threadSplits, threads } from '../../schema';
 import type { CursorPayload } from '../../support/cursor';
 import { folderViewFilter } from './folder-view-filters';
-import { toPrefixTsQuery } from './search-query';
+import { prefixTsQuery, toSearchTerms } from './search-query';
 
 const splitFilter = (query: ThreadFolderQuery): SQL | undefined => {
   if (query.splitId === null) {
@@ -28,14 +28,14 @@ const labelFilter = (query: ThreadFolderQuery): SQL | undefined => {
 };
 
 const searchFilter = (query: ThreadFolderQuery): SQL | undefined => {
-  const tsQuery = toPrefixTsQuery(query.search);
-  if (tsQuery === null) {
+  const terms = toSearchTerms(query.search);
+  if (terms.length === 0) {
     return undefined;
   }
   return sql`exists(
     select 1 from ${messages}
     where ${messages.threadId} = ${threads.id}
-      and ${messages.searchVector} @@ to_tsquery('simple', relay_unaccent(${tsQuery}))
+      and ${messages.searchVector} @@ ${prefixTsQuery(terms)}
   )`;
 };
 

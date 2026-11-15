@@ -7,8 +7,8 @@ export const toFtsMatchExpression = (search: string | null): string | null => {
     return null;
   }
   const terms = search
+    .replace(QUOTE, ' ')
     .split(WHITESPACE)
-    .map((term) => term.replace(QUOTE, ''))
     .filter((term) => WORD_CHARACTER.test(term))
     .map((term) => `"${term}"*`);
   return terms.length === 0 ? null : terms.join(' ');

@@ -193,51 +193,54 @@ describe('completing an AI job in one transaction (Postgres)', () => {
         clock,
       });
     };
-    const [first, second] = connections.map(completerOn);
-    for (const round of [1, 2, 3, 4, 5]) {
-      const older = await claimed(userId, {
-        kind: 'oneLiner',
-        threadId: thread.id,
-        sourceMessageId: newId('message'),
-      });
-      const newer = await context.repositories.aiJobs.create({
-        ...buildJob(userId, {
+    try {
+      const [first, second] = connections.map(completerOn);
+      for (const round of [1, 2, 3, 4, 5]) {
+        const older = await claimed(userId, {
           kind: 'oneLiner',
           threadId: thread.id,
           sourceMessageId: newId('message'),
-        }),
-        createdAt: at(round),
-      });
-      const running = await context.repositories.aiJobs.claim(newer.id, {
-        owner: OWNER,
-        location: 'local',
-        now: at(round),
-        leaseUntil: at(round + 10),
-      });
-      expect(running?.status).toBe('running');
-
-      await Promise.all([
-        first?.complete({
-          job: older,
+        });
+        const newer = await context.repositories.aiJobs.create({
+          ...buildJob(userId, {
+            kind: 'oneLiner',
+            threadId: thread.id,
+            sourceMessageId: newId('message'),
+          }),
+          createdAt: at(round),
+        });
+        const running = await context.repositories.aiJobs.claim(newer.id, {
           owner: OWNER,
-          runner: 'claude',
-          output: { kind: 'oneLiner', text: `Staré ${String(round)}` },
-        }),
-        second?.complete({
-          job: running ?? newer,
-          owner: OWNER,
-          runner: 'claude',
-          output: { kind: 'oneLiner', text: `Nové ${String(round)}` },
-        }),
-      ]);
+          location: 'local',
+          now: at(round),
+          leaseUntil: at(round + 10),
+        });
+        expect(running?.status).toBe('running');
 
-      expect((await context.repositories.threads.findById(userId, thread.id))?.aiOneLiner).toBe(
-        `Nové ${String(round)}`,
-      );
-      expect(
-        (await context.repositories.aiResults.findLatest(userId, thread.id, 'oneLiner'))?.output,
-      ).toEqual({ kind: 'oneLiner', text: `Nové ${String(round)}` });
+        await Promise.all([
+          first?.complete({
+            job: older,
+            owner: OWNER,
+            runner: 'claude',
+            output: { kind: 'oneLiner', text: `Staré ${String(round)}` },
+          }),
+          second?.complete({
+            job: running ?? newer,
+            owner: OWNER,
+            runner: 'claude',
+            output: { kind: 'oneLiner', text: `Nové ${String(round)}` },
+          }),
+        ]);
+
+        expect((await context.repositories.threads.findById(userId, thread.id))?.aiOneLiner).toBe(
+          `Nové ${String(round)}`,
+        );
+        expect(
+          (await context.repositories.aiResults.findLatest(userId, thread.id, 'oneLiner'))?.output,
+        ).toEqual({ kind: 'oneLiner', text: `Nové ${String(round)}` });
+      }
+    } finally {
+      await Promise.all(connections.map((connection) => connection.close()));
     }
-    await Promise.all(connections.map((connection) => connection.close()));
   });
 });

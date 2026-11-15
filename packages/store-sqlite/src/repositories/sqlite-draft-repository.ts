@@ -1,6 +1,6 @@
-import type { DraftRepository } from '@relay/engine';
+import type { DraftRepository, DraftRevision, DraftSendClaim } from '@relay/engine';
 import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
-import { and, asc, desc, eq, inArray, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, or, type SQL } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toDraft, toDraftAttachmentRows, toDraftRow } from '../mappers/draft-mapper';
@@ -44,14 +44,14 @@ export class SqliteDraftRepository implements DraftRepository {
     userId: UserId,
     draftId: DraftId,
     changes: Partial<DraftContent>,
-    updatedAt: string,
+    revision: DraftRevision,
   ): Promise<Draft | null> {
     return this.executor.execute((db) => {
       const { attachments, ...content } = changes;
       const result = db
         .update(drafts)
-        .set({ ...content, updatedAt, updatedTs: toTimestamp(updatedAt) })
-        .where(ownedBy(userId, draftId))
+        .set({ ...content, updatedAt: revision.next, updatedTs: toTimestamp(revision.next) })
+        .where(and(ownedBy(userId, draftId), eq(drafts.updatedAt, revision.expected)))
         .run();
       if (result.changes === 0) {
         return null;
@@ -75,6 +75,36 @@ export class SqliteDraftRepository implements DraftRepository {
         db
           .delete(drafts)
           .where(and(ownedBy(userId, draftId), eq(drafts.updatedAt, updatedAt)))
+          .run().changes > 0,
+    );
+  }
+
+  claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(drafts)
+          .set({ sendClaimedTs: toTimestamp(claim.claimedAt) })
+          .where(
+            and(
+              ownedBy(userId, draftId),
+              or(
+                isNull(drafts.sendClaimedTs),
+                lt(drafts.sendClaimedTs, toTimestamp(claim.staleBefore)),
+              ),
+            ),
+          )
+          .run().changes > 0,
+    );
+  }
+
+  releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(drafts)
+          .set({ sendClaimedTs: null })
+          .where(and(ownedBy(userId, draftId), eq(drafts.sendClaimedTs, toTimestamp(claimedAt))))
           .run().changes > 0,
     );
   }

@@ -3,10 +3,11 @@ import { LOCAL_USER_ID } from '@relay/store-sqlite';
 import { app } from 'electron';
 import type { LocalRuntime } from '../composition/local-runtime';
 import { MailboxUnreadSource } from '../native/mailbox-unread-source';
-import { ElectronNotificationPresenter } from '../native/electron-notification-presenter';
+import { electronNotifications } from '../native/electron-notification-factory';
 import { ElectronTrayView } from '../native/electron-tray';
 import { installAppMenu } from '../native/install-app-menu';
 import { NewMailNotifier } from '../native/new-mail-notifier';
+import { SystemNotificationPresenter } from '../native/system-notification-presenter';
 import { UnreadBadgeUpdater } from '../native/unread-badge-updater';
 import { systemTimers } from '../platform/timers';
 import type { MainWindowController } from './main-window-controller';
@@ -20,7 +21,11 @@ export const startNativeShell = (
   windows: MainWindowController,
   logger: Logger,
 ): NativeShell => {
-  const focus = () => void windows.focus();
+  const focus = () => {
+    windows.focus().catch((error: unknown) => {
+      logger.error('Failed to show the main window', { error });
+    });
+  };
   installAppMenu({
     platform: process.platform,
     appName: app.getName(),
@@ -45,18 +50,21 @@ export const startNativeShell = (
     timers: systemTimers,
     logger,
   });
+  const presenter = new SystemNotificationPresenter(electronNotifications, focus);
   const notifier = new NewMailNotifier({
     hub,
-    presenter: new ElectronNotificationPresenter(focus),
+    presenter,
     mode: async () => (await runtime.userSettings()).notifications,
     clock: runtime.infrastructure.clock,
     timers: systemTimers,
+    logger,
   });
   badge.start();
   notifier.start();
   return {
     dispose: () => {
       notifier.stop();
+      presenter.dispose();
       badge.stop();
       tray.destroy();
     },

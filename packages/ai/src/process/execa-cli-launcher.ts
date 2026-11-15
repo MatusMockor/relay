@@ -1,10 +1,10 @@
 import { dirname, delimiter } from 'node:path';
 import { execa, type Result, type ResultPromise } from 'execa';
 import type { CliExit, CliExitReason, CliInvocation, CliLauncher, CliProcess } from './cli-process';
+import { ownsProcessGroup, reapProcessGroup } from './process-group';
 
 const FORCE_KILL_AFTER_MS = 2_000;
 const MAX_STDERR_CHARS = 20_000;
-const OWN_PROCESS_GROUP = process.platform !== 'win32';
 
 export class ExecaCliLauncher implements CliLauncher {
   launch(invocation: CliInvocation): CliProcess {
@@ -16,17 +16,14 @@ export class ExecaCliLauncher implements CliLauncher {
       timeout: invocation.timeoutMs,
       cancelSignal: invocation.signal ?? undefined,
       forceKillAfterDelay: FORCE_KILL_AFTER_MS,
-      detached: OWN_PROCESS_GROUP,
+      detached: ownsProcessGroup(),
       reject: false,
       buffer: { stdout: false, stderr: true },
     });
-    return {
-      lines: readLines(subprocess),
-      exit: subprocess.then((result) => {
-        killProcessGroup(subprocess.pid);
-        return toExit(result);
-      }),
-    };
+    subprocess.once('exit', () => {
+      reapProcessGroup(subprocess.pid, FORCE_KILL_AFTER_MS);
+    });
+    return { lines: readLines(subprocess), exit: subprocess.then(toExit) };
   }
 }
 
@@ -55,17 +52,6 @@ async function* readLines(subprocess: ResultPromise): AsyncGenerator<string> {
       subprocess.kill();
       void iterator.return?.().catch(() => undefined);
     }
-  }
-}
-
-function killProcessGroup(pid: number | undefined): void {
-  if (!OWN_PROCESS_GROUP || pid === undefined) {
-    return;
-  }
-  try {
-    process.kill(-pid, 'SIGTERM');
-  } catch (_error) {
-    return;
   }
 }
 

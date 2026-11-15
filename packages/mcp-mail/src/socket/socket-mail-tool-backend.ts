@@ -21,6 +21,7 @@ import {
 export interface SocketBackendOptions {
   readonly handshakeTimeoutMs?: number;
   readonly requestTimeoutMs?: number;
+  readonly maxFrameBytes?: number;
 }
 
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 5_000;
@@ -56,7 +57,7 @@ export class SocketMailToolBackend implements MailToolBackend {
       socket.once('connect', resolve);
       socket.on('error', reject);
     });
-    const channel = new JsonLineChannel(socket);
+    const channel = new JsonLineChannel(socket, options.maxFrameBytes);
     const backend = new SocketMailToolBackend(
       channel,
       options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,

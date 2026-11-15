@@ -56,7 +56,11 @@ function assemble<Output>(parts: PromptParts<Output>): PreparedPrompt<Output> {
     repair: (raw, error) =>
       assemble({
         ...parts,
-        sections: [texts.repair(error), wrapUntrusted(raw, parts.context.nonce)],
+        sections: [
+          texts.repair,
+          wrapUntrusted(error, parts.context.nonce),
+          wrapUntrusted(raw, parts.context.nonce),
+        ],
         tools: [],
       }),
   };

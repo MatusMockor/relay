@@ -5,12 +5,14 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { ScheduledSendRepository } from '../../ports/scheduled-send-repository';
 import type { EngineEvents } from '../shared/engine-events';
 import type { DraftService } from './draft-service';
+import type { ScheduledSendConfirmations } from './scheduled-send-confirmations';
 import type { ScheduledSendDelivery } from './scheduled-send-delivery';
 
 export interface ScheduledSendServiceDeps {
   readonly scheduledSends: ScheduledSendRepository;
   readonly drafts: DraftService;
   readonly delivery: ScheduledSendDelivery;
+  readonly confirmations: ScheduledSendConfirmations;
   readonly events: EngineEvents;
   readonly clock: Clock;
   readonly ids: IdGenerator;
@@ -48,6 +50,13 @@ export class ScheduledSendService {
   }
 
   async cancel(userId: UserId, scheduledSendId: ScheduledSendId): Promise<void> {
+    const existing = await this.deps.scheduledSends.findById(userId, scheduledSendId);
+    if (existing === null) {
+      throw new NotFoundError('Scheduled send', scheduledSendId);
+    }
+    if (await this.deps.confirmations.isPending(existing)) {
+      throw new ConflictError('Scheduled send was already delivered');
+    }
     const cancelled = await this.deps.scheduledSends.cancel(
       userId,
       scheduledSendId,
@@ -63,8 +72,9 @@ export class ScheduledSendService {
     await this.deps.events.emit(userId, 'scheduledSend.upserted', { scheduledSend: current });
   }
 
-  recoverStale(): Promise<number> {
-    return this.deps.scheduledSends.releaseStaleSending(this.staleBefore());
+  async recoverStale(): Promise<number> {
+    const unconfirmed = await this.deps.confirmations.replay();
+    return this.deps.scheduledSends.releaseStaleSending(this.staleBefore(), unconfirmed);
   }
 
   async sendDue(limit = DEFAULT_SCHEDULED_SEND_BATCH): Promise<ScheduledSend[]> {

@@ -2,7 +2,12 @@ import type { z } from 'zod';
 import { AtomicFile } from './atomic-file';
 import { parseJsonOrNull } from './parse-json';
 
-export class JsonFile<Schema extends z.ZodType> {
+export interface JsonDocument<Value> {
+  read(): Promise<Value | null>;
+  write(value: Value): Promise<void>;
+}
+
+export class JsonFile<Schema extends z.ZodType> implements JsonDocument<z.output<Schema>> {
   private readonly file: AtomicFile;
 
   constructor(

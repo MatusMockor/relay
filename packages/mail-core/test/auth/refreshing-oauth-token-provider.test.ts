@@ -91,6 +91,50 @@ describe('RefreshingOAuthTokenProvider with concurrent credential changes', () =
     expect(vault.entries.get(account.id)).toEqual(reauthorized);
   });
 
+  it('refreshes an expired replacement stored during the refresh instead of returning it', async () => {
+    const replacedButExpired: OAuthCredentials = {
+      ...expiring,
+      accessToken: 'replaced-expired',
+      refreshToken: 'refresh-2',
+      expiresAt: '2026-11-15T09:00:00.000Z',
+    };
+    let replaced = false;
+    const provider = providerWhere(async () => {
+      if (replaced) {
+        return;
+      }
+      replaced = true;
+      await vault.set(account.id, replacedButExpired);
+    });
+
+    expect(await provider.getAccessToken(account, expiring)).toBe('fresh');
+    expect(stub.requests.map((request) => request.get('refresh_token'))).toEqual([
+      'refresh-1',
+      'refresh-2',
+    ]);
+    expect(vault.entries.get(account.id)).toMatchObject({
+      accessToken: 'fresh',
+      refreshToken: 'refresh-2',
+    });
+  });
+
+  it('gives up when every refresh races with another expired replacement', async () => {
+    let generation = 0;
+    const provider = providerWhere(async () => {
+      generation += 1;
+      await vault.set(account.id, {
+        ...expiring,
+        refreshToken: `refresh-race-${String(generation)}`,
+        expiresAt: '2026-11-15T09:00:00.000Z',
+      });
+    });
+
+    await expect(provider.getAccessToken(account, expiring)).rejects.toThrow(
+      /kept changing to expired ones/,
+    );
+    expect(stub.requests).toHaveLength(3);
+  });
+
   it('stores the refreshed credentials when nothing changed meanwhile', async () => {
     const provider = providerWhere(() => Promise.resolve());
 

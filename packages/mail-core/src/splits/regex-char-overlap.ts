@@ -12,14 +12,19 @@ const SAMPLE_RANGES: readonly (readonly [number, number])[] = [
   [0x2000, 0x214f],
   [0x3000, 0x303f],
   [0x4e00, 0x4e3f],
+  [0xd800, 0xd800],
+  [0xdbff, 0xdc00],
+  [0xdfff, 0xdfff],
   [0xfeff, 0xfeff],
   [0xff00, 0xff5f],
   [0x1f300, 0x1f64f],
 ];
 
 const MAX_CODE_POINT = 0x10ffff;
-const SURROGATES = { from: 0xd800, to: 0xdfff } as const;
 const MAX_EXHAUSTIVE_CHECKS = 8;
+const MAX_ANALYSIS_WORK = 5_000;
+const LITERAL_WORK = 1;
+const SAMPLED_WORK = 25;
 
 const SAMPLES: readonly string[] = SAMPLE_RANGES.flatMap(([from, to]) =>
   Array.from({ length: to - from + 1 }, (_, offset) => String.fromCodePoint(from + offset)),
@@ -29,10 +34,6 @@ const exactly = (source: string): RegExp => new RegExp(`^(?:${source})$`, 'iu');
 
 const anyCodePointMatches = (regex: RegExp): boolean => {
   for (let codePoint = 0; codePoint <= MAX_CODE_POINT; codePoint += 1) {
-    if (codePoint === SURROGATES.from) {
-      codePoint = SURROGATES.to;
-      continue;
-    }
     if (regex.test(String.fromCodePoint(codePoint))) {
       return true;
     }
@@ -51,6 +52,8 @@ const isEmpty = (set: CharSet): boolean => set !== 'any' && set.length === 0;
 
 export class CharOverlap {
   private exhaustiveChecks = 0;
+  private work = 0;
+  private readonly compiled = new Map<string, RegExp>();
 
   between(left: CharSet, right: CharSet): boolean {
     if (isEmpty(left) || isEmpty(right)) {
@@ -64,10 +67,13 @@ export class CharOverlap {
 
   private atoms(left: CharAtom, right: CharAtom): boolean {
     if (left.literal !== null) {
-      return exactly(right.source).test(left.literal);
+      return this.spend(LITERAL_WORK) || this.exactly(right.source).test(left.literal);
     }
     if (right.literal !== null) {
-      return exactly(left.source).test(right.literal);
+      return this.spend(LITERAL_WORK) || this.exactly(left.source).test(right.literal);
+    }
+    if (this.spend(SAMPLED_WORK)) {
+      return true;
     }
     const both = exactly(`(?=(?:${left.source})$)(?:${right.source})`);
     if (SAMPLES.some((sample) => both.test(sample))) {
@@ -78,5 +84,20 @@ export class CharOverlap {
     }
     this.exhaustiveChecks += 1;
     return anyCodePointMatches(both);
+  }
+
+  private spend(amount: number): boolean {
+    this.work += amount;
+    return this.work > MAX_ANALYSIS_WORK;
+  }
+
+  private exactly(source: string): RegExp {
+    const known = this.compiled.get(source);
+    if (known !== undefined) {
+      return known;
+    }
+    const regex = exactly(source);
+    this.compiled.set(source, regex);
+    return regex;
   }
 }

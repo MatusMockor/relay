@@ -23,6 +23,7 @@ export interface TestApp {
 export interface TestAppOptions {
   readonly env?: TestEnv;
   readonly clock?: ManualClock;
+  readonly databaseName?: string;
 }
 
 const listen = async (app: NestFastifyApplication): Promise<string> => {
@@ -31,29 +32,57 @@ const listen = async (app: NestFastifyApplication): Promise<string> => {
   return `http://127.0.0.1:${address.port}`;
 };
 
-export const startTestApp = async (options: TestAppOptions = {}): Promise<TestApp> => {
-  const database: TestDatabase = await createTestDatabase({ migrate: false });
-  const config = createTestConfig(database.url, options.env);
-  const clock = options.clock ?? new ManualClock();
+const createApp = async (config: ServerConfig, clock: ManualClock) => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
     .overrideProvider(PORT_TOKENS.Clock)
     .useValue(clock)
     .compile();
-  const app = configureApp(
-    moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter(), {
-      logger: process.env.RELAY_TEST_LOGS === '1' ? ['error', 'warn', 'log', 'debug'] : false,
-    }),
+  return configureApp(
+    moduleRef.createNestApplication<NestFastifyApplication>(
+      createFastifyAdapter(config.http.trustProxyHops),
+      {
+        logger: process.env.RELAY_TEST_LOGS === '1' ? ['error', 'warn', 'log', 'debug'] : false,
+      },
+    ),
   );
-  const baseUrl = await listen(app);
-  return {
-    app,
-    config,
-    baseUrl,
-    api: new ApiClient(baseUrl),
-    clock,
-    close: async () => {
-      await app.close();
-      await database.drop();
-    },
-  };
+};
+
+const releaseAfterFailure = async (
+  database: TestDatabase,
+  app: NestFastifyApplication | null,
+): Promise<void> => {
+  await app?.close().catch(() => undefined);
+  await database.drop();
+};
+
+export const startTestApp = async (options: TestAppOptions = {}): Promise<TestApp> => {
+  const database: TestDatabase = await createTestDatabase({
+    migrate: false,
+    ...(options.databaseName === undefined ? {} : { name: options.databaseName }),
+  });
+  const clock = options.clock ?? new ManualClock();
+  let app: NestFastifyApplication | null = null;
+  let ready = false;
+  try {
+    const config = createTestConfig(database.url, options.env);
+    app = await createApp(config, clock);
+    const baseUrl = await listen(app);
+    const running = app;
+    ready = true;
+    return {
+      app: running,
+      config,
+      baseUrl,
+      api: new ApiClient(baseUrl),
+      clock,
+      close: async () => {
+        await running.close();
+        await database.drop();
+      },
+    };
+  } finally {
+    if (!ready) {
+      await releaseAfterFailure(database, app);
+    }
+  }
 };

@@ -2,7 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AiService } from '@relay/engine';
 import type { AiJob } from '@relay/shared/domain';
 import { type DeviceRepository, SERVER_PORT_TOKENS } from '../../core';
-import { type MailToolsGrant, MailToolsTokenService } from './mail-tools-token.service';
+import {
+  type MailToolsGrant,
+  type MailToolsHolder,
+  MailToolsTokenService,
+} from './mail-tools-token.service';
+
+type DeviceHolder = Extract<MailToolsHolder, { kind: 'device' }>;
 
 @Injectable()
 export class MailToolsGrantAuthorizer {
@@ -24,11 +30,15 @@ export class MailToolsGrantAuthorizer {
     return (await this.holderStillLeases(grant)) ? job : null;
   }
 
-  private async holderStillLeases(grant: MailToolsGrant): Promise<boolean> {
+  private holderStillLeases(grant: MailToolsGrant): Promise<boolean> {
     const { holder } = grant;
-    if (holder === null) {
-      return true;
+    if (holder.kind === 'run') {
+      return this.ai.ownsJob(grant.userId, grant.jobId, holder.owner);
     }
+    return this.deviceStillLeases(grant, holder);
+  }
+
+  private async deviceStillLeases(grant: MailToolsGrant, holder: DeviceHolder): Promise<boolean> {
     if ((await this.devices.findActive(grant.userId, holder.deviceId)) === null) {
       return false;
     }

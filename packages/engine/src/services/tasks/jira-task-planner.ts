@@ -1,4 +1,4 @@
-import { stripJiraSubject, type Task, type TaskState } from '@relay/shared/domain';
+import { stripJiraSubject, type TaskState } from '@relay/shared/domain';
 import type { JiraEventKind } from '../../model/jira';
 import type { JiraTaskEvent } from '../sync/jira-task-sink';
 
@@ -11,9 +11,5 @@ export const jiraTaskTitle = (event: JiraTaskEvent): string => {
   return (title === '' ? event.classification.jiraKey : title).slice(0, MAX_TITLE_LENGTH);
 };
 
-export const nextJiraTaskState = (task: Task, event: JiraTaskEvent): TaskState => {
-  if (REOPENING_EVENTS.includes(event.classification.eventKind)) {
-    return 'open';
-  }
-  return task.state;
-};
+export const jiraTaskStateChange = (event: JiraTaskEvent): { readonly state?: TaskState } =>
+  REOPENING_EVENTS.includes(event.classification.eventKind) ? { state: 'open' } : {};

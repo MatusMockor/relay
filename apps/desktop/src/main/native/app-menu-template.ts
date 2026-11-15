@@ -75,7 +75,11 @@ export const buildAppMenuTemplate = (options: AppMenuOptions): MenuItemConstruct
     windowMenu(options.platform),
   ];
   if (options.platform === 'darwin') {
-    return [macAppMenu(options.appName), ...common];
+    return [
+      macAppMenu(options.appName),
+      { label: 'Súbor', submenu: [{ role: 'close', label: 'Zavrieť okno' }] },
+      ...common,
+    ];
   }
   return [{ label: 'Súbor', submenu: [{ role: 'quit', label: 'Ukončiť' }] }, ...common];
 };

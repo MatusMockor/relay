@@ -64,7 +64,7 @@ export class PeriodicRunner {
 
   private async execute(): Promise<void> {
     try {
-      await this.task();
+      await Promise.resolve().then(() => this.task());
     } catch (error) {
       this.reportError(error);
     }
