@@ -85,12 +85,12 @@ export const appendMessage = async (
   source: Uint8Array,
   flags: Partial<MessageFlags>,
 ): Promise<AppendResult> => {
-  const result = await connection.run({ operation: 'append', retryOnDisconnect: false }, (client) =>
-    client.append(path, Buffer.from(source), toImapFlagsFromState(flags)),
+  const result = requireAccepted(
+    'append',
+    await connection.run({ operation: 'append', retryOnDisconnect: false }, (client) =>
+      client.append(path, Buffer.from(source), toImapFlagsFromState(flags)),
+    ),
   );
-  if (result === false) {
-    return { uid: null, uidValidity: null };
-  }
   return {
     uid: result.uid ?? null,
     uidValidity: result.uidValidity === undefined ? null : Number(result.uidValidity),

@@ -34,12 +34,12 @@ const toRaw = (path: string, record: RemoteMessageRecord): RawMessage => ({
   source: new Uint8Array(record.source),
 });
 
-const CREATED_ROLES: Readonly<Record<string, MailboxRole>> = {
-  Archive: 'archive',
-  Sent: 'sent',
-  Trash: 'trash',
-  Drafts: 'drafts',
-};
+const CREATED_ROLES: ReadonlyMap<string, MailboxRole> = new Map([
+  ['Archive', 'archive'],
+  ['Sent', 'sent'],
+  ['Trash', 'trash'],
+  ['Drafts', 'drafts'],
+]);
 
 const toRemote = (mailbox: FakeMailbox): RemoteMailbox => ({
   path: mailbox.path,
@@ -66,6 +66,9 @@ export class FakeMailProvider implements MailProvider {
   connect(): Promise<void> {
     if (this.server === null) {
       return Promise.reject(new Error('Unknown host'));
+    }
+    if (this.connected) {
+      return Promise.resolve();
     }
     this.server.connections += 1;
     if (this.server.failConnect !== null) {
@@ -97,7 +100,7 @@ export class FakeMailProvider implements MailProvider {
       server.createdMailboxes.push(name);
       const existing = server.find(name);
       return Promise.resolve(
-        toRemote(existing ?? server.addMailbox(name, CREATED_ROLES[name] ?? 'custom')),
+        toRemote(existing ?? server.addMailbox(name, CREATED_ROLES.get(name) ?? 'custom')),
       );
     });
   }

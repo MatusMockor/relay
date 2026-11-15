@@ -32,6 +32,10 @@ describe('isUnsafeRegex', () => {
     ['loops behind optional wrappers', '^(?:a+)?(?:a+)?(?:a+)?a+$'],
     ['a loop at the end of an optional group', '^(?:b\\d+)?\\d+$'],
     ['a loop that can skip an optional group', '^a+(?:b)?a+$'],
+    ['loops separated by a mandatory atom the first loop can match', 'a+aa+$'],
+    ['a chain of loops separated by overlapping literals', '^a+aa+aa+aa+$'],
+    ['loops separated by a fixed run the first loop can match', '\\w+_{2}\\w+$'],
+    ['an alternation that overlaps only case-sensitively', '^(?:[^a]|AA)+$'],
     ['a pattern longer than the analysis limit', `^(?:${'a'.repeat(600)})$`],
     ['groups nested deeper than the analysis limit', `${'('.repeat(20)}a${')'.repeat(20)}`],
     ['a repeated alternation that exhausts the analysis budget', `^(?:${hanBranches(150)})+$`],
@@ -62,6 +66,10 @@ describe('isUnsafeRegex', () => {
     '(?:\\d+x)?y\\d+',
     `^(?:${hanBranches(20)})+$`,
     '[\\[(]+\\)',
+    '^a+ba+ba+ba+$',
+    '\\w+@\\w+',
+    '.*invoice',
+    '^(?:ab)+a(?:ab)+$',
   ])('accepts the legitimate pattern %s', (pattern) => {
     expect(isUnsafeRegex(pattern)).toBe(false);
   });

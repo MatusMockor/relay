@@ -9,6 +9,13 @@ import { RecordingClientFactory } from '../support/recording-client-factory';
 
 type ExpungeFault = (expunge: ImapFlow['messageDelete'], call: number) => ImapFlow['messageDelete'];
 
+type StoreFault = (store: ImapFlow['messageFlagsAdd'], call: number) => ImapFlow['messageFlagsAdd'];
+
+const rejectSecondStore: StoreFault = (store, call) =>
+  call === 2 ? () => Promise.resolve(false) : store;
+const flagFirstCopyOnly: StoreFault = (store, call) =>
+  call === 2 ? (_range, flags, options) => store([1], flags, options) : store;
+
 const rejectFirst: ExpungeFault = (expunge, call) =>
   call === 1 ? () => Promise.resolve(false) : expunge;
 const rejectAll: ExpungeFault = () => () => Promise.resolve(false);
@@ -23,11 +30,18 @@ describe('ImapMailProvider.move fallback rollback against GreenMail', () => {
   const providerWith = (
     fault: ExpungeFault,
     beforeRestore: () => Promise<void> = () => Promise.resolve(),
+    storeFault: StoreFault = (store) => store,
   ): ImapMailProvider => {
     const factory = new RecordingClientFactory(user, ['MOVE'], (client) => {
       const expunge = client.messageDelete.bind(client);
       const unflag = client.messageFlagsRemove.bind(client);
+      const flag = client.messageFlagsAdd.bind(client);
       let calls = 0;
+      let stores = 0;
+      client.messageFlagsAdd = (...args) => {
+        stores += 1;
+        return storeFault(flag, stores)(...args);
+      };
       client.messageDelete = (...args) => {
         calls += 1;
         return fault(expunge, calls)(...args);
@@ -100,6 +114,30 @@ describe('ImapMailProvider.move fallback rollback against GreenMail', () => {
     });
     expect(await provider.listUids('Archive')).toEqual([1]);
     expect(await provider.listUids('INBOX')).toEqual([1, 2]);
+  });
+
+  it('reports the retained copies when the rollback EXPUNGE leaves the unflagged copies', async () => {
+    const provider = providerWith(rejectFirst, undefined, rejectSecondStore);
+
+    const failed = provider.move('INBOX', [2], 'Archive');
+
+    await expect(failed).rejects.toBeInstanceOf(PartialMoveError);
+    await expect(failed).rejects.toMatchObject({ uidMap: new Map([[2, 1]]) });
+    expect(await provider.listUids('Archive')).toEqual([1]);
+    expect(await provider.listUids('INBOX')).toEqual([1, 2]);
+  });
+
+  it('retries instead of completing the move when the rollback EXPUNGE leaves only some copies', async () => {
+    await admin.append('INBOX', Buffer.from(rawMail({ to: user.email, subject: 'move me too' })));
+    const provider = providerWith(rejectFirst, undefined, flagFirstCopyOnly);
+
+    const failed = provider.move('INBOX', [2, 3], 'Archive');
+
+    await expect(failed).rejects.toBeInstanceOf(ProviderError);
+    await expect(failed).rejects.not.toBeInstanceOf(PartialMoveError);
+    await expect(failed).rejects.toThrow(/left 1 of 2 copies/);
+    expect(await provider.listUids('Archive')).toEqual([2]);
+    expect(await provider.listUids('INBOX')).toEqual([1, 2, 3]);
   });
 
   it('keeps the copy when another client expunges the source during the rollback', async () => {

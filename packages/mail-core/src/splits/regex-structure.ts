@@ -47,7 +47,7 @@ const charAtom = (node: AST.Node): CharAtom => ({
   literal: node.type === 'Character' ? String.fromCodePoint(node.value) : null,
 });
 
-const isCharAtom = (node: AST.Node): boolean =>
+export const isCharAtom = (node: AST.Node): boolean =>
   node.type === 'Character' ||
   node.type === 'CharacterSet' ||
   node.type === 'CharacterClass' ||
