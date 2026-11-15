@@ -15,6 +15,7 @@ export interface RefreshingOAuthTokenProviderOptions {
 }
 
 const DEFAULT_EXPIRY_SKEW_SECONDS = 60;
+const MAX_REFRESH_ATTEMPTS = 3;
 
 export class RefreshingOAuthTokenProvider implements OAuthTokenProvider {
   private readonly inFlight = new Map<AccountId, Promise<OAuthCredentials>>();
@@ -64,6 +65,7 @@ export class RefreshingOAuthTokenProvider implements OAuthTokenProvider {
   private async refresh(
     accountId: AccountId,
     credentials: OAuthCredentials,
+    attempt = 1,
   ): Promise<OAuthCredentials> {
     const refresher = this.options.refreshers[credentials.provider];
     if (!refresher) {
@@ -73,7 +75,16 @@ export class RefreshingOAuthTokenProvider implements OAuthTokenProvider {
     if (await this.options.vault.setIfUnchanged(accountId, credentials, refreshed)) {
       return refreshed;
     }
-    return this.storedAfterConflict(accountId);
+    const stored = await this.storedAfterConflict(accountId);
+    if (!this.isExpired(stored)) {
+      return stored;
+    }
+    if (attempt >= MAX_REFRESH_ATTEMPTS) {
+      throw new ProviderError(
+        `OAuth credentials of account ${accountId} kept changing to expired ones during refresh`,
+      );
+    }
+    return this.refresh(accountId, stored, attempt + 1);
   }
 
   private async storedAfterConflict(accountId: AccountId): Promise<OAuthCredentials> {

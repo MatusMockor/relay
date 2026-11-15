@@ -6,7 +6,7 @@ import {
 } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
-import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
+import { createTestEngine, OTHER_USER_ID, type TestEngine, USER_ID } from '../support/test-engine';
 
 const syncedThread = async (engine: TestEngine) => {
   const { account, server } = await seedAccount(engine);
@@ -63,6 +63,63 @@ describe('AiService', () => {
     );
     expect(await engine.services.ai.processQueued()).toEqual([]);
     expect(await engine.services.ai.getJob(USER_ID, job.id)).toEqual(processed);
+  });
+
+  it('resolves mail tools for the claim owner, who holds the job only while it runs', async () => {
+    const seen: { owner: string; held: boolean; reclaimed: boolean }[] = [];
+    const engine: TestEngine = createTestEngine({
+      ai: {
+        oneLinersPerSync: 0,
+        mailTools: async (job, owner) => {
+          const held = await engine.services.ai.ownsJob(job.userId, job.id, owner);
+          const reclaimed = await engine.services.ai.ownsJob(job.userId, job.id, `${owner}-old`);
+          seen.push({ owner, held, reclaimed });
+          return null;
+        },
+      },
+    });
+    const thread = await syncedThread(engine);
+    engine.claude.respondWith(() => [
+      { type: 'completed', output: { kind: 'oneLiner', text: 'Faktúra' } },
+    ]);
+    const job = await engine.services.ai.createJob(USER_ID, {
+      input: { kind: 'oneLiner', threadId: thread.id },
+    });
+
+    await engine.services.ai.runJob(USER_ID, job.id);
+
+    const [check] = seen;
+    expect(check).toMatchObject({ held: true, reclaimed: false });
+    await expect(engine.services.ai.ownsJob(USER_ID, job.id, present(check).owner)).resolves.toBe(
+      false,
+    );
+  });
+
+  it('stops owning a job whose lease ran out or that another worker claimed', async () => {
+    const engine = createTestEngine(MANUAL_AI);
+    const thread = await syncedThread(engine);
+    const job = await engine.services.ai.createJob(USER_ID, {
+      input: { kind: 'oneLiner', threadId: thread.id },
+    });
+    const now = engine.clock.now();
+    const leaseUntil = new Date(now.getTime() + 60_000).toISOString();
+    await engine.repositories.aiJobs.claim(job.id, {
+      owner: 'first',
+      now: now.toISOString(),
+      leaseUntil,
+    });
+    await expect(engine.services.ai.ownsJob(USER_ID, job.id, 'first')).resolves.toBe(true);
+    await expect(engine.services.ai.ownsJob(OTHER_USER_ID, job.id, 'first')).resolves.toBe(false);
+
+    engine.clock.advance(61_000);
+    await expect(engine.services.ai.ownsJob(USER_ID, job.id, 'first')).resolves.toBe(false);
+    await engine.repositories.aiJobs.claim(job.id, {
+      owner: 'second',
+      now: engine.clock.now().toISOString(),
+      leaseUntil: new Date(engine.clock.now().getTime() + 60_000).toISOString(),
+    });
+    await expect(engine.services.ai.ownsJob(USER_ID, job.id, 'first')).resolves.toBe(false);
+    await expect(engine.services.ai.ownsJob(USER_ID, job.id, 'second')).resolves.toBe(true);
   });
 
   it('exposes summaries, checklists and reply suggestions in the thread detail', async () => {

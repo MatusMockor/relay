@@ -3,6 +3,7 @@ import type { MailProviderKind, ServerEndpoint } from '@relay/shared/domain';
 export type ProviderPresetId =
   | 'gmail'
   | 'outlook'
+  | 'microsoft365'
   | 'icloud'
   | 'yahoo'
   | 'seznam'
@@ -39,9 +40,19 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
   },
   outlook: {
     id: 'outlook',
-    label: 'Outlook / Microsoft 365',
+    label: 'Outlook.com',
     provider: 'outlook',
     domains: ['outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'outlook.sk', 'hotmail.sk'],
+    imap: tls('outlook.office365.com'),
+    smtp: starttls('smtp-mail.outlook.com'),
+    supportsOAuth: true,
+    requiresAppPassword: false,
+  },
+  microsoft365: {
+    id: 'microsoft365',
+    label: 'Microsoft 365',
+    provider: 'outlook',
+    domains: [],
     imap: tls('outlook.office365.com'),
     smtp: starttls('smtp.office365.com'),
     supportsOAuth: true,

@@ -1,8 +1,15 @@
 import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
-import { ConflictError, type DraftRepository } from '../../../src';
+import {
+  ConflictError,
+  type DraftRepository,
+  type DraftRevision,
+  type DraftSendClaim,
+} from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
 export class MemoryDraftRepository implements DraftRepository {
+  failDeleteRevision: string | null = null;
+
   constructor(private readonly db: MemoryDatabase) {}
 
   listByUser(userId: UserId): Promise<Draft[]> {
@@ -31,16 +38,16 @@ export class MemoryDraftRepository implements DraftRepository {
     userId: UserId,
     draftId: DraftId,
     changes: Partial<DraftContent>,
-    updatedAt: string,
+    revision: DraftRevision,
   ): Promise<Draft | null> {
     const stored = this.db.tables.drafts.get(draftId);
-    if (stored?.userId !== userId) {
+    if (stored?.userId !== userId || stored.draft.updatedAt !== revision.expected) {
       return Promise.resolve(null);
     }
     if (changes.attachments !== undefined && this.usedElsewhere(draftId, changes.attachments)) {
       return Promise.reject(new ConflictError('The record conflicts with an existing record'));
     }
-    const draft: Draft = { ...stored.draft, ...changes, updatedAt };
+    const draft: Draft = { ...stored.draft, ...changes, updatedAt: revision.next };
     this.db.tables.drafts.set(draftId, { userId, draft });
     return Promise.resolve(draft);
   }
@@ -49,15 +56,38 @@ export class MemoryDraftRepository implements DraftRepository {
     if (this.db.tables.drafts.get(draftId)?.userId !== userId) {
       return Promise.resolve(false);
     }
-    return Promise.resolve(this.db.tables.drafts.delete(draftId));
+    return Promise.resolve(this.remove(draftId));
   }
 
   deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean> {
+    if (this.failDeleteRevision !== null) {
+      return Promise.reject(new Error(this.failDeleteRevision));
+    }
     const stored = this.db.tables.drafts.get(draftId);
     if (stored?.userId !== userId || stored.draft.updatedAt !== updatedAt) {
       return Promise.resolve(false);
     }
-    return Promise.resolve(this.db.tables.drafts.delete(draftId));
+    return Promise.resolve(this.remove(draftId));
+  }
+
+  claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean> {
+    if (this.db.tables.drafts.get(draftId)?.userId !== userId) {
+      return Promise.resolve(false);
+    }
+    const current = this.db.tables.draftSendClaims.get(draftId);
+    if (current !== undefined && Date.parse(current) >= Date.parse(claim.staleBefore)) {
+      return Promise.resolve(false);
+    }
+    this.db.tables.draftSendClaims.set(draftId, claim.claimedAt);
+    return Promise.resolve(true);
+  }
+
+  releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean> {
+    const owned = this.db.tables.drafts.get(draftId)?.userId === userId;
+    if (!owned || this.db.tables.draftSendClaims.get(draftId) !== claimedAt) {
+      return Promise.resolve(false);
+    }
+    return Promise.resolve(this.db.tables.draftSendClaims.delete(draftId));
   }
 
   private usedElsewhere(draftId: DraftId, attachments: Draft['attachments']): boolean {
@@ -67,6 +97,11 @@ export class MemoryDraftRepository implements DraftRepository {
         stored.draft.id !== draftId &&
         stored.draft.attachments.some((attachment) => ids.has(attachment.id)),
     );
+  }
+
+  private remove(draftId: DraftId): boolean {
+    this.db.tables.draftSendClaims.delete(draftId);
+    return this.db.tables.drafts.delete(draftId);
   }
 
   private byUser(userId: UserId): Draft[] {

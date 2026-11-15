@@ -30,9 +30,12 @@ export class MemoryAccountRepository implements AccountRepository {
     return Promise.resolve([...this.db.tables.accounts.values()]);
   }
 
-  create(account: MailAccount): Promise<MailAccount> {
+  async create(account: MailAccount): Promise<MailAccount> {
     this.db.tables.accounts.set(account.id, account);
-    return Promise.resolve(account);
+    if (account.isPrimary) {
+      await this.setPrimary(account.userId, account.id);
+    }
+    return account;
   }
 
   async update(

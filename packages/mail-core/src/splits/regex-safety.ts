@@ -1,10 +1,11 @@
 import { type AST, RegExpParser } from '@eslint-community/regexpp';
 import { CharOverlap } from './regex-char-overlap';
+import { exceedsAnalysisLimits } from './regex-limits';
+import { edgeLoops } from './regex-loop-reach';
 import {
   bodyChars,
   descendants,
   isAlternation,
-  isLoop,
   isNullable,
   isRepeating,
   isVariable,
@@ -29,35 +30,27 @@ const hasBackreference = (nodes: readonly AST.Node[]): boolean =>
 const hasNestedVariableRepetition = (nodes: readonly AST.Node[]): boolean =>
   nodes.some((node) => isRepeating(node) && descendants(node.element).some(isVariable));
 
-const flattened = (elements: readonly AST.Element[]): AST.Element[] =>
-  elements.flatMap((element) => {
-    const [only, ...rest] =
-      element.type === 'Group' || element.type === 'CapturingGroup' ? element.alternatives : [];
-    return only !== undefined && rest.length === 0 ? flattened(only.elements) : [element];
-  });
-
-const followingLoops = (elements: readonly AST.Element[], from: number): AST.Quantifier[] => {
-  const loops: AST.Quantifier[] = [];
-  for (const element of elements.slice(from + 1)) {
-    if (isLoop(element)) {
-      loops.push(element);
-    }
-    if (!isNullable(element)) {
-      return loops;
-    }
-  }
-  return loops;
-};
-
 const hasOverlappingNeighbours = (alternative: AST.Alternative, overlap: CharOverlap): boolean => {
-  const elements = flattened(alternative.elements);
-  return elements.some(
-    (element, index) =>
-      isLoop(element) &&
-      followingLoops(elements, index).some((next) =>
-        overlap.between(bodyChars(element.element), bodyChars(next.element)),
-      ),
-  );
+  const elements = alternative.elements;
+  return elements.some((element, index) => {
+    const tails = edgeLoops(element, 'last');
+    if (tails.length === 0) {
+      return false;
+    }
+    for (const next of elements.slice(index + 1)) {
+      const heads = edgeLoops(next, 'first');
+      const overlapping = tails.some((tail) =>
+        heads.some((head) => overlap.between(bodyChars(tail.element), bodyChars(head.element))),
+      );
+      if (overlapping) {
+        return true;
+      }
+      if (!isNullable(next)) {
+        return false;
+      }
+    }
+    return false;
+  });
 };
 
 const hasAmbiguousBranches = (
@@ -85,6 +78,9 @@ const hasRepeatedAmbiguousAlternation = (
   );
 
 export const isUnsafeRegex = (pattern: string): boolean => {
+  if (exceedsAnalysisLimits(pattern)) {
+    return true;
+  }
   const ast = parse(pattern);
   if (ast === null) {
     return true;

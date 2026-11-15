@@ -136,6 +136,34 @@ describe('MessageActionsService', () => {
     expect(server.record('INBOX', 2).keywords).toEqual([]);
   });
 
+  it('keeps both labels added to a thread at the same time', async () => {
+    const engine = createTestEngine();
+    const { thread, account } = await syncedThread(engine);
+    const clients = await engine.repositories.labels.upsert({
+      id: 'label_clients' as LabelId,
+      accountId: account.id,
+      name: 'Clients',
+      color: null,
+    });
+    const urgent = await engine.repositories.labels.upsert({
+      id: 'label_urgent' as LabelId,
+      accountId: account.id,
+      name: 'Urgent',
+      color: null,
+    });
+
+    await Promise.all([
+      engine.services.actions.apply(USER_ID, thread.id, { type: 'addLabel', labelId: clients.id }),
+      engine.services.actions.apply(USER_ID, thread.id, { type: 'addLabel', labelId: urgent.id }),
+    ]);
+
+    const messages = await engine.repositories.messages.listByThread(USER_ID, thread.id);
+    expect(messages.map((message) => [...message.labelIds].sort())).toEqual([
+      [clients.id, urgent.id],
+      [clients.id, urgent.id],
+    ]);
+  });
+
   it('keeps the local change when the provider is unreachable', async () => {
     const engine = createTestEngine();
     const { server, thread, account } = await syncedThread(engine);
