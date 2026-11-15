@@ -1,18 +1,32 @@
 export type LayerKeyHandler = (event: KeyboardEvent) => void;
 
+export interface LayerNode {
+  readonly parent: LayerNode | null;
+}
+
 interface LayerEntry {
+  readonly node: LayerNode;
   readonly onKey: LayerKeyHandler;
 }
 
 const stack: LayerEntry[] = [];
 let installedOn: Document | null = null;
 
-const dispatch = (event: KeyboardEvent): void => {
-  const top = stack.at(-1);
-  if (top === undefined) {
-    return;
+const latestChildOf = (node: LayerNode): LayerEntry | undefined =>
+  [...stack].reverse().find((entry) => entry.node.parent === node);
+
+const topEntry = (): LayerEntry | undefined => {
+  let top = stack.at(-1);
+  let child = top === undefined ? undefined : latestChildOf(top.node);
+  while (child !== undefined) {
+    top = child;
+    child = latestChildOf(child.node);
   }
-  top.onKey(event);
+  return top;
+};
+
+const dispatch = (event: KeyboardEvent): void => {
+  topEntry()?.onKey(event);
 };
 
 const install = (): void => {
@@ -23,9 +37,12 @@ const install = (): void => {
   installedOn = document;
 };
 
-export const pushLayer = (onKey: LayerKeyHandler): (() => void) => {
+export const pushLayer = (
+  onKey: LayerKeyHandler,
+  node: LayerNode = { parent: null },
+): (() => void) => {
   install();
-  const entry: LayerEntry = { onKey };
+  const entry: LayerEntry = { node, onKey };
   stack.push(entry);
   return () => {
     const index = stack.indexOf(entry);

@@ -19,7 +19,7 @@ const encodeFrame = (opcode: number, payload: Buffer): Buffer => {
   return Buffer.concat([header, payload]);
 };
 
-const decodeFrames = (
+export const decodeFrames = (
   buffer: Buffer,
 ): { frames: { opcode: number; payload: Buffer }[]; rest: Buffer } => {
   const frames: { opcode: number; payload: Buffer }[] = [];
@@ -30,6 +30,9 @@ const decodeFrames = (
     let length = second & 0x7f;
     let cursor = offset + 2;
     if (length === 126) {
+      if (buffer.length < cursor + 2) {
+        break;
+      }
       length = buffer.readUInt16BE(cursor);
       cursor += 2;
     }

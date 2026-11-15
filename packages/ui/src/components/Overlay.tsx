@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
-import type { MouseEvent, ReactNode } from 'react';
-import { useLayer } from './use-layer';
+import { type MouseEvent, type ReactNode, useRef } from 'react';
+import { keepTabInside, useFocusTrap } from './use-focus-trap';
+import { LayerContext, useLayer } from './use-layer';
 
 export type OverlayPlacement = 'top' | 'mid' | 'clear';
 
@@ -12,7 +13,7 @@ export interface OverlayProps {
 }
 
 export function Overlay({ placement = 'top', onClose, onKey, children }: OverlayProps) {
-  useLayer((event) => {
+  const layer = useLayer((event) => {
     if (onKey?.(event) === true) {
       return;
     }
@@ -31,7 +32,7 @@ export function Overlay({ placement = 'top', onClose, onKey, children }: Overlay
   };
   return (
     <div className={clsx('ov', placement !== 'top' && placement)} onMouseDown={onBackdrop}>
-      {children}
+      <LayerContext value={layer}>{children}</LayerContext>
     </div>
   );
 }
@@ -43,9 +44,19 @@ export interface SheetProps extends Omit<OverlayProps, 'placement'> {
 }
 
 export function Sheet({ label, className, role = 'dialog', children, ...overlay }: SheetProps) {
+  const surface = useRef<HTMLDivElement>(null);
+  useFocusTrap(surface);
   return (
     <Overlay placement="mid" {...overlay}>
-      <div className={clsx('surface', className)} role={role} aria-modal="true" aria-label={label}>
+      <div
+        ref={surface}
+        className={clsx('surface', className)}
+        role={role}
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        onKeyDown={keepTabInside}
+      >
         {children}
       </div>
     </Overlay>

@@ -66,6 +66,14 @@ describe('thread AI in synced mode', () => {
     await server.close();
   });
 
+  const settle = async () => {
+    let seen = -1;
+    while (seen !== server.requests.length) {
+      seen = server.requests.length;
+      await act(() => new Promise((resolve) => setTimeout(resolve, 120)));
+    }
+  };
+
   const openFirstThread = async (threads: readonly ThreadSummary[]) => {
     server.handle('threads.list', () => ({ body: { items: threads, nextCursor: null } }));
     const platform = createBrowserPlatform(
@@ -74,6 +82,10 @@ describe('thread AI in synced mode', () => {
     await platform.tokenStore(server.url).save(tokens('access-1'));
     renderApp({ platform });
     const list = await screen.findByRole('listbox', { name: 'Konverzácie' });
+    await waitFor(() => {
+      expect(server.sockets[0]?.messages.length).toBeGreaterThan(0);
+    });
+    await settle();
     act(() => {
       fireEvent.click(within(list).getAllByRole('option')[0] ?? document.body);
     });

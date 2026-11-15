@@ -24,6 +24,17 @@ const MARGIN = 8;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
+const placement = (anchor: AnchorRect, align: 'left' | 'right', width: number, height: number) => {
+  const preferred = align === 'right' ? anchor.right - width : anchor.left;
+  const left = clamp(preferred, MARGIN, window.innerWidth - width - MARGIN);
+  const below = anchor.bottom + 6;
+  const top =
+    below + height > window.innerHeight - MARGIN
+      ? Math.max(MARGIN, anchor.top - height - 6)
+      : below;
+  return { left, top };
+};
+
 export function Popover({
   anchor,
   align = 'left',
@@ -38,15 +49,19 @@ export function Popover({
   const ref = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: anchor.left, top: anchor.bottom + 6 });
   useLayoutEffect(() => {
-    const height = ref.current?.offsetHeight ?? 0;
-    const preferred = align === 'right' ? anchor.right - width : anchor.left;
-    const left = clamp(preferred, MARGIN, window.innerWidth - width - MARGIN);
-    const below = anchor.bottom + 6;
-    const top =
-      below + height > window.innerHeight - MARGIN
-        ? Math.max(MARGIN, anchor.top - height - 6)
-        : below;
-    setPosition({ left, top });
+    const element = ref.current;
+    const place = () => {
+      setPosition(placement(anchor, align, width, element?.offsetHeight ?? 0));
+    };
+    place();
+    if (element === null || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(place);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+    };
   }, [anchor, align, width]);
   return (
     <Overlay placement="clear" onClose={onClose} onKey={onKey}>

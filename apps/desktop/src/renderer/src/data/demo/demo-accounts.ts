@@ -8,6 +8,12 @@ import { demoIds } from './seed/ids';
 
 const PALETTE = ['#6aa8ff', '#74c4a2', '#d9a878', '#d48fa8'];
 
+let sequence = 0;
+const nextAccountKey = (now: Date): string => {
+  sequence += 1;
+  return `n${String(now.getTime())}-${String(sequence)}`;
+};
+
 export const demoAccountFrom = (
   body: CreateAccountBody,
   existing: readonly MailAccount[],
@@ -26,7 +32,7 @@ export const demoAccountFrom = (
           username: email,
         };
   return {
-    id: demoIds.account(`n${String(now.getTime())}`),
+    id: demoIds.account(nextAccountKey(now)),
     userId: demoIds.user,
     provider: body.provider,
     displayName:

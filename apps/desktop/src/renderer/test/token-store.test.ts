@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { canonicalServerUrl } from '../src/data/remote/TokenStore';
 import { DeferredQueue } from '../src/features/mail/send-queue';
 import { tokens } from './support/fixtures';
+import { DEFAULT_DEVICE_SETTINGS } from '@relay/shared';
 import { createBrowserPlatform } from '../src/platform/BrowserPlatform';
 import { memoryStorage } from './support/render-app';
 
@@ -16,6 +17,18 @@ describe('token storage keys', () => {
     await platform.tokenStore('https://mail.example').save(tokens('secure'));
     expect(await platform.tokenStore('http://mail.example').load()).toBeNull();
     expect((await platform.tokenStore('https://mail.example/').load())?.accessToken).toBe('secure');
+  });
+});
+
+describe('browser device settings', () => {
+  it('falls back to defaults when reading the storage fails', async () => {
+    const platform = createBrowserPlatform({
+      getItem: () => {
+        expect.fail('storage read must be guarded');
+      },
+      setItem: () => undefined,
+    });
+    expect(await platform.deviceSettings()).toEqual(DEFAULT_DEVICE_SETTINGS);
   });
 });
 

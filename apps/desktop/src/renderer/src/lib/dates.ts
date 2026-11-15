@@ -70,10 +70,10 @@ export const messageTimeLabel = (iso: string, now: Date): string => {
   return `${dm(date)} ${hm(date)}`;
 };
 
-const startOfWeek = (now: Date): number => {
+const startOfWeek = (now: Date, weeksBack = 0): number => {
   const copy = new Date(startOfDay(now));
   const offset = (copy.getDay() + 6) % 7;
-  copy.setDate(copy.getDate() - offset);
+  copy.setDate(copy.getDate() - offset - weeksBack * 7);
   return copy.getTime();
 };
 
@@ -90,7 +90,7 @@ export const dayGroupOf = (iso: string, now: Date): string => {
   if (date.getTime() >= week) {
     return 'Tento týždeň';
   }
-  if (date.getTime() >= week - 7 * 86_400_000) {
+  if (date.getTime() >= startOfWeek(now, 1)) {
     return 'Minulý týždeň';
   }
   const month = MONTHS[date.getMonth()] ?? '';

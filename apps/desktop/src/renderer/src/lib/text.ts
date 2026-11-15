@@ -1,8 +1,12 @@
 export const foldText = (value: string): string =>
   value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export const truncate = (value: string, max: number): string =>
-  value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+export const truncate = (value: string, max: number): string => {
+  if (max <= 0) {
+    return '';
+  }
+  return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+};
 
 export const plural = (count: number, one: string, few: string, many: string): string => {
   if (count === 1) {

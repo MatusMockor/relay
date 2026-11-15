@@ -36,6 +36,7 @@ export type Teardown = () => Promise<void>;
 
 export class SessionController {
   private readonly teardowns = new Set<Teardown>();
+  private transition = 0;
 
   constructor(
     private readonly platform: Platform,
@@ -61,6 +62,7 @@ export class SessionController {
   }
 
   goTo(step: OnboardingStep, pendingServerUrl: string | null = this.state.pendingServerUrl): void {
+    this.nextTransition();
     this.dispose();
     this.store.setState({ ...INITIAL_SESSION, phase: 'onboarding', step, pendingServerUrl });
   }
@@ -92,6 +94,7 @@ export class SessionController {
     if (url === null) {
       throw new Error('Najprv zadaj adresu servera');
     }
+    const ticket = this.nextTransition();
     const bundle = this.serverApi(url);
     const { server } = bundle;
     const device = deviceRegistrationOf(await this.platform.appInfo(), this.platform.kind);
@@ -107,7 +110,13 @@ export class SessionController {
           )
         : await server.login(credentials, device);
     const empty = !(await hasAnyAccount(() => bundle.http.call(api.accounts.list, {})));
+    if (!this.isCurrent(ticket)) {
+      return session;
+    }
     await this.rememberServer(url);
+    if (!this.isCurrent(ticket)) {
+      return session;
+    }
     this.enterSynced(url, session, bundle);
     if (empty) {
       this.store.setState({ phase: 'onboarding', step: 'account' });
@@ -120,8 +129,9 @@ export class SessionController {
   }
 
   async switchServer(url: string): Promise<void> {
+    const ticket = this.nextTransition();
     await this.platform.updateDeviceSettings({ activeServerUrl: url, mode: 'synced' });
-    await this.enterServer(url);
+    await this.enterServer(url, ticket);
   }
 
   addTeardown(teardown: Teardown): () => void {
@@ -147,28 +157,52 @@ export class SessionController {
     await Promise.all([...this.teardowns].map((teardown) => teardown()));
   }
 
+  private nextTransition(): number {
+    this.transition += 1;
+    return this.transition;
+  }
+
+  private isCurrent(ticket: number): boolean {
+    return ticket === this.transition;
+  }
+
   private serverApi(url: string): ServerApiBundle {
     return createServerApi(this.platform, url, {
       fetch: this.hooks.fetch,
-      onSessionExpired: this.serviceHooks().onSessionExpired,
+      onSessionExpired: () => {
+        this.expireSession(url);
+      },
     });
   }
 
-  private async enterServer(url: string): Promise<void> {
+  private expireSession(url: string): void {
+    if (this.state.services?.serverUrl !== url) {
+      return;
+    }
+    this.goTo('auth', url);
+  }
+
+  private async enterServer(url: string, ticket = this.nextTransition()): Promise<void> {
     const bundle = this.serverApi(url);
     const { server } = bundle;
-    if (!(await server.hasSession())) {
+    const signedIn = await server.hasSession();
+    if (!this.isCurrent(ticket)) {
+      return;
+    }
+    if (!signedIn) {
       this.goTo('auth', url);
       return;
     }
     this.enterSynced(url, null, bundle);
     const me = await server.me().catch(() => null);
-    if (me !== null) {
-      this.store.setState({ user: me.user, device: me.device });
+    if (me === null || !this.isCurrent(ticket)) {
+      return;
     }
+    this.store.setState({ user: me.user, device: me.device });
   }
 
   private enterOffline(phase: SessionPhase = 'ready'): void {
+    this.nextTransition();
     this.dispose();
     const services = createOfflineServices(this.platform, this.serviceHooks());
     this.store.setState({ ...INITIAL_SESSION, phase, services });
@@ -201,9 +235,6 @@ export class SessionController {
   private serviceHooks(): ServiceHooks {
     return {
       ...this.hooks,
-      onSessionExpired: () => {
-        this.goTo('auth', this.state.services?.serverUrl ?? null);
-      },
       onRealtimeStatus: (realtime) => {
         this.store.setState({ realtime });
       },

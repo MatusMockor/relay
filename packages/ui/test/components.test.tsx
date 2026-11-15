@@ -7,6 +7,7 @@ import {
   initialsOf,
   ResizeHandle,
   Segmented,
+  Sheet,
   Switch,
   hasOpenLayer,
 } from '../src';
@@ -74,6 +75,85 @@ describe('ConfirmDialog', () => {
     expect(calls).toEqual(['ok', 'cancel']);
     unmount();
     expect(hasOpenLayer()).toBe(false);
+  });
+});
+
+describe('ConfirmDialog keyboard', () => {
+  it('lets Enter on the focused cancel button cancel instead of confirming', () => {
+    const calls: string[] = [];
+    render(
+      <ConfirmDialog
+        title="Zmazať?"
+        text="Koncept sa zmaže"
+        confirmLabel="Zmazať"
+        onConfirm={() => calls.push('ok')}
+        onCancel={() => calls.push('cancel')}
+      />,
+    );
+    const cancel = screen.getByRole('button', { name: /Zrušiť/ });
+    cancel.focus();
+    fireEvent.keyDown(cancel, { key: 'Enter' });
+    expect(calls).toEqual([]);
+    const confirm = screen.getByRole('button', { name: /Zmazať/ });
+    confirm.focus();
+    fireEvent.keyDown(confirm, { key: 'Enter' });
+    expect(calls).toEqual(['ok']);
+  });
+});
+
+function SheetHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        Otvoriť
+      </button>
+      {open ? (
+        <Sheet
+          label="Nastavenia"
+          onClose={() => {
+            setOpen(false);
+          }}
+        >
+          <button type="button">Prvé</button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+            }}
+          >
+            Posledné
+          </button>
+        </Sheet>
+      ) : null}
+    </>
+  );
+}
+
+describe('Sheet focus', () => {
+  it('moves focus inside, keeps Tab there and returns focus to the opener', () => {
+    render(<SheetHarness />);
+    const opener = screen.getByRole('button', { name: 'Otvoriť' });
+    opener.focus();
+    fireEvent.click(opener);
+    const dialog = screen.getByRole('dialog', { name: 'Nastavenia' });
+    expect(document.activeElement).toBe(dialog);
+    const first = screen.getByRole('button', { name: 'Prvé' });
+    const last = screen.getByRole('button', { name: 'Posledné' });
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(last, { key: 'Tab' });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    fireEvent.click(last);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(opener);
   });
 });
 

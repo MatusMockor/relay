@@ -24,6 +24,9 @@
   box-shadow: var(--shadow-overlay);
   animation: palin 0.14s ease-out;
 }
+.surface:focus {
+  outline: none;
+}
 .pop {
   position: fixed;
   z-index: 60;

@@ -1,11 +1,12 @@
-import type { AiOutput, RealtimeEvent, ThreadSummary } from '@relay/shared';
+import type { AiOutput, RealtimeEvent, ThreadId, ThreadSummary } from '@relay/shared';
 import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
-import type { MailClient } from '../MailClient';
+import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { projectThreadAction } from '../thread-projection';
 import { runDemoAi } from './demo-ai';
 import { demoSend, newDraftKey } from './demo-compose';
+import { dropAccountData, syncDraftFlags } from './demo-drafts';
 import { demoTaskFromAi } from './demo-tasks';
 import { queryThreads } from './demo-query';
 import type { DemoState } from './demo-state';
@@ -33,6 +34,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
   const now = options.now ?? (() => new Date());
   const state = options.state ?? buildDemoState(now());
   const bus = new EventBus<RealtimeEvent>();
+  const aiRuns = new Set<Unsubscribe>();
   const emit = (event: RealtimeEvent) => {
     queueMicrotask(() => {
       bus.emit(event);
@@ -64,6 +66,9 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       throw notFound('Koncept');
     }
     return found;
+  };
+  const draftsChanged = (...threadIds: readonly (ThreadId | null)[]) => {
+    syncDraftFlags(state, threadIds).forEach(upserted);
   };
   return {
     kind: 'demo',
@@ -133,10 +138,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     removeAccount: (accountId) =>
       run(() => {
-        state.accounts = state.accounts.filter((account) => account.id !== accountId);
-        [...state.threads.entries()]
-          .filter(([, item]) => item.summary.accountId === accountId)
-          .forEach(([key]) => state.threads.delete(key));
+        dropAccountData(state, accountId);
         emit({ type: 'account.removed', at: now().toISOString(), data: { accountId } });
       }),
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
@@ -153,17 +155,22 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
           updatedAt: stamp,
         };
         state.drafts.push(created);
+        draftsChanged(created.inReplyToThreadId);
         return created;
       }),
     updateDraft: (draftId, patch) =>
       run(() => {
-        const next = { ...draft(draftId), ...patch, updatedAt: now().toISOString() };
+        const previous = draft(draftId);
+        const next = { ...previous, ...patch, updatedAt: now().toISOString() };
         state.drafts = state.drafts.map((item) => (item.id === draftId ? next : item));
+        draftsChanged(previous.inReplyToThreadId, next.inReplyToThreadId);
         return next;
       }),
     deleteDraft: (draftId) =>
       run(() => {
+        const removed = state.drafts.find((item) => item.id === draftId);
         state.drafts = state.drafts.filter((item) => item.id !== draftId);
+        draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
@@ -240,21 +247,32 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         },
       ]),
     getAiJob: () => Promise.reject(notFound('AI úloha')),
-    runAi: (request, listener) =>
-      runDemoAi(
+    runAi: (request, listener) => {
+      const stop = runDemoAi(
         state,
         request.input,
         (event) => {
           if (event.type === 'completed') {
+            aiRuns.delete(stop);
             addAiTask(event.output);
           }
           listener(event);
         },
         options.aiStepMs ?? 160,
-      ),
+      );
+      aiRuns.add(stop);
+      return () => {
+        aiRuns.delete(stop);
+        stop();
+      };
+    },
     subscribe: (listener) => bus.subscribe(listener),
     onRealtimeConnected: () => () => undefined,
     dispose: () => {
+      aiRuns.forEach((stop) => {
+        stop();
+      });
+      aiRuns.clear();
       bus.clear();
     },
   };

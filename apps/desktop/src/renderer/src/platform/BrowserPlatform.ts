@@ -28,6 +28,14 @@ export interface KeyValueStorage {
   setItem(key: string, value: string): void;
 }
 
+const readStored = (storage: KeyValueStorage | null): string | null => {
+  try {
+    return storage?.getItem(DEVICE_SETTINGS_KEY) ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const safeStorage = (): KeyValueStorage | null => {
   try {
     return window.localStorage;
@@ -54,9 +62,7 @@ export const createBrowserPlatform = (
     tokens.set(key, created);
     return created;
   };
-  let settings: DeviceSettings = parseStoredDeviceSettings(
-    storage?.getItem(DEVICE_SETTINGS_KEY) ?? null,
-  );
+  let settings: DeviceSettings = parseStoredDeviceSettings(readStored(storage));
   return {
     kind: 'browser',
     bridge: null,

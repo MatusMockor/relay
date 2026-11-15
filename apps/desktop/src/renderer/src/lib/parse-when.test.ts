@@ -19,6 +19,8 @@ describe('parseWhen', () => {
     expect(parseWhen('niekedy', NOW)).toBeNull();
     expect(parseWhen('dnes 7:00', NOW)).toBeNull();
     expect(parseWhen('25:00', NOW)).toBeNull();
+    expect(parseWhen('31. 11. o 9:00', NOW)).toBeNull();
+    expect(parseWhen('30. 2.', NOW)).toBeNull();
   });
 
   it('describes dates in Slovak', () => {

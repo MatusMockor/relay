@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Kbd } from './Kbd';
 import { Sheet } from './Overlay';
 
@@ -18,8 +19,11 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const confirmButton = useRef<HTMLButtonElement>(null);
   const onKey = (event: KeyboardEvent) => {
-    if (event.key !== 'Enter') {
+    const otherButton =
+      event.target instanceof HTMLButtonElement && event.target !== confirmButton.current;
+    if (event.key !== 'Enter' || otherButton) {
       return false;
     }
     event.preventDefault();
@@ -35,7 +39,7 @@ export function ConfirmDialog({
         <button type="button" className="btn" onClick={onCancel}>
           {cancelLabel} <Kbd keys={['Esc']} />
         </button>
-        <button type="button" className="btn pri" onClick={onConfirm} autoFocus>
+        <button ref={confirmButton} type="button" className="btn pri" onClick={onConfirm} autoFocus>
           {confirmLabel} <Kbd keys={['↵']} />
         </button>
       </div>
