@@ -1,0 +1,11 @@
+language: en-US
+reviews:
+  profile: assertive
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - '.*'
+  path_filters:
+    - '!**/drizzle/meta/**'
+    - '!pnpm-lock.yaml'
