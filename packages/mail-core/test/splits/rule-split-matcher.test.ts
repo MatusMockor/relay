@@ -97,6 +97,15 @@ describe('RuleSplitMatcher', () => {
     },
   );
 
+  it('refuses a case-sensitive pattern whose branches overlap only without the i flag', async () => {
+    const pattern = '^(?:[^a]|AA)+$';
+    const message = subject({ subject: `${'A'.repeat(MAX_MATCH_INPUT_LENGTH - 1)}a` });
+    const splits = [split('s', [{ type: 'subjectRegex', pattern, caseSensitive: true }])];
+
+    expect(isUnsafeRegex(pattern)).toBe(true);
+    expect(await matcher.match({ message, jira: null, splits })).toEqual([]);
+  });
+
   it('only matches subject patterns against the capped subject', async () => {
     const message = subject({ subject: `${'x'.repeat(MAX_MATCH_INPUT_LENGTH)}needle` });
     const splits = [
