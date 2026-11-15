@@ -28,6 +28,7 @@ export interface HandlerResult {
   readonly body: unknown;
   readonly raw?: RawBody;
   readonly delayMs?: number;
+  readonly holdUntil?: Promise<void>;
 }
 
 export type Handler = (request: RecordedRequest, params: Record<string, string>) => HandlerResult;
@@ -127,6 +128,12 @@ export const startContractServer = async (): Promise<ContractServer> => {
       const result = handlers.get(key)?.(recorded, { ...match.found?.groups }) ?? {
         body: defaultBody(match.named),
       };
+      if (result.holdUntil !== undefined) {
+        void result.holdUntil.then(() => {
+          send(response, result);
+        });
+        return;
+      }
       if (result.delayMs !== undefined) {
         setTimeout(() => {
           send(response, result);

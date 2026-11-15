@@ -114,6 +114,7 @@ describe('thread lists', () => {
   it('keeps a checklist tick when an older thread fetch resolves afterwards', async () => {
     const base = demoClient();
     let hold: ReturnType<typeof gate> | null = null;
+    let heldFetches = 0;
     const listeners: MailEventListener[] = [];
     const client: MailClient = {
       ...base,
@@ -121,6 +122,7 @@ describe('thread lists', () => {
         const snapshot: ThreadDetail = await base.getThread(id);
         const current = hold;
         if (current !== null) {
+          heldFetches += 1;
           await current.wait();
         }
         return snapshot;
@@ -149,7 +151,9 @@ describe('thread lists', () => {
         });
       });
     });
-    await settle(50);
+    await waitFor(() => {
+      expect(heldFetches).toBe(1);
+    });
     hold = null;
     fireEvent.click(screen.getByRole('button', { name: /Pozrieť MR !412/ }));
     await settle();

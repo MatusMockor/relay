@@ -3,19 +3,9 @@ import { expect } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import type { AiRunRequest } from '@relay/shared';
 import type { MailClient } from '../src/data/MailClient';
+import type { Gate } from './support/gate';
 
-export interface Gate {
-  readonly wait: () => Promise<void>;
-  readonly open: () => void;
-}
-
-export const gate = (): Gate => {
-  let release: () => void = () => undefined;
-  const opened = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return { wait: () => opened, open: release };
-};
+export { type Gate, gate } from './support/gate';
 
 export const demoClient = (): MailClient => createDemoMailClient({ aiStepMs: 0 });
 

@@ -110,12 +110,12 @@ describe('demo mail client', () => {
       { input: { kind: 'createTask', threadId: LUNCH, hint: 'a'.repeat(1_200) } },
       (event) => events.push(event),
     );
-    await pause(20);
-    const outputs = events.flatMap((event) =>
-      event.type === 'completed' && event.output.kind === 'createTask' ? [event.output] : [],
-    );
-    expect(outputs).toHaveLength(1);
-    expect(outputs[0]?.title.length).toBe(500);
+    const outputs = () =>
+      events.flatMap((event) =>
+        event.type === 'completed' && event.output.kind === 'createTask' ? [event.output] : [],
+      );
+    await expect.poll(() => outputs().length).toBe(1);
+    expect(outputs()[0]?.title.length).toBe(500);
   });
 
   it('stops running AI work when it is disposed', async () => {

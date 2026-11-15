@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import type { DeviceSettings, SplitInput } from '@relay/shared';
+import {
+  DEFAULT_USER_SETTINGS,
+  type DeviceSettings,
+  type SplitInput,
+  type UserSettings,
+} from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
@@ -65,28 +70,44 @@ describe('settings in synced mode', () => {
     });
   });
 
+  const serveSettings = (ai: Partial<UserSettings['ai']>) => {
+    server.handle('settings.get', () => ({
+      body: { ...DEFAULT_USER_SETTINGS, ai: { ...DEFAULT_USER_SETTINGS.ai, ...ai } },
+    }));
+  };
+
+  const aiLocationsOnceLoaded = async (sheet: HTMLElement) => {
+    const runner = await within(sheet).findByRole('radiogroup', { name: 'Predvolený runner' });
+    await waitFor(() => {
+      expect(
+        within(runner).getByRole('radio', { name: 'Codex' }).getAttribute('aria-checked'),
+      ).toBe('true');
+    });
+    return within(within(sheet).getByRole('radiogroup', { name: 'Kde beží AI' }))
+      .getAllByRole('radio')
+      .map((radio) => radio.textContent);
+  };
+
   it('offers only server AI in a browser session', async () => {
+    serveSettings({ location: 'server', defaultRunner: 'codex' });
     renderApp({ platform: await syncedPlatform() });
     await waitForSync();
-    const sheet = openSection('ai');
-    const location = await within(sheet).findByRole('radiogroup', { name: 'Kde beží AI' });
-    expect(
-      within(location)
-        .getAllByRole('radio')
-        .map((radio) => radio.textContent),
-    ).toEqual(['Server']);
+    expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server']);
+  });
+
+  it('still shows a local AI location saved on another device in a browser session', async () => {
+    serveSettings({ location: 'local', defaultRunner: 'codex' });
+    renderApp({ platform: await syncedPlatform() });
+    await waitForSync();
+    expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server', 'Lokálne']);
   });
 
   it('sends settings changes one at a time', async () => {
+    const firstSave = gate();
+    const updates = () => server.requests.filter((request) => request.key === 'settings.update');
     server.handle('settings.update', () => ({
-      body: {
-        ai: {
-          location: 'server',
-          defaultRunner: 'claude',
-          features: { oneLiners: true, summaries: true, replySuggestions: true, jiraTriage: true },
-        },
-      },
-      delayMs: 150,
+      body: DEFAULT_USER_SETTINGS,
+      holdUntil: updates().length === 1 ? firstSave.wait() : undefined,
     }));
     renderApp({ platform: await syncedPlatform() });
     await waitForSync();
@@ -96,12 +117,14 @@ describe('settings in synced mode', () => {
       fireEvent.click(within(sheet).getByRole('switch', { name: 'Jednoriadkové zhrnutia' }));
       fireEvent.click(summaries);
     });
-    await settle(60);
-    expect(server.requests.filter((request) => request.key === 'settings.update')).toHaveLength(1);
     await waitFor(() => {
-      expect(server.requests.filter((request) => request.key === 'settings.update')).toHaveLength(
-        2,
-      );
+      expect(updates().length).toBeGreaterThan(0);
+    });
+    await settle(60);
+    expect(updates()).toHaveLength(1);
+    firstSave.open();
+    await waitFor(() => {
+      expect(updates()).toHaveLength(2);
     });
   });
 });

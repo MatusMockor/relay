@@ -15,12 +15,11 @@ import { createRemoteMailClient } from '../src/data/remote/RemoteMailClient';
 import { MemoryTokenStore } from '../src/data/remote/TokenStore';
 import { type ContractServer, startContractServer } from './support/contract-server';
 import { tokens } from './support/fixtures';
+import { gate } from './support/gate';
 import { serverDetail, serverThread } from './support/thread-fixtures';
 
 const THREAD_ID = ThreadIdSchema.parse('thread-1');
 const FAILURE = { error: { code: 'internal', message: 'Server neodpovedá' } };
-
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('thread actions on the detail cache', () => {
   let server: ContractServer;
@@ -64,32 +63,53 @@ describe('thread actions on the detail cache', () => {
     });
   };
 
+  const settled = async () => {
+    await waitFor(() => {
+      expect(queryClient.isMutating() + queryClient.isFetching()).toBe(0);
+    });
+  };
+
+  const count = (key: string) => server.requests.filter((request) => request.key === key).length;
+
   it('does not let an older detail response undo the action', async () => {
-    let delayMs = 0;
-    server.handle('threads.get', () => ({ delayMs, body: serverDetail(stored, []) }));
+    const stale = gate();
+    let hold: Promise<void> | undefined;
+    server.handle('threads.get', () => ({ holdUntil: hold, body: serverDetail(stored, []) }));
     server.handle('threads.action', () => {
       stored = { ...stored, state: 'done' };
-      return { delayMs: 20, body: stored };
+      return { body: stored };
     });
     const { result } = renderAction();
     await waitFor(() => {
       expect(result.current.detail.data?.thread.state).toBe('inbox');
     });
-    delayMs = 150;
+    hold = stale.wait();
     act(() => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.thread(THREAD_ID) });
     });
-    await pause(20);
+    await waitFor(() => {
+      expect(count('threads.get')).toBe(2);
+    });
+    hold = undefined;
     act(() => {
       result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'done' } });
     });
-    await pause(250);
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(1);
+    });
+    stale.open();
+    await settled();
     expect(result.current.detail.data?.thread.state).toBe('done');
   });
 
   it('returns to the server state when two overlapping actions both fail', async () => {
+    const failures = gate();
     server.handle('threads.get', () => ({ body: serverDetail(stored, []) }));
-    server.handle('threads.action', () => ({ delayMs: 40, status: 500, body: FAILURE }));
+    server.handle('threads.action', () => ({
+      holdUntil: failures.wait(),
+      status: 500,
+      body: FAILURE,
+    }));
     const { result } = renderAction();
     await waitFor(() => {
       expect(result.current.detail.data?.thread.state).toBe('inbox');
@@ -99,9 +119,13 @@ describe('thread actions on the detail cache', () => {
       result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'markUnread' } });
     });
     await waitFor(() => {
-      expect(server.requests.filter((request) => request.key === 'threads.action')).toHaveLength(2);
+      expect(count('threads.action')).toBe(1);
     });
-    await pause(150);
+    failures.open();
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(2);
+    });
+    await settled();
     expect(result.current.detail.data?.thread.state).toBe('inbox');
     expect(result.current.detail.data?.thread.unread).toBe(false);
   });
@@ -130,7 +154,10 @@ describe('thread actions on the detail cache', () => {
       result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'done' } });
       result.current.action.mutate({ threadId: THREAD_ID, action: { type: 'markUnread' } });
     });
-    await pause(400);
+    await waitFor(() => {
+      expect(count('threads.action')).toBe(2);
+    });
+    await settled();
     expect(result.current.detail.data?.thread.unread).toBe(true);
     expect(result.current.detail.data?.thread.state).toBe('inbox');
   });

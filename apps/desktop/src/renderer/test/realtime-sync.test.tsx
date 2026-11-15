@@ -8,8 +8,9 @@ import {
 import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query';
 import { cleanup, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys } from '../src/data/hooks/query-keys';
+import { INVALIDATION_WINDOW_MS } from '../src/data/hooks/invalidation-batch';
 import { applyRealtimeEvent } from '../src/data/hooks/realtime-cache';
 import { ServicesProvider } from '../src/data/hooks/services-context';
 import { useThreadDetail, useThreadList } from '../src/data/hooks/use-mail-queries';
@@ -68,6 +69,7 @@ describe('realtime cache sync', () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     cleanup();
     client.dispose();
     queryClient.clear();
@@ -98,7 +100,10 @@ describe('realtime cache sync', () => {
       { wrapper },
     );
     await waitUntil(() => server.sockets[0]?.messages.length === 1);
-    await pause(150);
+    await waitUntil(
+      () =>
+        count('threads.list') >= 2 && count('threads.get') >= 2 && queryClient.isFetching() === 0,
+    );
     const lists = count('threads.list');
     const details = count('threads.get');
     server.sockets[0]?.close();
@@ -117,11 +122,13 @@ describe('realtime cache sync', () => {
     });
     const unsubscribe = observer.subscribe(() => undefined);
     await waitUntil(() => fetches === 1);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     for (let index = 0; index < 5; index += 1) {
       applyRealtimeEvent(queryClient, upserted(serverThread(`Správa ${String(index)}`)));
-      await pause(5);
+      await vi.advanceTimersByTimeAsync(5);
     }
-    await pause(150);
+    await vi.advanceTimersByTimeAsync(INVALIDATION_WINDOW_MS);
+    await vi.advanceTimersByTimeAsync(INVALIDATION_WINDOW_MS);
     unsubscribe();
     expect(fetches).toBe(2);
   });
