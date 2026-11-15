@@ -16,6 +16,13 @@ import {
 } from '@relay/shared/domain';
 import type { ServerRepositories } from '../../../src/core/ports/server-unit-of-work';
 
+let lastUid = 0;
+
+const nextUid = (): number => {
+  lastUid += 1;
+  return lastUid;
+};
+
 export const newId = <Kind extends EntityKind>(kind: Kind): EntityIdMap[Kind] =>
   `${kind}_${randomBytes(8).toString('hex')}` as EntityIdMap[Kind];
 
@@ -112,7 +119,7 @@ export const buildMessage = (
   threadId: thread.id,
   accountId: thread.accountId,
   mailboxId: mailbox.id,
-  uid: Math.floor(Math.random() * 1_000_000) + 1,
+  uid: nextUid(),
   messageIdHeader: `<${randomBytes(6).toString('hex')}@firma.sk>`,
   inReplyTo: null,
   references: [],

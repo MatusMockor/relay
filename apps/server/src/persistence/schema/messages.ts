@@ -72,9 +72,9 @@ export const messages = pgTable(
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
     index('messages_user_idx').on(table.userId),
     index('messages_search_idx').using('gin', table.searchVector),
-    index('messages_account_subject_idx').on(
+    index('messages_account_subject_hash_idx').on(
       table.accountId,
-      table.normalizedSubject,
+      sql`md5(${table.normalizedSubject})`,
       table.date.desc(),
     ),
     index('messages_attachments_idx').using('gin', table.attachments.op('jsonb_path_ops')),

@@ -8,6 +8,7 @@ export const replaceMessageLabels = async (
   messageId: MessageId,
   labelIds: readonly LabelId[],
 ): Promise<void> => {
+  await db.execute(sql`select 1 from ${messages} where ${messages.id} = ${messageId} for update`);
   await db.delete(messageLabels).where(eq(messageLabels.messageId, messageId));
   if (labelIds.length === 0) {
     return;

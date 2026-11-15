@@ -1,5 +1,5 @@
 import type { AccountId } from '@relay/shared/domain';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../database/database';
 import { accountCredentials } from '../schema';
 import { findAccountOwner } from '../support/account-owner';
@@ -22,6 +22,17 @@ export class PgAccountCredentialStore {
       .insert(accountCredentials)
       .values({ accountId, userId, envelope, updatedAt })
       .onConflictDoUpdate({ target: accountCredentials.accountId, set: { envelope, updatedAt } });
+  }
+
+  async replace(accountId: AccountId, expected: string, next: string): Promise<boolean> {
+    const updated = await this.db
+      .update(accountCredentials)
+      .set({ envelope: next, updatedAt: new Date() })
+      .where(
+        and(eq(accountCredentials.accountId, accountId), eq(accountCredentials.envelope, expected)),
+      )
+      .returning({ accountId: accountCredentials.accountId });
+    return updated.length === 1;
   }
 
   async delete(accountId: AccountId): Promise<void> {

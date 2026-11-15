@@ -9,10 +9,16 @@ export interface PersistenceConfig {
   readonly migrationsFolder?: string;
 }
 
+const POSTGRES_URL_SCHEME = /^postgres(?:ql)?:\/\//;
+
+export const PostgresUrlSchema = z
+  .string()
+  .regex(POSTGRES_URL_SCHEME, 'must be a postgres:// or postgresql:// URL');
+
 const BooleanFlagSchema = z.union([z.boolean(), z.stringbool()]);
 
 export const PersistenceEnvSchema = z.object({
-  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  DATABASE_URL: PostgresUrlSchema,
   CREDENTIALS_ENCRYPTION_KEY: CredentialsKeySchema,
   DATABASE_MIGRATE_ON_START: BooleanFlagSchema.default(true),
   DATABASE_POOL_MAX: z.coerce.number<number | string>().int().positive().default(10),
