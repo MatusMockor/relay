@@ -33,8 +33,10 @@ export const ThreadSummarySchema = z.object({
 });
 export type ThreadSummary = z.infer<typeof ThreadSummarySchema>;
 
+export const ChecklistItemIdSchema = z.string().min(1).max(200);
+
 export const ChecklistItemSchema = z.object({
-  id: z.string().min(1),
+  id: ChecklistItemIdSchema,
   text: z.string().min(1),
   done: z.boolean(),
 });
