@@ -40,13 +40,25 @@ function renderMessage(message: Message): string {
 }
 
 function messageBody(message: Message): string {
-  const body =
-    message.textBody ?? (message.htmlBody === null ? null : htmlToText(message.htmlBody));
-  const text = (body ?? message.snippet).trim();
+  const text = firstNonBlank([
+    () => message.textBody,
+    () => (message.htmlBody === null ? null : htmlToText(message.htmlBody)),
+    () => message.snippet,
+  ]);
   if (text.length <= MAX_MESSAGE_CHARS) {
     return text;
   }
   return `${text.slice(0, MAX_MESSAGE_CHARS)}\n[...]`;
+}
+
+function firstNonBlank(candidates: readonly (() => string | null)[]): string {
+  for (const candidate of candidates) {
+    const text = candidate()?.trim() ?? '';
+    if (text.length > 0) {
+      return text;
+    }
+  }
+  return '';
 }
 
 export function formatAddress(address: Address): string {

@@ -4,6 +4,7 @@ import type { CliEventMapper } from '../cli-signal';
 import { classifyCliFailure } from '../failure-classifier';
 import { CodexEventMapper } from './codex-event-mapper';
 import { codexMcpOverrides } from './codex-mcp-overrides';
+import { codexBuiltinToolOverrides } from './codex-tool-policy';
 
 const AUTH_PATTERN =
   /not logged in|codex login|unauthorized|\b401\b|authentication|refresh token|token expired/i;
@@ -35,6 +36,7 @@ export class CodexCliDialect implements CliDialect {
       'approval_policy="never"',
       '-c',
       'shell_environment_policy.inherit="none"',
+      ...codexBuiltinToolOverrides(),
       ...mcp.args,
       ...(this.model === null ? [] : ['--model', this.model]),
       '-',
