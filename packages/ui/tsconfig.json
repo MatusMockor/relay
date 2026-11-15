@@ -1,0 +1,4 @@
+{
+  "extends": "@relay/config/tsconfig/react-dom.json",
+  "include": ["src", "test", "*.config.ts"]
+}

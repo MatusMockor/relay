@@ -1,0 +1,29 @@
+{
+  "name": "@relay/store-sqlite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@relay/engine": "workspace:*",
+    "@relay/shared": "workspace:*",
+    "better-sqlite3": "13.2.0",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@relay/config": "workspace:*",
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "22.20.5",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
