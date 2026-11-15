@@ -1,0 +1,206 @@
+import {
+  ConflictError,
+  type MessageHeaders,
+  type MessageLocation,
+  type MessageRepository,
+  type Page,
+  type PageRequest,
+  type StoredMatchSubject,
+  type SubjectSearchWindow,
+} from '@relay/engine';
+import type {
+  AccountId,
+  LabelId,
+  MailboxId,
+  Message,
+  MessageFlags,
+  MessageId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import type { DbExecutor } from '../../database/database';
+import { messages } from '../../schema';
+import { findAccountOwner } from '../../support/account-owner';
+import { decodeCursor, pageOf } from '../../support/cursor';
+import { toIso } from '../../support/timestamps';
+import { toMessageHeaders, toStoredHeaders } from './message-headers';
+import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
+import { toMessage, toMessageInsert } from './message.mapper';
+import { messageSelection } from './message-selection';
+
+export class PgMessageRepository implements MessageRepository {
+  constructor(private readonly db: DbExecutor) {}
+
+  async findById(userId: UserId, messageId: MessageId): Promise<Message | null> {
+    const [row] = await this.db
+      .select(messageSelection)
+      .from(messages)
+      .where(and(eq(messages.userId, userId), eq(messages.id, messageId)));
+    return row === undefined ? null : toMessage(row);
+  }
+
+  async listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]> {
+    const rows = await this.db
+      .select(messageSelection)
+      .from(messages)
+      .where(and(eq(messages.userId, userId), eq(messages.threadId, threadId)))
+      .orderBy(asc(messages.date), asc(messages.id));
+    return rows.map(toMessage);
+  }
+
+  async findByLocation(location: MessageLocation): Promise<Message | null> {
+    const [row] = await this.db
+      .select(messageSelection)
+      .from(messages)
+      .where(and(eq(messages.mailboxId, location.mailboxId), eq(messages.uid, location.uid)));
+    return row === undefined ? null : toMessage(row);
+  }
+
+  async findByMessageIdHeaders(
+    accountId: AccountId,
+    headers: readonly string[],
+  ): Promise<Message[]> {
+    if (headers.length === 0) {
+      return [];
+    }
+    const rows = await this.db
+      .select(messageSelection)
+      .from(messages)
+      .where(
+        and(eq(messages.accountId, accountId), inArray(messages.messageIdHeader, [...headers])),
+      )
+      .orderBy(asc(messages.date), asc(messages.id));
+    return rows.map(toMessage);
+  }
+
+  async findThreadIdBySubject(
+    accountId: AccountId,
+    normalizedSubject: string,
+    window: SubjectSearchWindow,
+  ): Promise<ThreadId | null> {
+    const [row] = await this.db
+      .select({ threadId: messages.threadId })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.accountId, accountId),
+          sql`md5(${messages.normalizedSubject}) = md5(${normalizedSubject})`,
+          eq(messages.normalizedSubject, normalizedSubject),
+          gte(messages.date, window.since),
+          lte(messages.date, window.until),
+        ),
+      )
+      .orderBy(desc(messages.date), desc(messages.id))
+      .limit(1);
+    return row?.threadId ?? null;
+  }
+
+  async listUids(mailboxId: MailboxId): Promise<number[]> {
+    const rows = await this.db
+      .select({ uid: messages.uid })
+      .from(messages)
+      .where(eq(messages.mailboxId, mailboxId))
+      .orderBy(asc(messages.uid));
+    return rows.map((row) => row.uid);
+  }
+
+  async upsert(message: Message, headers: MessageHeaders): Promise<Message> {
+    return this.db.transaction(async (tx) => {
+      const userId = await findAccountOwner(tx, message.accountId);
+      const {
+        id: _id,
+        userId: _userId,
+        ...changes
+      } = toMessageInsert(userId, message, toStoredHeaders(headers));
+      const written = await tx
+        .insert(messages)
+        .values({ ...changes, id: message.id, userId })
+        .onConflictDoUpdate({
+          target: messages.id,
+          set: changes,
+          setWhere: eq(messages.userId, userId),
+        })
+        .returning({ id: messages.id });
+      if (written.length === 0) {
+        throw new ConflictError(`Message ${message.id} belongs to another user`);
+      }
+      await replaceMessageLabels(tx, message.id, message.labelIds);
+      const stored = await new PgMessageRepository(tx).findById(userId, message.id);
+      return stored ?? message;
+    });
+  }
+
+  async listMatchSubjects(
+    accountId: AccountId,
+    page: PageRequest,
+  ): Promise<Page<StoredMatchSubject>> {
+    const cursor = decodeCursor(page.cursor);
+    const rows = await this.db
+      .select({
+        id: messages.id,
+        threadId: messages.threadId,
+        date: messages.date,
+        from: messages.from,
+        subject: messages.subject,
+        headers: messages.headers,
+      })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.accountId, accountId),
+          cursor === null
+            ? undefined
+            : sql`(${messages.date}, ${messages.id}) > (${cursor.t}::timestamptz, ${cursor.id})`,
+        ),
+      )
+      .orderBy(asc(messages.date), asc(messages.id))
+      .limit(page.limit + 1);
+    const result = pageOf(rows, page.limit, (row) => ({ t: toIso(row.date), id: row.id }));
+    return {
+      nextCursor: result.nextCursor,
+      items: result.items.map((row) => ({
+        messageId: row.id,
+        threadId: row.threadId,
+        subject: { from: row.from, subject: row.subject, headers: toMessageHeaders(row.headers) },
+      })),
+    };
+  }
+
+  async updateFlags(messageId: MessageId, flags: MessageFlags): Promise<void> {
+    await this.db
+      .update(messages)
+      .set({ seen: flags.seen, flagged: flags.flagged, answered: flags.answered })
+      .where(eq(messages.id, messageId));
+  }
+
+  async updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void> {
+    await this.db.transaction((tx) => replaceMessageLabels(tx, messageId, labelIds));
+  }
+
+  async addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    await addMessageLabel(this.db, messageId, labelId);
+  }
+
+  async removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    await removeMessageLabel(this.db, messageId, labelId);
+  }
+
+  async move(messageId: MessageId, target: MessageLocation): Promise<void> {
+    await this.db
+      .update(messages)
+      .set({ mailboxId: target.mailboxId, uid: target.uid })
+      .where(eq(messages.id, messageId));
+  }
+
+  async deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
+    if (uids.length === 0) {
+      return [];
+    }
+    const rows = await this.db
+      .delete(messages)
+      .where(and(eq(messages.mailboxId, mailboxId), inArray(messages.uid, [...uids])))
+      .returning({ threadId: messages.threadId });
+    return [...new Set(rows.map((row) => row.threadId))];
+  }
+}
