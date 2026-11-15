@@ -46,7 +46,7 @@ describe('PgScheduledSendRepository stale sending recovery', () => {
     await scheduledSends.claim(stale.id, at(0));
     await scheduledSends.claim(fresh.id, at(20));
 
-    await expect(scheduledSends.releaseStaleSending(at(10))).resolves.toBe(1);
+    await expect(scheduledSends.releaseStaleSending(at(10), [])).resolves.toBe(1);
 
     await expect(statusOf(seeded, stale.id)).resolves.toBe('pending');
     await expect(statusOf(seeded, fresh.id)).resolves.toBe('sending');
@@ -65,7 +65,9 @@ describe('PgScheduledSendRepository stale sending recovery', () => {
     );
     await client.end();
 
-    await expect(context.repositories.scheduledSends.releaseStaleSending(at(0))).resolves.toBe(1);
+    await expect(context.repositories.scheduledSends.releaseStaleSending(at(0), [])).resolves.toBe(
+      1,
+    );
     await expect(statusOf(seeded, stranded.id)).resolves.toBe('pending');
   });
 
@@ -83,5 +85,19 @@ describe('PgScheduledSendRepository stale sending recovery', () => {
 
     await expect(statusOf(seeded, stale.id)).resolves.toBe('cancelled');
     await expect(statusOf(seeded, fresh.id)).resolves.toBe('cancelled');
+  });
+
+  it('keeps stale sends with an unconfirmed delivery in sending', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const delivered = await schedule(seeded);
+    const stale = await schedule(seeded);
+    const { scheduledSends } = context.repositories;
+    await scheduledSends.claim(delivered.id, at(0));
+    await scheduledSends.claim(stale.id, at(0));
+
+    await expect(scheduledSends.releaseStaleSending(at(10), [delivered.id])).resolves.toBe(1);
+
+    await expect(statusOf(seeded, delivered.id)).resolves.toBe('sending');
+    await expect(statusOf(seeded, stale.id)).resolves.toBe('pending');
   });
 });

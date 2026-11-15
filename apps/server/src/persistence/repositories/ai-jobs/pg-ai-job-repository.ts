@@ -6,7 +6,7 @@ import type {
   QueuedAiJobQuery,
 } from '@relay/engine';
 import type { AiJob, AiJobId, AiRunnerLocation, UserId } from '@relay/shared/domain';
-import { and, asc, eq, gt, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, isNull, ne, or, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { aiJobs } from '../../schema';
 import { toDate } from '../../support/timestamps';
@@ -61,6 +61,22 @@ export class PgAiJobRepository implements AiJobRepository {
       )
       .returning();
     return row === undefined ? null : toAiJob(row);
+  }
+
+  async isHeldBy(userId: UserId, jobId: AiJobId, owner: string, now: string): Promise<boolean> {
+    const rows = await this.db
+      .select({ id: aiJobs.id })
+      .from(aiJobs)
+      .where(
+        and(
+          eq(aiJobs.userId, userId),
+          eq(aiJobs.id, jobId),
+          eq(aiJobs.status, 'running'),
+          eq(aiJobs.claimedBy, owner),
+          or(isNull(aiJobs.leaseUntil), gte(aiJobs.leaseUntil, toDate(now))),
+        ),
+      );
+    return rows.length > 0;
   }
 
   async claim(jobId: AiJobId, claim: AiJobClaim): Promise<AiJob | null> {

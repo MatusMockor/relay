@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { expect } from 'vitest';
+import { expect, onTestFinished } from 'vitest';
 
 export interface LockHolder {
   query(text: string, values?: unknown[]): Promise<pg.QueryResult>;
@@ -19,10 +19,16 @@ export const openLockHolder = async (url: string): Promise<LockHolder> => {
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   await client.query('BEGIN');
+  let finished = false;
+  const end = (command: 'COMMIT' | 'ROLLBACK'): Promise<void> => {
+    finished = true;
+    return finish(client, command);
+  };
+  onTestFinished(() => (finished ? undefined : end('ROLLBACK')));
   return {
     query: (text, values) => client.query(text, values),
-    commit: () => finish(client, 'COMMIT'),
-    rollback: () => finish(client, 'ROLLBACK'),
+    commit: () => end('COMMIT'),
+    rollback: () => end('ROLLBACK'),
   };
 };
 

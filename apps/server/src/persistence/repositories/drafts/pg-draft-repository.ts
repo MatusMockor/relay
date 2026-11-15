@@ -1,4 +1,4 @@
-import type { DraftRepository } from '@relay/engine';
+import type { DraftRepository, DraftRevision, DraftSendClaim } from '@relay/engine';
 import type {
   Draft,
   DraftAttachment,
@@ -7,7 +7,7 @@ import type {
   ThreadId,
   UserId,
 } from '@relay/shared/domain';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { drafts } from '../../schema';
 import { assertOwned } from '../../support/ownership';
@@ -81,14 +81,20 @@ export class PgDraftRepository implements DraftRepository {
     userId: UserId,
     draftId: DraftId,
     changes: Partial<DraftContent>,
-    updatedAt: string,
+    revision: DraftRevision,
   ): Promise<Draft | null> {
     return this.db.transaction(async (tx) => {
       await assertDraftReferences(tx, userId, changes);
       const rows = await tx
         .update(drafts)
-        .set({ ...toDraftUpdate(changes), updatedAt: toDate(updatedAt) })
-        .where(and(eq(drafts.userId, userId), eq(drafts.id, draftId)))
+        .set({ ...toDraftUpdate(changes), updatedAt: toDate(revision.next) })
+        .where(
+          and(
+            eq(drafts.userId, userId),
+            eq(drafts.id, draftId),
+            eq(drafts.updatedAt, toDate(revision.expected)),
+          ),
+        )
         .returning({ id: drafts.id });
       if (rows.length === 0) {
         return null;
@@ -121,6 +127,36 @@ export class PgDraftRepository implements DraftRepository {
           eq(drafts.userId, userId),
           eq(drafts.id, draftId),
           eq(drafts.updatedAt, toDate(updatedAt)),
+        ),
+      )
+      .returning({ id: drafts.id });
+    return rows.length > 0;
+  }
+
+  async claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean> {
+    const rows = await this.db
+      .update(drafts)
+      .set({ sendClaimedAt: toDate(claim.claimedAt) })
+      .where(
+        and(
+          eq(drafts.userId, userId),
+          eq(drafts.id, draftId),
+          or(isNull(drafts.sendClaimedAt), lt(drafts.sendClaimedAt, toDate(claim.staleBefore))),
+        ),
+      )
+      .returning({ id: drafts.id });
+    return rows.length > 0;
+  }
+
+  async releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean> {
+    const rows = await this.db
+      .update(drafts)
+      .set({ sendClaimedAt: null })
+      .where(
+        and(
+          eq(drafts.userId, userId),
+          eq(drafts.id, draftId),
+          eq(drafts.sendClaimedAt, toDate(claimedAt)),
         ),
       )
       .returning({ id: drafts.id });
