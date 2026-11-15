@@ -16,6 +16,7 @@ describe('provider presets', () => {
       'azet',
       'pobox',
       'centrum',
+      'atlas',
     ]);
     for (const preset of listProviderPresets()) {
       expect(
@@ -96,6 +97,13 @@ describe('browser-safe presets entry', () => {
 
     expect(presets.findPresetByDomain('post.sk')?.id).toBe('azet');
     expect(presets.guessSettings('jana@atlas.sk')).toMatchObject({
+      presetId: 'atlas',
+      settings: {
+        imap: { host: 'imap.atlas.sk', port: 993, secure: true },
+        smtp: { host: 'smtp.centrum.sk', port: 465, secure: true },
+      },
+    });
+    expect(presets.guessSettings('jana@centrum.sk')).toMatchObject({
       presetId: 'centrum',
       settings: { imap: { host: 'imap.centrum.sk', port: 993, secure: true } },
     });

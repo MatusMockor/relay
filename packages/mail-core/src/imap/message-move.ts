@@ -1,11 +1,18 @@
 import { ProviderError, type MoveResult } from '@relay/engine';
 import type { CopyResponseObject, ImapFlow } from 'imapflow';
+import { hasCapability } from './imap-capabilities';
 import { requireAccepted } from './imap-results';
 import { UncommittedCopyError } from './uncommitted-copy-error';
 
 export type MoveClient = Pick<
   ImapFlow,
-  'capabilities' | 'mailbox' | 'messageMove' | 'messageCopy' | 'messageFlagsAdd' | 'messageDelete'
+  | 'capabilities'
+  | 'enabled'
+  | 'mailbox'
+  | 'messageMove'
+  | 'messageCopy'
+  | 'messageFlagsAdd'
+  | 'messageDelete'
 >;
 
 const UNSAFE_MOVE_MESSAGE =
@@ -28,11 +35,11 @@ export const moveOnClient = async (
   uids: readonly number[],
   targetPath: string,
 ): Promise<MoveResult> => {
-  if (client.capabilities.has('MOVE')) {
+  if (hasCapability(client, 'MOVE')) {
     const moved = await client.messageMove([...uids], targetPath, { uid: true });
     return toMoveResult(requireAccepted('move', moved));
   }
-  if (!client.capabilities.has('UIDPLUS')) {
+  if (!hasCapability(client, 'UIDPLUS')) {
     throw new ProviderError(UNSAFE_MOVE_MESSAGE);
   }
   const sourceUidValidity = client.mailbox === false ? null : client.mailbox.uidValidity;
