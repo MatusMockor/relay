@@ -61,6 +61,7 @@ describe('IMAP commands rejected by the server', () => {
     calls: string[] = [],
   ): MoveClient => ({
     capabilities: new Map([['UIDPLUS', true]]),
+    mailbox: false,
     messageMove: resolved(false),
     messageCopy: resolved({ path: 'INBOX', destination: 'Archive' }),
     messageFlagsAdd: () => {

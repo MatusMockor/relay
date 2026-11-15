@@ -1,4 +1,11 @@
-import type { Page, TaskChanges, TaskQuery, TaskRepository } from '@relay/engine';
+import {
+  ConflictError,
+  type JiraTaskCreation,
+  type Page,
+  type TaskChanges,
+  type TaskQuery,
+  type TaskRepository,
+} from '@relay/engine';
 import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
 import { and, asc, desc, eq, lt, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
@@ -80,6 +87,21 @@ export class SqliteTaskRepository implements TaskRepository {
       const { id: _id, ...changes } = row;
       db.insert(tasks).values(row).onConflictDoUpdate({ target: tasks.id, set: changes }).run();
       return task;
+    });
+  }
+
+  createOrGetByJiraKey(task: Task & { readonly jiraKey: JiraKey }): Promise<JiraTaskCreation> {
+    return this.executor.execute((db) => {
+      const inserted = db.insert(tasks).values(toTaskRow(task)).onConflictDoNothing().run();
+      const row = db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, task.userId), eq(tasks.jiraKey, task.jiraKey)))
+        .get();
+      if (row === undefined) {
+        throw new ConflictError(`Task ${task.id} already exists`);
+      }
+      return { task: toTask(row), created: inserted.changes > 0 };
     });
   }
 

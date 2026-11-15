@@ -48,7 +48,7 @@ export class AiJobExecutor {
       return (await this.update(job, owner, change)) ?? (await this.lost(job));
     };
     try {
-      const outcome = yield* this.run(job, runner, signal);
+      const outcome = yield* this.run(job, owner, runner, signal);
       if ('error' in outcome) {
         return await settle({ status: 'error', error: outcome.error });
       }
@@ -72,10 +72,11 @@ export class AiJobExecutor {
 
   private async *run(
     job: AiJob,
+    owner: string,
     runner: AiRunner,
     signal: AbortSignal | null,
   ): AsyncGenerator<AiEvent, RunOutcome> {
-    const request = await this.deps.requests.build(job, runner.kind, signal);
+    const request = await this.deps.requests.build(job, owner, runner.kind, signal);
     let outcome: RunOutcome = { error: 'invalid_output: the runner finished without output' };
     for await (const event of runner.run(request)) {
       yield event;

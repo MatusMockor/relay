@@ -83,6 +83,23 @@ describe('SqliteTaskRepository and SqliteReminderRepository', () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it('creates a Jira task once and returns the existing one afterwards', async () => {
+    const { tasks } = store.repositories;
+    const jiraTask = (overrides: Partial<Task>) => ({
+      ...buildTask({ source: 'jira', ...overrides }),
+      jiraKey: 'REL-8',
+    });
+
+    const [first, second] = await Promise.all([
+      tasks.createOrGetByJiraKey(jiraTask({ id: taskId('tsk-1') })),
+      tasks.createOrGetByJiraKey(jiraTask({ id: taskId('tsk-2'), state: 'done' })),
+    ]);
+
+    expect(first).toMatchObject({ created: true, task: { id: 'tsk-1', state: 'open' } });
+    expect(second).toMatchObject({ created: false, task: { id: 'tsk-1', state: 'open' } });
+    expect(await tasks.findById(LOCAL_USER_ID, taskId('tsk-2'))).toBeNull();
+  });
+
   it('updates only the given task fields of the owner', async () => {
     const { tasks } = store.repositories;
     await tasks.upsert(buildTask());

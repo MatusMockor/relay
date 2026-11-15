@@ -116,6 +116,16 @@ export class MemoryMessageRepository implements MessageRepository {
     return this.patch(messageId, { labelIds: [...labelIds] });
   }
 
+  addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    const labelIds = this.db.tables.messages.get(messageId)?.labelIds ?? [];
+    return this.patch(messageId, { labelIds: [...new Set([...labelIds, labelId])] });
+  }
+
+  removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    const labelIds = this.db.tables.messages.get(messageId)?.labelIds ?? [];
+    return this.patch(messageId, { labelIds: labelIds.filter((id) => id !== labelId) });
+  }
+
   move(messageId: MessageId, target: MessageLocation): Promise<void> {
     return this.patch(messageId, { mailboxId: target.mailboxId, uid: target.uid });
   }

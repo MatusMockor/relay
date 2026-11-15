@@ -6,7 +6,7 @@ export interface ScheduledSendRepository {
   listDue(now: string, limit: number): Promise<ScheduledSend[]>;
   create(scheduledSend: ScheduledSend): Promise<ScheduledSend>;
   claim(scheduledSendId: ScheduledSendId, claimedAt: string): Promise<boolean>;
-  releaseStaleSending(staleBefore: string): Promise<number>;
+  releaseStaleSending(staleBefore: string, keep: readonly ScheduledSendId[]): Promise<number>;
   markSent(scheduledSendId: ScheduledSendId, sentAt: string, claimedAt: string): Promise<boolean>;
   markFailed(scheduledSendId: ScheduledSendId, error: string, claimedAt: string): Promise<boolean>;
   cancel(userId: UserId, scheduledSendId: ScheduledSendId, staleBefore: string): Promise<boolean>;

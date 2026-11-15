@@ -115,4 +115,27 @@ describe('sync side effects survive failures', () => {
     expect(engine.events.ofType('message.upserted')).toEqual([]);
     expect(engine.db.tables.pendingWork.size).toBe(0);
   });
+
+  it('does not return an archived thread to the inbox from an old arrival', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'm1', subject: 'Ponuka' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 5 })).items[0],
+    );
+    deliverMail(server, 'INBOX', { id: 'm2', subject: 'Re: Ponuka', inReplyTo: 'm1' });
+    memoryThreads(engine).failUpsert = 'disk full';
+    const failed = await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(failed.ok).toBe(false);
+    memoryThreads(engine).failUpsert = null;
+
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'done' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await inboxSubjects(engine)).toEqual([]);
+    expect(await engine.repositories.threads.findById(USER_ID, thread.id)).toMatchObject({
+      state: 'done',
+    });
+  });
 });

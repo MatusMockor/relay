@@ -5,6 +5,8 @@ import type { ImapConnection } from './imap-connection';
 import { requireAccepted } from './imap-results';
 import { toImapFlags, toImapFlagsFromState } from './message-flags';
 import { moveOnClient } from './message-move';
+import { rollbackMove } from './move-rollback';
+import { UncommittedCopyError } from './uncommitted-copy-error';
 
 export interface FlagNames {
   readonly add: readonly string[];
@@ -14,6 +16,7 @@ export interface FlagNames {
 export type FlagStoreClient = Pick<ImapFlow, 'messageFlagsAdd' | 'messageFlagsRemove'>;
 
 const STORE = { operation: 'store flags', retryOnDisconnect: true } as const;
+const MOVE = { operation: 'move', retryOnDisconnect: false } as const;
 
 export const storeOnClient = async (
   client: FlagStoreClient,
@@ -66,9 +69,14 @@ export const moveMessages = async (
   if (uids.length === 0) {
     return { uidMap: new Map() };
   }
-  return connection.withMailbox(path, { operation: 'move', retryOnDisconnect: false }, (client) =>
-    moveOnClient(client, uids, targetPath),
-  );
+  return connection
+    .withMailbox(path, MOVE, (client) => moveOnClient(client, uids, targetPath))
+    .catch((error: unknown) => {
+      if (!(error instanceof UncommittedCopyError)) {
+        throw error;
+      }
+      return rollbackMove(connection, { sourcePath: path, targetPath, uids }, error);
+    });
 };
 
 export const appendMessage = async (

@@ -149,4 +149,36 @@ describe('normalized subject backfill', () => {
       ),
     ).toBe('thr-1');
   });
+
+  it('fills every message when the backfill spans several batches', async () => {
+    const store = createTestStore();
+    opened.push(store.database);
+    const seeded = await seedAccount(store.repositories);
+    const total = 1_201;
+    for (let uid = 1; uid <= total; uid += 1) {
+      await store.repositories.messages.upsert(
+        buildMessage({
+          id: messageId(`msg-${uid}`),
+          mailboxId: seeded.inbox.id,
+          uid,
+          subject: `Re: Ponuka ${uid}`,
+        }),
+        NO_HEADERS,
+      );
+    }
+    store.database.sqlite.prepare('update messages set normalized_subject = null').run();
+
+    migrate(store.database);
+
+    expect(
+      store.database.sqlite
+        .prepare('select count(*) as count from messages where normalized_subject is null')
+        .get(),
+    ).toEqual({ count: 0 });
+    expect(
+      store.database.sqlite
+        .prepare("select normalized_subject as subject from messages where id = 'msg-1201'")
+        .get(),
+    ).toEqual({ subject: 'ponuka 1201' });
+  });
 });

@@ -6,7 +6,7 @@ import {
   MAX_ATTACHMENT_BYTES,
   type UserId,
 } from '@relay/shared/domain';
-import { NotFoundError, ValidationError } from '../../errors';
+import { ConflictError, NotFoundError, ValidationError } from '../../errors';
 import type { AttachmentStore } from '../../ports/attachment-store';
 import type { Clock } from '../../ports/clock';
 import type { DraftRepository } from '../../ports/draft-repository';
@@ -60,14 +60,13 @@ export class DraftService {
   async update(userId: UserId, draftId: DraftId, patch: UpdateDraftBody): Promise<Draft> {
     const current = await this.require(userId, draftId);
     await this.deps.references.assert(userId, draftId, { ...current, ...patch });
-    const draft = await this.deps.drafts.update(
-      userId,
-      draftId,
-      patch,
-      this.nextRevision(current.updatedAt),
-    );
+    const draft = await this.deps.drafts.update(userId, draftId, patch, {
+      expected: current.updatedAt,
+      next: this.nextRevision(current.updatedAt),
+    });
     if (draft === null) {
-      throw new NotFoundError('Draft', draftId);
+      await this.require(userId, draftId);
+      throw new ConflictError('The draft was changed by another update');
     }
     await this.deps.events.emit(userId, 'draft.upserted', { draft });
     await this.deps.threadFlag.sync(userId, current.inReplyToThreadId);
@@ -87,6 +86,14 @@ export class DraftService {
     }
     await this.removed(userId, draft);
     return true;
+  }
+
+  async deleteSentRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean> {
+    const draft = await this.deps.drafts.findById(userId, draftId);
+    if (draft?.updatedAt !== updatedAt) {
+      return false;
+    }
+    return this.deleteSent(userId, draft);
   }
 
   async uploadAttachment(userId: UserId, body: UploadAttachmentBody): Promise<DraftAttachment> {

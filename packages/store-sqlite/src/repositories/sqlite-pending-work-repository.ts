@@ -64,6 +64,18 @@ export class SqlitePendingWorkRepository implements PendingWorkRepository {
     );
   }
 
+  listByKind<Kind extends PendingWorkKind>(kind: Kind): Promise<PendingWork<Kind>[]> {
+    return this.executor.execute((db) =>
+      db
+        .select()
+        .from(pendingWork)
+        .where(eq(pendingWork.kind, kind))
+        .orderBy(asc(pendingWork.createdAt), asc(pendingWork.ref))
+        .all()
+        .map((row) => toPendingWork<Kind>(row)),
+    );
+  }
+
   remove(works: readonly PendingWork[]): Promise<void> {
     return this.executor.execute((db) => {
       works.forEach((work) => {

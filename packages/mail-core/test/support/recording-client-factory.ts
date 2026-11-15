@@ -12,6 +12,7 @@ export class RecordingClientFactory extends ImapClientFactory {
   constructor(
     user: GreenMailUser,
     private readonly hiddenCapabilities: readonly string[] = [],
+    private readonly prepare: (client: ImapFlow) => void = () => undefined,
   ) {
     super({
       endpoint: greenmailImap,
@@ -31,6 +32,7 @@ export class RecordingClientFactory extends ImapClientFactory {
       await connect();
       this.hiddenCapabilities.forEach((capability) => client.capabilities.delete(capability));
     };
+    this.prepare(client);
     this.created.push(client);
     return client;
   }
