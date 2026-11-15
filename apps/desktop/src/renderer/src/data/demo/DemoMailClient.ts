@@ -6,7 +6,7 @@ import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { projectThreadAction } from '../thread-projection';
 import { runDemoAi } from './demo-ai';
 import { demoSend, newDraftKey } from './demo-compose';
-import { dropAccountData, syncDraftFlags } from './demo-drafts';
+import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { demoTaskFromAi } from './demo-tasks';
 import { queryThreads } from './demo-query';
 import type { DemoState } from './demo-state';
@@ -169,7 +169,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     deleteDraft: (draftId) =>
       run(() => {
         const removed = state.drafts.find((item) => item.id === draftId);
-        state.drafts = state.drafts.filter((item) => item.id !== draftId);
+        removeDraft(state, draftId);
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     send: (body) => run(() => demoSend(state, body, now())),

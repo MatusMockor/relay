@@ -68,7 +68,11 @@ export class SessionController {
   }
 
   async continueOffline(): Promise<void> {
+    const ticket = this.nextTransition();
     await this.platform.updateDeviceSettings({ mode: 'local' });
+    if (!this.isCurrent(ticket)) {
+      return;
+    }
     this.enterOffline('booting');
     const services = this.state.services;
     if (services?.mode !== 'local') {
@@ -84,7 +88,11 @@ export class SessionController {
 
   async verifyServer(input: string): Promise<string> {
     const url = ServerUrlSchema.parse(input);
+    const ticket = this.nextTransition();
     await checkServerHealth(url, this.hooks.fetch);
+    if (!this.isCurrent(ticket)) {
+      return url;
+    }
     this.store.setState({ pendingServerUrl: url, step: 'auth' });
     return url;
   }
@@ -113,7 +121,7 @@ export class SessionController {
     if (!this.isCurrent(ticket)) {
       return session;
     }
-    await this.rememberServer(url);
+    await this.rememberServer(url, ticket);
     if (!this.isCurrent(ticket)) {
       return session;
     }
@@ -142,9 +150,20 @@ export class SessionController {
   }
 
   async logout(): Promise<void> {
+    const ticket = this.nextTransition();
+    const services = this.state.services;
     await this.runTeardowns();
-    await this.state.services?.server?.logout();
+    if (!this.isCurrent(ticket) && this.state.services?.serverUrl === services?.serverUrl) {
+      return;
+    }
+    await services?.server?.logout();
+    if (!this.isCurrent(ticket)) {
+      return;
+    }
     await this.platform.updateDeviceSettings({ mode: null });
+    if (!this.isCurrent(ticket)) {
+      return;
+    }
     this.goTo('welcome', null);
   }
 
@@ -221,8 +240,11 @@ export class SessionController {
     });
   }
 
-  private async rememberServer(url: string): Promise<void> {
+  private async rememberServer(url: string, ticket: number): Promise<void> {
     const settings = await this.platform.deviceSettings();
+    if (!this.isCurrent(ticket)) {
+      return;
+    }
     const known = settings.savedServers.some((server) => server.url === url);
     const name = new URL(url).host;
     await this.platform.updateDeviceSettings({

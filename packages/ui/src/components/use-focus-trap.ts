@@ -10,7 +10,9 @@ const FOCUSABLE = [
 ].join(',');
 
 const focusablesIn = (root: HTMLElement): HTMLElement[] =>
-  [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((element) => !element.hidden);
+  [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+    (element) => element.tabIndex >= 0 && element.closest('[hidden]') === null,
+  );
 
 const focusLeftDialog = (surface: HTMLElement | null): boolean => {
   const active = document.activeElement;

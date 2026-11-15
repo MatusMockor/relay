@@ -2,6 +2,7 @@ import type { ThreadAction, ThreadDetail, ThreadId, ThreadSummary } from '@relay
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectThreadAction } from '../thread-projection';
 import { queryKeys } from './query-keys';
+import { serializedThreadAction } from './thread-action-queue';
 import { useClient } from './services-context';
 import {
   findCachedThread,
@@ -10,33 +11,31 @@ import {
   writeThreadToLists,
 } from './thread-cache';
 
-const chains = new Map<string, Promise<unknown>>();
-const inFlight = new Map<ThreadId, number>();
-const unsettledDetail = new Set<ThreadId>();
+interface ActionLedger {
+  readonly inFlight: Map<ThreadId, number>;
+  readonly unsettledDetail: Set<ThreadId>;
+}
 
-const track = (threadId: ThreadId, delta: number): number => {
-  const count = (inFlight.get(threadId) ?? 0) + delta;
-  if (count <= 0) {
-    inFlight.delete(threadId);
-    return 0;
+const ledgers = new WeakMap<QueryClient, ActionLedger>();
+
+const ledgerOf = (queryClient: QueryClient): ActionLedger => {
+  const existing = ledgers.get(queryClient);
+  if (existing !== undefined) {
+    return existing;
   }
-  inFlight.set(threadId, count);
-  return count;
+  const created: ActionLedger = { inFlight: new Map(), unsettledDetail: new Set() };
+  ledgers.set(queryClient, created);
+  return created;
 };
 
-const serialized = <T>(threadId: ThreadId, work: () => Promise<T>): Promise<T> => {
-  const next = (chains.get(threadId) ?? Promise.resolve()).then(work, work);
-  const settled = next.then(
-    () => undefined,
-    () => undefined,
-  );
-  chains.set(threadId, settled);
-  void settled.then(() => {
-    if (chains.get(threadId) === settled) {
-      chains.delete(threadId);
-    }
-  });
-  return next;
+const track = (ledger: ActionLedger, threadId: ThreadId, delta: number): number => {
+  const count = (ledger.inFlight.get(threadId) ?? 0) + delta;
+  if (count <= 0) {
+    ledger.inFlight.delete(threadId);
+    return 0;
+  }
+  ledger.inFlight.set(threadId, count);
+  return count;
 };
 
 export interface ThreadActionInput {
@@ -55,20 +54,28 @@ const rollback = (
   threadId: ThreadId,
   context: ActionContext | undefined,
 ): void => {
-  if (context === undefined || context.overlapped || inFlight.get(threadId) !== 1) {
-    unsettledDetail.add(threadId);
+  const ledger = ledgerOf(queryClient);
+  ledger.unsettledDetail.add(threadId);
+  if (context === undefined || context.overlapped || ledger.inFlight.get(threadId) !== 1) {
     return;
   }
   restoreThreadInLists(queryClient, context.lists, threadId);
-  queryClient.setQueryData(queryKeys.thread(threadId), context.detail);
+  const previous = context.detail;
+  queryClient.setQueryData<ThreadDetail>(queryKeys.thread(threadId), (current) =>
+    current === undefined || previous === undefined
+      ? previous
+      : { ...current, thread: previous.thread },
+  );
 };
 
 const reconcileDetail = (queryClient: QueryClient, threadId: ThreadId): void => {
-  if (track(threadId, -1) > 0) {
+  const ledger = ledgerOf(queryClient);
+  if (track(ledger, threadId, -1) > 0) {
     return;
   }
   const key = queryKeys.thread(threadId);
-  const stale = unsettledDetail.delete(threadId) || queryClient.isFetching({ queryKey: key }) > 0;
+  const stale =
+    ledger.unsettledDetail.delete(threadId) || queryClient.isFetching({ queryKey: key }) > 0;
   if (!stale) {
     return;
   }
@@ -93,9 +100,13 @@ export const useThreadAction = (onError?: (error: unknown) => void) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ threadId, action }: ThreadActionInput) =>
-      serialized(threadId, () => client.applyThreadAction(threadId, action)),
+      serializedThreadAction(client, threadId, () => client.applyThreadAction(threadId, action)),
     onMutate: async ({ threadId, action }): Promise<ActionContext> => {
-      const overlapped = track(threadId, 1) > 1;
+      const ledger = ledgerOf(queryClient);
+      const overlapped = track(ledger, threadId, 1) > 1;
+      if (queryClient.isFetching({ queryKey: queryKeys.thread(threadId) }) > 0) {
+        ledger.unsettledDetail.add(threadId);
+      }
       await Promise.all([
         queryClient.cancelQueries({ queryKey: queryKeys.threadLists() }),
         queryClient.cancelQueries({ queryKey: queryKeys.thread(threadId) }),

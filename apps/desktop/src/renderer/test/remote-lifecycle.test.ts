@@ -115,4 +115,24 @@ describe('remote session lifecycle', () => {
     await pause(150);
     expect(events).toEqual([]);
   });
+
+  it('does not deliver more events to a run cancelled by its started listener', async () => {
+    await store.save(tokens('access-1'));
+    server.handle('ai.createJob', () => ({
+      body: { ...QUEUED_JOB, status: 'error', error: 'Runner zlyhal' },
+    }));
+    const runs = new RemoteAiRuns(new HttpApi({ baseUrl: server.url, session: sessionWith() }));
+    const events: AiEvent['type'][] = [];
+    const stop = runs.start(
+      { input: { kind: 'chatAnswer', question: 'Čo dnes?', threadId: null, history: [] } },
+      (event) => {
+        events.push(event.type);
+        if (event.type === 'started') {
+          stop();
+        }
+      },
+    );
+    await waitUntil(() => events.length > 0);
+    expect(events).toEqual(['started']);
+  });
 });
