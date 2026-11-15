@@ -20,7 +20,10 @@ import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
 import type { SyncOptions } from './services/sync/sync-options';
 
-export type AiMailToolsResolver = (job: AiJob) => Promise<AiMailToolsEndpoint | null>;
+export type AiMailToolsResolver = (
+  job: AiJob,
+  owner: string,
+) => Promise<AiMailToolsEndpoint | null>;
 
 export interface AiOptions {
   readonly timeoutMs: number;

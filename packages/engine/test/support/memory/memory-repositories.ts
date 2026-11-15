@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Repositories, UnitOfWork } from '../../../src';
 import { MemoryAccountRepository } from './memory-account-repository';
 import type { MemoryDatabase } from './memory-database';
@@ -38,14 +39,27 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
 
 export class MemoryUnitOfWork implements UnitOfWork {
   runs = 0;
+  private tail: Promise<unknown> = Promise.resolve();
+  private readonly active = new AsyncLocalStorage<true>();
 
   constructor(
     private readonly db: MemoryDatabase,
     private readonly repositories: Repositories,
   ) {}
 
-  async run<Result>(work: (repositories: Repositories) => Promise<Result>): Promise<Result> {
+  run<Result>(work: (repositories: Repositories) => Promise<Result>): Promise<Result> {
     this.runs += 1;
+    if (this.active.getStore() === true) {
+      return this.isolated(work);
+    }
+    const next = this.tail.then(() => this.active.run(true, () => this.isolated(work)));
+    this.tail = next.catch(() => undefined);
+    return next;
+  }
+
+  private async isolated<Result>(
+    work: (repositories: Repositories) => Promise<Result>,
+  ): Promise<Result> {
     const snapshot = this.db.snapshot();
     try {
       return await work(this.repositories);

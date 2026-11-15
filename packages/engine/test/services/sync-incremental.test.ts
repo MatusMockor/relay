@@ -94,6 +94,32 @@ describe('SyncService incremental sync', () => {
     expect(done.items[0]?.messageCount).toBe(1);
   });
 
+  it('skips only the mailbox whose UIDVALIDITY changed during the sync and resets it next time', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'm1', date: '2026-11-14T08:00:00.000Z' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    deliverMail(server, 'INBOX', { id: 'm2', date: '2026-11-14T09:00:00.000Z' });
+    deliverMail(server, 'Archive', { id: 'a1', date: '2026-11-14T10:00:00.000Z' });
+    server.beforeNextFetch = (path) => {
+      server.resetUidValidity(path);
+    };
+
+    const skipped = await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(skipped.ok).toBe(true);
+    const headers = () =>
+      [...engine.db.tables.messages.values()].map((message) => message.messageIdHeader).sort();
+    expect(headers()).toEqual(['<a1@mail.test>', '<m1@mail.test>']);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(headers()).toEqual(['<a1@mail.test>', '<m1@mail.test>', '<m2@mail.test>']);
+    const inbox = present(await engine.repositories.mailboxes.findByRole(account.id, 'inbox'));
+    expect(await engine.repositories.syncStates.find(inbox.id)).toMatchObject({
+      uidValidity: 2,
+      lastUid: 2,
+    });
+  });
+
   it('resyncs a mailbox from scratch after a UIDVALIDITY change', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);

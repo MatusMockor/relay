@@ -10,7 +10,12 @@ export class AiRequestBuilder {
     private readonly options: AiOptions,
   ) {}
 
-  async build(job: AiJob, runner: AiRunnerKind, signal: AbortSignal | null): Promise<AiRequest> {
+  async build(
+    job: AiJob,
+    owner: string,
+    runner: AiRunnerKind,
+    signal: AbortSignal | null,
+  ): Promise<AiRequest> {
     const threadId = threadIdOf(job.input);
     const thread = threadId === null ? null : await this.threads.getDetail(job.userId, threadId);
     const tools = this.options.mailTools;
@@ -20,7 +25,7 @@ export class AiRequestBuilder {
       runner,
       input: job.input,
       thread,
-      mailTools: typeof tools === 'function' ? await tools(job) : tools,
+      mailTools: typeof tools === 'function' ? await tools(job, owner) : tools,
       timeoutMs: this.options.timeoutMs,
       signal,
     };

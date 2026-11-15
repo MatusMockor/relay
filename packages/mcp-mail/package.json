@@ -7,9 +7,6 @@
     ".": "./src/index.ts",
     "./cli": "./src/cli/relay-mail-mcp.ts"
   },
-  "bin": {
-    "relay-mail-mcp": "./src/cli/relay-mail-mcp.ts"
-  },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

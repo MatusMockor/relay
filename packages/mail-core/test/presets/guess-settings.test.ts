@@ -7,6 +7,7 @@ describe('provider presets', () => {
     expect(listProviderPresets().map((preset) => preset.id)).toEqual([
       'gmail',
       'outlook',
+      'microsoft365',
       'icloud',
       'yahoo',
       'seznam',
@@ -26,12 +27,25 @@ describe('provider presets', () => {
       ).toBe(true);
     }
     expect(providerPresets.gmail.imap).toEqual({ host: 'imap.gmail.com', port: 993, secure: true });
-    expect(providerPresets.outlook.smtp).toEqual({
+    expect(providerPresets.microsoft365.smtp).toEqual({
       host: 'smtp.office365.com',
       port: 587,
       secure: false,
     });
   });
+
+  it.each(['hotmail.com', 'outlook.com', 'live.com', 'msn.com', 'outlook.sk', 'hotmail.sk'])(
+    'sends consumer Outlook mail from %s through smtp-mail.outlook.com',
+    (domain) => {
+      expect(guessSettings(`jan@${domain}`)).toMatchObject({
+        presetId: 'outlook',
+        settings: {
+          imap: { host: 'outlook.office365.com', port: 993, secure: true },
+          smtp: { host: 'smtp-mail.outlook.com', port: 587, secure: false },
+        },
+      });
+    },
+  );
 
   it.each([
     ['matus@gmail.com', 'gmail', 'gmail', 'imap.gmail.com'],

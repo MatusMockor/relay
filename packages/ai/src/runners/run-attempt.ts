@@ -33,17 +33,25 @@ export async function* runAttempt(params: AttemptParams): AsyncGenerator<AiEvent
   const mapper = params.dialect.createMapper();
   let finalText: string | null = null;
   let lastError: string | null = null;
-  for await (const line of subprocess.lines) {
-    for (const signal of mapper.map(parseJsonLine(line))) {
-      if (signal.type === 'event') {
-        yield signal.event;
+  let drained = false;
+  try {
+    for await (const line of subprocess.lines) {
+      for (const signal of mapper.map(parseJsonLine(line))) {
+        if (signal.type === 'event') {
+          yield signal.event;
+        }
+        if (signal.type === 'final') {
+          finalText = signal.text;
+        }
+        if (signal.type === 'error') {
+          lastError = signal.message;
+        }
       }
-      if (signal.type === 'final') {
-        finalText = signal.text;
-      }
-      if (signal.type === 'error') {
-        lastError = signal.message;
-      }
+    }
+    drained = true;
+  } finally {
+    if (!drained) {
+      await subprocess.exit;
     }
   }
   const exit = await subprocess.exit;
