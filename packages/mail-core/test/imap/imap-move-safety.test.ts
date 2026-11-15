@@ -74,6 +74,24 @@ describe('ImapMailProvider.move capability safety against GreenMail', () => {
     expect(await inboxUids()).toEqual([1, 2]);
   });
 
+  it('moves with UID MOVE on a rev2-only server that folds MOVE and UIDPLUS into the base', async () => {
+    const factory = new RecordingClientFactory(user, ['MOVE', 'UIDPLUS', 'IMAP4rev1'], (client) => {
+      const connect = client.connect.bind(client);
+      client.connect = async () => {
+        await connect();
+        client.capabilities.set('IMAP4rev2', true);
+      };
+    });
+    const provider = new ImapMailProvider(factory);
+    providers.push(provider);
+
+    await provider.move('INBOX', [2], 'Archive');
+
+    expect(await inboxUids()).toEqual([1]);
+    await admin.mailboxOpen('Archive');
+    expect(await admin.search({ all: true }, { uid: true })).toEqual([1]);
+  });
+
   it('fails when the server rejects UID MOVE', async () => {
     const provider = providerWithout([]);
 

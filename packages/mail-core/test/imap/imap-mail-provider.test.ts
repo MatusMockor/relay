@@ -115,6 +115,11 @@ describe('ImapMailProvider against GreenMail', () => {
     expect(await harness.provider.fetchMessage('INBOX', 99)).toBeNull();
   });
 
+  it('fails an APPEND that imapflow skipped instead of reporting it as stored', async () => {
+    await expect(appendMail('nowhere', '')).rejects.toThrow(/IMAP append was rejected/);
+    expect(await harness.provider.listUids('INBOX')).toEqual([]);
+  });
+
   it('adds and removes system flags and reports them as flag changes', async () => {
     await appendMail('flags');
     await harness.provider.setFlags('INBOX', [1], { add: ['seen', 'flagged'], remove: [] });

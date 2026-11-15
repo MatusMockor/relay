@@ -156,3 +156,24 @@ describe('FakeMailServer HIGHESTMODSEQ', () => {
     expect(after).toBeGreaterThan(before);
   });
 });
+
+describe('FakeMailProvider connections', () => {
+  it('counts a repeated connect once so a single close releases it', async () => {
+    const server = standardServer();
+    const provider = await connectedProvider(server);
+
+    await provider.connect();
+    await provider.close();
+
+    expect(server.openConnections).toBe(0);
+  });
+
+  it('gives a created mailbox named after an Object prototype key the custom role', async () => {
+    const provider = await connectedProvider(standardServer());
+
+    await expect(provider.createMailbox('constructor')).resolves.toMatchObject({
+      path: 'constructor',
+      role: 'custom',
+    });
+  });
+});

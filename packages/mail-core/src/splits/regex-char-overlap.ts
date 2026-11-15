@@ -30,11 +30,17 @@ const SAMPLES: readonly string[] = SAMPLE_RANGES.flatMap(([from, to]) =>
   Array.from({ length: to - from + 1 }, (_, offset) => String.fromCodePoint(from + offset)),
 );
 
-const exactly = (source: string): RegExp => new RegExp(`^(?:${source})$`, 'iu');
+const RULE_FLAGS = ['iu', 'u'] as const;
 
-const anyCodePointMatches = (regex: RegExp): boolean => {
+const exactly = (source: string): RegExp[] =>
+  RULE_FLAGS.map((flags) => new RegExp(`^(?:${source})$`, flags));
+
+const anyTests = (regexes: readonly RegExp[], text: string): boolean =>
+  regexes.some((regex) => regex.test(text));
+
+const anyCodePointMatches = (regexes: readonly RegExp[]): boolean => {
   for (let codePoint = 0; codePoint <= MAX_CODE_POINT; codePoint += 1) {
-    if (regex.test(String.fromCodePoint(codePoint))) {
+    if (anyTests(regexes, String.fromCodePoint(codePoint))) {
       return true;
     }
   }
@@ -53,7 +59,7 @@ const isEmpty = (set: CharSet): boolean => set !== 'any' && set.length === 0;
 export class CharOverlap {
   private exhaustiveChecks = 0;
   private work = 0;
-  private readonly compiled = new Map<string, RegExp>();
+  private readonly compiled = new Map<string, RegExp[]>();
 
   between(left: CharSet, right: CharSet): boolean {
     if (isEmpty(left) || isEmpty(right)) {
@@ -67,16 +73,16 @@ export class CharOverlap {
 
   private atoms(left: CharAtom, right: CharAtom): boolean {
     if (left.literal !== null) {
-      return this.spend(LITERAL_WORK) || this.exactly(right.source).test(left.literal);
+      return this.spend(LITERAL_WORK) || anyTests(this.exactly(right.source), left.literal);
     }
     if (right.literal !== null) {
-      return this.spend(LITERAL_WORK) || this.exactly(left.source).test(right.literal);
+      return this.spend(LITERAL_WORK) || anyTests(this.exactly(left.source), right.literal);
     }
     if (this.spend(SAMPLED_WORK)) {
       return true;
     }
     const both = exactly(`(?=(?:${left.source})$)(?:${right.source})`);
-    if (SAMPLES.some((sample) => both.test(sample))) {
+    if (SAMPLES.some((sample) => anyTests(both, sample))) {
       return true;
     }
     if (this.exhaustiveChecks >= MAX_EXHAUSTIVE_CHECKS) {
@@ -91,13 +97,13 @@ export class CharOverlap {
     return this.work > MAX_ANALYSIS_WORK;
   }
 
-  private exactly(source: string): RegExp {
+  private exactly(source: string): RegExp[] {
     const known = this.compiled.get(source);
     if (known !== undefined) {
       return known;
     }
-    const regex = exactly(source);
-    this.compiled.set(source, regex);
-    return regex;
+    const regexes = exactly(source);
+    this.compiled.set(source, regexes);
+    return regexes;
   }
 }
