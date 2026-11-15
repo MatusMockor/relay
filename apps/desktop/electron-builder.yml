@@ -1,0 +1,17 @@
+appId: sk.relay.desktop
+productName: Relay
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - '**/*.node'
+npmRebuild: true
+mac:
+  category: public.app-category.productivity
+  target: [dmg, zip]
+linux:
+  category: Office
+  target: [AppImage, deb]

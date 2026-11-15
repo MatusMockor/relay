@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@swc/core'
+  - argon2
+  - better-sqlite3
+  - electron
+  - esbuild
+
+ignoredBuiltDependencies:
+  - electron-winstaller
