@@ -1,0 +1,32 @@
+Return-Path: <jira@acme.atlassian.net>
+From: =?UTF-8?Q?Jana_Kov=C3=A1=C4=8Dov=C3=A1_=28Jira=29?= <jira@acme.atlassian.net>
+To: matus@relay.test
+Subject: =?UTF-8?Q?[JIRA]_(WEB-482)_Login_tla=C4=8Didlo_nefunguje_na_Safari?=
+Date: Thu, 12 Nov 2026 09:14:03 +0000
+Message-ID: <JIRA.10482.1794906843000@Atlassian.JIRA>
+In-Reply-To: <JIRA.10482.1794500000000@Atlassian.JIRA>
+References: <JIRA.10482.1794500000000@Atlassian.JIRA>
+X-JIRA-FingerPrint: 6b1f0c1e2d3a4b5c6d7e8f9012345678
+Auto-Submitted: auto-generated
+Precedence: bulk
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="jira-alt-1"
+
+--jira-alt-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Jana Kováčová mentioned you on WEB-482
+
+Re: Login tlačidlo nefunguje na Safari
+
+@Matúš vieš sa na to pozrieť ešte dnes? Zákazník čaká.
+
+View issue: https://acme.atlassian.net/browse/WEB-482
+
+--jira-alt-1
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><body><p><b>Jana Kováčová</b> mentioned you on <a href="https://acme.atlassian.net/browse/WEB-482">WEB-482</a></p><p>@Matúš vieš sa na to pozrieť ešte dnes? Zákazník čaká.</p></body></html>
+--jira-alt-1--

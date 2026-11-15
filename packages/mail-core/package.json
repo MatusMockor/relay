@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./presets": "./src/presets/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -17,7 +18,8 @@
     "html-to-text": "9.0.5",
     "imapflow": "1.7.8",
     "mailparser": "3.7.5",
-    "nodemailer": "7.0.13"
+    "nodemailer": "7.0.13",
+    "zod": "4.1.13"
   },
   "devDependencies": {
     "@relay/config": "workspace:*",
