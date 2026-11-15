@@ -1,0 +1,75 @@
+import { Icon, type StrokeIconName } from '@relay/ui';
+import type { MouseEvent } from 'react';
+import { viewOf } from '../../state/folders';
+import { setUi, useUiStore } from '../../state/ui-store';
+import { rectOf } from '../folders/rect';
+import type { ListItem } from '../mail/list-items';
+import { useMailActions } from '../mail/MailActionsProvider';
+
+interface ActionSpec {
+  readonly id: 'done' | 'remind' | 'reply' | 'trash';
+  readonly icon: StrokeIconName;
+  readonly label: string;
+  readonly key: string;
+}
+
+const DONE: ActionSpec = { id: 'done', icon: 'check', label: 'Hotovo', key: 'E' };
+const REMIND: ActionSpec = { id: 'remind', icon: 'clock', label: 'Pripomenúť', key: 'H' };
+const REPLY: ActionSpec = { id: 'reply', icon: 'reply', label: 'Odpovedať', key: 'R' };
+const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: '#' };
+
+const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
+  const map: Record<string, ActionSpec[]> = {
+    done: [{ ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' }, REPLY],
+    trash: [{ ...DONE, icon: 'inbox', label: 'Obnoviť' }],
+    sent: [REPLY, TRASH],
+    drafts: [{ ...TRASH, label: 'Zahodiť koncept' }],
+    scheduled: [{ ...TRASH, icon: 'draft', label: 'Zrušiť plán, presunúť do Konceptov' }],
+  };
+  return map[view] ?? (inRow ? [DONE, REMIND, REPLY] : [DONE, REMIND, REPLY, TRASH]);
+};
+
+export function RowActions({ item, inRow }: { readonly item: ListItem; readonly inRow: boolean }) {
+  const folder = useUiStore((state) => state.folder);
+  const actions = useMailActions();
+  const run = (spec: ActionSpec, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (spec.id === 'done') {
+      actions.thread.markDone(item);
+      return;
+    }
+    if (spec.id === 'trash') {
+      actions.thread.trash(item);
+      return;
+    }
+    if (item.kind !== 'thread') {
+      return;
+    }
+    if (spec.id === 'remind') {
+      setUi({
+        overlay: { kind: 'remind', threadId: item.thread.id, anchor: rectOf(event.currentTarget) },
+      });
+      return;
+    }
+    actions.compose.startReply(item.thread.id, item.thread.accountId);
+  };
+  return (
+    <>
+      {specsFor(viewOf(folder), inRow).map((spec) => (
+        <button
+          key={spec.id}
+          type="button"
+          className="act"
+          title={`${spec.label} (${spec.key})`}
+          aria-label={spec.label}
+          data-action={spec.id}
+          onClick={(event) => {
+            run(spec, event);
+          }}
+        >
+          <Icon name={spec.icon} />
+        </button>
+      ))}
+    </>
+  );
+}
