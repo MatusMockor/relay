@@ -55,6 +55,24 @@ describe('parseEndpointRequest', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('accepts a sync request without a body', () => {
+    const result = parseEndpointRequest(api.sync.now, {});
+    expect(result.success && result.data.body).toEqual({});
+  });
+
+  it('validates checklist updates', () => {
+    const ok = parseEndpointRequest(api.threads.updateChecklist, {
+      params: { id: 'thr_1' },
+      body: { itemId: 'c1', done: true },
+    });
+    expect(ok.success).toBe(true);
+    const bad = parseEndpointRequest(api.threads.updateChecklist, {
+      params: { id: 'thr_1' },
+      body: { itemId: '', done: 'yes' },
+    });
+    expect(bad.success).toBe(false);
+  });
 });
 
 describe('parseEndpointResponse', () => {

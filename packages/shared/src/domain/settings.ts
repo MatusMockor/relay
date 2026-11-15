@@ -45,7 +45,7 @@ export const UserSettingsPatchSchema = z.object({
 export type UserSettingsPatch = z.infer<typeof UserSettingsPatchSchema>;
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
-  notifications: 'urgent',
+  notifications: 'off',
   density: 'normal',
   ai: {
     location: 'local',

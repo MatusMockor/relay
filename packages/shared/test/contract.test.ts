@@ -37,11 +37,13 @@ describe('api contract', () => {
         'GET /threads',
         'GET /threads/:id',
         'POST /threads/:id/actions',
+        'PATCH /threads/:id/checklist',
         'POST /drafts',
         'PATCH /drafts/:id',
         'DELETE /drafts/:id',
         'POST /send',
         'POST /attachments',
+        'GET /attachments/:id/content',
         'DELETE /scheduled/:id',
         'GET /tasks',
         'PATCH /tasks/:id',
@@ -52,6 +54,7 @@ describe('api contract', () => {
         'POST /ai/jobs',
         'GET /ai/jobs/:id',
         'GET /ai/runners',
+        'POST /sync',
       ]),
     );
   });

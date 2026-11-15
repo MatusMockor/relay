@@ -6,6 +6,7 @@ export * from './device';
 export * from './draft';
 export * from './folder-view';
 export * from './ids';
+export * from './jira-subject';
 export * from './label';
 export * from './mailbox';
 export * from './message';

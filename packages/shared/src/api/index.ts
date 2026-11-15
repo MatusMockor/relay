@@ -11,6 +11,7 @@ export * from './endpoints/health';
 export * from './endpoints/labels';
 export * from './endpoints/settings';
 export * from './endpoints/splits';
+export * from './endpoints/sync';
 export * from './endpoints/tasks';
 export * from './endpoints/threads';
 export * from './errors';

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AccountCredentialsSchema,
+  AiJobInputSchema,
+  AiOutputSchema,
   DEFAULT_DEVICE_SETTINGS,
   DEFAULT_USER_SETTINGS,
   DeviceSettingsSchema,
@@ -81,5 +83,38 @@ describe('ids and server urls', () => {
       inReplyToMessageId: null,
     });
     expect(draft.attachments).toEqual([]);
+  });
+});
+
+describe('ai contract', () => {
+  it('keeps notifications off by default', () => {
+    expect(DEFAULT_USER_SETTINGS.notifications).toBe('off');
+  });
+
+  it('parses createTask inputs and outputs', () => {
+    expect(AiJobInputSchema.parse({ kind: 'createTask', threadId: 'thr_1', hint: null })).toEqual({
+      kind: 'createTask',
+      threadId: 'thr_1',
+      hint: null,
+    });
+    expect(
+      AiOutputSchema.parse({
+        kind: 'createTask',
+        threadId: 'thr_1',
+        title: 'Zaplatiť',
+        aiWhat: 'Do piatku.',
+      }),
+    ).toMatchObject({ kind: 'createTask', title: 'Zaplatiť' });
+  });
+
+  it('defaults chat answer references for results stored before they existed', () => {
+    expect(AiOutputSchema.parse({ kind: 'chatAnswer', text: 'Ahoj' })).toEqual({
+      kind: 'chatAnswer',
+      text: 'Ahoj',
+      references: [],
+    });
+    expect(
+      AiOutputSchema.safeParse({ kind: 'chatAnswer', text: 'x', references: ['bad id!'] }).success,
+    ).toBe(false);
   });
 });

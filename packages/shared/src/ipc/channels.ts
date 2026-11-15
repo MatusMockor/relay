@@ -1,8 +1,15 @@
 import type { z } from 'zod';
 import { appInvokeChannels, appStreamChannels } from './app-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
+import { oauthInvokeChannels } from './oauth-channels';
+import { sessionInvokeChannels } from './session-channels';
 
-export const ipcInvokeChannels = { ...appInvokeChannels, ...localInvokeChannels };
+export const ipcInvokeChannels = {
+  ...appInvokeChannels,
+  ...oauthInvokeChannels,
+  ...sessionInvokeChannels,
+  ...localInvokeChannels,
+};
 export const ipcStreamChannels = { ...appStreamChannels, ...localStreamChannels };
 
 export type IpcInvokeChannels = typeof ipcInvokeChannels;

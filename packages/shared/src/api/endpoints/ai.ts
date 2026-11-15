@@ -8,6 +8,9 @@ import {
 import { AiJobIdSchema } from '../../domain/ids';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
+import { aiWorkerEndpoints } from './ai-worker';
+
+export * from './ai-worker';
 
 export const CreateAiJobBodySchema = z.object({
   input: AiJobInputSchema,
@@ -36,4 +39,5 @@ export const aiEndpoints = {
     auth: 'user',
     response: z.array(AiRunnerInfoSchema),
   }),
+  ...aiWorkerEndpoints,
 };
