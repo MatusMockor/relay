@@ -1,6 +1,7 @@
 import type { PendingWorkInput } from '@relay/engine';
 import { MessageIdSchema, ThreadIdSchema } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { accountId } from './support/fixtures';
 import { seedAccount, type SeededAccount } from './support/seed';
 import { createTestStore, type TestStore } from './support/test-database';
 
@@ -68,6 +69,24 @@ describe('SqlitePendingWorkRepository', () => {
         ref: 'thr-x',
       }),
     ).toBeNull();
+  });
+
+  it('lists work of one kind across accounts', async () => {
+    const { pendingWork } = store.repositories;
+    const other = await seedAccount(store.repositories, {
+      id: accountId('acc-2'),
+      email: 'druhy@firma.sk',
+    });
+    await pendingWork.put(refreshWork(other, 'thr-b', '2026-11-10T10:00:01.000Z'));
+    await pendingWork.put(refreshWork(seeded, 'thr-a', '2026-11-10T10:00:00.000Z'));
+
+    const listed = await pendingWork.listByKind('thread-refresh');
+
+    expect(listed.map((work) => [work.accountId, work.ref])).toEqual([
+      [seeded.account.id, 'thr-a'],
+      [other.account.id, 'thr-b'],
+    ]);
+    expect(await pendingWork.listByKind('scheduled-send-sent')).toEqual([]);
   });
 
   it('removes work only at the revision that was read', async () => {

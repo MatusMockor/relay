@@ -14,12 +14,14 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import type { Clock } from '../../ports/clock';
+import type { DraftSender } from './draft-sender';
 import type { DraftService } from './draft-service';
 import type { ScheduledSendService } from './scheduled-send-service';
 import type { SendService } from './send-service';
 
 export interface ComposeServiceDeps {
   readonly drafts: DraftService;
+  readonly draftSender: DraftSender;
   readonly sending: SendService;
   readonly scheduled: ScheduledSendService;
   readonly clock: Clock;
@@ -74,10 +76,9 @@ export class ComposeService {
       return { status: 'scheduled', scheduledSend };
     }
     if (body.source === 'inline') {
-      return { status: 'sent', ...(await this.deps.sending.sendNow(userId, body.draft, null)) };
+      return { status: 'sent', ...(await this.deps.sending.sendNow(userId, body.draft)) };
     }
-    const draft = await this.deps.drafts.require(userId, body.draftId);
-    return { status: 'sent', ...(await this.deps.sending.sendNow(userId, draft, draft)) };
+    return { status: 'sent', ...(await this.deps.draftSender.send(userId, body.draftId)) };
   }
 
   private isFuture(at: string | undefined): at is string {

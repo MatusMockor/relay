@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { isUnsafeRegex } from '../../src';
 
+const hanBranches = (count: number): string =>
+  Array.from({ length: count }, (_, index) => `${String.fromCodePoint(0x4e00 + index)}x`).join('|');
+
 describe('isUnsafeRegex', () => {
   it.each([
     ['nested repetition through extra groups', '^((a+))+$'],
@@ -21,6 +24,17 @@ describe('isUnsafeRegex', () => {
     ['overlapping classes outside the sampled ranges', '[\\u{20000}-\\u{20010}]+\\p{Script=Han}+$'],
     ['repeated nullable body', '^(a?b?){40}c$'],
     ['repeated body with an optional atom', '^(?:a?a){40}$'],
+    [
+      'ambiguous alternation of lone surrogates',
+      '^(?:[\\uD800-\\uDBFF]|[\\uD800-\\uDBFF][\\uD800-\\uDBFF])+$',
+    ],
+    ['overlapping low surrogate classes', '[\\uDC00-\\uDC10]+[\\uDC08-\\uDFFF]+$'],
+    ['loops behind optional wrappers', '^(?:a+)?(?:a+)?(?:a+)?a+$'],
+    ['a loop at the end of an optional group', '^(?:b\\d+)?\\d+$'],
+    ['a loop that can skip an optional group', '^a+(?:b)?a+$'],
+    ['a pattern longer than the analysis limit', `^(?:${'a'.repeat(600)})$`],
+    ['groups nested deeper than the analysis limit', `${'('.repeat(20)}a${')'.repeat(20)}`],
+    ['a repeated alternation that exhausts the analysis budget', `^(?:${hanBranches(150)})+$`],
     ['numbered backreference', '(x)\\1'],
     ['named backreference', '(?<word>x)\\k<word>'],
     ['pattern that does not parse in unicode mode', '\\-'],
@@ -44,7 +58,19 @@ describe('isUnsafeRegex', () => {
     '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}',
     '(?:\\d{2})+',
     '^(?=.*urgent)',
+    '^(?:re|fwd)?:?\\s*\\[WEB-\\d+\\]',
+    '(?:\\d+x)?y\\d+',
+    `^(?:${hanBranches(20)})+$`,
+    '[\\[(]+\\)',
   ])('accepts the legitimate pattern %s', (pattern) => {
     expect(isUnsafeRegex(pattern)).toBe(false);
+  });
+
+  it('rejects a huge alternation quickly instead of comparing every branch pair', () => {
+    const pattern = `^(?:${hanBranches(30_000)})+$`;
+    const startedAt = performance.now();
+
+    expect(isUnsafeRegex(pattern)).toBe(true);
+    expect(performance.now() - startedAt).toBeLessThan(250);
   });
 });

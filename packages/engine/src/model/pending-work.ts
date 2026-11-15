@@ -1,10 +1,13 @@
 import type {
   AccountId,
+  DraftId,
   JiraKey,
   MailboxRole,
   MessageId,
+  ScheduledSendId,
   SplitId,
   ThreadId,
+  UserId,
 } from '@relay/shared/domain';
 import type { JiraClassification } from './jira';
 
@@ -41,11 +44,21 @@ export interface JiraEventWork {
   readonly title: string;
 }
 
+export interface ScheduledSendSentWork {
+  readonly scheduledSendId: ScheduledSendId;
+  readonly userId: UserId;
+  readonly draftId: DraftId;
+  readonly draftUpdatedAt: string;
+  readonly sentAt: string;
+  readonly claimedAt: string;
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
   readonly 'message-effects': MessageEffectsWork;
   readonly 'jira-event': JiraEventWork;
+  readonly 'scheduled-send-sent': ScheduledSendSentWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

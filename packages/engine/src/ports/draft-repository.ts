@@ -1,5 +1,15 @@
 import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
 
+export interface DraftRevision {
+  readonly expected: string;
+  readonly next: string;
+}
+
+export interface DraftSendClaim {
+  readonly claimedAt: string;
+  readonly staleBefore: string;
+}
+
 export interface DraftRepository {
   listByUser(userId: UserId): Promise<Draft[]>;
   findById(userId: UserId, draftId: DraftId): Promise<Draft | null>;
@@ -9,8 +19,10 @@ export interface DraftRepository {
     userId: UserId,
     draftId: DraftId,
     changes: Partial<DraftContent>,
-    updatedAt: string,
+    revision: DraftRevision,
   ): Promise<Draft | null>;
   delete(userId: UserId, draftId: DraftId): Promise<boolean>;
   deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean>;
+  claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean>;
+  releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean>;
 }

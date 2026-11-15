@@ -1,5 +1,5 @@
 import type { SqliteDatabase } from '../database/sqlite-database';
-import { runAtomicallyNow } from './run-atomically';
+import { runInOpenTransaction } from './run-in-open-transaction';
 import type { SqliteExecutor, SqliteOperation } from './sqlite-executor';
 
 export class TransactionExecutor implements SqliteExecutor {
@@ -19,6 +19,6 @@ export class TransactionExecutor implements SqliteExecutor {
     if (!this.open) {
       return Promise.reject(new Error('The unit of work has already finished'));
     }
-    return runAtomicallyNow(this.database, operation);
+    return runInOpenTransaction(this.database, operation);
   }
 }

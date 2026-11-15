@@ -1,5 +1,10 @@
 import type { PendingWorkInput } from '@relay/engine';
-import { MessageIdSchema, ThreadIdSchema } from '@relay/shared/domain';
+import {
+  DraftIdSchema,
+  MessageIdSchema,
+  ScheduledSendIdSchema,
+  ThreadIdSchema,
+} from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { at, seedAccount, type SeededAccount } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
@@ -76,5 +81,39 @@ describe('PgPendingWorkRepository', () => {
     await accounts.delete(seeded.user.id, seeded.account.id);
 
     await expect(pendingWork.list(seeded.account.id, 'thread-refresh')).resolves.toEqual([]);
+  });
+
+  it('lists work of one kind across accounts', async () => {
+    const first = await seedAccount(context.repositories);
+    const second = await seedAccount(context.repositories);
+    const { pendingWork } = context.repositories;
+    const sent = (seeded: SeededAccount, ref: string, createdAt: string) =>
+      pendingWork.put({
+        accountId: seeded.account.id,
+        kind: 'scheduled-send-sent',
+        ref,
+        payload: {
+          scheduledSendId: ScheduledSendIdSchema.parse(ref),
+          userId: seeded.user.id,
+          draftId: DraftIdSchema.parse(`${ref}-draft`),
+          draftUpdatedAt: at(0),
+          sentAt: createdAt,
+          claimedAt: at(0),
+        },
+        createdAt,
+      });
+    await sent(second, 'sch-b', at(2));
+    await sent(first, 'sch-a', at(1));
+    await pendingWork.put(refreshWork(first, 'thr-z', at(0)));
+
+    const listed = await pendingWork.listByKind('scheduled-send-sent');
+
+    const mine = listed.filter((work) =>
+      [first.account.id, second.account.id].includes(work.accountId),
+    );
+    expect(mine.map((work) => [work.accountId, work.ref])).toEqual([
+      [first.account.id, 'sch-a'],
+      [second.account.id, 'sch-b'],
+    ]);
   });
 });

@@ -41,6 +41,7 @@ export interface AiJobRepository {
   create(job: AiJob, claim?: AiJobClaim): Promise<AiJob>;
   update(jobId: AiJobId, update: AiJobUpdate): Promise<AiJob | null>;
   claim(jobId: AiJobId, claim: AiJobClaim): Promise<AiJob | null>;
+  isHeldBy(userId: UserId, jobId: AiJobId, owner: string, now: string): Promise<boolean>;
   listQueued(query: QueuedAiJobQuery): Promise<AiJob[]>;
   enqueueIfAbsent(job: AiJob): Promise<AiJobEnqueueResult>;
   lockResultSlot(job: AiJob): Promise<void>;

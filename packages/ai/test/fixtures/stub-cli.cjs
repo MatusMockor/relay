@@ -60,10 +60,19 @@ async function main() {
   }
   recordCall(readStdin());
   const response = nextResponse();
+  if (response.termDelayMs) {
+    process.on('SIGTERM', () => {
+      setTimeout(() => process.exit(143), response.termDelayMs);
+    });
+  }
   if (response.spawnChild) {
+    const stubborn = response.spawnChild === 'stubborn';
+    const script = stubborn
+      ? "process.on('SIGTERM', () => {}); setTimeout(() => {}, 60000)"
+      : 'setTimeout(() => {}, 60000)';
     const child = process
       .getBuiltinModule('node:child_process')
-      .spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' });
+      .spawn(process.execPath, ['-e', script], { stdio: stubborn ? 'inherit' : 'ignore' });
     fs.writeFileSync(`${self}.child.pid`, String(child.pid));
   }
   for (const line of response.lines) {

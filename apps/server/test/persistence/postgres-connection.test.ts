@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import { openPostgresConnection } from '../../src/persistence/database/postgres-connection';
 import { createTestDatabase, type TestDatabase } from './support/test-database';
@@ -16,7 +17,7 @@ describe('openPostgresConnection', () => {
     const connection = openPostgresConnection({
       url: database.url,
       maxConnections: 2,
-      onIdleClientError: (error) => errors.push(error),
+      onClientError: (error) => errors.push(error),
     });
     const client = await connection.pool.connect();
     const { rows } = await client.query<{ pid: number }>('select pg_backend_pid() as pid');
@@ -26,6 +27,30 @@ describe('openPostgresConnection', () => {
     await admin.pool.query('select pg_terminate_backend($1)', [rows[0]?.pid]);
     await admin.close();
     await expect.poll(() => errors.length).toBe(1);
+
+    const { rows: alive } = await connection.pool.query<{ one: number }>('select 1 as one');
+    expect(alive[0]?.one).toBe(1);
+    await connection.close();
+  });
+
+  it('survives Postgres terminating a client inside an open transaction', async () => {
+    database = await createTestDatabase({ migrate: false });
+    const errors: Error[] = [];
+    const connection = openPostgresConnection({
+      url: database.url,
+      maxConnections: 2,
+      onClientError: (error) => errors.push(error),
+    });
+    const admin = openPostgresConnection({ url: database.url, maxConnections: 1 });
+
+    await expect(
+      connection.db.transaction(async (tx) => {
+        const { rows } = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
+        await admin.pool.query('select pg_terminate_backend($1)', [rows[0]?.pid]);
+        await expect.poll(() => errors.length).toBe(1);
+      }),
+    ).rejects.toThrow();
+    await admin.close();
 
     const { rows: alive } = await connection.pool.query<{ one: number }>('select 1 as one');
     expect(alive[0]?.one).toBe(1);

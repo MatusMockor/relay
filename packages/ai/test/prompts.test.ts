@@ -164,7 +164,33 @@ describe('task prompts', () => {
     );
 
     expect(repair.tools).toEqual([]);
-    expect(repair.text).toContain('Chyba: bad');
+    expect(repair.text).toContain('<<<UNTRUSTED_abc123>>>\nbad\n<<<END_UNTRUSTED_abc123>>>');
     expect(repair.text).toContain('<<<UNTRUSTED_abc123>>>\nnie json\n<<<END_UNTRUSTED_abc123>>>');
+  });
+
+  it('keeps a validation error naming a crafted key inside the untrusted boundary', () => {
+    const prompt = prepareTaskPrompt({ kind: 'oneLiner', threadId }, context);
+    const raw = JSON.stringify({ text: 'Ponuka', [INJECTION]: true });
+    const parsed = prompt.parse(raw);
+
+    const error = parsed.ok ? '' : parsed.error;
+    expect(error).toContain(INJECTION);
+    const trusted = prompt
+      .repair(raw, error)
+      .text.replace(/<<<UNTRUSTED_abc123>>>[\s\S]*?<<<END_UNTRUSTED_abc123>>>/g, '');
+    expect(trusted).not.toContain(INJECTION);
+  });
+
+  it('accepts a rewrite as long as the draft it rewrites', () => {
+    const draft = 'Dobrý deň, '.repeat(3_000);
+    const prompt = prepareTaskPrompt(
+      { kind: 'rewrite', text: draft, instruction: 'Oprav preklepy', draftId: null },
+      context,
+    );
+
+    expect(prompt.parse(JSON.stringify({ text: draft }))).toEqual({
+      ok: true,
+      value: { kind: 'rewrite', text: draft },
+    });
   });
 });

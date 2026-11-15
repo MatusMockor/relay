@@ -6,7 +6,8 @@ import { invokeChannel } from './define';
 const ServerUrlSchema = z
   .string()
   .max(2_000)
-  .refine((value) => /^https?:\/\//i.test(value) && URL.canParse(value), 'Invalid server URL');
+  .refine((value) => /^https?:\/\//i.test(value) && URL.canParse(value), 'Invalid server URL')
+  .refine((value) => !/[?#]/.test(value), 'Server URL must not contain a query or fragment');
 
 const ServerSessionInputSchema = z.object({ serverUrl: ServerUrlSchema });
 

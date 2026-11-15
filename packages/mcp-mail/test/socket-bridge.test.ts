@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { MailToolBackend } from '../src/backend/mail-tool-backend';
 import { MailToolSocketHost } from '../src/socket/mail-tool-socket-host';
 import { SocketMailToolBackend } from '../src/socket/socket-mail-tool-backend';
 import { thread, USER_A, message } from './support/fixtures';
@@ -120,13 +121,39 @@ describe('local socket bridge', () => {
   });
 
   it('fails pending and later calls once the host goes away', async () => {
-    const remote = await SocketMailToolBackend.connect(socketPath, 'secret');
-    const closed = new Promise<void>((resolve) => {
-      remote.onClose(resolve);
+    const real = backendFor(mail, USER_A);
+    let received!: () => void;
+    const requestArrived = new Promise<void>((resolve) => {
+      received = resolve;
     });
-    await host.close();
-    await closed;
+    const stalled: MailToolBackend = {
+      listFolder: (query) => real.listFolder(query),
+      getThread: () => {
+        received();
+        return new Promise(() => undefined);
+      },
+      listTasks: (query) => real.listTasks(query),
+      createTask: (task) => real.createTask(task),
+      createDraft: (content) => real.createDraft(content),
+    };
+    const stalledPath = join(dir, 'stalled.sock');
+    const stalledHost = new MailToolSocketHost({
+      path: stalledPath,
+      token: 'secret',
+      backend: stalled,
+    });
+    await stalledHost.listen();
+    const remote = await SocketMailToolBackend.connect(stalledPath, 'secret', {
+      requestTimeoutMs: 10_000,
+    });
+    const outstanding = expect(remote.getThread(thread('thr_1').id)).rejects.toThrow(
+      'connection closed',
+    );
+    await requestArrived;
 
+    await stalledHost.close();
+
+    await outstanding;
     await expect(remote.getThread(thread('thr_1').id)).rejects.toThrow('connection closed');
   });
 });
