@@ -1,0 +1,136 @@
+.onb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  position: relative;
+  overflow: auto;
+}
+.onb .horizon {
+  pointer-events: none;
+}
+.onb-card {
+  position: relative;
+  z-index: 1;
+  width: min(460px, 100%);
+  padding: 28px 30px;
+  display: grid;
+  gap: 16px;
+}
+.onb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.onb-brand i {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--accent);
+  display: inline-block;
+}
+.onb-card h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.onb-card .lead {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.paths {
+  display: grid;
+  gap: 10px;
+}
+.path {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  text-align: left;
+}
+.path:hover {
+  background: var(--hover);
+  border-color: var(--line);
+}
+.path .pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--raised);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.path b {
+  display: block;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.path span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.onb-steps {
+  display: flex;
+  gap: 6px;
+}
+.onb-steps i {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.onb-steps i.on {
+  background: var(--accent);
+}
+.onb-back {
+  justify-self: start;
+  color: var(--muted);
+  font-size: 13px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.onb-back:hover {
+  color: var(--fg2);
+}
+.onb-card .form {
+  margin-top: 0;
+}
+.oauth-btn {
+  justify-content: center;
+  height: 38px;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--faint);
+  font-size: 12px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+.oauth-cancel {
+  justify-content: center;
+}
+.form .oauth-err {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

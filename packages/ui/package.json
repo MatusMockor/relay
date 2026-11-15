@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/index.css"
   },
   "scripts": {
     "lint": "eslint .",
@@ -12,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/inter": "5.2.8",
+    "@fontsource/jetbrains-mono": "5.2.8",
     "@relay/shared": "workspace:*",
     "clsx": "2.1.1"
   },
