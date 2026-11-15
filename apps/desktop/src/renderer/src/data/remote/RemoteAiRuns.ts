@@ -23,16 +23,19 @@ interface Run {
 
 export class RemoteAiRuns {
   private readonly runs = new Map<AiJobId, Run>();
+  private generation = 0;
 
   constructor(private readonly http: HttpApi) {}
 
   start(request: AiRunRequest, listener: AiEventListener): Unsubscribe {
     let cancelled = false;
     let jobId: AiJobId | null = null;
+    const generation = this.generation;
+    const live = () => !cancelled && generation === this.generation;
     void this.http
       .call(api.ai.createJob, { body: request })
       .then((job) => {
-        if (cancelled) {
+        if (!live()) {
           return;
         }
         jobId = job.id;
@@ -43,6 +46,9 @@ export class RemoteAiRuns {
         run.timer = run.finished ? null : setInterval(() => void this.poll(job.id), POLL_MS);
       })
       .catch((error: unknown) => {
+        if (!live()) {
+          return;
+        }
         listener({ type: 'failed', code: 'process_failed', message: describeError(error) });
       });
     return () => {
@@ -69,6 +75,7 @@ export class RemoteAiRuns {
   }
 
   stopAll(): void {
+    this.generation += 1;
     [...this.runs.keys()].forEach((id) => {
       this.finish(id);
     });

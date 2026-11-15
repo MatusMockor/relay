@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { type KeyboardEvent, type PointerEvent, useRef, useState } from 'react';
+import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react';
 
 export interface ResizeLimits {
   readonly min: number;
@@ -59,6 +59,16 @@ export function ResizeHandle({
 }: ResizeHandleProps) {
   const drag = useRef<Drag | null>(null);
   const [active, setActive] = useState(false);
+  useEffect(
+    () => () => {
+      if (drag.current === null) {
+        return;
+      }
+      drag.current = null;
+      document.body.classList.remove('rz-drag');
+    },
+    [],
+  );
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
       return;

@@ -81,6 +81,10 @@ export class AiService {
     return job;
   }
 
+  ownsJob(userId: UserId, jobId: AiJobId, owner: string): Promise<boolean> {
+    return this.deps.jobs.isHeldBy(userId, jobId, owner, this.deps.clock.now().toISOString());
+  }
+
   listRunners(): Promise<AiRunnerInfo[]> {
     return this.deps.runners.detectAll();
   }

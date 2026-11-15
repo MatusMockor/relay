@@ -16,12 +16,20 @@ export type MailToolsEndpoint = AiMailToolsEndpoint & {
   readonly env: Readonly<Record<string, string>>;
 };
 
-export const chooseSocketPath = (directory: string): string => {
+const fitsSocketLimit = (path: string): boolean =>
+  Buffer.byteLength(path, 'utf8') <= MAX_SOCKET_PATH;
+
+export const chooseSocketPath = (directory: string, temporaryDirectory = tmpdir()): string => {
   const preferred = join(directory, 'mail-tools.sock');
-  if (preferred.length <= MAX_SOCKET_PATH) {
+  if (fitsSocketLimit(preferred)) {
     return preferred;
   }
-  return join(tmpdir(), `relay-mail-${randomBytes(6).toString('hex')}.sock`);
+  const name = `relay-mail-${randomBytes(6).toString('hex')}.sock`;
+  const fallback = join(temporaryDirectory, name);
+  if (fitsSocketLimit(fallback) || process.platform === 'win32') {
+    return fallback;
+  }
+  return join('/tmp', name);
 };
 
 export class LocalMailToolsServer {

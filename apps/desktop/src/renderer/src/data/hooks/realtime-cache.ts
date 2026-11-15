@@ -1,11 +1,12 @@
 import type { RealtimeEvent, ThreadDetail } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import { applyAiJobUpdate } from './ai-job-cache';
+import { invalidateBatched } from './invalidation-batch';
 import { queryKeys } from './query-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
 
 const invalidate = (client: QueryClient, key: readonly unknown[]) => {
-  void client.invalidateQueries({ queryKey: key });
+  invalidateBatched(client, key);
 };
 
 export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): void => {

@@ -66,10 +66,22 @@ function messageView(message: Message) {
 }
 
 function messageBody(message: Message): string {
-  const body =
-    message.textBody ??
-    (message.htmlBody === null ? message.snippet : htmlToText(message.htmlBody));
+  const body = firstNonBlank([
+    () => message.textBody,
+    () => (message.htmlBody === null ? null : htmlToText(message.htmlBody)),
+    () => message.snippet,
+  ]);
   return body.length <= MAX_BODY_CHARS ? body : `${body.slice(0, MAX_BODY_CHARS)}\n[...]`;
+}
+
+function firstNonBlank(candidates: readonly (() => string | null)[]): string {
+  for (const candidate of candidates) {
+    const text = candidate()?.trim() ?? '';
+    if (text.length > 0) {
+      return text;
+    }
+  }
+  return '';
 }
 
 export function taskView(task: Task) {

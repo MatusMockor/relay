@@ -37,10 +37,15 @@ export class FileAttachmentStore implements AttachmentStore {
       size: upload.content.byteLength,
     });
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
-    await writeFile(this.contentPath(attachment.id), upload.content, { mode: 0o600 });
-    await writeFile(this.metaPath(attachment.id), JSON.stringify({ userId, attachment }), {
-      mode: 0o600,
-    });
+    try {
+      await writeFile(this.contentPath(attachment.id), upload.content, { mode: 0o600 });
+      await writeFile(this.metaPath(attachment.id), JSON.stringify({ userId, attachment }), {
+        mode: 0o600,
+      });
+    } catch (error) {
+      await this.discard(attachment.id);
+      throw error;
+    }
     return attachment;
   }
 
@@ -64,6 +69,14 @@ export class FileAttachmentStore implements AttachmentStore {
     await rm(this.contentPath(attachmentId), { force: true });
     await rm(this.metaPath(attachmentId), { force: true });
     return true;
+  }
+
+  private async discard(attachmentId: AttachmentId): Promise<void> {
+    await Promise.all(
+      [this.contentPath(attachmentId), this.metaPath(attachmentId)].map((path) =>
+        rm(path, { force: true }).catch(() => undefined),
+      ),
+    );
   }
 
   private async readMeta(attachmentId: AttachmentId) {

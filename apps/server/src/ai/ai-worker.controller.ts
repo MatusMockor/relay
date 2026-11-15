@@ -89,7 +89,7 @@ export class AiWorkerController {
       {
         userId: job.userId,
         jobId: job.id,
-        holder: { deviceId: principal.deviceId, leaseId: request.body.leaseId },
+        holder: { kind: 'device', deviceId: principal.deviceId, leaseId: request.body.leaseId },
       },
       DEVICE_MAIL_TOOLS_TTL_SECONDS,
     );

@@ -10,7 +10,12 @@ export interface GoogleOAuthConfig {
 
 export interface ServerConfig {
   readonly env: Env['NODE_ENV'];
-  readonly http: { readonly host: string; readonly port: number; readonly publicUrl: string };
+  readonly http: {
+    readonly host: string;
+    readonly port: number;
+    readonly publicUrl: string;
+    readonly trustProxyHops: number;
+  };
   readonly database: {
     readonly url: string;
     readonly migrateOnStart: boolean;
@@ -22,6 +27,7 @@ export interface ServerConfig {
     readonly accessTokenTtlSeconds: number;
     readonly refreshTokenTtlSeconds: number;
     readonly registrationEnabled: boolean;
+    readonly rateLimit: { readonly maxRequests: number; readonly windowMs: number };
   };
   readonly credentialsEncryptionKey: Buffer;
   readonly google: GoogleOAuthConfig | null;
@@ -52,6 +58,7 @@ export const toServerConfig = (env: Env): ServerConfig => ({
     host: env.HOST,
     port: env.PORT,
     publicUrl: env.PUBLIC_URL ?? `http://localhost:${env.PORT}`,
+    trustProxyHops: env.TRUST_PROXY_HOPS,
   },
   database: {
     url: env.DATABASE_URL,
@@ -64,6 +71,10 @@ export const toServerConfig = (env: Env): ServerConfig => ({
     accessTokenTtlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,
     refreshTokenTtlSeconds: env.REFRESH_TOKEN_TTL_SECONDS,
     registrationEnabled: env.REGISTRATION_ENABLED,
+    rateLimit: {
+      maxRequests: env.AUTH_RATE_LIMIT_MAX,
+      windowMs: env.AUTH_RATE_LIMIT_WINDOW_SECONDS * 1000,
+    },
   },
   credentialsEncryptionKey: Buffer.from(env.CREDENTIALS_ENCRYPTION_KEY, 'base64'),
   google: readGoogle(env),

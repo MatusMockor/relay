@@ -154,6 +154,20 @@ export class SqliteMessageRepository implements MessageRepository {
     });
   }
 
+  addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    return this.executor.execute((db) => {
+      db.insert(messageLabels).values({ messageId, labelId }).onConflictDoNothing().run();
+    });
+  }
+
+  removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    return this.executor.execute((db) => {
+      db.delete(messageLabels)
+        .where(and(eq(messageLabels.messageId, messageId), eq(messageLabels.labelId, labelId)))
+        .run();
+    });
+  }
+
   move(messageId: MessageId, target: MessageLocation): Promise<void> {
     return this.executor.execute((db) => {
       db.update(messages)

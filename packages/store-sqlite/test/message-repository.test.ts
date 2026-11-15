@@ -116,6 +116,28 @@ describe('SqliteMessageRepository', () => {
     expect(await messages.listUids(seeded.sent.id)).toEqual([77]);
   });
 
+  it('adds and removes single labels without touching the others', async () => {
+    const { messages, labels } = store.repositories;
+    for (const id of ['lbl-1', 'lbl-2']) {
+      await labels.upsert({ id: labelId(id), accountId: seeded.account.id, name: id, color: null });
+    }
+    await messages.upsert(message('msg-1', 1), NO_HEADERS);
+
+    await Promise.all([
+      messages.addLabel(messageId('msg-1'), labelId('lbl-1')),
+      messages.addLabel(messageId('msg-1'), labelId('lbl-2')),
+      messages.addLabel(messageId('msg-1'), labelId('lbl-2')),
+    ]);
+    expect((await messages.findById(LOCAL_USER_ID, messageId('msg-1')))?.labelIds).toEqual([
+      'lbl-1',
+      'lbl-2',
+    ]);
+    await messages.removeLabel(messageId('msg-1'), labelId('lbl-1'));
+    expect((await messages.findById(LOCAL_USER_ID, messageId('msg-1')))?.labelIds).toEqual([
+      'lbl-2',
+    ]);
+  });
+
   it('deletes messages by uid and reports the affected threads', async () => {
     const { messages } = store.repositories;
     await messages.upsert(message('msg-1', 1), NO_HEADERS);

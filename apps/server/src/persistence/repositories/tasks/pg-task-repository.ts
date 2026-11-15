@@ -1,5 +1,6 @@
 import {
   ConflictError,
+  type JiraTaskCreation,
   type Page,
   type TaskChanges,
   type TaskQuery,
@@ -91,13 +92,43 @@ export class PgTaskRepository implements TaskRepository {
     }
   }
 
+  async createOrGetByJiraKey(
+    task: Task & { readonly jiraKey: JiraKey },
+  ): Promise<JiraTaskCreation> {
+    return this.db.transaction(async (tx) => {
+      await assertOwned(tx, 'Thread', task.userId, task.threadId);
+      const [inserted] = await tx
+        .insert(tasks)
+        .values(toTaskInsert(task))
+        .onConflictDoNothing({
+          target: [tasks.userId, tasks.jiraKey],
+          where: sql`${tasks.jiraKey} is not null`,
+        })
+        .returning();
+      if (inserted !== undefined) {
+        return { task: toTask(inserted), created: true };
+      }
+      const [existing] = await tx
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, task.userId), eq(tasks.jiraKey, task.jiraKey)));
+      if (existing === undefined) {
+        throw new ConflictError(`Task for ${task.jiraKey} could not be created`);
+      }
+      return { task: toTask(existing), created: false };
+    });
+  }
+
   async update(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task | null> {
-    const [row] = await this.db
-      .update(tasks)
-      .set({ ...changes, updatedAt: toDate(changes.updatedAt) })
-      .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)))
-      .returning();
-    return row === undefined ? null : toTask(row);
+    return this.db.transaction(async (tx) => {
+      await assertOwned(tx, 'Thread', userId, changes.threadId ?? null);
+      const [row] = await tx
+        .update(tasks)
+        .set({ ...changes, updatedAt: toDate(changes.updatedAt) })
+        .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)))
+        .returning();
+      return row === undefined ? null : toTask(row);
+    });
   }
 
   async delete(userId: UserId, taskId: TaskId): Promise<boolean> {

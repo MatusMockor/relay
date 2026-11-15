@@ -1,4 +1,4 @@
-import type { Clock } from '@relay/engine';
+import type { Clock, Logger } from '@relay/engine';
 import type { NotificationMode, ThreadId, ThreadSummary } from '@relay/shared/domain';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
@@ -20,6 +20,7 @@ export interface NewMailNotifierDeps {
   readonly mode: () => Promise<NotificationMode>;
   readonly clock: Clock;
   readonly timers: Timers;
+  readonly logger: Logger;
   readonly digestIntervalMs?: number;
 }
 
@@ -49,6 +50,7 @@ export class NewMailNotifier {
   private startedAt = 0;
   private unsubscribe: (() => void) | null = null;
   private digestTimer: TimerHandle | null = null;
+  private generation = 0;
 
   constructor(private readonly deps: NewMailNotifierDeps) {}
 
@@ -58,22 +60,33 @@ export class NewMailNotifier {
       if (event.type !== 'thread.upserted') {
         return;
       }
-      void this.consider(event.data.thread);
+      this.guard(this.consider(event.data.thread, this.generation));
     });
   }
 
   stop(): void {
+    this.generation += 1;
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.digestTimer?.cancel();
     this.digestTimer = null;
+    this.digest.clear();
   }
 
-  private async consider(thread: ThreadSummary): Promise<void> {
+  private guard(work: Promise<void>): void {
+    work.catch((error: unknown) => {
+      this.deps.logger.warn('Failed to show a new mail notification', { error });
+    });
+  }
+
+  private async consider(thread: ThreadSummary, generation: number): Promise<void> {
     if (!this.isFresh(thread)) {
       return;
     }
     const mode = await this.deps.mode();
+    if (generation !== this.generation) {
+      return;
+    }
     if (mode === 'urgent') {
       this.deps.presenter.show({
         title: senderOf(thread),
@@ -102,14 +115,14 @@ export class NewMailNotifier {
     const interval = this.deps.digestIntervalMs ?? DEFAULT_DIGEST_INTERVAL_MS;
     this.digestTimer = this.deps.timers.after(interval, () => {
       this.digestTimer = null;
-      void this.flushDigest();
+      this.guard(this.flushDigest(this.generation));
     });
   }
 
-  private async flushDigest(): Promise<void> {
+  private async flushDigest(generation: number): Promise<void> {
     const count = this.digest.size;
     this.digest.clear();
-    if (count === 0 || (await this.deps.mode()) !== 'digest') {
+    if (count === 0 || (await this.deps.mode()) !== 'digest' || generation !== this.generation) {
       return;
     }
     this.deps.presenter.show({ title: 'Relay', body: digestBody(count), threadId: null });

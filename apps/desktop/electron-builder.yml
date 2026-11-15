@@ -58,7 +58,3 @@ linux:
   desktop:
     entry:
       StartupWMClass: Relay
-deb:
-  depends:
-    - libsecret-1-0
-    - libnotify4

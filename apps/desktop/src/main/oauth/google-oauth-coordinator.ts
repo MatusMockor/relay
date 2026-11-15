@@ -13,7 +13,7 @@ export interface GoogleAccountConnector {
 
 export class GoogleOAuthCoordinator {
   private active: AbortController | null = null;
-  private running: Promise<unknown> = Promise.resolve();
+  private readonly running = new Set<Promise<unknown>>();
 
   constructor(
     private readonly flow: GoogleLoopbackFlow,
@@ -25,7 +25,12 @@ export class GoogleOAuthCoordinator {
     const controller = new AbortController();
     this.active = controller;
     const operation = this.run(input, controller);
-    this.running = operation.catch(() => undefined);
+    const settled = operation
+      .catch(() => undefined)
+      .finally(() => {
+        this.running.delete(settled);
+      });
+    this.running.add(settled);
     return operation;
   }
 
@@ -36,7 +41,7 @@ export class GoogleOAuthCoordinator {
 
   async shutdown(): Promise<void> {
     this.cancel();
-    await this.running;
+    await Promise.all(this.running);
   }
 
   private async run(

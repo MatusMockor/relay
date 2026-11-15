@@ -25,7 +25,7 @@ import { findAccountOwner } from '../../support/account-owner';
 import { decodeCursor, pageOf } from '../../support/cursor';
 import { toIso } from '../../support/timestamps';
 import { toMessageHeaders, toStoredHeaders } from './message-headers';
-import { replaceMessageLabels } from './message-labels-writer';
+import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
 import { toMessage, toMessageInsert } from './message.mapper';
 import { messageSelection } from './message-selection';
 
@@ -176,6 +176,14 @@ export class PgMessageRepository implements MessageRepository {
 
   async updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void> {
     await this.db.transaction((tx) => replaceMessageLabels(tx, messageId, labelIds));
+  }
+
+  async addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    await addMessageLabel(this.db, messageId, labelId);
+  }
+
+  async removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
+    await removeMessageLabel(this.db, messageId, labelId);
   }
 
   async move(messageId: MessageId, target: MessageLocation): Promise<void> {

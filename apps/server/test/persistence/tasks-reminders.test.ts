@@ -176,4 +176,29 @@ describe('PgReminderRepository', () => {
       true,
     );
   });
+
+  it('creates a Jira task once when two creations race', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { thread } = await seedThread(context.repositories, seeded);
+    const jiraTask = (overrides: Partial<Task>) => ({
+      ...buildTask(seeded.user.id, { threadId: thread.id, source: 'jira', ...overrides }),
+      jiraKey: 'REL-21',
+    });
+
+    const results = await Promise.all([
+      context.repositories.tasks.createOrGetByJiraKey(jiraTask({})),
+      context.repositories.tasks.createOrGetByJiraKey(jiraTask({ state: 'done' })),
+      context.repositories.tasks.createOrGetByJiraKey(jiraTask({ state: 'waiting' })),
+    ]);
+
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+    expect(new Set(results.map((result) => result.task.id)).size).toBe(1);
+    const page = await context.repositories.tasks.list(seeded.user.id, {
+      state: null,
+      cursor: null,
+      limit: 50,
+    });
+    expect(page.items.filter((task) => task.jiraKey === 'REL-21')).toHaveLength(1);
+    expect(results[0].task).toMatchObject({ jiraKey: 'REL-21' });
+  });
 });

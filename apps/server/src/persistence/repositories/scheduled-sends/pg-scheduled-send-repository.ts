@@ -1,6 +1,6 @@
 import { ConflictError, type ScheduledSendRepository } from '@relay/engine';
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, isNull, lt, lte, or } from 'drizzle-orm';
+import { and, asc, eq, isNull, lt, lte, notInArray, or } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { scheduledSends } from '../../schema';
 import { assertOwned } from '../../support/ownership';
@@ -84,11 +84,19 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
     return rows.length > 0;
   }
 
-  async releaseStaleSending(staleBefore: string): Promise<number> {
+  async releaseStaleSending(
+    staleBefore: string,
+    keep: readonly ScheduledSendId[],
+  ): Promise<number> {
     const rows = await this.db
       .update(scheduledSends)
       .set({ status: 'pending', claimedAt: null })
-      .where(staleSending(staleBefore))
+      .where(
+        and(
+          staleSending(staleBefore),
+          keep.length === 0 ? undefined : notInArray(scheduledSends.id, [...keep]),
+        ),
+      )
       .returning({ id: scheduledSends.id });
     return rows.length;
   }

@@ -87,9 +87,14 @@ export const parseWhen = (input: string, now: Date): Date | null => {
   }
   const result = new Date(now);
   if (date !== null) {
-    result.setFullYear(now.getFullYear(), Number(date[2]) - 1, Number(date[1]));
+    const month = Number(date[2]) - 1;
+    const day = Number(date[1]);
+    result.setFullYear(now.getFullYear(), month, day);
     if (dayDiff(result, now) < 0) {
-      result.setFullYear(now.getFullYear() + 1);
+      result.setFullYear(now.getFullYear() + 1, month, day);
+    }
+    if (result.getMonth() !== month || result.getDate() !== day) {
+      return null;
     }
   }
   if (date === null) {

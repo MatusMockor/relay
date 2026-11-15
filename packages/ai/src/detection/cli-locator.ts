@@ -1,7 +1,7 @@
 import { constants } from 'node:fs';
 import { access, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 
 export interface CliLocatorOptions {
   readonly pathEnv?: string;
@@ -32,7 +32,7 @@ export class CliLocator {
 
   async locate(executableName: string): Promise<string | null> {
     for (const dir of this.dirs) {
-      const candidate = join(dir, executableName);
+      const candidate = resolve(dir, executableName);
       if (await isExecutableFile(candidate)) {
         return candidate;
       }

@@ -32,14 +32,14 @@ describe('SqliteUnitOfWork on a file database', () => {
 
   it('hides uncommitted writes from other connections until commit', async () => {
     const release = createDeferred();
+    const created = createDeferred();
     const unit = store.unitOfWork.run(async (repositories) => {
       await repositories.accounts.create(buildAccount());
+      created.resolve();
       await release.promise;
     });
 
-    await new Promise((done) => {
-      setTimeout(done, 5);
-    });
+    await created.promise;
     expect(countAccounts(reader)).toEqual({ count: 0 });
     release.resolve();
     await unit;

@@ -42,6 +42,7 @@ export class MemoryTables {
   readonly tasks = new Map<TaskId, Task>();
   readonly reminders = new Map<ReminderId, Reminder>();
   readonly drafts = new Map<DraftId, StoredDraft>();
+  readonly draftSendClaims = new Map<DraftId, string>();
   readonly scheduledSends = new Map<ScheduledSendId, ScheduledSend>();
   readonly scheduledSendClaims = new Map<ScheduledSendId, string>();
   readonly settings = new Map<UserId, UserSettings>();

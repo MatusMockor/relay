@@ -67,11 +67,49 @@ describe('references to rows of another user', () => {
 
     const own = await repositories.drafts.create(intruder.user.id, base);
     await expect(
-      repositories.drafts.update(intruder.user.id, own.id, { inReplyToThreadId: thread.id }, at(1)),
+      repositories.drafts.update(
+        intruder.user.id,
+        own.id,
+        { inReplyToThreadId: thread.id },
+        { expected: own.updatedAt, next: at(1) },
+      ),
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(repositories.threads.findById(owner.user.id, thread.id)).resolves.toMatchObject({
       hasDraft: false,
     });
+  });
+
+  it('rejects moving an own task onto a foreign thread', async () => {
+    const { owner, intruder, thread } = await seedPair();
+    const own = await seedThread(context.repositories, intruder);
+    const task = await context.repositories.tasks.upsert({
+      id: newId('task'),
+      userId: intruder.user.id,
+      threadId: own.thread.id,
+      jiraKey: null,
+      title: 'X',
+      aiWhat: null,
+      state: 'open',
+      source: 'manual',
+      createdAt: at(0),
+      updatedAt: at(0),
+    });
+
+    await expect(
+      context.repositories.tasks.update(intruder.user.id, task.id, {
+        threadId: thread.id,
+        updatedAt: at(1),
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      context.repositories.tasks.findByThread(owner.user.id, thread.id),
+    ).resolves.toEqual([]);
+    await expect(
+      context.repositories.tasks.update(intruder.user.id, task.id, {
+        threadId: null,
+        updatedAt: at(2),
+      }),
+    ).resolves.toMatchObject({ threadId: null });
   });
 
   it('rejects tasks, ai results and scheduled sends with foreign references', async () => {

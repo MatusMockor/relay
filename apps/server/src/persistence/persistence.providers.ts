@@ -20,7 +20,7 @@ import { PgMessageAttachmentLookup } from './repositories/messages/pg-message-at
 import type { ServerRepositories } from '../core/ports/server-unit-of-work';
 import { PgUnitOfWork } from './unit-of-work/pg-unit-of-work';
 
-const idleClientLogger = new Logger('Postgres');
+const clientLogger = new Logger('Postgres');
 
 export const configProviderFrom = (config: PersistenceConfig | undefined): Provider => {
   if (config !== undefined) {
@@ -53,8 +53,8 @@ const connectionProvider: FactoryProvider<PostgresConnection> = {
     return openPostgresConnection({
       url: config.databaseUrl,
       maxConnections: config.maxConnections,
-      onIdleClientError: (error) => {
-        idleClientLogger.warn(`Idle Postgres client failed: ${error.message}`);
+      onClientError: (error) => {
+        clientLogger.warn(`Postgres client failed: ${error.message}`);
       },
     });
   },

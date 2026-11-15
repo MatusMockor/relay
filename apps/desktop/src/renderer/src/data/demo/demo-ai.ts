@@ -1,7 +1,10 @@
 import type { AiEvent, AiJobInput, AiOutput } from '@relay/shared';
 import type { AiEventListener, Unsubscribe } from '../MailClient';
 import type { DemoState } from './demo-state';
+import { truncate } from '../../lib/text';
 import { demoRewrite } from './demo-rewrite';
+
+const TASK_TITLE_MAX = 500;
 
 const answerChat = (state: DemoState, question: string, threadId: string | null): string => {
   const record = threadId === null ? undefined : state.threads.get(threadId);
@@ -39,7 +42,7 @@ const outputFor = (state: DemoState, input: AiJobInput): AiOutput => {
     return {
       kind: 'createTask',
       threadId: input.threadId,
-      title: input.hint ?? record?.summary.subject ?? 'Úloha z pošty',
+      title: truncate(input.hint ?? record?.summary.subject ?? 'Úloha z pošty', TASK_TITLE_MAX),
       aiWhat: record?.aiSummary ?? record?.summary.snippet ?? 'Vybaviť podľa vlákna.',
     };
   }

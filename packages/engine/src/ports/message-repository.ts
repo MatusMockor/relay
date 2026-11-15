@@ -42,6 +42,8 @@ export interface MessageRepository {
   listMatchSubjects(accountId: AccountId, page: PageRequest): Promise<Page<StoredMatchSubject>>;
   updateFlags(messageId: MessageId, flags: MessageFlags): Promise<void>;
   updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void>;
+  addLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
+  removeLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
   move(messageId: MessageId, target: MessageLocation): Promise<void>;
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]>;
 }

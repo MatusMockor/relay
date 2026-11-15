@@ -30,6 +30,8 @@ export interface UnreadBadgeUpdaterDeps {
 export class UnreadBadgeUpdater {
   private pending: TimerHandle | null = null;
   private unsubscribe: (() => void) | null = null;
+  private running: Promise<void> | null = null;
+  private rerun = false;
 
   constructor(private readonly deps: UnreadBadgeUpdaterDeps) {}
 
@@ -50,7 +52,30 @@ export class UnreadBadgeUpdater {
     this.pending = null;
   }
 
-  async refresh(): Promise<void> {
+  refresh(): Promise<void> {
+    if (this.running !== null) {
+      this.rerun = true;
+      return this.running;
+    }
+    this.running = this.recountUntilSettled();
+    return this.running;
+  }
+
+  private async recountUntilSettled(): Promise<void> {
+    await this.recount();
+    while (this.takeRerun()) {
+      await this.recount();
+    }
+    this.running = null;
+  }
+
+  private takeRerun(): boolean {
+    const requested = this.rerun;
+    this.rerun = false;
+    return requested;
+  }
+
+  private async recount(): Promise<void> {
     try {
       this.deps.view.setUnread(await this.deps.source.count());
     } catch (error) {

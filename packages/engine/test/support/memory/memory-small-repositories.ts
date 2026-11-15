@@ -131,6 +131,17 @@ export class MemoryAiJobRepository implements AiJobRepository {
     return Promise.resolve(claimed);
   }
 
+  isHeldBy(userId: UserId, jobId: AiJobId, owner: string, now: string): Promise<boolean> {
+    const job = this.db.tables.aiJobs.get(jobId);
+    const lease = this.db.tables.aiJobLeases.get(jobId);
+    return Promise.resolve(
+      job?.userId === userId &&
+        job.status === 'running' &&
+        lease?.owner === owner &&
+        Date.parse(lease.leaseUntil) >= Date.parse(now),
+    );
+  }
+
   listQueued(query: QueuedAiJobQuery): Promise<AiJob[]> {
     const jobs = [...this.db.tables.aiJobs.values()]
       .filter(

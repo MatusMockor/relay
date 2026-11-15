@@ -69,6 +69,15 @@ export class PgPendingWorkRepository implements PendingWorkRepository {
     return rows.map((row) => toPendingWork<Kind>(row));
   }
 
+  async listByKind<Kind extends PendingWorkKind>(kind: Kind): Promise<PendingWork<Kind>[]> {
+    const rows = await this.db
+      .select()
+      .from(pendingWork)
+      .where(eq(pendingWork.kind, kind))
+      .orderBy(asc(pendingWork.createdAt), asc(pendingWork.ref));
+    return rows.map((row) => toPendingWork<Kind>(row));
+  }
+
   async remove(works: readonly PendingWork[]): Promise<void> {
     for (const work of works) {
       await this.db

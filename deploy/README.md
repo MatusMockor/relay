@@ -17,15 +17,17 @@ cp deploy/.env.example deploy/.env
 
 Fill in `deploy/.env`:
 
-| Variable                                               | What to put there                                                                                                                              |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_PASSWORD`                                    | a long random hex password (`openssl rand -hex 24`). It goes unencoded into `DATABASE_URL`, so use only letters, digits, `-`, `_`, `.` and `~` |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`              | two different random secrets, at least 32 characters (`openssl rand -base64 48`)                                                               |
-| `CREDENTIALS_ENCRYPTION_KEY`                           | 32 random bytes as base64 (`openssl rand -base64 32`). Encrypts mail passwords and OAuth tokens. Back it up.                                   |
-| `PUBLIC_URL`                                           | the URL clients use, e.g. `https://relay.example.com`                                                                                          |
-| `REGISTRATION_ENABLED`                                 | `true` while you create accounts, then `false` to close the server                                                                             |
-| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | the Google OAuth client used by the desktop app (see Gmail below). Leave empty if you don't use Gmail.                                         |
-| `RELAY_BIND_ADDRESS`, `RELAY_PORT`                     | where the server port is published on the host. Default `127.0.0.1:3000` (only reachable locally / by the tunnel)                              |
+| Variable                                                | What to put there                                                                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`                                     | a long random hex password (`openssl rand -hex 24`). It goes unencoded into `DATABASE_URL`, so use only letters, digits, `-`, `_`, `.` and `~` |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`               | two different random secrets, at least 32 characters (`openssl rand -base64 48`)                                                               |
+| `CREDENTIALS_ENCRYPTION_KEY`                            | 32 random bytes as base64 (`openssl rand -base64 32`). Encrypts mail passwords and OAuth tokens. Back it up.                                   |
+| `PUBLIC_URL`                                            | the URL clients use, e.g. `https://relay.example.com`                                                                                          |
+| `REGISTRATION_ENABLED`                                  | `true` while you create accounts, then `false` to close the server                                                                             |
+| `AUTH_RATE_LIMIT_MAX`, `AUTH_RATE_LIMIT_WINDOW_SECONDS` | how many register, login and refresh attempts one client IP (and one email address) may make per window. Default `20` per `60` seconds         |
+| `TRUST_PROXY_HOPS`                                      | how many proxies in front of the server add an `X-Forwarded-For` entry. Default `1` (the Cloudflare Tunnel). `0` if clients connect directly   |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`  | the Google OAuth client used by the desktop app (see Gmail below). Leave empty if you don't use Gmail.                                         |
+| `RELAY_BIND_ADDRESS`, `RELAY_PORT`                      | where the server port is published on the host. Default `127.0.0.1:3000` (only reachable locally / by the tunnel)                              |
 
 Start it:
 
@@ -68,6 +70,12 @@ cloudflared:
 ```
 
 Do not put Cloudflare Access in front of the hostname. Relay has its own login (argon2id passwords, short-lived access tokens, rotating refresh tokens per device), and the desktop app can't pass an Access login page. Keep `RELAY_BIND_ADDRESS=127.0.0.1` so the port is only reachable through the tunnel.
+
+### Client IP and rate limits
+
+The auth rate limit counts attempts per client IP and per email address. The server takes the client IP from `X-Forwarded-For`. With `TRUST_PROXY_HOPS=n` it trusts the connecting peer and the `n - 1` rightmost entries, and uses the next entry from the right. With the tunnel (`1`), that is the rightmost entry, the address Cloudflare added. Cloudflare appends to a header the client sent, so a client still can't pick its own IP. This only holds while every request comes through the tunnel or your reverse proxy. If the port is reachable directly, a client can send its own `X-Forwarded-For` and get a fresh per-IP limit for every request (the per-email limit still applies). Keep `RELAY_BIND_ADDRESS=127.0.0.1`, or set `TRUST_PROXY_HOPS=0` when clients connect without a proxy. Add one hop for each extra proxy, e.g. `2` for nginx behind the tunnel.
+
+The counters live in the server process memory. They reset on restart and are not shared between several server processes.
 
 ## Gmail
 

@@ -17,7 +17,6 @@ export interface AppServices {
 }
 
 export interface ServiceHooks {
-  readonly onSessionExpired: () => void;
   readonly onRealtimeStatus: (status: RealtimeStatus) => void;
   readonly fetch?: FetchLike;
   readonly createSocket?: (url: string) => SocketLike;
@@ -27,7 +26,7 @@ export interface ServiceHooks {
 export const createServerApi = (
   platform: Platform,
   serverUrl: string,
-  hooks: Pick<ServiceHooks, 'fetch' | 'onSessionExpired'>,
+  hooks: { readonly fetch?: FetchLike; readonly onSessionExpired: () => void },
 ) => {
   const session = platform.serverSession(serverUrl, {
     fetch: hooks.fetch,

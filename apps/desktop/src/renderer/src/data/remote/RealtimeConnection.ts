@@ -78,7 +78,7 @@ export class RealtimeConnection {
       return;
     }
     this.options.onStatus?.('connecting');
-    const token = await this.options.accessToken();
+    const token = await this.options.accessToken().catch(() => null);
     if (token === null || this.isStopped()) {
       this.scheduleReconnect();
       return;

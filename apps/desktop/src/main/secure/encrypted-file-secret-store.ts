@@ -17,6 +17,7 @@ const DEFAULT_AVAILABILITY_TIMEOUT_MS = 5_000;
 export class EncryptedFileSecretStore implements SecretStore {
   private readonly file: AtomicFile;
   private entries: Entries | null = null;
+  private loading: Promise<Entries> | null = null;
   private pending: Promise<unknown> = Promise.resolve();
 
   constructor(
@@ -67,19 +68,29 @@ export class EncryptedFileSecretStore implements SecretStore {
     return next;
   }
 
-  private async load(): Promise<Entries> {
+  private load(): Promise<Entries> {
     if (this.entries !== null) {
-      return this.entries;
+      return Promise.resolve(this.entries);
     }
+    this.loading ??= this.readEntries()
+      .then((entries) => {
+        this.entries ??= entries;
+        return this.entries;
+      })
+      .finally(() => {
+        this.loading = null;
+      });
+    return this.loading;
+  }
+
+  private async readEntries(): Promise<Entries> {
     await this.assertAvailable();
     const content = await this.file.read();
     if (content === null) {
-      this.entries = new Map();
-      return this.entries;
+      return new Map();
     }
     const parsed = SecretFileSchema.parse(JSON.parse(await this.cipher.decrypt(content)));
-    this.entries = new Map(Object.entries(parsed.entries));
-    return this.entries;
+    return new Map(Object.entries(parsed.entries));
   }
 
   private async persist(entries: Entries): Promise<void> {

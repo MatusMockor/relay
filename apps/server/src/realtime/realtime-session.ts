@@ -57,20 +57,29 @@ export class RealtimeSession {
       this.authenticating = false;
     });
     clearTimeout(this.helloTimer);
-    if (this.disposed || this.socket.readyState !== WebSocket.OPEN) {
+    if (!this.open()) {
       return;
     }
     if (principal === null) {
       this.reject('unauthorized', 'Invalid access token');
       return;
     }
-    this.connection = new RealtimeConnection(this.socket, principal.userId, principal.deviceId);
-    this.registry.add(this.connection);
-    this.connection.send({
-      type: 'welcome',
-      userId: principal.userId,
-      deviceId: principal.deviceId,
-    });
+    const connection = new RealtimeConnection(this.socket, principal.userId, principal.deviceId);
+    this.connection = connection;
+    this.registry.add(connection);
+    const confirmed = await this.authenticator.authenticate(accessToken);
+    if (!this.open()) {
+      return;
+    }
+    if (confirmed === null) {
+      this.reject('unauthorized', 'Invalid access token');
+      return;
+    }
+    connection.open({ type: 'welcome', userId: principal.userId, deviceId: principal.deviceId });
+  }
+
+  private open(): boolean {
+    return !this.disposed && this.socket.readyState === WebSocket.OPEN;
   }
 
   private reject(code: 'unauthorized' | 'validation_failed' | 'internal', message: string): void {

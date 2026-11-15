@@ -221,4 +221,36 @@ describe('PgMessageRepository', () => {
     expect(second.items.map((item) => item.subject.subject)).toEqual(['S3']);
     expect(second.nextCursor).toBeNull();
   });
+
+  it('adds and removes single labels without overwriting concurrent additions', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const other = await seedAccount(context.repositories);
+    const label = (accountId: typeof seeded.account.id, name: string): Label => ({
+      id: newId('label'),
+      accountId,
+      name,
+      color: null,
+    });
+    const first = label(seeded.account.id, 'Prvý');
+    const second = label(seeded.account.id, 'Druhý');
+    const foreign = label(other.account.id, 'Cudzí');
+    for (const item of [first, second, foreign]) {
+      await context.repositories.labels.upsert(item);
+    }
+    const { message } = await seedThread(context.repositories, seeded);
+    const { messages } = context.repositories;
+
+    await Promise.all([
+      messages.addLabel(message.id, first.id),
+      messages.addLabel(message.id, second.id),
+      messages.addLabel(message.id, second.id),
+      messages.addLabel(message.id, foreign.id),
+    ]);
+    const added = await messages.findById(seeded.user.id, message.id);
+    expect([...(added?.labelIds ?? [])].sort()).toEqual([first.id, second.id].sort());
+    await messages.removeLabel(message.id, first.id);
+    await expect(messages.findById(seeded.user.id, message.id)).resolves.toMatchObject({
+      labelIds: [second.id],
+    });
+  });
 });

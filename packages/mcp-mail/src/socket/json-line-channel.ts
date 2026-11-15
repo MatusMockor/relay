@@ -1,20 +1,37 @@
 import type { Socket } from 'node:net';
-import { createInterface } from 'node:readline';
+import { LineFramer } from './line-framer';
+
+export const DEFAULT_MAX_FRAME_BYTES = 64 * 1024 * 1024;
 
 export class JsonLineChannel {
-  constructor(private readonly socket: Socket) {
+  private readonly listeners: ((message: unknown) => void)[] = [];
+  private reading = false;
+
+  constructor(
+    private readonly socket: Socket,
+    private readonly maxFrameBytes: number = DEFAULT_MAX_FRAME_BYTES,
+  ) {
     socket.on('error', () => {
       socket.destroy();
     });
   }
 
   onMessage(listener: (message: unknown) => void): void {
-    const lines = createInterface({ input: this.socket, crlfDelay: Infinity });
-    lines.on('error', () => {
-      this.socket.destroy();
-    });
-    lines.on('line', (line) => {
-      listener(parseLine(line));
+    this.listeners.push(listener);
+    if (this.reading) {
+      return;
+    }
+    this.reading = true;
+    const framer = new LineFramer(this.maxFrameBytes);
+    this.socket.on('data', (chunk: Buffer) => {
+      const lines = framer.push(chunk);
+      if (lines === null) {
+        this.socket.destroy();
+        return;
+      }
+      for (const line of lines) {
+        this.dispatch(parseLine(line));
+      }
     });
   }
 
@@ -35,6 +52,12 @@ export class JsonLineChannel {
 
   destroy(): void {
     this.socket.destroy();
+  }
+
+  private dispatch(message: unknown): void {
+    for (const listener of this.listeners) {
+      listener(message);
+    }
   }
 }
 

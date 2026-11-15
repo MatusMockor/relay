@@ -16,6 +16,7 @@ const EXPIRED_STATUSES = new Set([400, 401, 403]);
 
 export class RendererTokenSession implements SessionTokens {
   private refreshing: Promise<TokenPair | null> | null = null;
+  private generation = 0;
   private readonly publicApi: HttpApi;
   private readonly now: () => number;
 
@@ -48,10 +49,12 @@ export class RendererTokenSession implements SessionTokens {
   }
 
   save(tokens: TokenPair): Promise<void> {
+    this.generation += 1;
     return this.options.tokens.save(tokens);
   }
 
   clear(): Promise<void> {
+    this.generation += 1;
     return this.options.tokens.clear();
   }
 
@@ -67,6 +70,7 @@ export class RendererTokenSession implements SessionTokens {
   }
 
   private async performRefresh(): Promise<TokenPair | null> {
+    const generation = this.generation;
     const tokens = await this.options.tokens.load();
     if (tokens === null) {
       return null;
@@ -75,9 +79,15 @@ export class RendererTokenSession implements SessionTokens {
       const renewed = await this.publicApi.call(api.auth.refresh, {
         body: { refreshToken: tokens.refreshToken },
       });
+      if (generation !== this.generation) {
+        return await this.options.tokens.load();
+      }
       await this.options.tokens.save(renewed);
       return renewed;
     } catch (error) {
+      if (generation !== this.generation) {
+        return await this.options.tokens.load();
+      }
       if (error instanceof MailClientError && EXPIRED_STATUSES.has(error.status ?? 0)) {
         await this.options.tokens.clear();
         this.options.onSessionExpired?.();

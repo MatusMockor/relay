@@ -11,14 +11,21 @@ export interface PostgresConnection {
 export interface PostgresConnectionOptions {
   readonly url: string;
   readonly maxConnections?: number;
-  readonly onIdleClientError?: (error: Error) => void;
+  readonly onClientError?: (error: Error) => void;
 }
 
-const ignoreIdleClientError = (): void => undefined;
+const ignoreClientError = (): void => undefined;
 
 export const openPostgresConnection = (options: PostgresConnectionOptions): PostgresConnection => {
   const pool = new pg.Pool({ connectionString: options.url, max: options.maxConnections ?? 10 });
-  pool.on('error', options.onIdleClientError ?? ignoreIdleClientError);
+  const onClientError = options.onClientError ?? ignoreClientError;
+  pool.on('error', onClientError);
+  pool.on('acquire', (client) => {
+    client.on('error', onClientError);
+  });
+  pool.on('release', (_error, client) => {
+    client.removeListener('error', onClientError);
+  });
   return {
     pool,
     db: drizzle({ client: pool }),

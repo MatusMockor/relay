@@ -1,6 +1,6 @@
 import type { ScheduledSendRepository } from '@relay/engine';
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, isNull, lt, lte, or } from 'drizzle-orm';
+import { and, asc, eq, isNull, lt, lte, notInArray, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toScheduledSend, toScheduledSendRow } from '../mappers/scheduled-send-mapper';
 import { toTimestamp } from '../mappers/timestamp';
@@ -79,13 +79,18 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
     );
   }
 
-  releaseStaleSending(staleBefore: string): Promise<number> {
+  releaseStaleSending(staleBefore: string, keep: readonly ScheduledSendId[]): Promise<number> {
     return this.executor.execute(
       (db) =>
         db
           .update(scheduledSends)
           .set({ status: 'pending', claimedTs: null })
-          .where(isStaleSending(staleBefore))
+          .where(
+            and(
+              isStaleSending(staleBefore),
+              keep.length === 0 ? undefined : notInArray(scheduledSends.id, [...keep]),
+            ),
+          )
           .run().changes,
     );
   }

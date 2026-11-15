@@ -6,7 +6,7 @@ import type {
   QueuedAiJobQuery,
 } from '@relay/engine';
 import type { AiJob, AiJobId, AiRunnerLocation, UserId } from '@relay/shared/domain';
-import { and, asc, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, isNull, ne, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toAiJob, toAiJobRow } from '../mappers/ai-mapper';
 import { toTimestamp } from '../mappers/timestamp';
@@ -70,6 +70,25 @@ export class SqliteAiJobRepository implements AiJobRepository {
         .all();
       return row === undefined ? null : toAiJob(row);
     });
+  }
+
+  isHeldBy(userId: UserId, jobId: AiJobId, owner: string, now: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .select({ id: aiJobs.id })
+          .from(aiJobs)
+          .where(
+            and(
+              eq(aiJobs.userId, userId),
+              eq(aiJobs.id, jobId),
+              eq(aiJobs.status, 'running'),
+              eq(aiJobs.claimedBy, owner),
+              or(isNull(aiJobs.leaseUntilTs), gte(aiJobs.leaseUntilTs, toTimestamp(now))),
+            ),
+          )
+          .get() !== undefined,
+    );
   }
 
   claim(jobId: AiJobId, claim: AiJobClaim): Promise<AiJob | null> {

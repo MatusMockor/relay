@@ -6,7 +6,7 @@ import {
   DeviceSettingsSchema,
 } from '@relay/shared/domain';
 import { EventHub } from '../events/event-hub';
-import { JsonFile } from '../storage/json-file';
+import { type JsonDocument, JsonFile } from '../storage/json-file';
 
 const applyPatch = (current: DeviceSettings, patch: DeviceSettingsPatch): DeviceSettings => ({
   savedServers: patch.savedServers ?? current.savedServers,
@@ -19,21 +19,24 @@ const applyPatch = (current: DeviceSettings, patch: DeviceSettingsPatch): Device
 });
 
 export class DeviceSettingsStore {
-  private readonly file: JsonFile<typeof DeviceSettingsSchema>;
+  private readonly file: JsonDocument<DeviceSettings>;
   private cached: DeviceSettings | null = null;
+  private loading: Promise<DeviceSettings> | null = null;
   private pending: Promise<unknown> = Promise.resolve();
   private readonly changes = new EventHub<DeviceSettings>();
 
-  constructor(path: string) {
-    this.file = new JsonFile(path, DeviceSettingsSchema);
+  constructor(source: string | JsonDocument<DeviceSettings>) {
+    this.file = typeof source === 'string' ? new JsonFile(source, DeviceSettingsSchema) : source;
   }
 
-  async get(): Promise<DeviceSettings> {
+  get(): Promise<DeviceSettings> {
     if (this.cached !== null) {
-      return this.cached;
+      return Promise.resolve(this.cached);
     }
-    this.cached = (await this.file.read()) ?? DEFAULT_DEVICE_SETTINGS;
-    return this.cached;
+    this.loading ??= this.load().finally(() => {
+      this.loading = null;
+    });
+    return this.loading;
   }
 
   onChange(listener: (settings: DeviceSettings) => void): () => void {
@@ -44,6 +47,12 @@ export class DeviceSettingsStore {
     const next = this.pending.then(() => this.apply(patch));
     this.pending = next.catch(() => undefined);
     return next;
+  }
+
+  private async load(): Promise<DeviceSettings> {
+    const loaded = (await this.file.read()) ?? DEFAULT_DEVICE_SETTINGS;
+    this.cached ??= loaded;
+    return this.cached;
   }
 
   private async apply(patch: DeviceSettingsPatch): Promise<DeviceSettings> {

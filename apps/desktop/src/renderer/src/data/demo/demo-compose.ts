@@ -48,7 +48,11 @@ const outgoingMessage = (
     htmlBody: null,
     flags: { seen: true, flagged: false, answered: false },
     labelIds: [],
-    attachments: [],
+    attachments: content.attachments.map((attachment) => ({
+      ...attachment,
+      contentId: null,
+      inline: false,
+    })),
   };
 };
 
@@ -98,7 +102,7 @@ export const demoSend = (state: DemoState, body: SendBody, now: Date): SendRespo
       lastMessageAt: iso,
       messageCount: existing.messages.length,
       snippet: message.snippet,
-      hasDraft: false,
+      hasDraft: state.drafts.some((item) => item.inReplyToThreadId === existing.summary.id),
     };
     return {
       status: 'sent',

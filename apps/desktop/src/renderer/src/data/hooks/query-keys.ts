@@ -5,6 +5,7 @@ export const queryKeys = {
   all: ['mail'] as const,
   threadLists: () => ['mail', 'threads', 'list'] as const,
   threadList: (params: ThreadListParams) => ['mail', 'threads', 'list', params] as const,
+  threadDetails: () => ['mail', 'threads', 'detail'] as const,
   thread: (id: ThreadId) => ['mail', 'threads', 'detail', id] as const,
   threadAiAll: () => ['mail', 'threads', 'ai'] as const,
   threadAiOf: (id: ThreadId) => ['mail', 'threads', 'ai', id] as const,

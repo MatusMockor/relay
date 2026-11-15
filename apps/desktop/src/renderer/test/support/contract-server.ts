@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import type { Duplex } from 'node:stream';
 import {
   DEFAULT_USER_SETTINGS,
   type EndpointDefinition,
@@ -78,6 +79,7 @@ export const startContractServer = async (): Promise<ContractServer> => {
   const handlers = new Map<string, Handler>();
   const requests: RecordedRequest[] = [];
   const sockets: TestSocket[] = [];
+  const upgraded = new Set<Duplex>();
   let onSocketMessage: (socket: TestSocket, text: string) => void = () => undefined;
   const respond = (response: ServerResponse, status: number, body: unknown) => {
     response.writeHead(status, {
@@ -135,6 +137,8 @@ export const startContractServer = async (): Promise<ContractServer> => {
     });
   });
   server.on('upgrade', (request, socket) => {
+    upgraded.add(socket);
+    socket.on('close', () => upgraded.delete(socket));
     sockets.push(
       acceptWebSocket(request, socket, (client, text) => {
         onSocketMessage(client, text);
@@ -154,6 +158,7 @@ export const startContractServer = async (): Promise<ContractServer> => {
     close: () =>
       new Promise((resolve) => {
         server.closeAllConnections();
+        upgraded.forEach((socket) => socket.destroy());
         server.close(() => {
           resolve();
         });
