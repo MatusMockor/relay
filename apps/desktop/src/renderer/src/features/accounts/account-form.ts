@@ -21,23 +21,43 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   smtpPort: '465',
 };
 
+type ServerField = 'imapHost' | 'imapPort' | 'smtpHost' | 'smtpPort';
+
+const DEFAULTS: Partial<Record<ServerField, string>> = {
+  imapPort: EMPTY_ACCOUNT_FORM.imapPort,
+  smtpPort: EMPTY_ACCOUNT_FORM.smtpPort,
+};
+
+const serverFieldsOf = (settings: ImapSmtpSettings): Record<ServerField, string> => ({
+  imapHost: settings.imap.host,
+  imapPort: String(settings.imap.port),
+  smtpHost: settings.smtp.host,
+  smtpPort: String(settings.smtp.port),
+});
+
+const isUntouched = (
+  field: ServerField,
+  value: string,
+  previous: Record<ServerField, string> | null,
+): boolean => value === '' || value === previous?.[field] || value === DEFAULTS[field];
+
 export const withGuessedServers = (
   values: AccountFormValues,
   previousEmail: string,
 ): AccountFormValues => {
   const guessed = guessSettings(values.email);
-  const previous = guessSettings(previousEmail);
-  const untouched = values.imapHost === '' || values.imapHost === previous?.imap.host;
-  if (guessed === null || !untouched) {
+  if (guessed === null) {
     return values;
   }
-  return {
-    ...values,
-    imapHost: guessed.imap.host,
-    imapPort: String(guessed.imap.port),
-    smtpHost: guessed.smtp.host,
-    smtpPort: String(guessed.smtp.port),
-  };
+  const previousGuess = guessSettings(previousEmail);
+  const previous = previousGuess === null ? null : serverFieldsOf(previousGuess);
+  const next = serverFieldsOf(guessed);
+  const fields: readonly ServerField[] = ['imapHost', 'imapPort', 'smtpHost', 'smtpPort'];
+  return fields.reduce<AccountFormValues>(
+    (form, field) =>
+      isUntouched(field, values[field], previous) ? { ...form, [field]: next[field] } : form,
+    values,
+  );
 };
 
 const DOMAIN = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
@@ -50,8 +70,14 @@ export type FormResult =
   | { readonly ok: true; readonly settings: ImapSmtpSettings }
   | { readonly ok: false; readonly error: string; readonly field: keyof AccountFormValues };
 
-const portOf = (value: string): number | null =>
-  /^\d{2,5}$/.test(value.trim()) && Number(value) <= 65_535 ? Number(value) : null;
+const portOf = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (!/^\d{1,5}$/.test(trimmed)) {
+    return null;
+  }
+  const port = Number(trimmed);
+  return port >= 1 && port <= 65_535 ? port : null;
+};
 
 export const validateAccountForm = (values: AccountFormValues): FormResult => {
   if (!EmailAddressSchema.safeParse(values.email.trim()).success) {

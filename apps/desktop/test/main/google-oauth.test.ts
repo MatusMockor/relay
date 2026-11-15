@@ -114,6 +114,40 @@ describe('Google OAuth loopback flow', () => {
     });
   });
 
+  it('waits on shutdown for an account connection of a replaced authorization', async () => {
+    let finishFirst: (error: Error) => void = () => undefined;
+    let connections = 0;
+    const coordinator = new GoogleOAuthCoordinator(
+      new GoogleLoopbackFlow(configSource(), new StubBrowser('approve')),
+      {
+        connect: () => {
+          connections += 1;
+          if (connections > 1) {
+            return Promise.reject(new Error('second connection failed'));
+          }
+          return new Promise((_resolve, reject) => {
+            finishFirst = reject;
+          });
+        },
+      },
+    );
+    const first = coordinator.authorize({ mode: 'local' });
+    await expect.poll(() => connections).toBe(1);
+    const second = coordinator.authorize({ mode: 'local' });
+    await expect(second).rejects.toThrow('second connection failed');
+
+    let shutDown = false;
+    const shuttingDown = coordinator.shutdown().then(() => {
+      shutDown = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(shutDown).toBe(false);
+    finishFirst(new Error('first connection aborted'));
+    await expect(first).rejects.toThrow('first connection aborted');
+    await shuttingDown;
+    expect(shutDown).toBe(true);
+  });
+
   it('returns the grant to the renderer in synced mode', async () => {
     const coordinator = new GoogleOAuthCoordinator(
       new GoogleLoopbackFlow(configSource(), new StubBrowser('approve')),

@@ -29,7 +29,7 @@ export const useFolderItems = (): FolderItems => {
     if (isDrafts) {
       return {
         items: draftItems(drafts.data ?? [], scheduled.data ?? []).filter(inScope),
-        loading: drafts.isPending,
+        loading: drafts.isPending || scheduled.isPending,
       };
     }
     if (isScheduled) {

@@ -18,6 +18,20 @@ const patchReply = (patch: Partial<ReplyState>) => {
   setUi((state) => ({ reply: state.reply === null ? null : { ...state.reply, ...patch } }));
 };
 
+let rewriteRun = 0;
+
+const finishRewrite = (
+  run: number,
+  threadId: ReplyState['threadId'],
+  patch: Partial<ReplyState>,
+) => {
+  setUi((state) =>
+    run === rewriteRun && state.reply?.threadId === threadId && state.reply.busy
+      ? { reply: { ...state.reply, ...patch, busy: false } }
+      : {},
+  );
+};
+
 export function ReplyComposer({
   detail,
   reply,
@@ -60,6 +74,12 @@ export function ReplyComposer({
     setConfirming(true);
   };
   const rewrite = (instruction: string) => {
+    if (reply.busy) {
+      return;
+    }
+    const { threadId } = reply;
+    rewriteRun += 1;
+    const run = rewriteRun;
     const base =
       reply.text.trim() === ''
         ? (detail.replySuggestions[0]?.body ??
@@ -68,10 +88,10 @@ export function ReplyComposer({
     patchReply({ aiOpen: false, busy: true });
     rewriteText(client, base, instruction === '' ? 'vylepšiť' : instruction)
       .then((text) => {
-        patchReply({ text, busy: false });
+        finishRewrite(run, threadId, { text });
       })
       .catch((error: unknown) => {
-        patchReply({ busy: false });
+        finishRewrite(run, threadId, {});
         showToast(`AI nedokončila úpravu: ${describeError(error)}`);
       });
   };

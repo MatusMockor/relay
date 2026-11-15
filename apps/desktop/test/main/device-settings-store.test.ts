@@ -1,8 +1,41 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { DEFAULT_DEVICE_SETTINGS } from '@relay/shared/domain';
+import {
+  DEFAULT_DEVICE_SETTINGS,
+  type DeviceSettings,
+  DeviceSettingsSchema,
+} from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { DeviceSettingsStore } from '../../src/main/settings/device-settings-store';
+import { type JsonDocument, JsonFile } from '../../src/main/storage/json-file';
 import { createTempDir, type TempDir } from './support/temp-dir';
+
+class SlowFirstReadDocument implements JsonDocument<DeviceSettings> {
+  private release: () => void = () => undefined;
+  private readonly released = new Promise<void>((resolve) => {
+    this.release = resolve;
+  });
+  private reads = 0;
+
+  constructor(private readonly file: JsonFile<typeof DeviceSettingsSchema>) {}
+
+  async read(): Promise<DeviceSettings | null> {
+    this.reads += 1;
+    const first = this.reads === 1;
+    const content = await this.file.read();
+    if (first) {
+      await this.released;
+    }
+    return content;
+  }
+
+  write(value: DeviceSettings): Promise<void> {
+    return this.file.write(value);
+  }
+
+  finishFirstRead(): void {
+    this.release();
+  }
+}
 
 describe('DeviceSettingsStore', () => {
   let dir: TempDir;
@@ -38,6 +71,23 @@ describe('DeviceSettingsStore', () => {
     expect(await new DeviceSettingsStore(path).get()).toEqual(updated);
     const raw = JSON.parse(await readFile(path, 'utf8')) as { mode: string };
     expect(raw.mode).toBe('synced');
+  });
+
+  it('keeps an update made while the first read of the file is still in flight', async () => {
+    const document = new SlowFirstReadDocument(
+      new JsonFile(dir.file('device-settings.json'), DeviceSettingsSchema),
+    );
+    const store = new DeviceSettingsStore(document);
+
+    const firstRead = store.get();
+    const updating = store.update({ mode: 'synced' });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    document.finishFirstRead();
+    await Promise.all([firstRead, updating]);
+
+    expect((await store.get()).mode).toBe('synced');
   });
 
   it('serializes concurrent updates without losing any field', async () => {

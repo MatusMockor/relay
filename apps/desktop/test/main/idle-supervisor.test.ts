@@ -71,4 +71,20 @@ describe('IdleSupervisor', () => {
     expect(watcher.attempts).toHaveLength(1);
     expect(time.pendingCount).toBe(0);
   });
+
+  it('opens a single watch for an account listed twice and stops it on stopAll', async () => {
+    const time = new ManualTime();
+    const watcher = new FlakyServerWatcher(time, 0);
+    const supervisor = new IdleSupervisor({
+      watcher,
+      timers: time,
+      logger: createTestLogger().logger,
+    });
+
+    await supervisor.reconcile([accountA, accountA]);
+    await supervisor.stopAll();
+
+    expect(watcher.attempts).toHaveLength(1);
+    expect(watcher.stopped).toEqual([accountA]);
+  });
 });

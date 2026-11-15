@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { describeWhen } from '../../lib/dates';
 import { parseWhen } from '../../lib/parse-when';
 import { capitalize } from '../../lib/text';
+import { isControlTarget } from '../keyboard/focus-target';
 import type { WhenPreset } from './presets';
 
 export interface WhenPickerProps {
@@ -38,7 +39,7 @@ export function WhenPicker({ anchor, title, presets, now, onPick, onClose }: Whe
       );
       return true;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !isControlTarget(event.target)) {
       event.preventDefault();
       pick(typed ? parsed : presets[cursor]?.date);
       return true;

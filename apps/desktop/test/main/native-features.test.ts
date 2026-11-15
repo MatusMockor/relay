@@ -1,4 +1,9 @@
-import { AccountIdSchema, type ThreadSummary, ThreadIdSchema } from '@relay/shared/domain';
+import {
+  AccountIdSchema,
+  type NotificationMode,
+  type ThreadSummary,
+  ThreadIdSchema,
+} from '@relay/shared/domain';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import { describe, expect, it } from 'vitest';
 import { EventHub } from '../../src/main/events/event-hub';
@@ -15,6 +20,16 @@ describe('fitWindowState', () => {
   it('keeps saved bounds that are visible on a display', () => {
     const state = { x: 100, y: 80, width: 1200, height: 800, maximized: true };
     expect(fitWindowState(state, [display])).toEqual(state);
+  });
+
+  it('moves a window whose title bar is above the display back to the display top', () => {
+    const second = { x: 1920, y: 0, width: 1920, height: 1080 };
+    expect(
+      fitWindowState({ x: 2000, y: -300, width: 1200, height: 800, maximized: false }, [
+        display,
+        second,
+      ]),
+    ).toEqual({ x: 2000, y: 0, width: 1200, height: 800, maximized: false });
   });
 
   it('drops the position when the window would be off screen and clamps the size', () => {
@@ -38,6 +53,7 @@ describe('buildAppMenuTemplate', () => {
       isDevelopment: false,
     });
     expect(template[0]?.label).toBe('Relay');
+    expect(roles(template, 'Súbor')).toEqual(['close']);
     expect(roles(template, 'Upraviť')).toEqual([
       'undo',
       'redo',
@@ -89,21 +105,76 @@ const upserted = (summary: ThreadSummary): RealtimeEvent => ({
 });
 
 describe('NewMailNotifier', () => {
-  const setup = (mode: 'off' | 'urgent' | 'digest') => {
+  const setupWith = (mode: () => Promise<NotificationMode>) => {
     const time = new ManualTime('2026-11-15T08:00:00.000Z');
     const hub = new EventHub<RealtimeEvent>();
     const shown: MailNotification[] = [];
+    const log = createTestLogger();
     const notifier = new NewMailNotifier({
       hub,
       presenter: { show: (notification) => shown.push(notification) },
-      mode: () => Promise.resolve(mode),
+      mode,
       clock: time,
       timers: time,
+      logger: log.logger,
       digestIntervalMs: 60_000,
     });
     notifier.start();
-    return { time, hub, shown, notifier };
+    return { time, hub, shown, notifier, log };
   };
+
+  const setup = (mode: NotificationMode) => setupWith(() => Promise.resolve(mode));
+
+  const pendingMode = () => {
+    let resolve: (mode: NotificationMode) => void = () => undefined;
+    let calls = 0;
+    const lookup = () => {
+      calls += 1;
+      return new Promise<NotificationMode>((done) => {
+        resolve = done;
+      });
+    };
+    const answer = (mode: NotificationMode) => {
+      resolve(mode);
+    };
+    return { lookup, answer, calls: () => calls };
+  };
+
+  it('logs a failing notification lookup instead of leaking the rejection', async () => {
+    const { time, hub, shown, log } = setupWith(() => Promise.reject(new Error('settings locked')));
+    hub.publish(upserted(thread('new', '2026-11-15T08:01:00.000Z')));
+    await time.advance(0);
+    expect(shown).toEqual([]);
+    expect(log.sink.messages()).toContain('Failed to show a new mail notification');
+  });
+
+  it('does not notify after stop when the mode lookup was still pending', async () => {
+    const mode = pendingMode();
+    const { time, hub, shown, notifier } = setupWith(mode.lookup);
+    hub.publish(upserted(thread('new', '2026-11-15T08:01:00.000Z')));
+    await time.advance(0);
+    notifier.stop();
+    mode.answer('urgent');
+    await time.advance(0);
+    expect(shown).toEqual([]);
+  });
+
+  it('does not show a digest after stop when the flush was still waiting for the mode', async () => {
+    let mode: 'digest' | 'pending' = 'digest';
+    const pending = pendingMode();
+    const { time, hub, shown, notifier } = setupWith(() =>
+      mode === 'digest' ? Promise.resolve('digest') : pending.lookup(),
+    );
+    hub.publish(upserted(thread('a', '2026-11-15T08:01:00.000Z')));
+    await time.advance(0);
+    mode = 'pending';
+    await time.advance(60_000);
+    expect(pending.calls()).toBe(1);
+    notifier.stop();
+    pending.answer('digest');
+    await time.advance(0);
+    expect(shown).toEqual([]);
+  });
 
   it('notifies only about unread inbox mail that arrived after start in urgent mode', async () => {
     const { time, hub, shown } = setup('urgent');
@@ -150,6 +221,7 @@ describe('NewMailNotifier', () => {
       mode: () => Promise.resolve(mode),
       clock: time,
       timers: time,
+      logger: createTestLogger().logger,
       digestIntervalMs: 60_000,
     });
     notifier.start();

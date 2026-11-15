@@ -161,6 +161,69 @@ describe('main process server session (single token owner)', () => {
     expect(await stored()).toEqual(expiring);
   });
 
+  it('shares one refresh attempt between concurrent callers while the server is unreachable', async () => {
+    const expiring = server.issueTokens(20_000);
+    await store(expiring);
+    let attempts = 0;
+    const offline: FetchLike = () => {
+      attempts += 1;
+      return Promise.reject(new Error('offline'));
+    };
+    const owner = sessions(offline);
+    const worker = owner.get(server.url);
+
+    const tokens = await Promise.all([
+      worker.accessToken(),
+      worker.accessToken(),
+      rendererAccess(owner).then((access) => access.accessToken),
+      rendererAccess(owner).then((access) => access.accessToken),
+      worker.accessToken(),
+    ]);
+
+    expect(attempts).toBe(1);
+    expect(tokens).toEqual(Array.from({ length: 5 }, () => expiring.accessToken));
+  });
+
+  it('does not hand a caller that arrived after a logout the refresh started before it', async () => {
+    const current = server.issueTokens(15 * 60_000);
+    await store(current);
+    let releaseRefresh: () => void = () => undefined;
+    const refreshHeld = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    const slowRefresh: FetchLike = async (input, init) => {
+      await refreshHeld;
+      return fetch(input, init);
+    };
+    const session = sessions(slowRefresh).get(server.url);
+
+    const beforeLogout = session.renewAfterRejection(current.accessToken);
+    const logout = session.clear();
+    const afterLogout = session.renewAfterRejection(current.accessToken);
+    releaseRefresh();
+
+    expect(await beforeLogout).toBe(server.tokens.accessToken);
+    await logout;
+    expect(await afterLogout).toBeNull();
+    expect(refreshCalls()).toBe(1);
+  });
+
+  it('rejects a server URL with a query or fragment at the IPC boundary', async () => {
+    const router = composeIpc({ app: APP, sessions: sessions() }).invoke;
+
+    const results = await Promise.all(
+      [`${server.url}/?tenant=work`, `${server.url}/#work`].map((serverUrl) =>
+        router.dispatch({
+          channel: 'session.setTokens',
+          input: { serverUrl, tokens: server.issueTokens(15 * 60_000) },
+        }),
+      ),
+    );
+
+    expect(results.map((result) => result.ok)).toEqual([false, false]);
+    expect(results[0]).toMatchObject({ ok: false, error: { code: 'validation_failed' } });
+  });
+
   it('stores logins and logouts through the same queue as the refresh', async () => {
     let logout: Promise<unknown> = Promise.resolve();
     const loggingOutDuringRefresh: FetchLike = (input, init) => {

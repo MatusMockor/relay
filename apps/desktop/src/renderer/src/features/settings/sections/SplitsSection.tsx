@@ -42,8 +42,14 @@ export function SplitsSection() {
   const model = useAccountsModel();
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('');
+  const [saving, setSaving] = useState(false);
   const list = [...(splits.data ?? [])].sort((a, b) => a.order - b.order);
+  const locked = saving || splits.data === undefined;
   const save = (next: SplitInput[]) => {
+    if (locked) {
+      return;
+    }
+    setSaving(true);
     client
       .replaceSplits(next.map((split, order) => ({ ...split, order })))
       .then((saved) => {
@@ -52,9 +58,15 @@ export function SplitsSection() {
       })
       .catch((error: unknown) => {
         showToast(describeError(error));
+      })
+      .finally(() => {
+        setSaving(false);
       });
   };
   const add = () => {
+    if (locked) {
+      return;
+    }
     if (name.trim() === '' || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain.trim())) {
       showToast('Doplň názov splitu a doménu odosielateľa, napríklad firma.sk');
       return;
@@ -98,6 +110,7 @@ export function SplitsSection() {
               <Switch
                 checked={split.exclusive}
                 label={`Výlučný split ${split.name}`}
+                disabled={locked}
                 onChange={(exclusive) => {
                   save(
                     list.map((item) =>
@@ -108,6 +121,7 @@ export function SplitsSection() {
               />
               <Button
                 variant="danger"
+                disabled={locked}
                 onClick={() => {
                   save(list.filter((item) => item.id !== split.id).map(toInput));
                 }}
@@ -138,7 +152,9 @@ export function SplitsSection() {
           />
         </div>
         <div className="btns">
-          <Button onClick={add}>Pridať split</Button>
+          <Button onClick={add} disabled={locked}>
+            Pridať split
+          </Button>
         </div>
       </div>
       <SettingRow

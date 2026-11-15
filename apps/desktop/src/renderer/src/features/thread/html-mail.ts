@@ -1,8 +1,25 @@
-export const REMOTE_IMAGE_PATTERN = /<img\b[^>]*\bsrc\s*=\s*["']?\s*(?:https?:)?\/\//i;
+const IMAGE_TAG_PATTERN = /<(img|source)\b[^>]*>/gi;
+const IMAGE_ATTRIBUTE_PATTERN = /(?<![\w-])(src|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+const REMOTE_URL_PATTERN = /^\s*(?:https?:)?\/\//i;
 const REMOTE_CSS_PATTERN = /url\(\s*["']?\s*(?:https?:)?\/\//i;
 
+const candidatesOf = (name: string, value: string): string[] =>
+  name.toLowerCase() === 'srcset' ? value.split(',') : [value];
+
+const isRemoteImageTag = (tag: string, element: string): boolean =>
+  [...tag.matchAll(IMAGE_ATTRIBUTE_PATTERN)].some((match) => {
+    const name = match[1] ?? '';
+    if (element === 'source' && name.toLowerCase() !== 'srcset') {
+      return false;
+    }
+    const value = match[2] ?? match[3] ?? match[4] ?? '';
+    return candidatesOf(name, value).some((candidate) => REMOTE_URL_PATTERN.test(candidate));
+  });
+
 export const hasRemoteImages = (html: string): boolean =>
-  REMOTE_IMAGE_PATTERN.test(html) || REMOTE_CSS_PATTERN.test(html);
+  [...html.matchAll(IMAGE_TAG_PATTERN)].some((match) =>
+    isRemoteImageTag(match[0], (match[1] ?? '').toLowerCase()),
+  ) || REMOTE_CSS_PATTERN.test(html);
 
 export const mailCsp = (allowRemote: boolean): string =>
   [

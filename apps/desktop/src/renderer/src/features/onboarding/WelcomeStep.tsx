@@ -1,9 +1,11 @@
 import { Icon } from '@relay/ui';
+import { useState } from 'react';
 import { useAppContext } from '../../data/hooks/services-context';
 import { OnboardingFrame } from './OnboardingFrame';
 
 export function WelcomeStep() {
   const { session, platform } = useAppContext();
+  const [leaving, setLeaving] = useState(false);
   return (
     <OnboardingFrame
       title="Vitaj v Relay"
@@ -13,8 +15,12 @@ export function WelcomeStep() {
         <button
           type="button"
           className="path"
+          disabled={leaving}
           onClick={() => {
-            void session.continueOffline();
+            setLeaving(true);
+            session.continueOffline().catch(() => {
+              setLeaving(false);
+            });
           }}
         >
           <span className="pic">
@@ -33,6 +39,7 @@ export function WelcomeStep() {
         <button
           type="button"
           className="path"
+          disabled={leaving}
           onClick={() => {
             session.goTo('server', null);
           }}

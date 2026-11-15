@@ -1,4 +1,4 @@
-import type { Address, DraftContent, DraftId } from '@relay/shared';
+import type { Address, Draft, DraftContent, DraftId } from '@relay/shared';
 import { AccountSquare, Button, Icon, IconButton, Kbd, Sheet, Spark } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -14,6 +14,8 @@ import { useMailActions } from '../mail/MailActionsProvider';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { AiBar, BusyOverlay } from './AiBar';
 import { ComposePopups, type Popup } from './ComposePopups';
+import { composePayload, extrasOf } from './draft-extras';
+import { DraftExtrasRows } from './DraftExtrasRows';
 import { RecipientField } from './RecipientField';
 
 function ComposeForm({ init }: { readonly init: ComposeInit }) {
@@ -24,7 +26,16 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
   const actions = useMailActions();
   const fallback =
     init.accountId ?? (scope === 'all' ? model.primary?.id : scope) ?? model.accounts[0]?.id;
-  const [accountId, setAccountId] = useState(fallback);
+  const [chosenAccountId, setAccountId] = useState(init.accountId);
+  const accountId = chosenAccountId ?? fallback;
+  const [extras] = useState(() =>
+    extrasOf(
+      queryClient
+        .getQueryData<Draft[]>(queryKeys.drafts())
+        ?.find((draft) => draft.id === init.draftId),
+    ),
+  );
+  const [saving, setSaving] = useState(false);
   const [to, setTo] = useState<Address | null>(
     init.toEmail === undefined ? null : { name: init.toName ?? null, email: init.toEmail },
   );
@@ -35,51 +46,44 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
   const [popup, setPopup] = useState<Popup>(null);
   const account = accountId === undefined ? undefined : model.byId.get(accountId);
   const close = () => {
-    setUi({ overlay: null });
+    setUi((state) =>
+      state.overlay?.kind === 'compose' && state.overlay.init === init ? { overlay: null } : {},
+    );
   };
   const content = (): DraftContent | null =>
     account === undefined || to === null
       ? null
-      : {
-          accountId: account.id,
-          to: [to],
-          cc: [],
-          bcc: [],
-          subject: subject.trim(),
-          body: body.trim(),
-          inReplyToThreadId: null,
-          inReplyToMessageId: null,
-          attachments: [],
-        };
+      : composePayload({ accountId: account.id, to, subject, body: body.trim(), extras });
   const saveAndClose = () => {
-    close();
-    if (account === undefined || (body.trim() === '' && subject.trim() === '')) {
+    if (saving) {
       return;
     }
-    const draft = {
-      accountId: account.id,
-      to: to === null ? [] : [to],
-      cc: [],
-      bcc: [],
-      subject: subject.trim(),
-      body,
-      inReplyToThreadId: null,
-      inReplyToMessageId: null,
-    };
-    const saving =
+    if (account === undefined || (body.trim() === '' && subject.trim() === '')) {
+      close();
+      return;
+    }
+    const draft = composePayload({ accountId: account.id, to, subject, body, extras });
+    setSaving(true);
+    const persisted =
       init.draftId === undefined
         ? client.createDraft(draft)
         : client.updateDraft(init.draftId as DraftId, draft);
-    void saving
-      .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.drafts() }))
-      .then(() => {
+    void persisted.then(
+      () => {
+        close();
         showToast('Koncept uložený do Konceptov');
-      })
-      .catch((error: unknown) => {
-        showToast(describeError(error));
-      });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.drafts() });
+      },
+      (error: unknown) => {
+        setSaving(false);
+        showToast(`Koncept sa nepodarilo uložiť: ${describeError(error)}`);
+      },
+    );
   };
   const validate = (): DraftContent | null => {
+    if (saving) {
+      return null;
+    }
     if (to === null) {
       showToast('Doplň, komu správu posielaš');
       return null;
@@ -91,6 +95,9 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
     return content();
   };
   const runAi = (instruction: string) => {
+    if (busy || saving) {
+      return;
+    }
     setAiOpen(false);
     setBusy(true);
     const work =
@@ -170,12 +177,17 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
       </div>
       <RecipientField
         value={to}
-        onChange={setTo}
+        onChange={(next) => {
+          if (!saving) {
+            setTo(next);
+          }
+        }}
         autoFocus={to === null}
         onDone={() => {
           document.getElementById('nm-subj')?.focus();
         }}
       />
+      <DraftExtrasRows extras={extras} />
       <div className="nm-f">
         <span className="lb">Predmet</span>
         <input
@@ -183,9 +195,12 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
           placeholder="O čom píšeš"
           autoComplete="off"
           aria-label="Predmet"
+          readOnly={saving}
           value={subject}
           onChange={(event) => {
-            setSubject(event.target.value);
+            if (!saving) {
+              setSubject(event.target.value);
+            }
           }}
         />
       </div>
@@ -194,10 +209,12 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
           id="nm-t"
           placeholder={`Napíš správu, alebo nechaj AI: ${MOD}J`}
           aria-label="Text správy"
-          readOnly={busy}
+          readOnly={busy || saving}
           value={body}
           onChange={(event) => {
-            setBody(event.target.value);
+            if (!saving) {
+              setBody(event.target.value);
+            }
           }}
         />
         {busy ? <BusyOverlay label={empty ? 'Píšem…' : 'Upravujem…'} /> : null}

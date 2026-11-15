@@ -4,8 +4,6 @@ import {
   AccountSyncScheduler,
   type SyncableAccount,
 } from '../../src/main/background/account-sync-scheduler';
-import { IdleSupervisor } from '../../src/main/background/idle-supervisor';
-import type { StopWatching } from '../../src/main/background/mailbox-watcher';
 import { ManualTime } from './support/manual-time';
 import { createTestLogger } from './support/memory-log-sink';
 
@@ -43,6 +41,65 @@ describe('background lifecycle races', () => {
     expect(time.pendingCount).toBe(0);
   });
 
+  const pendingSyncScheduler = (initial: SyncableAccount[]) => {
+    const time = new ManualTime();
+    const sync = deferred<undefined>();
+    let accounts = initial;
+    const scheduler = new AccountSyncScheduler({
+      listAccounts: () => Promise.resolve(accounts),
+      syncAccount: () => sync.promise,
+      timers: time,
+      logger: createTestLogger().logger,
+    });
+    const stopTracked = () => {
+      const state = { stopped: false };
+      const stopping = scheduler.stop().then(() => {
+        state.stopped = true;
+      });
+      return { state, stopping };
+    };
+    return {
+      time,
+      sync,
+      scheduler,
+      stopTracked,
+      setAccounts: (next: SyncableAccount[]) => {
+        accounts = next;
+      },
+    };
+  };
+
+  it('waits on stop for a sync of an account that reconcile removed meanwhile', async () => {
+    const { time, sync, scheduler, stopTracked, setAccounts } = pendingSyncScheduler([
+      { id: accountA, syncIntervalSeconds: 60 },
+    ]);
+    await scheduler.start();
+    await time.advance(0);
+    setAccounts([]);
+    await scheduler.reconcile();
+
+    const { state, stopping } = stopTracked();
+    await time.advance(0);
+    expect(state.stopped).toBe(false);
+    sync.resolve(undefined);
+    await stopping;
+    expect(state.stopped).toBe(true);
+  });
+
+  it('waits on stop for an on-demand sync of an account without a scheduled runner', async () => {
+    const { time, sync, scheduler, stopTracked } = pendingSyncScheduler([]);
+    await scheduler.start();
+    const manual = scheduler.syncNow(accountA);
+    await time.advance(0);
+
+    const { state, stopping } = stopTracked();
+    await time.advance(0);
+    expect(state.stopped).toBe(false);
+    sync.resolve(undefined);
+    await Promise.all([manual, stopping]);
+    expect(state.stopped).toBe(true);
+  });
+
   it('does not start syncing when stop happens while accounts are still loading', async () => {
     const time = new ManualTime();
     const accounts = deferred<SyncableAccount[]>();
@@ -63,26 +120,5 @@ describe('background lifecycle races', () => {
     await time.advance(10 * 60_000);
     expect(synced).toEqual([]);
     expect(time.pendingCount).toBe(0);
-  });
-
-  it('closes an IDLE connection that finishes connecting after the account was released', async () => {
-    const time = new ManualTime();
-    const connecting = deferred<StopWatching>();
-    const stopped: string[] = [];
-    const supervisor = new IdleSupervisor({
-      watcher: { watch: () => connecting.promise },
-      timers: time,
-      logger: createTestLogger().logger,
-    });
-    const watching = supervisor.reconcile([accountA]);
-    await time.advance(0);
-    const releasing = supervisor.reconcile([]);
-    connecting.resolve(() => {
-      stopped.push('closed');
-      return Promise.resolve();
-    });
-    await Promise.all([watching, releasing]);
-    expect(stopped).toEqual(['closed']);
-    expect(supervisor.watching()).toEqual([]);
   });
 });

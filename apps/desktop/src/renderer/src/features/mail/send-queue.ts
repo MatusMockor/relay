@@ -9,6 +9,7 @@ export class DeferredQueue {
     number,
     { readonly timer: ReturnType<typeof setTimeout>; readonly commit: Commit }
   >();
+  private readonly inFlight = new Set<Promise<void>>();
   private sequence = 0;
 
   enqueue(delayMs: number, commit: Commit): PendingSend {
@@ -16,7 +17,7 @@ export class DeferredQueue {
     const id = this.sequence;
     const timer = setTimeout(() => {
       this.pending.delete(id);
-      void commit();
+      this.track(commit);
     }, delayMs);
     this.pending.set(id, { timer, commit });
     return {
@@ -37,8 +38,19 @@ export class DeferredQueue {
     this.pending.clear();
     entries.forEach((entry) => {
       clearTimeout(entry.timer);
+      this.track(entry.commit);
     });
-    await Promise.all(entries.map((entry) => entry.commit()));
+    await Promise.all([...this.inFlight]);
+  }
+
+  private track(commit: Commit): void {
+    const run = Promise.resolve()
+      .then(commit)
+      .catch(() => undefined)
+      .finally(() => {
+        this.inFlight.delete(run);
+      });
+    this.inFlight.add(run);
   }
 }
 

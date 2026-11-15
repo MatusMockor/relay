@@ -31,6 +31,7 @@ import {
   suggestionAt,
   tabFolders,
 } from './key-handlers';
+import { isControlTarget } from './focus-target';
 
 const TABS: readonly RightTab[] = ['contact', 'ai', 'calendar'];
 const G_WINDOW_MS = 1_500;
@@ -94,6 +95,9 @@ export const useKeyboard = (): void => {
       return;
     }
     if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLButtonElement) {
+      return;
+    }
+    if (event.key === 'Tab' && isControlTarget(event.target)) {
       return;
     }
     if (gAt.current > 0 && Date.now() - gAt.current < G_WINDOW_MS) {

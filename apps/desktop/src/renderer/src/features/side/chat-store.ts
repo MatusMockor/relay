@@ -16,12 +16,14 @@ export interface ChatTurn {
 interface ChatState {
   readonly turns: readonly ChatTurn[];
   readonly queued: string | null;
+  readonly draft: string;
   readonly ask: (question: string) => void;
 }
 
 export const useChat = create<ChatState>((set) => ({
   turns: [],
   queued: null,
+  draft: '',
   ask: (question) => {
     set({ queued: question });
   },
@@ -39,7 +41,11 @@ export const resetChat = (): void => {
     stop();
   });
   running.clear();
-  useChat.setState({ turns: [], queued: null });
+  useChat.setState({ turns: [], queued: null, draft: '' });
+};
+
+export const setChatDraft = (draft: string): void => {
+  useChat.setState({ draft });
 };
 
 export const startTurn = (question: string): number => {

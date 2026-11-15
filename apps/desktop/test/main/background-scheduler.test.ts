@@ -93,6 +93,30 @@ describe('AccountSyncScheduler', () => {
   });
 });
 
+describe('AccountSyncScheduler with a sync that fails before returning a promise', () => {
+  it('keeps running later syncs after a synchronous failure', async () => {
+    const time = new ManualTime();
+    let attempts = 0;
+    const scheduler = new AccountSyncScheduler({
+      listAccounts: () => Promise.resolve([{ id: accountA, syncIntervalSeconds: 60 }]),
+      syncAccount: () => {
+        attempts += 1;
+        return JSON.parse('{') as Promise<void>;
+      },
+      timers: time,
+      logger: createTestLogger().logger,
+    });
+    await scheduler.start();
+    await time.advance(0);
+
+    await scheduler.syncNow(accountA);
+    await time.advance(60_000);
+
+    expect(attempts).toBe(3);
+    await scheduler.stop();
+  });
+});
+
 describe('PowerAwareLifecycle', () => {
   it('pauses all background work on suspend and resumes on wake', async () => {
     const { time, scheduler, countFor } = setup([{ id: accountA, syncIntervalSeconds: 60 }]);

@@ -15,4 +15,10 @@ describe('app identity', () => {
     expect(pkg.productName).toBe('Relay');
     expect(builder).toMatch(/^productName: Relay$/m);
   });
+
+  it('keeps the default Debian runtime dependencies of electron-builder', async () => {
+    const builder = await readText('electron-builder.yml');
+
+    expect(builder).not.toMatch(/^\s*depends:/m);
+  });
 });

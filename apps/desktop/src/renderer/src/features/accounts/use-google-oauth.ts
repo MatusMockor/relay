@@ -24,8 +24,9 @@ export const useGoogleOAuth = (onConnected: () => void) => {
     platform.cancelGoogleAuthorization().catch(() => undefined);
   };
   useEffect(() => abandon, [platform]);
+  const isActive = (attempt: number): boolean => active.current === attempt;
   const settle = (attempt: number): boolean => {
-    if (active.current !== attempt) {
+    if (!isActive(attempt)) {
       return false;
     }
     active.current = null;
@@ -37,12 +38,15 @@ export const useGoogleOAuth = (onConnected: () => void) => {
     active.current = attempt;
     setPhase('waiting');
     setError(null);
-    signInWithGoogle(services, platform, loginHint, () => active.current !== attempt).then(
+    signInWithGoogle(services, platform, loginHint, () => !isActive(attempt)).then(
       async (account) => {
-        if (!settle(attempt)) {
+        if (!isActive(attempt)) {
           return;
         }
         await queryClient.invalidateQueries({ queryKey: queryKeys.accounts() });
+        if (!settle(attempt)) {
+          return;
+        }
         showToast(`Účet ${account.displayName} je pripojený`);
         setPhase('idle');
         onConnected();

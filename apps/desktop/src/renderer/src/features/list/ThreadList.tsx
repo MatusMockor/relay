@@ -53,7 +53,7 @@ export function ThreadList() {
   return (
     <div className="a-list" role="listbox" aria-label="Konverzácie">
       {groupItems(items, view, now).map((group) => (
-        <div key={group.label} role="group" aria-label={group.label}>
+        <div key={group.items[0]?.key ?? group.label} role="group" aria-label={group.label}>
           <div className="a-day">{group.label}</div>
           {group.items.map((item) => (
             <ListRow

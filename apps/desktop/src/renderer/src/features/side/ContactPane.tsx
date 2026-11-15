@@ -13,9 +13,14 @@ import { useChat } from './chat-store';
 import { IdlePane } from './IdlePane';
 import { MiniSection } from './Mini';
 
+const contactOf = (item: ThreadSummary, own: ReadonlySet<string>) =>
+  item.participants.find((address) => !own.has(address.email.toLowerCase())) ??
+  item.participants[0];
+
 function ContactDetails({ thread }: { readonly thread: ThreadSummary }) {
   const model = useAccountsModel();
-  const person = thread.participants[0];
+  const own = new Set(model.accounts.map((account) => account.email.toLowerCase()));
+  const person = contactOf(thread, own);
   const all = useThreadList({ view: 'inbox' });
   const done = useThreadList({ view: 'done' });
   const tasks = useTasks();
@@ -27,7 +32,7 @@ function ContactDetails({ thread }: { readonly thread: ThreadSummary }) {
   const actor = jiraActorOf(thread);
   const name = actor ?? person.name ?? person.email;
   const sameContact = (item: ThreadSummary): boolean =>
-    actor === null ? item.participants[0]?.email === person.email : jiraActorOf(item) === actor;
+    actor === null ? contactOf(item, own)?.email === person.email : jiraActorOf(item) === actor;
   const related = [...(all.data?.items ?? []), ...(done.data?.items ?? [])].filter(
     (item) => item.id !== thread.id && sameContact(item),
   );

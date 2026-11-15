@@ -73,6 +73,10 @@ export function AiSection() {
   const ai = settings.data?.ai;
   const synced = services.mode === 'synced';
   const location: AiRunnerLocation = synced ? (ai?.location ?? 'server') : 'local';
+  const canRunLocal = platform.kind === 'electron';
+  const localDescription = canRunLocal
+    ? 'Na tomto počítači cez lokálne CLI'
+    : 'Na počítači s aplikáciou Relay. V prehliadači lokálne AI nebeží.';
   return (
     <>
       <h2>AI</h2>
@@ -84,9 +88,7 @@ export function AiSection() {
         title="Kde beží AI"
         scope="synced"
         description={
-          location === 'server'
-            ? 'Na serveri, aj keď je tento počítač vypnutý'
-            : 'Na tomto počítači cez lokálne CLI'
+          location === 'server' ? 'Na serveri, aj keď je tento počítač vypnutý' : localDescription
         }
       >
         {synced ? (
@@ -95,7 +97,9 @@ export function AiSection() {
             value={location}
             options={[
               { value: 'server', label: 'Server' },
-              { value: 'local', label: 'Lokálne' },
+              ...(canRunLocal || location === 'local'
+                ? [{ value: 'local' as const, label: 'Lokálne' }]
+                : []),
             ]}
             onChange={(value) => {
               update.mutate({ ai: { location: value } });

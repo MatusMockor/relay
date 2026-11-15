@@ -22,7 +22,8 @@ export const useChecklistToggle = (threadId: ThreadId) => {
   const client = useClient();
   const queryClient = useQueryClient();
   const key = queryKeys.thread(threadId);
-  return (item: ChecklistItem) => {
+  return async (item: ChecklistItem): Promise<void> => {
+    await queryClient.cancelQueries({ queryKey: key });
     const done = checklistMutationsFor(client).toggle(threadId, item, (saved, error) => {
       queryClient.setQueryData<ThreadDetail>(key, withItemDone(item.id, saved));
       showToast(`Bod sa nepodarilo uložiť: ${describeError(error)}`);

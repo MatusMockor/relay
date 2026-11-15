@@ -1,7 +1,7 @@
 import type { TestConnectionResponse } from '@relay/shared';
 import { Button, Field, Kbd } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
@@ -39,8 +39,17 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [check, setCheck] = useState<TestConnectionResponse | null>(null);
   const [busy, setBusy] = useState<'test' | 'add' | null>(null);
+  const revision = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const preset = presetFor(values.email);
   const set = (field: keyof AccountFormValues) => (event: { target: { value: string } }) => {
+    revision.current += 1;
     const next = { ...values, [field]: event.target.value };
     setValues(field === 'email' ? withGuessedServers(next, values.email) : next);
     setError(null);
@@ -57,11 +66,17 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
     setError(null);
     setCheck(null);
     setBusy(kind);
+    const started = revision.current;
+    const current = () => mounted.current && (kind === 'add' || revision.current === started);
     try {
       if (kind === 'test') {
-        setCheck(
-          await client.testConnection({ settings: result.settings, password: values.password }),
-        );
+        const checked = await client.testConnection({
+          settings: result.settings,
+          password: values.password,
+        });
+        if (current()) {
+          setCheck(checked);
+        }
         return;
       }
       const account = await client.createAccount({
@@ -73,11 +88,17 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
       });
       await queryClient.invalidateQueries({ queryKey: queryKeys.accounts() });
       showToast(`Účet ${account.displayName} je pripojený`);
-      onDone();
+      if (mounted.current) {
+        onDone();
+      }
     } catch (failure) {
-      setError(describeError(failure));
+      if (current()) {
+        setError(describeError(failure));
+      }
     } finally {
-      setBusy(null);
+      if (mounted.current) {
+        setBusy(null);
+      }
     }
   };
   return (

@@ -85,9 +85,16 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
       return;
     }
     const content = buildReplyDraft(detail, reply.text, account, accounts);
-    await (reply.draftId === null
-      ? client.createDraft(content)
-      : client.updateDraft(reply.draftId as DraftId, content));
+    try {
+      await (reply.draftId === null
+        ? client.createDraft(content)
+        : client.updateDraft(reply.draftId as DraftId, content));
+    } catch (error) {
+      setUi((state) =>
+        state.reply === null ? { reply: { ...reply, busy: false, aiOpen: false } } : {},
+      );
+      throw error;
+    }
     refresh();
     showToast('Koncept uložený');
   };

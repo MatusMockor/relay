@@ -63,6 +63,9 @@ export function RecipientField({ value, onChange, onDone, autoFocus }: Recipient
           setCursor(0);
         }}
         onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) {
+            return;
+          }
           if (options.length > 0 && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
             event.preventDefault();
             setCursor(

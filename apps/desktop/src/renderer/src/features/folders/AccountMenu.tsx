@@ -2,6 +2,7 @@ import type { MailAccount } from '@relay/shared';
 import { AccountSquare, type AnchorRect, Icon, Kbd, Popover } from '@relay/ui';
 import { useState } from 'react';
 import { MOD } from '../../lib/platform-keys';
+import { isControlTarget } from '../keyboard/focus-target';
 import { accountLike } from '../mail/use-accounts-model';
 
 export interface AccountMenuProps {
@@ -44,7 +45,7 @@ export function AccountMenu({
       setCursor((value) => (value + move + ids.length) % ids.length);
       return true;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !isControlTarget(event.target)) {
       event.preventDefault();
       pick(ids[cursor]);
       return true;

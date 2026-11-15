@@ -7,6 +7,28 @@ import { SecretStoreCredentialVault } from '../../src/main/secure/secret-store-c
 import { AesTestCipher } from './support/aes-test-cipher';
 import { createTempDir, type TempDir } from './support/temp-dir';
 
+class SlowFirstDecryptCipher extends AesTestCipher {
+  private decrypts = 0;
+  private release: () => void = () => undefined;
+  private readonly released = new Promise<void>((resolve) => {
+    this.release = resolve;
+  });
+
+  override async decrypt(cipherText: Uint8Array): Promise<string> {
+    this.decrypts += 1;
+    const first = this.decrypts === 1;
+    const plainText = await super.decrypt(cipherText);
+    if (first) {
+      await this.released;
+    }
+    return plainText;
+  }
+
+  finishFirstDecrypt(): void {
+    this.release();
+  }
+}
+
 describe('encrypted secret storage', () => {
   let dir: TempDir;
 
@@ -28,6 +50,26 @@ describe('encrypted secret storage', () => {
     expect(await restarted.get('server.token')).toBe('super-secret-refresh-token');
     await restarted.delete('server.token');
     expect(await new EncryptedFileSecretStore(path, cipher).get('server.token')).toBeNull();
+  });
+
+  it('keeps a secret stored while the first read of the file was still decrypting', async () => {
+    const cipher = new SlowFirstDecryptCipher();
+    const path = dir.file('secrets.bin');
+    await new EncryptedFileSecretStore(path, cipher).set('existing', 'one');
+    const store = new EncryptedFileSecretStore(path, cipher);
+
+    const reading = store.get('existing');
+    const storing = store.set('fresh', 'two');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    cipher.finishFirstDecrypt();
+    expect(await reading).toBe('one');
+    await storing;
+    await store.set('later', 'three');
+
+    const restarted = new EncryptedFileSecretStore(path, cipher);
+    expect(await restarted.get('existing')).toBe('one');
+    expect(await restarted.get('fresh')).toBe('two');
+    expect(await restarted.get('later')).toBe('three');
   });
 
   it('keeps renderer keys and account credentials in separate namespaces', async () => {

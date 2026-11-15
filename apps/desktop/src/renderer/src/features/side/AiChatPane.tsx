@@ -3,11 +3,11 @@ import { Kbd, Spark } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
-import { useUserSettings } from '../../data/hooks/use-mail-queries';
+import { useThreadDetail, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
-import { useChat } from './chat-store';
+import { setChatDraft, useChat } from './chat-store';
 import { useChatRuns } from './use-chat-runs';
 
 const RUNNERS: readonly (readonly [AiRunnerKind, string])[] = [
@@ -20,23 +20,24 @@ export function AiChatPane() {
   const { current } = useMailActions();
   const openThreadId = useUiStore((state) => state.openThreadId);
   const settings = useUserSettings();
-  const { turns, queued } = useChat();
+  const { turns, queued, draft: question } = useChat();
   const [runner, setRunner] = useState<AiRunnerKind | null>(null);
-  const [question, setQuestion] = useState('');
   const log = useRef<HTMLDivElement>(null);
   const activeRunner = runner ?? settings.data?.ai.defaultRunner ?? 'claude';
   const thread = current?.kind === 'thread' ? current.thread : null;
   const threadId = openThreadId ?? thread?.id ?? null;
+  const openDetail = useThreadDetail(openThreadId);
+  const subject = openThreadId === null ? thread?.subject : openDetail.data?.thread.subject;
   const runnerLabel = RUNNERS.find(([kind]) => kind === activeRunner)?.[1] ?? activeRunner;
   const runs = useChatRuns({ runner: activeRunner, runnerLabel, threadId });
   const submit = (text: string) => {
     if (runs.ask(text)) {
-      setQuestion('');
+      setChatDraft('');
     }
   };
   const createTask = () => {
     if (runs.createTask(question)) {
-      setQuestion('');
+      setChatDraft('');
     }
   };
   useEffect(() => {
@@ -51,14 +52,14 @@ export function AiChatPane() {
     }
   }, [turns]);
   const examples =
-    thread === null
+    threadId === null
       ? ['Čo mám dnes vybaviť?', 'Zhrň neprečítané']
       : ['Zhrň toto vlákno', 'Priprav odpoveď', 'Čo mám dnes vybaviť?'];
   return (
     <div className="spane chatpane" role="tabpanel" aria-label="AI">
       <div className="chat-ctx">
         <span className="ctx">
-          Kontext: <b>{thread?.subject ?? 'celá schránka'}</b>
+          Kontext: <b>{threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}</b>
         </span>
         <span className="runner">
           {RUNNERS.map(([kind, label], index) => (
@@ -148,7 +149,7 @@ export function AiChatPane() {
           aria-label="Otázka pre AI"
           value={question}
           onChange={(event) => {
-            setQuestion(event.target.value);
+            setChatDraft(event.target.value);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {

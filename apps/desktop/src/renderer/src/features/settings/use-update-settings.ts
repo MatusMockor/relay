@@ -9,6 +9,7 @@ export const useUpdateSettings = () => {
   const client = useClient();
   const queryClient = useQueryClient();
   return useMutation({
+    scope: { id: 'user-settings' },
     mutationFn: (patch: UserSettingsPatch) => client.updateSettings(patch),
     onSuccess: (settings) => {
       queryClient.setQueryData(queryKeys.settings(), settings);

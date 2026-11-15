@@ -1,6 +1,8 @@
 import { Avatar, Button } from '@relay/ui';
+import { describeError } from '../../../data/errors';
 import { useAppContext } from '../../../data/hooks/services-context';
 import { useSessionStore } from '../../../session/session-store';
+import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
 
@@ -47,7 +49,9 @@ export function AccountSection() {
           variant="danger"
           onClick={() => {
             setUi({ overlay: null });
-            void session.logout();
+            session.logout().catch((error: unknown) => {
+              showToast(`Odhlásenie zlyhalo: ${describeError(error)}`);
+            });
           }}
         >
           Odhlásiť

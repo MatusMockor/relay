@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { fuzzyScore } from '../../lib/text';
 import { setUi } from '../../state/ui-store';
+import { isControlTarget } from '../keyboard/focus-target';
 import { Highlight } from '../list/Highlight';
 import { openThread } from '../mail/navigation';
 import { type Command, useCommands } from './use-commands';
@@ -80,7 +81,7 @@ export function CommandPalette() {
       setCursor((value) => Math.max(0, Math.min(items.length - 1, value + (down ? 1 : -1))));
       return true;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !isControlTarget(event.target)) {
       event.preventDefault();
       run(items[cursor]);
       return true;

@@ -42,7 +42,7 @@ export function AiSummary({ detail, pending }: AiSummaryProps) {
                   className={`chk${done ? ' on' : ''}`}
                   aria-pressed={done}
                   onClick={() => {
-                    toggle(item);
+                    void toggle(item);
                   }}
                 >
                   <span className="box">

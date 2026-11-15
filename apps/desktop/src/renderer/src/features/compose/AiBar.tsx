@@ -30,7 +30,7 @@ export function AiBar({ placeholder, chips, onRun, onClose }: AiBarProps) {
             onClose();
             return;
           }
-          if (event.key === 'Enter') {
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
             event.preventDefault();
             onRun(event.currentTarget.value.trim());
           }

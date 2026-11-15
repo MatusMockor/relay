@@ -40,7 +40,12 @@ export const useLayoutPersistence = (): (() => void) => {
   const { platform } = useAppContext();
   useEffect(() => {
     setUi(readLayout());
+    let active = true;
+    const widthsAtRead = useUiStore.getState().widths;
     void platform.deviceSettings().then((settings) => {
+      if (!active || useUiStore.getState().widths !== widthsAtRead) {
+        return;
+      }
       setUi({
         widths: {
           sidebar: settings.panelWidths.sidebar,
@@ -48,7 +53,7 @@ export const useLayoutPersistence = (): (() => void) => {
         },
       });
     });
-    return useUiStore.subscribe((state, previous) => {
+    const unsubscribe = useUiStore.subscribe((state, previous) => {
       if (
         state.leftUser === previous.leftUser &&
         state.rightOpen === previous.rightOpen &&
@@ -62,6 +67,10 @@ export const useLayoutPersistence = (): (() => void) => {
         rightTab: state.rightTab,
       });
     });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [platform]);
   return () => {
     const { widths } = useUiStore.getState();

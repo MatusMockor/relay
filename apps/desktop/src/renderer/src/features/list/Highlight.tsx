@@ -12,7 +12,9 @@ export const highlightRanges = (text: string, query: string): boolean[] => {
   const hay = chars
     .map((char, index) => {
       const folded = foldText(char);
-      Array.from(folded).forEach(() => owners.push(index));
+      for (let unit = 0; unit < folded.length; unit += 1) {
+        owners.push(index);
+      }
       return folded;
     })
     .join('');
