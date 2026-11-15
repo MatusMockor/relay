@@ -126,13 +126,20 @@ describe('accounts with only an INBOX on the IMAP server', () => {
       ['Sent', 'sent'],
       ['Trash', 'trash'],
     ]);
+    app.clock.advance(1000);
+    const resyncedAt = app.clock.now().toISOString();
     await app.api.ok(api.sync.now, { body: { accountId: account.id } }, token);
     await expect
-      .poll(async () => {
-        const done = await app.api.ok(api.threads.list, { query: { view: 'done' } }, token);
-        return done.items.map((thread) => thread.id);
-      })
-      .toEqual([invoice.id]);
+      .poll(
+        async () => {
+          const accounts = await app.api.ok(api.accounts.list, {}, token);
+          return accounts.find((item) => item.id === account.id)?.lastSyncedAt;
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(resyncedAt);
+    const done = await app.api.ok(api.threads.list, { query: { view: 'done' } }, token);
+    expect(done.items.map((thread) => thread.id)).toEqual([invoice.id]);
 
     const tasks = await app.api.ok(api.tasks.list, { query: {} }, token);
     expect(tasks.items.map((task) => [task.jiraKey, task.title])).toEqual([

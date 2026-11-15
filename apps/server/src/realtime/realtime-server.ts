@@ -87,8 +87,7 @@ export class RealtimeServer implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private upgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void {
-    const path = new URL(request.url ?? '/', 'http://localhost').pathname;
-    if (path !== REALTIME_PATH) {
+    if (pathOf(request.url) !== REALTIME_PATH) {
       socket.destroy();
       return;
     }
@@ -110,3 +109,11 @@ export class RealtimeServer implements OnApplicationBootstrap, OnModuleDestroy {
     });
   }
 }
+
+const pathOf = (url: string | undefined): string | null => {
+  try {
+    return new URL(url ?? '/', 'http://localhost').pathname;
+  } catch {
+    return null;
+  }
+};
