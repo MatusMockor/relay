@@ -161,4 +161,70 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
     );
     expect(dutyRows.find((row) => row.recurrenceId !== null)?.revision).toBe(1);
   });
+
+  it('keeps a range change after its anchor is cancelled and restores a cut with a newer range', async () => {
+    const anchor = 'anchor-daily@corp.test';
+    const restore = 'restore-daily@corp.test';
+    const daily = [
+      'SUMMARY:Report',
+      'DTSTART:20261101T090000Z',
+      'DTEND:20261101T093000Z',
+      'RRULE:FREQ=DAILY',
+      'DTSTAMP:20261101T080000Z',
+      'SEQUENCE:0',
+    ];
+    const at11 = (day: string, sequence: number) => [
+      'SUMMARY:Report o 11:00',
+      `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
+      `DTSTART:202611${day}T110000Z`,
+      `DTEND:202611${day}T113000Z`,
+      'DTSTAMP:20261102T080000Z',
+      `SEQUENCE:${String(sequence)}`,
+    ];
+    const cancel = (day: string, range: string, sequence: number) => [
+      `RECURRENCE-ID${range}:202611${day}T090000Z`,
+      'DTSTAMP:20261102T090000Z',
+      `SEQUENCE:${String(sequence)}`,
+    ];
+    await send('Pozvánka: Report A', 'REQUEST', anchor, daily);
+    await send('Report A o 11:00', 'REQUEST', anchor, at11('03', 1));
+    await send('Zrušené: Report A 3.11.', 'CANCEL', anchor, cancel('03', '', 2));
+    await send('Pozvánka: Report B', 'REQUEST', restore, daily);
+    await send(
+      'Zrušené: Report B od 3.11.',
+      'CANCEL',
+      restore,
+      cancel('03', ';RANGE=THISANDFUTURE', 1),
+    );
+    await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2));
+
+    const account = expectOk(
+      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
+    );
+    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+
+    const starts = async (from: string, to: string) =>
+      expectOk(
+        await harness.bridge.invoke('local.calendar.occurrences', { from, to, timeZone: 'UTC' }),
+      )
+        .items.map((item) => `${item.start} ${item.uid.split('-')[0] ?? ''}`)
+        .sort();
+    expect(await starts('2026-11-01T00:00:00Z', '2026-11-07T00:00:00Z')).toEqual([
+      '2026-11-01T09:00:00.000Z anchor',
+      '2026-11-01T09:00:00.000Z restore',
+      '2026-11-02T09:00:00.000Z anchor',
+      '2026-11-02T09:00:00.000Z restore',
+      '2026-11-04T11:00:00.000Z anchor',
+      '2026-11-05T11:00:00.000Z anchor',
+      '2026-11-05T11:00:00.000Z restore',
+      '2026-11-06T11:00:00.000Z anchor',
+      '2026-11-06T11:00:00.000Z restore',
+    ]);
+    expect(await starts('2026-12-20T00:00:00Z', '2026-12-21T00:00:00Z')).toEqual([
+      '2026-12-20T11:00:00.000Z anchor',
+      '2026-12-20T11:00:00.000Z restore',
+    ]);
+    const restored = await seriesOf(account.id, restore);
+    expect(restored.find((row) => row.recurrenceId === null)?.rangeEndsAt).toBeNull();
+  });
 });
