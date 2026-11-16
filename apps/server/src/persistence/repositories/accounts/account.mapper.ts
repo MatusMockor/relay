@@ -11,6 +11,7 @@ export const toMailAccount = (row: AccountRow): MailAccount => ({
   userId: row.userId,
   provider: row.provider,
   displayName: row.displayName,
+  senderName: row.senderName,
   email: row.email,
   color: row.color,
   isPrimary: row.isPrimary,
@@ -27,6 +28,7 @@ export const toAccountInsert = (account: MailAccount): AccountInsert => ({
   userId: account.userId,
   provider: account.provider,
   displayName: account.displayName,
+  senderName: account.senderName,
   email: account.email,
   color: account.color,
   isPrimary: account.isPrimary,
@@ -40,6 +42,7 @@ export const toAccountInsert = (account: MailAccount): AccountInsert => ({
 
 export const toAccountUpdate = (changes: AccountChanges): Partial<AccountInsert> => ({
   ...(changes.displayName === undefined ? {} : { displayName: changes.displayName }),
+  ...(changes.senderName === undefined ? {} : { senderName: changes.senderName }),
   ...(changes.color === undefined ? {} : { color: changes.color }),
   ...(changes.isPrimary === undefined ? {} : { isPrimary: changes.isPrimary }),
   ...(changes.syncIntervalSeconds === undefined

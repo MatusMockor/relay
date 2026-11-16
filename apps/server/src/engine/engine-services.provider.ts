@@ -1,13 +1,16 @@
 import type { FactoryProvider } from '@nestjs/common';
 import {
   type AiRunnerRegistry,
+  type AttachmentBlobCatalog,
   type AttachmentExtractor,
   type AttachmentStore,
+  type CalendarAdapters,
   type Clock,
   createEngineServices,
   type ConditionalCredentialVault,
   type EngineServices,
   type EventPublisher,
+  type GoogleCalendarAdapters,
   type IdGenerator,
   type JiraClassifier,
   type Logger,
@@ -23,6 +26,7 @@ import {
 } from '@relay/engine';
 import { isUnsafeRegex } from '@relay/mail-core';
 import { ServerMailToolsResolver } from '../ai/mcp/server-mail-tools-resolver';
+import { SERVER_CONFIG, type ServerConfig } from '../config/server-config';
 import { ENGINE_REPOSITORIES } from './engine-repositories.provider';
 import { ENGINE_SERVICES } from './engine.tokens';
 import { SERVER_DEFAULT_USER_SETTINGS } from './server-user-settings';
@@ -36,6 +40,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     PORT_TOKENS.MailSender,
     PORT_TOKENS.CredentialVault,
     PORT_TOKENS.AttachmentStore,
+    PORT_TOKENS.AttachmentBlobCatalog,
     PORT_TOKENS.MessageAttachmentLookup,
     PORT_TOKENS.AttachmentExtractor,
     PORT_TOKENS.MessageParser,
@@ -43,11 +48,14 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     PORT_TOKENS.JiraClassifier,
     PORT_TOKENS.SplitMatcher,
     PORT_TOKENS.AiRunnerRegistry,
+    PORT_TOKENS.CalendarAdapters,
+    PORT_TOKENS.GoogleCalendarAdapters,
     PORT_TOKENS.EventPublisher,
     PORT_TOKENS.Clock,
     PORT_TOKENS.IdGenerator,
     PORT_TOKENS.Logger,
     ServerMailToolsResolver,
+    SERVER_CONFIG,
   ],
   useFactory: (
     repositories: Repositories,
@@ -56,6 +64,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     mailSender: MailSender,
     credentialVault: ConditionalCredentialVault,
     attachmentStore: AttachmentStore,
+    attachmentBlobs: AttachmentBlobCatalog,
     messageAttachmentLookup: MessageAttachmentLookup,
     attachmentExtractor: AttachmentExtractor,
     messageParser: MessageParser,
@@ -63,11 +72,14 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     jiraClassifier: JiraClassifier,
     splitMatcher: SplitMatcher,
     aiRunnerRegistry: AiRunnerRegistry,
+    calendar: CalendarAdapters,
+    googleCalendar: GoogleCalendarAdapters,
     eventPublisher: EventPublisher,
     clock: Clock,
     idGenerator: IdGenerator,
     logger: Logger,
     mailTools: ServerMailToolsResolver,
+    config: ServerConfig,
   ) =>
     createEngineServices({
       repositories,
@@ -76,6 +88,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
       mailSender,
       credentialVault,
       attachmentStore,
+      attachmentBlobs,
       messageAttachmentLookup,
       attachmentExtractor,
       messageParser,
@@ -83,6 +96,8 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
       jiraClassifier,
       splitMatcher,
       aiRunnerRegistry,
+      calendar,
+      googleCalendar,
       eventPublisher,
       clock,
       idGenerator,
@@ -92,6 +107,14 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
         aiRunnerLocation: 'server',
         settings: { defaults: SERVER_DEFAULT_USER_SETTINGS },
         ai: { mailTools: (job, owner) => mailTools.resolve(job, owner) },
+        calendar: {
+          feedRefreshSeconds: config.calendar.feedRefreshSeconds,
+          googleSyncSeconds: config.calendar.googleSyncSeconds,
+        },
+        attachments: {
+          graceMs: config.attachments.sweepGraceSeconds * 1000,
+          intervalMs: config.attachments.sweepIntervalSeconds * 1000,
+        },
       },
     }),
 };

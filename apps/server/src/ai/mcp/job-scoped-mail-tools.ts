@@ -18,6 +18,8 @@ export const scopeMailToolsToJob = (
     listFolder: (query) => backend.listFolder(query),
     getThread: (threadId) => backend.getThread(threadId),
     listTasks: (query) => backend.listTasks(query),
+    listEvents: (range) => backend.listEvents(range),
+    getThreadEvents: (threadId) => backend.getThreadEvents(threadId),
     createTask: refuse(kind),
     createDraft: refuse(kind),
   };

@@ -19,6 +19,12 @@ const REPOSITORY_TOKENS = {
   aiJobs: PORT_TOKENS.AiJobRepository,
   syncStates: PORT_TOKENS.SyncStateRepository,
   pendingWork: PORT_TOKENS.PendingWorkRepository,
+  calendarEvents: PORT_TOKENS.CalendarEventRepository,
+  calendarSubscriptions: PORT_TOKENS.CalendarSubscriptionRepository,
+  googleConnections: PORT_TOKENS.GoogleConnectionRepository,
+  googleCalendars: PORT_TOKENS.GoogleCalendarRepository,
+  googleEvents: PORT_TOKENS.GoogleEventRepository,
+  inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
 } as const satisfies Record<keyof Repositories, symbol>;
 
 const KEYS = Object.keys(REPOSITORY_TOKENS) as (keyof Repositories)[];

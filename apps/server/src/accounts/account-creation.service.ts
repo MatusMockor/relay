@@ -1,13 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AccountService,
+  GoogleCalendarService,
+  grantsGoogleCalendar,
   type Logger,
   NotImplementedError,
   PORT_TOKENS,
   ValidationError,
 } from '@relay/engine';
 import type { CreateAccountBody } from '@relay/shared/api';
-import { EmailAddressSchema, type MailAccount, type UserId } from '@relay/shared/domain';
+import {
+  EmailAddressSchema,
+  type MailAccount,
+  type OAuthCredentials,
+  type UserId,
+} from '@relay/shared/domain';
 import { SyncTrigger } from '../jobs/sync/sync-trigger';
 import { OAUTH_CODE_EXCHANGER, type OAuthCodeExchanger } from '../mail/oauth-code-exchanger';
 
@@ -20,6 +27,7 @@ export class AccountCreationService {
     private readonly sync: SyncTrigger,
     @Inject(OAUTH_CODE_EXCHANGER) private readonly oauth: OAuthCodeExchanger,
     @Inject(PORT_TOKENS.Logger) private readonly logger: Logger,
+    private readonly googleCalendar: GoogleCalendarService,
   ) {}
 
   async create(userId: UserId, body: CreateAccountBody): Promise<MailAccount> {
@@ -50,12 +58,32 @@ export class AccountCreationService {
     if (!email.success) {
       throw new ValidationError('Google did not return the account email address');
     }
-    return this.accounts.createOAuth(userId, {
+    const account = await this.accounts.createOAuth(userId, {
       ...preferences,
       provider,
       email: email.data.toLowerCase(),
       credentials: exchanged.credentials,
       verify: false,
     });
+    await this.connectCalendar(userId, account, exchanged.credentials);
+    return account;
+  }
+
+  private async connectCalendar(
+    userId: UserId,
+    account: MailAccount,
+    credentials: OAuthCredentials,
+  ): Promise<void> {
+    if (!grantsGoogleCalendar(credentials.scope)) {
+      return;
+    }
+    await this.googleCalendar
+      .connect(userId, { email: account.email, credentials })
+      .catch((error: unknown) => {
+        this.logger.error('Failed to connect the Google calendar of a new Gmail account', {
+          accountId: account.id,
+          error,
+        });
+      });
   }
 }

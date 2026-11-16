@@ -39,6 +39,17 @@ export interface ServerConfig {
     readonly pollingIntervalSeconds: number;
   };
   readonly ai: { readonly cliPath: string | null };
+  readonly calendar: {
+    readonly allowPrivateNetworks: boolean;
+    readonly feedRefreshSeconds: number;
+    readonly caFile: string | null;
+    readonly googleApiUrl: string | null;
+    readonly googleSyncSeconds: number;
+  };
+  readonly attachments: {
+    readonly sweepIntervalSeconds: number;
+    readonly sweepGraceSeconds: number;
+  };
 }
 
 const readGoogle = (env: Env): GoogleOAuthConfig | null => {
@@ -86,4 +97,15 @@ export const toServerConfig = (env: Env): ServerConfig => ({
     pollingIntervalSeconds: env.JOBS_POLL_INTERVAL_SECONDS,
   },
   ai: { cliPath: env.AI_CLI_PATH ?? null },
+  calendar: {
+    allowPrivateNetworks: env.CALENDAR_FEEDS_ALLOW_PRIVATE_NETWORKS,
+    feedRefreshSeconds: env.CALENDAR_FEED_REFRESH_SECONDS,
+    caFile: env.CALENDAR_FEEDS_CA_FILE ?? null,
+    googleApiUrl: env.GOOGLE_CALENDAR_API_URL ?? null,
+    googleSyncSeconds: env.GOOGLE_CALENDAR_SYNC_SECONDS,
+  },
+  attachments: {
+    sweepIntervalSeconds: env.ATTACHMENT_SWEEP_INTERVAL_SECONDS,
+    sweepGraceSeconds: env.ATTACHMENT_SWEEP_GRACE_SECONDS,
+  },
 });

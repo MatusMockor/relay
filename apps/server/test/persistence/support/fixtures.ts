@@ -55,6 +55,7 @@ export const buildAccount = (
   userId,
   provider: 'imap',
   displayName: 'Práca',
+  senderName: 'Ján Testovací',
   email: `${randomBytes(4).toString('hex')}@firma.sk`,
   color: '#3366ff',
   isPrimary: false,
@@ -152,7 +153,7 @@ export interface SeededAccount {
   readonly mailboxes: MailboxSet;
 }
 
-const mailboxByRole = (mailboxes: readonly Mailbox[], role: MailboxRole): Mailbox =>
+export const mailboxByRole = (mailboxes: readonly Mailbox[], role: MailboxRole): Mailbox =>
   mailboxes.find((mailbox) => mailbox.role === role) ?? buildMailbox('missing' as AccountId, role);
 
 export const seedAccount = async (

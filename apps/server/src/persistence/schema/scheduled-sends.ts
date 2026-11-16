@@ -33,6 +33,7 @@ export const scheduledSends = pgTable(
     error: text('error'),
     sentAt: timestampTz('sent_at'),
     claimedAt: timestampTz('claimed_at'),
+    renewedAt: timestampTz('renewed_at'),
     createdAt: timestampTz('created_at').notNull(),
   },
   (table) => [

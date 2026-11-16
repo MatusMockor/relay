@@ -4,12 +4,16 @@ import { AiModule } from './ai/ai.module';
 import { AiRuntimeModule } from './ai/ai-runtime.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
+import { CalendarAdaptersModule } from './calendar/calendar-adapters.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { ComposeModule } from './compose/compose.module';
 import { ServerConfigModule } from './config/config.module';
 import type { ServerConfig } from './config/server-config';
 import { DevicesModule } from './devices/devices.module';
 import { EngineModule } from './engine/engine.module';
 import { EventsModule } from './events/events.module';
+import { GoogleCalendarAdaptersModule } from './google-calendar/google-calendar-adapters.module';
+import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { HealthModule } from './health/health.module';
 import { HttpModule } from './http/http.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
@@ -38,6 +42,8 @@ export class AppModule {
         PersistenceModule.forRoot({ config: toPersistenceConfig(config) }),
         MailModule,
         AiRuntimeModule,
+        CalendarAdaptersModule,
+        GoogleCalendarAdaptersModule,
         EngineModule,
         JobsModule,
         AuthModule,
@@ -54,6 +60,8 @@ export class AppModule {
         AccountsModule,
         SettingsModule,
         SyncModule,
+        CalendarModule,
+        GoogleCalendarModule,
       ],
     };
   }

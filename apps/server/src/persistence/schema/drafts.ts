@@ -52,6 +52,7 @@ export const drafts = pgTable(
     createdAt: timestampTz('created_at').notNull(),
     updatedAt: timestampTz('updated_at').notNull(),
     sendClaimedAt: timestampTz('send_claimed_at'),
+    sendRenewedAt: timestampTz('send_renewed_at'),
   },
   (table) => [
     index('drafts_user_idx').on(table.userId, table.updatedAt.desc()),

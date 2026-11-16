@@ -1,5 +1,11 @@
 import { Controller, Req, Res } from '@nestjs/common';
-import { ComposeService, InboxQueryService, TaskService, ThreadQueryService } from '@relay/engine';
+import {
+  CalendarService,
+  ComposeService,
+  InboxQueryService,
+  TaskService,
+  ThreadQueryService,
+} from '@relay/engine';
 import {
   bearerToken,
   createMailMcpHttpHandler,
@@ -9,6 +15,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { RawRoute } from '../../http/api-route.decorator';
 import { scopeMailToolsToJob } from './job-scoped-mail-tools';
+import { jobTimeZone } from './job-time-zone';
 import { MAIL_MCP_PATH } from './mail-mcp-path';
 import { MailToolsGrantAuthorizer } from './mail-tools-grant-authorizer';
 
@@ -22,6 +29,7 @@ export class MailMcpController {
     threads: ThreadQueryService,
     tasks: TaskService,
     compose: ComposeService,
+    calendar: CalendarService,
   ) {
     this.handler = createMailMcpHttpHandler(async (request) => {
       const token = bearerToken(request);
@@ -29,7 +37,11 @@ export class MailMcpController {
       if (job === null) {
         return null;
       }
-      const backend = engineMailToolBackend({ inbox, threads, tasks, compose }, job.userId);
+      const backend = engineMailToolBackend(
+        { inbox, threads, tasks, compose, calendar },
+        job.userId,
+        () => jobTimeZone(job),
+      );
       return scopeMailToolsToJob(backend, job.kind);
     });
   }

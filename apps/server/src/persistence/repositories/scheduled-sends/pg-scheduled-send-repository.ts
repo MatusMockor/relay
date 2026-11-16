@@ -1,17 +1,18 @@
 import { ConflictError, type ScheduledSendRepository } from '@relay/engine';
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, isNull, lt, lte, notInArray, or } from 'drizzle-orm';
+import { and, asc, eq, lte, notInArray, or } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { scheduledSends } from '../../schema';
 import { assertOwned } from '../../support/ownership';
 import { isUniqueViolation } from '../../support/postgres-errors';
+import { leaseStaleBefore } from '../../support/stale-lease';
 import { toDate } from '../../support/timestamps';
 import { toScheduledSend, toScheduledSendInsert } from './scheduled-send.mapper';
 
 const staleSending = (staleBefore: string) =>
   and(
     eq(scheduledSends.status, 'sending'),
-    or(isNull(scheduledSends.claimedAt), lt(scheduledSends.claimedAt, toDate(staleBefore))),
+    leaseStaleBefore(scheduledSends.claimedAt, scheduledSends.renewedAt, staleBefore),
   );
 
 const claimedBy = (scheduledSendId: ScheduledSendId, claimedAt: string) =>
@@ -78,8 +79,22 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
       .set({
         status: 'sending',
         claimedAt: toDate(claimedAt),
+        renewedAt: null,
       })
       .where(and(eq(scheduledSends.id, scheduledSendId), eq(scheduledSends.status, 'pending')))
+      .returning({ id: scheduledSends.id });
+    return rows.length > 0;
+  }
+
+  async renew(
+    scheduledSendId: ScheduledSendId,
+    claimedAt: string,
+    renewedAt: string,
+  ): Promise<boolean> {
+    const rows = await this.db
+      .update(scheduledSends)
+      .set({ renewedAt: toDate(renewedAt) })
+      .where(claimedBy(scheduledSendId, claimedAt))
       .returning({ id: scheduledSends.id });
     return rows.length > 0;
   }
@@ -90,7 +105,7 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
   ): Promise<number> {
     const rows = await this.db
       .update(scheduledSends)
-      .set({ status: 'pending', claimedAt: null })
+      .set({ status: 'pending', claimedAt: null, renewedAt: null })
       .where(
         and(
           staleSending(staleBefore),
@@ -108,7 +123,13 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
   ): Promise<boolean> {
     const rows = await this.db
       .update(scheduledSends)
-      .set({ status: 'sent', sentAt: toDate(sentAt), error: null, claimedAt: null })
+      .set({
+        status: 'sent',
+        sentAt: toDate(sentAt),
+        error: null,
+        claimedAt: null,
+        renewedAt: null,
+      })
       .where(claimedBy(scheduledSendId, claimedAt))
       .returning({ id: scheduledSends.id });
     return rows.length > 0;
@@ -121,7 +142,7 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
   ): Promise<boolean> {
     const rows = await this.db
       .update(scheduledSends)
-      .set({ status: 'failed', error, claimedAt: null })
+      .set({ status: 'failed', error, claimedAt: null, renewedAt: null })
       .where(claimedBy(scheduledSendId, claimedAt))
       .returning({ id: scheduledSends.id });
     return rows.length > 0;
@@ -134,7 +155,7 @@ export class PgScheduledSendRepository implements ScheduledSendRepository {
   ): Promise<boolean> {
     const rows = await this.db
       .update(scheduledSends)
-      .set({ status: 'cancelled', claimedAt: null })
+      .set({ status: 'cancelled', claimedAt: null, renewedAt: null })
       .where(
         and(
           eq(scheduledSends.userId, userId),

@@ -3,8 +3,11 @@ import {
   AccountService,
   AiService,
   AttachmentContentService,
+  AttachmentSweeper,
+  CalendarService,
   ComposeService,
   type EngineServices,
+  GoogleCalendarService,
   InboxQueryService,
   LabelQueryService,
   MessageActionsService,
@@ -44,8 +47,11 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(SplitService, 'splits'),
   service(AiService, 'ai'),
   service(AttachmentContentService, 'attachments'),
+  service(AttachmentSweeper, 'attachmentSweeper'),
   service(AccountService, 'accounts'),
   service(SettingsService, 'settings'),
+  service(CalendarService, 'calendar'),
+  service(GoogleCalendarService, 'googleCalendar'),
 ];
 
 @Global()
@@ -65,8 +71,11 @@ const SERVICE_PROVIDERS: Provider[] = [
     SplitService,
     AiService,
     AttachmentContentService,
+    AttachmentSweeper,
     AccountService,
     SettingsService,
+    CalendarService,
+    GoogleCalendarService,
   ],
 })
 export class EngineModule {}

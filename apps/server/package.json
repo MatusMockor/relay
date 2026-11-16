@@ -21,6 +21,7 @@
     "@nestjs/platform-ws": "11.2.10",
     "@nestjs/websockets": "11.2.10",
     "@relay/ai": "workspace:*",
+    "@relay/calendar": "workspace:*",
     "@relay/engine": "workspace:*",
     "@relay/mail-core": "workspace:*",
     "@relay/mcp-mail": "workspace:*",

@@ -7,13 +7,25 @@ import {
   PERSISTENCE_ENV_KEYS,
   parsePersistenceConfig,
 } from './config/persistence-config';
+import { AesGcmCalendarFeedSecrets } from './credentials/aes-gcm-calendar-feed-secrets';
 import { AesGcmCipher } from './credentials/aes-gcm-cipher';
 import { AesGcmCredentialVault } from './credentials/aes-gcm-credential-vault';
+import { AesGcmGoogleCalendarCredentials } from './credentials/aes-gcm-google-calendar-credentials';
 import { PgAccountCredentialStore } from './credentials/pg-account-credential-store';
+import { PgCalendarFeedSecretStore } from './credentials/pg-calendar-feed-secret-store';
+import { PgGoogleCalendarCredentialStore } from './credentials/pg-google-calendar-credential-store';
 import type { DbExecutor } from './database/database';
 import { openPostgresConnection, type PostgresConnection } from './database/postgres-connection';
 import { runMigrations } from './migrations/migration-runner';
-import { DRIZZLE_DB, PERSISTENCE_CONFIG, PG_POOL, POSTGRES_CONNECTION } from './persistence.tokens';
+import {
+  CALENDAR_FEED_SECRETS,
+  DRIZZLE_DB,
+  GOOGLE_CALENDAR_CREDENTIALS,
+  PERSISTENCE_CONFIG,
+  PG_POOL,
+  POSTGRES_CONNECTION,
+} from './persistence.tokens';
+import { PgAttachmentBlobCatalog } from './repositories/attachments/pg-attachment-blob-catalog';
 import { PgAttachmentStore } from './repositories/attachments/pg-attachment-store';
 import { createPgRepositories } from './repositories/create-pg-repositories';
 import { PgMessageAttachmentLookup } from './repositories/messages/pg-message-attachment-lookup';
@@ -76,6 +88,12 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   aiJobs: PORT_TOKENS.AiJobRepository,
   syncStates: PORT_TOKENS.SyncStateRepository,
   pendingWork: PORT_TOKENS.PendingWorkRepository,
+  calendarEvents: PORT_TOKENS.CalendarEventRepository,
+  calendarSubscriptions: PORT_TOKENS.CalendarSubscriptionRepository,
+  googleConnections: PORT_TOKENS.GoogleConnectionRepository,
+  googleCalendars: PORT_TOKENS.GoogleCalendarRepository,
+  googleEvents: PORT_TOKENS.GoogleEventRepository,
+  inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
   users: SERVER_PORT_TOKENS.UserRepository,
   devices: SERVER_PORT_TOKENS.DeviceRepository,
   refreshTokens: SERVER_PORT_TOKENS.RefreshTokenRepository,
@@ -125,9 +143,32 @@ export const persistenceProviders: Provider[] = [
       ),
   },
   {
+    provide: CALENDAR_FEED_SECRETS,
+    inject: [DRIZZLE_DB, PERSISTENCE_CONFIG],
+    useFactory: (db: DbExecutor, config: PersistenceConfig) =>
+      new AesGcmCalendarFeedSecrets(
+        new PgCalendarFeedSecretStore(db),
+        new AesGcmCipher(config.credentialsKey),
+      ),
+  },
+  {
+    provide: GOOGLE_CALENDAR_CREDENTIALS,
+    inject: [DRIZZLE_DB, PERSISTENCE_CONFIG],
+    useFactory: (db: DbExecutor, config: PersistenceConfig) =>
+      new AesGcmGoogleCalendarCredentials(
+        new PgGoogleCalendarCredentialStore(db),
+        new AesGcmCipher(config.credentialsKey),
+      ),
+  },
+  {
     provide: PORT_TOKENS.AttachmentStore,
     inject: [DRIZZLE_DB],
     useFactory: (db: DbExecutor) => new PgAttachmentStore(db),
+  },
+  {
+    provide: PORT_TOKENS.AttachmentBlobCatalog,
+    inject: [DRIZZLE_DB],
+    useFactory: (db: DbExecutor) => new PgAttachmentBlobCatalog(db),
   },
   {
     provide: PORT_TOKENS.MessageAttachmentLookup,
@@ -144,6 +185,9 @@ export const PERSISTENCE_EXPORTS = [
   PORT_TOKENS.UnitOfWork,
   SERVER_PORT_TOKENS.ServerUnitOfWork,
   PORT_TOKENS.CredentialVault,
+  CALENDAR_FEED_SECRETS,
+  GOOGLE_CALENDAR_CREDENTIALS,
   PORT_TOKENS.AttachmentStore,
+  PORT_TOKENS.AttachmentBlobCatalog,
   PORT_TOKENS.MessageAttachmentLookup,
 ];

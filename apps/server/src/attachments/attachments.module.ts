@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AttachmentContentController } from './attachment-content.controller';
-import { AttachmentsController } from './attachments.controller';
+import { AttachmentSweepScheduler } from './attachment-sweep-scheduler';
+import { DraftAttachmentsController } from './draft-attachments.controller';
 
-@Module({ controllers: [AttachmentsController, AttachmentContentController] })
+@Module({
+  controllers: [AttachmentContentController, DraftAttachmentsController],
+  providers: [AttachmentSweepScheduler],
+})
 export class AttachmentsModule {}

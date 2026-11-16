@@ -116,4 +116,26 @@ describe('PgPendingWorkRepository', () => {
       [second.account.id, 'sch-b'],
     ]);
   });
+
+  it('replaces the payload only while the revision is unchanged', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { pendingWork } = context.repositories;
+    const read = await pendingWork.put(refreshWork(seeded, 'thr-r', '2026-11-15T10:00:00.000Z'));
+    const requeued = await pendingWork.put({
+      ...refreshWork(seeded, 'thr-r', '2026-11-15T10:00:00.000Z'),
+      payload: { ...read.payload, expungedFromInbox: true },
+    });
+
+    const stale = await pendingWork.replace(read, {
+      ...read.payload,
+      jiraKey: null,
+      arrivedIn: [],
+    });
+    const fresh = await pendingWork.replace(requeued, { ...requeued.payload, arrivedIn: [] });
+
+    expect(stale).toBeNull();
+    expect(fresh?.payload).toMatchObject({ expungedFromInbox: true, arrivedIn: [] });
+    expect(fresh?.revision).not.toBe(requeued.revision);
+    expect(await pendingWork.find(read)).toEqual(fresh);
+  });
 });

@@ -39,6 +39,13 @@ export const EnvSchema = z.object({
   JOBS_POLL_INTERVAL_SECONDS: z.coerce.number<number | string>().min(0.5).max(60).default(2),
   GOOGLE_OAUTH_TOKEN_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
   AI_CLI_PATH: z.string().min(1).optional(),
+  CALENDAR_FEEDS_ALLOW_PRIVATE_NETWORKS: z.stringbool().default(false),
+  CALENDAR_FEED_REFRESH_SECONDS: PositiveIntSchema(900),
+  CALENDAR_FEEDS_CA_FILE: z.string().min(1).optional(),
+  GOOGLE_CALENDAR_API_URL: z.url({ protocol: /^https?$/ }).optional(),
+  GOOGLE_CALENDAR_SYNC_SECONDS: PositiveIntSchema(300),
+  ATTACHMENT_SWEEP_INTERVAL_SECONDS: PositiveIntSchema(3600),
+  ATTACHMENT_SWEEP_GRACE_SECONDS: PositiveIntSchema(86_400),
 });
 export type Env = z.infer<typeof EnvSchema>;
 
