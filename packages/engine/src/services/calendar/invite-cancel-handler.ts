@@ -2,10 +2,11 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, supersedes } from './event-precedence';
-import { cancelled } from './invite-cancellation';
+import { cancelled, cancels } from './invite-cancellation';
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { InviteRangeCancelHandler } from './invite-range-cancel-handler';
 import { saveCurrent } from './invite-write';
+import { compareRevisions } from './revision-order';
 import { isRangeRecord, sameSlot } from './recurrence-slot';
 import { involvesRange, isMaster } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
@@ -44,7 +45,7 @@ export class InviteCancelHandler implements InviteHandler {
       return this.range.apply(repositories, context, event, series);
     }
     const scoped = series.filter(inScope(series, event));
-    const targets = scoped.filter((member) => supersedes(event, member));
+    const targets = scoped.filter((member) => supersedes(event, member) && cancels(member, event));
     for (const target of targets) {
       await saveCurrent(repositories, cancelled(target, context, event));
     }
@@ -58,7 +59,7 @@ export class InviteCancelHandler implements InviteHandler {
       return false;
     }
     const master = series.find(isMaster);
-    if (master !== undefined && event.sequence < master.sequence) {
+    if (master !== undefined && compareRevisions(event, master) < 0) {
       return false;
     }
     const mine = findAttendee(event.attendees, context.account.email);

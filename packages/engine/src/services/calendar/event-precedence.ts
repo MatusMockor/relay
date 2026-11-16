@@ -1,27 +1,13 @@
 import type { CalendarAttendee, CalendarPartStat } from '@relay/shared/domain';
-import type {
-  CalendarEventData,
-  CalendarRevision,
-  StoredCalendarEvent,
-} from '../../model/calendar';
+import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
+import { compareRevisions } from './revision-order';
 
 const stampOf = (value: string | null): number => (value === null ? 0 : Date.parse(value));
-
-export const compareRevisions = (a: CalendarRevision, b: CalendarRevision): number =>
-  a.sequence - b.sequence || stampOf(a.dtstamp) - stampOf(b.dtstamp);
 
 export const supersedes = (
   incoming: CalendarEventData,
   stored: StoredCalendarEvent | undefined,
-): boolean => {
-  if (stored === undefined) {
-    return true;
-  }
-  if (incoming.sequence !== stored.sequence) {
-    return incoming.sequence > stored.sequence;
-  }
-  return stampOf(incoming.dtstamp) >= stampOf(stored.dtstamp);
-};
+): boolean => stored === undefined || compareRevisions(incoming, stored) >= 0;
 
 export const sameRevision = (incoming: CalendarEventData, stored: StoredCalendarEvent): boolean =>
   incoming.sequence === stored.sequence &&

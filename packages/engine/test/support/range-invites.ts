@@ -55,14 +55,21 @@ export const SERIES = {
   endsAt: '2026-11-02T10:00:00.000Z',
 };
 
+export const stampAt = (sequence: number, minute = '00'): string =>
+  `2026-11-15T${String(10 + sequence).padStart(2, '0')}:${minute}:00.000Z`;
+
 export const master = (overrides: Partial<ParsedCalendarEvent> = {}) =>
-  calendarOf('REQUEST', eventData({ ...SERIES, ...overrides }));
+  calendarOf(
+    'REQUEST',
+    eventData({ ...SERIES, dtstamp: stampAt(overrides.sequence ?? 0), ...overrides }),
+  );
 
 export const instance = (day: string, overrides: Partial<ParsedCalendarEvent> = {}) =>
   calendarOf(
     'REQUEST',
     eventData({
       ...SERIES,
+      dtstamp: stampAt(overrides.sequence ?? 0),
       recurring: false,
       recurrenceId: `2026-${day}T09:00:00.000Z`,
       startsAt: `2026-${day}T13:00:00.000Z`,
@@ -79,7 +86,7 @@ const cancelData = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent
     recurring: false,
     recurrenceId,
     sequence: 1,
-    dtstamp: '2026-11-15T09:00:00.000Z',
+    dtstamp: stampAt(overrides.sequence ?? 1, '30'),
     status: 'cancelled',
     ...overrides,
   });

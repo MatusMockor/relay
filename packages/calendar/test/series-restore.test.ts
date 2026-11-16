@@ -44,13 +44,13 @@ const range = (day: string, hour: string, summary: string) =>
     ],
   );
 
-const moved = (day: string, sequence = 1) =>
+const moved = (day: string, sequence = 1, stamp = '20261101T090000Z') =>
   vcalendar(
     'REQUEST',
     [],
     [
       UID,
-      'DTSTAMP:20261101T090000Z',
+      `DTSTAMP:${stamp}`,
       `SEQUENCE:${String(sequence)}`,
       'SUMMARY:Report presunutý',
       `RECURRENCE-ID:202611${day}T090000Z`,
@@ -90,7 +90,11 @@ const records = (...extra: string[]) => [
 describe('series restored by a newer master', () => {
   it('hides older records under a whole-series CANCEL and brings them back with a newer master', () => {
     const cancelled = withCancelledMaster(
-      seriesFrom('report@partner.test', daily(0, 10), ...records(moved('08', 3))),
+      seriesFrom(
+        'report@partner.test',
+        daily(0, 10),
+        ...records(moved('08', 3, '20261103T080000Z')),
+      ),
       2,
     );
     const restored = seriesFrom('report@partner.test', daily(3, 10), ...records());

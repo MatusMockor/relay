@@ -1,9 +1,8 @@
-import type { StoredCalendarEvent } from '@relay/engine';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 import { MAX_ITERATIONS } from '../ics/series-range';
 import { occurrenceTimes } from './occurrence-times';
 import type { ParsedEvent } from './parsed-event';
 import { keyInstant } from './recurrence-instant';
-import { compareRevision } from './revision';
 
 const isOccurrence = (parsed: ParsedEvent, key: string, timeZone: string): boolean => {
   const target = keyInstant(key, timeZone);
@@ -28,5 +27,5 @@ export const orphaned = (
   parsed: ParsedEvent,
   timeZone: string,
 ): boolean =>
-  compareRevision(override, master) < 0 &&
+  compareRevisions(override, master) < 0 &&
   !isOccurrence(parsed, override.recurrenceId ?? '', timeZone);

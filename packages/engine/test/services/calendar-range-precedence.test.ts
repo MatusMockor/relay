@@ -16,6 +16,7 @@ import {
   rangeKey,
   rangeRow,
   rows,
+  stampAt,
 } from '../support/range-invites';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
@@ -92,7 +93,7 @@ describe('THISANDFUTURE range precedence of invitations', () => {
       status: 'confirmed',
       method: 'REQUEST',
       sequence: 1,
-      dtstamp: '2026-11-15T07:00:00.000Z',
+      dtstamp: stampAt(1),
     });
   });
 
@@ -188,7 +189,7 @@ describe('THISANDFUTURE range precedence of invitations', () => {
 
     expect(cutRow(engine, CUT)).toMatchObject({
       sequence: 1,
-      dtstamp: '2026-11-15T09:00:00.000Z',
+      dtstamp: stampAt(1, '30'),
       endsSeries: true,
     });
     expect(occurrenceRow(engine, CUT)).toMatchObject({ status: 'cancelled', sequence: 3 });

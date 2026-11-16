@@ -18,6 +18,7 @@ import {
   rangeRow,
   rows,
   SERIES,
+  stampAt,
 } from '../support/range-invites';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 import type { TestEngine } from '../support/test-engine';
@@ -104,7 +105,7 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
       engine,
       seeded,
       'same-revision',
-      instance('11-23', { sequence: 2, dtstamp: '2026-11-15T09:00:00.000Z', thisAndFuture: true }),
+      instance('11-23', { sequence: 2, dtstamp: stampAt(2, '30'), thisAndFuture: true }),
     );
     expect(cutRow(engine, CUT)).toMatchObject({ endsSeries: true, sequence: 2 });
     expect(await cardOf(engine, rangeRow(engine, CUT))).toMatchObject({ status: 'cancelled' });

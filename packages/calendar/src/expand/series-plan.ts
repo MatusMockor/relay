@@ -1,8 +1,7 @@
-import type { StoredCalendarEvent } from '@relay/engine';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 import { spanOf, type ZonedTime } from './occurrence-span';
 import { type ParsedEvent, parsedEventOf } from './parsed-event';
 import { keyInstant } from './recurrence-instant';
-import { compareRevision } from './revision';
 import { wallShift } from './wall-shift';
 
 export interface RangeOverride {
@@ -48,7 +47,7 @@ const cutsOf = (overrides: readonly StoredCalendarEvent[], timeZone: string): Se
     .sort((a, b) => a.from - b.from);
 
 export const lifts = (range: RangeOverride, cut: SeriesCut): boolean =>
-  range.from >= cut.from && compareRevision(range.event, cut.event) > 0;
+  range.from >= cut.from && compareRevisions(range.event, cut.event) > 0;
 
 const stopOf = (cuts: readonly SeriesCut[], ranges: readonly RangeOverride[]): number =>
   cuts.find((cut) => !ranges.some((range) => lifts(range, cut)))?.from ?? Number.POSITIVE_INFINITY;

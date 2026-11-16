@@ -25,10 +25,10 @@ const outlookSeries = vcalendar('REQUEST', CENTRAL_EUROPE, [
   'RRULE:FREQ=WEEKLY;BYDAY=MO',
 ]);
 
-const movedInstance = (day: string, sequence: number) =>
+const movedInstance = (day: string, sequence: number, stamp = STAMP) =>
   vcalendar('REQUEST', CENTRAL_EUROPE, [
     UID,
-    STAMP,
+    stamp,
     `SEQUENCE:${String(sequence)}`,
     'SUMMARY:Týždenná porada (posunutá)',
     `RECURRENCE-ID;TZID=Central Europe Standard Time:${day}T100000`,
@@ -89,7 +89,7 @@ describe('RECURRENCE-ID;RANGE=THISANDFUTURE cancellations', () => {
       'series@corp.test',
       outlookSeries,
       cancelFrom(OUTLOOK_CUT),
-      movedInstance('20261207', 2),
+      movedInstance('20261207', 2, 'DTSTAMP:20261111T080000Z'),
     );
 
     expect(startsOf(series, windowOf('2026-11-20T00:00:00Z', '2027-01-01T00:00:00Z'))).toEqual([

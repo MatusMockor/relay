@@ -60,11 +60,11 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
         'RRULE:FREQ=DAILY',
       ],
     };
-    const at11 = (day: string, sequence: number): SeriesMessage => ({
+    const at11 = (day: string, sequence: number, stamp = '20261102T080000Z'): SeriesMessage => ({
       method: 'REQUEST',
       subject: `Report o 11:00 od ${day}`,
       lines: [
-        'DTSTAMP:20261102T080000Z',
+        `DTSTAMP:${stamp}`,
         `SEQUENCE:${String(sequence)}`,
         'SUMMARY:Report o 11:00',
         `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
@@ -87,7 +87,7 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
       [anchor, cancel('03', '', 2)],
       [restore, dailyAt9],
       [restore, cancel('03', ';RANGE=THISANDFUTURE', 1)],
-      [restore, at11('05', 2)],
+      [restore, at11('05', 2, '20261102T100000Z')],
     ] as const) {
       await client.append('INBOX', await seriesMail(series, message));
     }

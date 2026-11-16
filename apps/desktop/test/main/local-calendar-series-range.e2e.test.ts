@@ -191,12 +191,12 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       'DTSTAMP:20261101T080000Z',
       'SEQUENCE:0',
     ];
-    const at11 = (day: string, sequence: number) => [
+    const at11 = (day: string, sequence: number, stamp = '20261102T080000Z') => [
       'SUMMARY:Report o 11:00',
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
       `DTSTART:202611${day}T110000Z`,
       `DTEND:202611${day}T113000Z`,
-      'DTSTAMP:20261102T080000Z',
+      `DTSTAMP:${stamp}`,
       `SEQUENCE:${String(sequence)}`,
     ];
     const cancel = (day: string, range: string, sequence: number) => [
@@ -214,7 +214,7 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       restore,
       cancel('03', ';RANGE=THISANDFUTURE', 1),
     );
-    await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2));
+    await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2, '20261102T100000Z'));
 
     const account = await connectAndSync(6);
 

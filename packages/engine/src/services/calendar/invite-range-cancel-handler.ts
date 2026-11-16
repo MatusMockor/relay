@@ -2,7 +2,7 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, sameRevision, supersedes } from './event-precedence';
-import { cancelled } from './invite-cancellation';
+import { cancelled, cancels } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
 import { cutRecordAt, rangeRecordAt } from './recurrence-slot';
@@ -76,7 +76,7 @@ export class InviteRangeCancelHandler {
     if (
       master === undefined ||
       recurrenceInstant(event.recurrenceId ?? '') > Date.parse(master.startsAt) ||
-      sameRevision(event, master)
+      !cancels(master, event)
     ) {
       return false;
     }

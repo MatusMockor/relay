@@ -1,5 +1,4 @@
-import type { StoredCalendarEvent } from '@relay/engine';
-import { compareRevision } from './revision';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 import {
   lifts,
   type RangeOverride,
@@ -9,12 +8,12 @@ import {
 } from './series-plan';
 
 const outranks = (a: RangeOverride, b: RangeOverride): number =>
-  compareRevision(a.event, b.event) || a.from - b.from;
+  compareRevisions(a.event, b.event) || a.from - b.from;
 
 const endedBefore = (plan: SeriesPlan, range: RangeOverride, at: number): boolean =>
   plan.cuts.some(
     (cut) =>
-      cut.from >= range.from && cut.from <= at && compareRevision(cut.event, range.event) >= 0,
+      cut.from >= range.from && cut.from <= at && compareRevisions(cut.event, range.event) >= 0,
   );
 
 const cutsAt = (plan: SeriesPlan, at: number): SeriesCut[] =>
@@ -32,11 +31,11 @@ export const rangeAt = (plan: SeriesPlan, at: number): RangeOverride | undefined
     >((best, range) => (best === undefined || outranks(range, best) > 0 ? range : best), undefined);
 
 export const exactWins = (exact: StoredCalendarEvent, range: RangeOverride | undefined): boolean =>
-  range === undefined || exact === range.event || compareRevision(exact, range.event) >= 0;
+  range === undefined || exact === range.event || compareRevisions(exact, range.event) >= 0;
 
 export const hiddenByCut = (override: StoredCalendarEvent, plan: SeriesPlan): boolean =>
   cutsAt(plan, recurrenceAt(override, plan.timeZone)).some(
-    (cut) => compareRevision(override, cut.event) < 0,
+    (cut) => compareRevisions(override, cut.event) < 0,
   );
 
 export const shownAt = (exact: StoredCalendarEvent, plan: SeriesPlan, at: number): boolean => {

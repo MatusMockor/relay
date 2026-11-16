@@ -1,5 +1,4 @@
-import type { StoredCalendarEvent } from '@relay/engine';
-import { compareRevision } from './revision';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 
 const slotRank = (row: StoredCalendarEvent): number => {
   if (row.thisAndFuture !== true) {
@@ -15,7 +14,7 @@ const newer = (
   if (known === undefined) {
     return row;
   }
-  return (compareRevision(row, known) || slotRank(row) - slotRank(known)) > 0 ? row : known;
+  return (compareRevisions(row, known) || slotRank(row) - slotRank(known)) > 0 ? row : known;
 };
 
 export const exactRows = (

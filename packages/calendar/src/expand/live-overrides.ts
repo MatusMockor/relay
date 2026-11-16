@@ -1,11 +1,10 @@
-import type { StoredCalendarEvent } from '@relay/engine';
-import { compareRevision } from './revision';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 
 const ignoredCut = (override: StoredCalendarEvent, master: StoredCalendarEvent): boolean =>
-  override.endsSeries === true && compareRevision(override, master) < 0;
+  override.endsSeries === true && compareRevisions(override, master) < 0;
 
 const cancelledWithSeries = (override: StoredCalendarEvent, master: StoredCalendarEvent): boolean =>
-  master.status === 'cancelled' && compareRevision(override, master) < 0;
+  master.status === 'cancelled' && compareRevisions(override, master) < 0;
 
 export const liveOverrides = (
   master: StoredCalendarEvent | null,

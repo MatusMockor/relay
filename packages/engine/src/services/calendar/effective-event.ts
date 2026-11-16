@@ -1,7 +1,7 @@
 import type { CalendarEventId, UserId } from '@relay/shared/domain';
 import type { StoredCalendarEvent } from '../../model/calendar';
 import type { CalendarEventRepository } from '../../ports/calendar-event-repository';
-import { compareRevisions } from './event-precedence';
+import { compareRevisions } from './revision-order';
 import { cutOffByRange, isMaster } from './series-cut';
 
 const cancelledWithSeries = (

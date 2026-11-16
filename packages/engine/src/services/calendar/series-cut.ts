@@ -1,5 +1,5 @@
 import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
-import { compareRevisions } from './event-precedence';
+import { compareRevisions } from './revision-order';
 import { isRangeRequest } from './series-range-rows';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;

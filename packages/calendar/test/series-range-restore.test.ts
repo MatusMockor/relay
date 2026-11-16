@@ -4,6 +4,7 @@ import {
   parsedEvents,
   rangeEndOf,
   seriesFrom,
+  stampAt,
   vcalendar,
   windowOf,
 } from './support/series-ics';
@@ -31,7 +32,7 @@ const rangeRequest = (day: string, sequence: number, summary: string, hour = '11
     [],
     [
       UID,
-      'DTSTAMP:20261102T080000Z',
+      stampAt(sequence, '00'),
       `SEQUENCE:${String(sequence)}`,
       `SUMMARY:${summary}`,
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
@@ -46,7 +47,7 @@ const rangeCancel = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T090000Z',
+      stampAt(sequence, '10'),
       `SEQUENCE:${String(sequence)}`,
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
     ],
@@ -60,7 +61,7 @@ const moved = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T100000Z',
+      stampAt(sequence, '20'),
       `SEQUENCE:${String(sequence)}`,
       'SUMMARY:Report presunutý',
       `RECURRENCE-ID:202611${day}T090000Z`,
@@ -75,7 +76,7 @@ const instanceCancel = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T110000Z',
+      stampAt(sequence, '30'),
       `SEQUENCE:${String(sequence)}`,
       `RECURRENCE-ID:202611${day}T090000Z`,
     ],
