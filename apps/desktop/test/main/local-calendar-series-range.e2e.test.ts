@@ -227,4 +227,58 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
     const restored = await seriesOf(account.id, restore);
     expect(restored.find((row) => row.recurrenceId === null)?.rangeEndsAt).toBeNull();
   });
+
+  it('keeps a later range in force when an earlier range anchor is cancelled', async () => {
+    const uid = 'precedence-daily@corp.test';
+    const move = (day: string, hour: string, sequence: number) => [
+      `SUMMARY:Report o ${hour}:00`,
+      `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
+      `DTSTART:202611${day}T${hour}0000Z`,
+      `DTEND:202611${day}T${hour}3000Z`,
+      'DTSTAMP:20261102T080000Z',
+      `SEQUENCE:${String(sequence)}`,
+    ];
+    await send('Pozvánka: Report', 'REQUEST', uid, [
+      'SUMMARY:Report',
+      'DTSTART:20261101T090000Z',
+      'DTEND:20261101T093000Z',
+      'RRULE:FREQ=DAILY',
+      'DTSTAMP:20261101T080000Z',
+      'SEQUENCE:0',
+    ]);
+    await send('Report o 11:00 od 3.11.', 'REQUEST', uid, move('03', '11', 1));
+    await send('Report o 13:00 od 5.11.', 'REQUEST', uid, move('05', '13', 2));
+    await send('Zrušené: Report 3.11.', 'CANCEL', uid, [
+      'RECURRENCE-ID:20261103T090000Z',
+      'DTSTAMP:20261102T090000Z',
+      'SEQUENCE:3',
+    ]);
+
+    const account = expectOk(
+      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
+    );
+    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+
+    const { items } = expectOk(
+      await harness.bridge.invoke('local.calendar.occurrences', {
+        from: '2026-11-01T00:00:00Z',
+        to: '2026-11-08T00:00:00Z',
+        timeZone: 'UTC',
+      }),
+    );
+    expect(items.map((item) => [item.start, item.title])).toEqual([
+      ['2026-11-01T09:00:00.000Z', 'Report'],
+      ['2026-11-02T09:00:00.000Z', 'Report'],
+      ['2026-11-04T11:00:00.000Z', 'Report o 11:00'],
+      ['2026-11-05T13:00:00.000Z', 'Report o 13:00'],
+      ['2026-11-06T13:00:00.000Z', 'Report o 13:00'],
+      ['2026-11-07T13:00:00.000Z', 'Report o 13:00'],
+    ]);
+    expect(
+      (await seriesOf(account.id, uid)).find((row) => row.status === 'cancelled'),
+    ).toMatchObject({
+      sequence: 3,
+      rangeRevision: { sequence: 1 },
+    });
+  });
 });
