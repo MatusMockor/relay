@@ -25,7 +25,7 @@ const WINTER = {
 
 const at = (day: string, time: string) => `TZID=${ZONE}:2026${day}T${time}`;
 
-const weekly = (day: string, summary: string): SeriesMessage => ({
+const weekly = (day: string, summary: string, rule = 'RRULE:FREQ=WEEKLY'): SeriesMessage => ({
   method: 'REQUEST',
   subject: `Pozvánka: ${summary}`,
   lines: [
@@ -34,7 +34,7 @@ const weekly = (day: string, summary: string): SeriesMessage => ({
     `SUMMARY:${summary}`,
     `DTSTART;${at(day, '100000')}`,
     `DTEND;${at(day, '110000')}`,
-    'RRULE:FREQ=WEEKLY',
+    rule,
   ],
 });
 
@@ -150,5 +150,46 @@ describe('THISANDFUTURE invitations over the server (Postgres)', () => {
     expect(await occurrences(token, WINTER)).toEqual([]);
     expect(await masterRange(account.id, monday.uid)).toBe('2026-12-08T11:00:00.000Z');
     expect(await masterRange(account.id, wednesday.uid)).toBe('2026-11-19T10:00:00.000Z');
+  });
+
+  it('finds occurrences moved before the start of the series in window queries', async () => {
+    const mailbox = await createGreenMailUser('shift');
+    const client = await openImap(mailbox);
+    const session = await registerUser(app.api, `shift-${randomUUID().slice(0, 8)}@relay.test`);
+    const daily = {
+      uid: `daily-${randomUUID()}@range.test`,
+      organizer: 'peter@partner.test',
+      attendee: mailbox.email,
+    };
+    const messages: SeriesMessage[] = [
+      weekly('1210', 'Denný report', 'RRULE:FREQ=DAILY'),
+      {
+        method: 'REQUEST',
+        subject: 'Report skôr',
+        lines: [
+          'DTSTAMP:20261103T080000Z',
+          'SEQUENCE:1',
+          'SUMMARY:Report skôr',
+          `RECURRENCE-ID;RANGE=THISANDFUTURE;${at('1220', '100000')}`,
+          `DTSTART;${at('1201', '100000')}`,
+          `DTEND;${at('1201', '110000')}`,
+        ],
+      },
+    ];
+    for (const message of messages) {
+      await client.append('INBOX', await seriesMail(daily, message));
+    }
+    await addImapAccount(app.api, session.accessToken, mailbox);
+    const fifth = {
+      from: '2026-12-05T00:00:00+01:00',
+      to: '2026-12-06T00:00:00+01:00',
+      timeZone: ZONE,
+    };
+
+    await expect
+      .poll(() => occurrences(session.accessToken, fifth), { timeout: 20_000, interval: 250 })
+      .toEqual([['daily', '2026-12-05T09:00:00.000Z', 'Report skôr']]);
+    await client.logout();
+    await deleteGreenMailUser(mailbox);
   });
 });

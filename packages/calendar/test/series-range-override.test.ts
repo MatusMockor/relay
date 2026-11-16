@@ -116,6 +116,40 @@ describe('RECURRENCE-ID;RANGE=THISANDFUTURE requests', () => {
     ]);
   });
 
+  it('measures the shift in wall time when the change crosses the DST change', () => {
+    const night = vcalendar(
+      null,
+      [],
+      [
+        UID,
+        'DTSTAMP:20260301T080000Z',
+        'SUMMARY:Záloha',
+        `DTSTART;TZID=${ZONE}:20260322T013000`,
+        `DTEND;TZID=${ZONE}:20260322T020000`,
+        'RRULE:FREQ=WEEKLY',
+      ],
+    );
+    const later = change({
+      recurrenceId: `RECURRENCE-ID;TZID=${ZONE};RANGE=THISANDFUTURE:20260329T013000`,
+      start: `DTSTART;TZID=${ZONE}:20260329T033000`,
+      end: `DTEND;TZID=${ZONE}:20260329T040000`,
+      sequence: 1,
+      summary: 'Záloha o 3:30',
+    });
+
+    expect(
+      rows(
+        seriesFrom('porada@partner.test', night, later),
+        '2026-03-22T00:00:00Z',
+        '2026-04-06T00:00:00Z',
+      ),
+    ).toEqual([
+      ['2026-03-22T00:30:00.000Z', '2026-03-22T01:00:00.000Z', 'Záloha'],
+      ['2026-03-29T01:30:00.000Z', '2026-03-29T02:00:00.000Z', 'Záloha o 3:30'],
+      ['2026-04-05T01:30:00.000Z', '2026-04-05T02:00:00.000Z', 'Záloha o 3:30'],
+    ]);
+  });
+
   it('finds occurrences shifted into the window from far before or after it', () => {
     const daily = vcalendar(
       null,
