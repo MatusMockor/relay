@@ -1,0 +1,1 @@
+ALTER TABLE "calendar_events" ADD COLUMN "this_and_future" boolean DEFAULT false NOT NULL;
