@@ -109,18 +109,12 @@
       "indexes": {
         "accounts_user_idx": {
           "name": "accounts_user_idx",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         },
         "accounts_user_email_unique": {
           "name": "accounts_user_email_unique",
-          "columns": [
-            "user_id",
-            "lower(\"email\")"
-          ],
+          "columns": ["user_id", "lower(\"email\")"],
           "isUnique": true
         }
       },
@@ -249,29 +243,17 @@
       "indexes": {
         "ai_jobs_user_idx": {
           "name": "ai_jobs_user_idx",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         },
         "ai_jobs_queue_idx": {
           "name": "ai_jobs_queue_idx",
-          "columns": [
-            "runner_location",
-            "status",
-            "created_ts"
-          ],
+          "columns": ["runner_location", "status", "created_ts"],
           "isUnique": false
         },
         "ai_jobs_active_source_idx": {
           "name": "ai_jobs_active_source_idx",
-          "columns": [
-            "user_id",
-            "thread_id",
-            "kind",
-            "source_message_id"
-          ],
+          "columns": ["user_id", "thread_id", "kind", "source_message_id"],
           "isUnique": true,
           "where": "status in ('queued', 'running') and source_message_id is not null"
         }
@@ -351,19 +333,12 @@
       "indexes": {
         "ai_results_latest_idx": {
           "name": "ai_results_latest_idx",
-          "columns": [
-            "user_id",
-            "thread_id",
-            "kind",
-            "created_ts"
-          ],
+          "columns": ["user_id", "thread_id", "kind", "created_ts"],
           "isUnique": false
         },
         "ai_results_thread_idx": {
           "name": "ai_results_thread_idx",
-          "columns": [
-            "thread_id"
-          ],
+          "columns": ["thread_id"],
           "isUnique": false
         }
       },
@@ -633,41 +608,27 @@
       "indexes": {
         "calendar_events_series_recurrence_unique": {
           "name": "calendar_events_series_recurrence_unique",
-          "columns": [
-            "series_key",
-            "recurrence_key"
-          ],
+          "columns": ["series_key", "recurrence_key"],
           "isUnique": true
         },
         "calendar_events_user_start_idx": {
           "name": "calendar_events_user_start_idx",
-          "columns": [
-            "user_id",
-            "starts_ts"
-          ],
+          "columns": ["user_id", "starts_ts"],
           "isUnique": false
         },
         "calendar_events_user_thread_idx": {
           "name": "calendar_events_user_thread_idx",
-          "columns": [
-            "user_id",
-            "thread_id"
-          ],
+          "columns": ["user_id", "thread_id"],
           "isUnique": false
         },
         "calendar_events_subscription_idx": {
           "name": "calendar_events_subscription_idx",
-          "columns": [
-            "subscription_id"
-          ],
+          "columns": ["subscription_id"],
           "isUnique": false
         },
         "calendar_events_google_remote_idx": {
           "name": "calendar_events_google_remote_idx",
-          "columns": [
-            "google_calendar_id",
-            "remote_id"
-          ],
+          "columns": ["google_calendar_id", "remote_id"],
           "isUnique": false
         }
       },
@@ -676,12 +637,8 @@
           "name": "calendar_events_account_id_accounts_id_fk",
           "tableFrom": "calendar_events",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -689,12 +646,8 @@
           "name": "calendar_events_subscription_id_calendar_subscriptions_id_fk",
           "tableFrom": "calendar_events",
           "tableTo": "calendar_subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -702,12 +655,8 @@
           "name": "calendar_events_google_calendar_id_google_calendars_id_fk",
           "tableFrom": "calendar_events",
           "tableTo": "google_calendars",
-          "columnsFrom": [
-            "google_calendar_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["google_calendar_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -828,17 +777,12 @@
       "indexes": {
         "calendar_subscriptions_user_idx": {
           "name": "calendar_subscriptions_user_idx",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         },
         "calendar_subscriptions_attempt_idx": {
           "name": "calendar_subscriptions_attempt_idx",
-          "columns": [
-            "last_attempt_ts"
-          ],
+          "columns": ["last_attempt_ts"],
           "isUnique": false
         }
       },
@@ -896,10 +840,7 @@
       "indexes": {
         "draft_attachments_draft_idx": {
           "name": "draft_attachments_draft_idx",
-          "columns": [
-            "draft_id",
-            "position"
-          ],
+          "columns": ["draft_id", "position"],
           "isUnique": false
         }
       },
@@ -908,12 +849,8 @@
           "name": "draft_attachments_draft_id_drafts_id_fk",
           "tableFrom": "draft_attachments",
           "tableTo": "drafts",
-          "columnsFrom": [
-            "draft_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["draft_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1034,17 +971,12 @@
       "indexes": {
         "drafts_user_order_idx": {
           "name": "drafts_user_order_idx",
-          "columns": [
-            "user_id",
-            "updated_ts"
-          ],
+          "columns": ["user_id", "updated_ts"],
           "isUnique": false
         },
         "drafts_thread_idx": {
           "name": "drafts_thread_idx",
-          "columns": [
-            "in_reply_to_thread_id"
-          ],
+          "columns": ["in_reply_to_thread_id"],
           "isUnique": false
         }
       },
@@ -1053,12 +985,8 @@
           "name": "drafts_account_id_accounts_id_fk",
           "tableFrom": "drafts",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1151,17 +1079,12 @@
       "indexes": {
         "google_calendar_connections_user_email_unique": {
           "name": "google_calendar_connections_user_email_unique",
-          "columns": [
-            "user_id",
-            "email"
-          ],
+          "columns": ["user_id", "email"],
           "isUnique": true
         },
         "google_calendar_connections_attempt_idx": {
           "name": "google_calendar_connections_attempt_idx",
-          "columns": [
-            "last_attempt_ts"
-          ],
+          "columns": ["last_attempt_ts"],
           "isUnique": false
         }
       },
@@ -1289,17 +1212,12 @@
       "indexes": {
         "google_calendars_connection_remote_unique": {
           "name": "google_calendars_connection_remote_unique",
-          "columns": [
-            "connection_id",
-            "remote_id"
-          ],
+          "columns": ["connection_id", "remote_id"],
           "isUnique": true
         },
         "google_calendars_user_idx": {
           "name": "google_calendars_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -1308,12 +1226,8 @@
           "name": "google_calendars_connection_id_google_calendar_connections_id_fk",
           "tableFrom": "google_calendars",
           "tableTo": "google_calendar_connections",
-          "columnsFrom": [
-            "connection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["connection_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1357,10 +1271,7 @@
       "indexes": {
         "labels_account_name_unique": {
           "name": "labels_account_name_unique",
-          "columns": [
-            "account_id",
-            "name"
-          ],
+          "columns": ["account_id", "name"],
           "isUnique": true
         }
       },
@@ -1369,12 +1280,8 @@
           "name": "labels_account_id_accounts_id_fk",
           "tableFrom": "labels",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1446,18 +1353,12 @@
       "indexes": {
         "mailboxes_account_path_unique": {
           "name": "mailboxes_account_path_unique",
-          "columns": [
-            "account_id",
-            "path"
-          ],
+          "columns": ["account_id", "path"],
           "isUnique": true
         },
         "mailboxes_account_role_idx": {
           "name": "mailboxes_account_role_idx",
-          "columns": [
-            "account_id",
-            "role"
-          ],
+          "columns": ["account_id", "role"],
           "isUnique": false
         }
       },
@@ -1466,12 +1367,8 @@
           "name": "mailboxes_account_id_accounts_id_fk",
           "tableFrom": "mailboxes",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1501,9 +1398,7 @@
       "indexes": {
         "message_labels_label_idx": {
           "name": "message_labels_label_idx",
-          "columns": [
-            "label_id"
-          ],
+          "columns": ["label_id"],
           "isUnique": false
         }
       },
@@ -1512,12 +1407,8 @@
           "name": "message_labels_message_id_messages_id_fk",
           "tableFrom": "message_labels",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1525,22 +1416,15 @@
           "name": "message_labels_label_id_labels_id_fk",
           "tableFrom": "message_labels",
           "tableTo": "labels",
-          "columnsFrom": [
-            "label_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["label_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "message_labels_message_id_label_id_pk": {
-          "columns": [
-            "message_id",
-            "label_id"
-          ],
+          "columns": ["message_id", "label_id"],
           "name": "message_labels_message_id_label_id_pk"
         }
       },
@@ -1750,49 +1634,32 @@
       "indexes": {
         "messages_id_unique": {
           "name": "messages_id_unique",
-          "columns": [
-            "id"
-          ],
+          "columns": ["id"],
           "isUnique": true
         },
         "messages_mailbox_uid_unique": {
           "name": "messages_mailbox_uid_unique",
-          "columns": [
-            "mailbox_id",
-            "uid"
-          ],
+          "columns": ["mailbox_id", "uid"],
           "isUnique": true
         },
         "messages_thread_date_idx": {
           "name": "messages_thread_date_idx",
-          "columns": [
-            "thread_id",
-            "date_ts"
-          ],
+          "columns": ["thread_id", "date_ts"],
           "isUnique": false
         },
         "messages_account_header_idx": {
           "name": "messages_account_header_idx",
-          "columns": [
-            "account_id",
-            "message_id_header"
-          ],
+          "columns": ["account_id", "message_id_header"],
           "isUnique": false
         },
         "messages_user_idx": {
           "name": "messages_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "messages_account_subject_idx": {
           "name": "messages_account_subject_idx",
-          "columns": [
-            "account_id",
-            "normalized_subject",
-            "date_ts"
-          ],
+          "columns": ["account_id", "normalized_subject", "date_ts"],
           "isUnique": false
         }
       },
@@ -1801,12 +1668,8 @@
           "name": "messages_account_id_accounts_id_fk",
           "tableFrom": "messages",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1814,12 +1677,8 @@
           "name": "messages_mailbox_id_mailboxes_id_fk",
           "tableFrom": "messages",
           "tableTo": "mailboxes",
-          "columnsFrom": [
-            "mailbox_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mailbox_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1877,11 +1736,7 @@
       "indexes": {
         "pending_work_order_idx": {
           "name": "pending_work_order_idx",
-          "columns": [
-            "account_id",
-            "kind",
-            "created_at"
-          ],
+          "columns": ["account_id", "kind", "created_at"],
           "isUnique": false
         }
       },
@@ -1890,23 +1745,15 @@
           "name": "pending_work_account_id_accounts_id_fk",
           "tableFrom": "pending_work",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "pending_work_account_id_kind_ref_pk": {
-          "columns": [
-            "account_id",
-            "kind",
-            "ref"
-          ],
+          "columns": ["account_id", "kind", "ref"],
           "name": "pending_work_account_id_kind_ref_pk"
         }
       },
@@ -1969,17 +1816,12 @@
       "indexes": {
         "reminders_due_idx": {
           "name": "reminders_due_idx",
-          "columns": [
-            "fired_at",
-            "remind_ts"
-          ],
+          "columns": ["fired_at", "remind_ts"],
           "isUnique": false
         },
         "reminders_thread_idx": {
           "name": "reminders_thread_idx",
-          "columns": [
-            "thread_id"
-          ],
+          "columns": ["thread_id"],
           "isUnique": false
         }
       },
@@ -1988,12 +1830,8 @@
           "name": "reminders_thread_id_threads_id_fk",
           "tableFrom": "reminders",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2093,33 +1931,22 @@
       "indexes": {
         "scheduled_sends_status_due_idx": {
           "name": "scheduled_sends_status_due_idx",
-          "columns": [
-            "status",
-            "scheduled_ts"
-          ],
+          "columns": ["status", "scheduled_ts"],
           "isUnique": false
         },
         "scheduled_sends_user_idx": {
           "name": "scheduled_sends_user_idx",
-          "columns": [
-            "user_id",
-            "status",
-            "scheduled_ts"
-          ],
+          "columns": ["user_id", "status", "scheduled_ts"],
           "isUnique": false
         },
         "scheduled_sends_draft_idx": {
           "name": "scheduled_sends_draft_idx",
-          "columns": [
-            "draft_id"
-          ],
+          "columns": ["draft_id"],
           "isUnique": false
         },
         "scheduled_sends_active_draft_idx": {
           "name": "scheduled_sends_active_draft_idx",
-          "columns": [
-            "draft_id"
-          ],
+          "columns": ["draft_id"],
           "isUnique": true,
           "where": "status in ('pending', 'sending')"
         }
@@ -2129,12 +1956,8 @@
           "name": "scheduled_sends_account_id_accounts_id_fk",
           "tableFrom": "scheduled_sends",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2223,10 +2046,7 @@
       "indexes": {
         "splits_user_position_idx": {
           "name": "splits_user_position_idx",
-          "columns": [
-            "user_id",
-            "position"
-          ],
+          "columns": ["user_id", "position"],
           "isUnique": false
         }
       },
@@ -2235,12 +2055,8 @@
           "name": "splits_account_id_accounts_id_fk",
           "tableFrom": "splits",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2298,9 +2114,7 @@
       "indexes": {
         "sync_state_account_idx": {
           "name": "sync_state_account_idx",
-          "columns": [
-            "account_id"
-          ],
+          "columns": ["account_id"],
           "isUnique": false
         }
       },
@@ -2309,12 +2123,8 @@
           "name": "sync_state_mailbox_id_mailboxes_id_fk",
           "tableFrom": "sync_state",
           "tableTo": "mailboxes",
-          "columnsFrom": [
-            "mailbox_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mailbox_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2322,12 +2132,8 @@
           "name": "sync_state_account_id_accounts_id_fk",
           "tableFrom": "sync_state",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2420,26 +2226,17 @@
       "indexes": {
         "tasks_user_order_idx": {
           "name": "tasks_user_order_idx",
-          "columns": [
-            "user_id",
-            "updated_ts",
-            "id"
-          ],
+          "columns": ["user_id", "updated_ts", "id"],
           "isUnique": false
         },
         "tasks_thread_idx": {
           "name": "tasks_thread_idx",
-          "columns": [
-            "thread_id"
-          ],
+          "columns": ["thread_id"],
           "isUnique": false
         },
         "tasks_user_jira_unique": {
           "name": "tasks_user_jira_unique",
-          "columns": [
-            "user_id",
-            "jira_key"
-          ],
+          "columns": ["user_id", "jira_key"],
           "isUnique": true,
           "where": "\"tasks\".\"jira_key\" is not null"
         }
@@ -2449,12 +2246,8 @@
           "name": "tasks_thread_id_threads_id_fk",
           "tableFrom": "tasks",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2484,10 +2277,7 @@
       "indexes": {
         "thread_splits_split_idx": {
           "name": "thread_splits_split_idx",
-          "columns": [
-            "split_id",
-            "thread_id"
-          ],
+          "columns": ["split_id", "thread_id"],
           "isUnique": false
         }
       },
@@ -2496,22 +2286,15 @@
           "name": "thread_splits_thread_id_threads_id_fk",
           "tableFrom": "thread_splits",
           "tableTo": "threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "thread_splits_thread_id_split_id_pk": {
-          "columns": [
-            "thread_id",
-            "split_id"
-          ],
+          "columns": ["thread_id", "split_id"],
           "name": "thread_splits_thread_id_split_id_pk"
         }
       },
@@ -2644,22 +2427,12 @@
       "indexes": {
         "threads_user_state_order_idx": {
           "name": "threads_user_state_order_idx",
-          "columns": [
-            "user_id",
-            "state",
-            "last_message_ts",
-            "id"
-          ],
+          "columns": ["user_id", "state", "last_message_ts", "id"],
           "isUnique": false
         },
         "threads_account_state_order_idx": {
           "name": "threads_account_state_order_idx",
-          "columns": [
-            "account_id",
-            "state",
-            "last_message_ts",
-            "id"
-          ],
+          "columns": ["account_id", "state", "last_message_ts", "id"],
           "isUnique": false
         }
       },
@@ -2668,12 +2441,8 @@
           "name": "threads_account_id_accounts_id_fk",
           "tableFrom": "threads",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

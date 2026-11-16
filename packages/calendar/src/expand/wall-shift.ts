@@ -14,9 +14,5 @@ const wallOf = (instant: number, zone: ZonedTime, viewerZone: string): WallTime 
   return wallTimeAt(instant, tzid);
 };
 
-export const wallShift = (
-  from: number,
-  to: number,
-  zone: ZonedTime,
-  viewerZone: string,
-): number => asUtc(wallOf(to, zone, viewerZone)) - asUtc(wallOf(from, zone, viewerZone));
+export const wallShift = (from: number, to: number, zone: ZonedTime, viewerZone: string): number =>
+  asUtc(wallOf(to, zone, viewerZone)) - asUtc(wallOf(from, zone, viewerZone));

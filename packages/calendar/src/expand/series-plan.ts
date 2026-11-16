@@ -71,8 +71,7 @@ const rangeOf = (
 const latest = (range: RangeOverride): number =>
   Math.max(range.shift, range.offset) + range.length + HOUR_MS;
 
-const earliest = (range: RangeOverride): number =>
-  Math.min(range.shift, range.offset) - HOUR_MS;
+const earliest = (range: RangeOverride): number => Math.min(range.shift, range.offset) - HOUR_MS;
 
 export const seriesPlan = (
   master: StoredCalendarEvent | null,
