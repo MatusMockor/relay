@@ -3,6 +3,7 @@
   "productName": "Relay",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "main": "./out/main/index.js",
   "scripts": {
