@@ -206,7 +206,7 @@ describe('NewMailNotifier', () => {
     await time.advance(0);
     expect(shown).toEqual([]);
     await time.advance(60_000);
-    expect(shown).toEqual([{ title: 'Relay', body: 'Máte 2 nové správy', threadId: null }]);
+    expect(shown).toEqual([{ title: 'Relay', body: 'Máš 2 nové správy', threadId: null }]);
     notifier.stop();
   });
 

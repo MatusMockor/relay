@@ -11,8 +11,12 @@ import { createAppInfoHandler, type AppMetadata } from '../handlers/app-info';
 import { createDeviceSettingsHandlers } from '../handlers/device-settings-handlers';
 import { createAiJobHandlers } from '../handlers/local/ai-job-handlers';
 import { createAttachmentHandlers } from '../handlers/local/attachment-handlers';
+import { createAttachmentPickerHandlers } from '../handlers/attachment-picker-handlers';
 import { createAccountHandlers } from '../handlers/local/account-handlers';
+import { createCalendarHandlers } from '../handlers/local/calendar-handlers';
+import { createGoogleCalendarHandlers } from '../handlers/local/google-calendar-handlers';
 import { createComposeHandlers } from '../handlers/local/compose-handlers';
+import { createDraftAttachmentHandlers } from '../handlers/local/draft-attachment-handlers';
 import { createEventStreamHandlers } from '../handlers/local/event-stream-handlers';
 import { createSettingsHandlers } from '../handlers/local/settings-handlers';
 import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-handlers';
@@ -20,13 +24,16 @@ import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
 import { mergeInvokeHandlers, mergeStreamHandlers } from '../handlers/merge-handlers';
 import { createOAuthHandlers } from '../handlers/oauth-handlers';
+import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
 import { createSessionHandlers } from '../handlers/session-handlers';
 import { type IpcInvokeHandlers, IpcInvokeRouter } from '../ipc/invoke-router';
 import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
+import type { AttachmentPicker } from '../files/attachment-picker';
 import type { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
+import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
 import type { SecretStore } from '../secure/secret-store';
 import type { DeviceSettingsStore } from '../settings/device-settings-store';
 
@@ -44,8 +51,10 @@ export interface MainProcessContext {
   readonly secrets?: SecretStore;
   readonly sessions?: ServerSessions;
   readonly oauth?: GoogleOAuthCoordinator;
+  readonly calendarOAuth?: GoogleCalendarOAuthCoordinator;
   readonly ai?: AiHandlerDeps;
   readonly local?: LocalIpcDeps;
+  readonly attachmentPicker?: AttachmentPicker;
 }
 
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
@@ -56,8 +65,11 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createSyncHandlers(local.sync),
     createComposeHandlers(local.services, local.userId),
     createAttachmentHandlers(local.services, local.userId),
+    createDraftAttachmentHandlers(local.services, local.userId),
     createAccountHandlers(local.services, local.userId),
     createSettingsHandlers(local.services, local.userId),
+    createCalendarHandlers(local.services, local.userId),
+    createGoogleCalendarHandlers(local.services, local.userId),
   );
 
 const optional = <Deps, Handlers>(
@@ -83,8 +95,10 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.secrets, createSecureHandlers),
       optional(context.sessions, createSessionHandlers),
       optional(context.oauth, createOAuthHandlers),
+      optional(context.calendarOAuth, createGoogleCalendarOAuthHandlers),
       optional(context.ai, createAiInvokeHandlers),
       optional(context.local, localInvokeHandlers),
+      optional(context.attachmentPicker, createAttachmentPickerHandlers),
     ),
     errorReporter(context.logger),
   ),

@@ -1,5 +1,4 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type {
   AttachmentStore,
   AttachmentUpload,
@@ -16,6 +15,7 @@ import {
   UserIdSchema,
 } from '@relay/shared/domain';
 import { z } from 'zod';
+import { attachmentFilePaths } from './attachment-files';
 import { parseJsonOrNull } from './parse-json';
 
 const AttachmentMetaSchema = z.object({ userId: UserIdSchema, attachment: DraftAttachmentSchema });
@@ -89,10 +89,10 @@ export class FileAttachmentStore implements AttachmentStore {
   }
 
   private contentPath(attachmentId: AttachmentId): string {
-    return join(this.directory, `${attachmentId}.bin`);
+    return attachmentFilePaths(this.directory, attachmentId).content;
   }
 
   private metaPath(attachmentId: AttachmentId): string {
-    return join(this.directory, `${attachmentId}.json`);
+    return attachmentFilePaths(this.directory, attachmentId).meta;
   }
 }

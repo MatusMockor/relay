@@ -11,7 +11,7 @@ export class AiLocationGate {
       return;
     }
     throw new ForbiddenError(
-      'AI je nastavená na beh na serveri. Lokálne spúšťanie zapnete v Nastavenia → AI.',
+      'AI je nastavená na beh na serveri. Lokálne spúšťanie zapneš v Nastavenia → AI.',
     );
   }
 

@@ -166,7 +166,7 @@ describe('Google OAuth loopback flow', () => {
       message: expect.stringContaining('RELAY_GOOGLE_CLIENT_ID') as unknown,
     });
     await expect(missing.load()).rejects.toMatchObject({
-      message: expect.stringContaining(`vytvorte súbor ${file}`) as unknown,
+      message: expect.stringContaining(`vytvor súbor ${file}`) as unknown,
     });
     await writeFile(file, '{ "clientSecret": "secret" }');
     await expect(missing.load()).rejects.toMatchObject({

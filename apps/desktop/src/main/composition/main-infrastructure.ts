@@ -7,7 +7,9 @@ import type { SecretCipher } from '../platform/secret-cipher';
 import { EncryptedFileSecretStore } from '../secure/encrypted-file-secret-store';
 import { NamespacedSecretStore } from '../secure/namespaced-secret-store';
 import type { SecretStore } from '../secure/secret-store';
+import { SecretStoreCalendarFeedSecrets } from '../secure/secret-store-calendar-feed-secrets';
 import { SecretStoreCredentialVault } from '../secure/secret-store-credential-vault';
+import { SecretStoreGoogleCalendarCredentials } from '../secure/secret-store-google-calendar-credentials';
 import { DeviceSettingsStore } from '../settings/device-settings-store';
 import type { LocalPaths } from './local-paths';
 
@@ -27,6 +29,8 @@ export interface MainInfrastructure {
   readonly publisher: HubEventPublisher;
   readonly rendererSecrets: SecretStore;
   readonly vault: SecretStoreCredentialVault;
+  readonly calendarFeeds: SecretStoreCalendarFeedSecrets;
+  readonly googleCalendarCredentials: SecretStoreGoogleCalendarCredentials;
   readonly deviceSettings: DeviceSettingsStore;
 }
 
@@ -42,6 +46,12 @@ export const createMainInfrastructure = (input: MainInfrastructureInput): MainIn
     publisher: new HubEventPublisher(hub),
     rendererSecrets: new NamespacedSecretStore(secrets, 'renderer'),
     vault: new SecretStoreCredentialVault(new NamespacedSecretStore(secrets, 'credentials')),
+    calendarFeeds: new SecretStoreCalendarFeedSecrets(
+      new NamespacedSecretStore(secrets, 'calendar-feeds'),
+    ),
+    googleCalendarCredentials: new SecretStoreGoogleCalendarCredentials(
+      new NamespacedSecretStore(secrets, 'google-calendar'),
+    ),
     deviceSettings: new DeviceSettingsStore(input.paths.deviceSettings),
   };
 };

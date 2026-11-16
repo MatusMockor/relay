@@ -12,6 +12,9 @@ export class DeferredMailToolBackend implements MailToolBackend {
   listTasks: MailToolBackend['listTasks'] = (query) => this.resolve().listTasks(query);
   createTask: MailToolBackend['createTask'] = (task) => this.resolve().createTask(task);
   createDraft: MailToolBackend['createDraft'] = (content) => this.resolve().createDraft(content);
+  listEvents: MailToolBackend['listEvents'] = (range) => this.resolve().listEvents(range);
+  getThreadEvents: MailToolBackend['getThreadEvents'] = (threadId) =>
+    this.resolve().getThreadEvents(threadId);
 
   private resolve(): MailToolBackend {
     if (this.target === null) {

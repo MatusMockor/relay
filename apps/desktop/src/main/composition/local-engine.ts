@@ -3,9 +3,11 @@ import {
   type AiRunnerRegistry,
   createEngineServices,
   type EngineServices,
+  type GoogleCalendarAdapters,
   type Repositories,
 } from '@relay/engine';
 import {
+  createSqliteAttachmentReferences,
   createSqliteMessageAttachmentLookup,
   createSqliteRepositories,
   migrate,
@@ -13,9 +15,12 @@ import {
   type SqliteDatabase,
   SqliteUnitOfWork,
 } from '@relay/store-sqlite';
+import type { FeedFetchOptions } from '@relay/calendar';
 import { isUnsafeRegex, MailparserAttachmentExtractor } from '@relay/mail-core';
 import type { GoogleClientConfigSource } from '../oauth/google-client-config-source';
+import { FileAttachmentBlobCatalog } from '../storage/file-attachment-blob-catalog';
 import { FileAttachmentStore } from '../storage/file-attachment-store';
+import { createCalendarAdapters } from './calendar-adapters';
 import { createMailAdapters, type MailAdapters } from './mail-adapters';
 import type { MainInfrastructure } from './main-infrastructure';
 
@@ -25,6 +30,9 @@ export interface LocalEngineInput {
   readonly aiRunners: AiRunnerRegistry;
   readonly mailTools: AiMailToolsEndpoint | null;
   readonly allowPlaintextMail: boolean;
+  readonly calendarFetch?: Partial<FeedFetchOptions>;
+  readonly googleCalendar: GoogleCalendarAdapters;
+  readonly googleSyncSeconds?: number;
 }
 
 export interface LocalEngine {
@@ -57,7 +65,13 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     attachmentExtractor: new MailparserAttachmentExtractor(),
     credentialVault: infrastructure.vault,
     attachmentStore: new FileAttachmentStore(infrastructure.paths.attachments, infrastructure.ids),
+    attachmentBlobs: new FileAttachmentBlobCatalog(
+      infrastructure.paths.attachments,
+      createSqliteAttachmentReferences(database),
+    ),
     aiRunnerRegistry: input.aiRunners,
+    calendar: createCalendarAdapters(infrastructure.calendarFeeds, input.calendarFetch),
+    googleCalendar: input.googleCalendar,
     eventPublisher: infrastructure.publisher,
     clock: infrastructure.clock,
     idGenerator: infrastructure.ids,
@@ -66,6 +80,9 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
       aiRunnerLocation: 'local',
       settings: { pinnedAiLocation: 'local' },
       ai: { mailTools: input.mailTools },
+      ...(input.googleSyncSeconds === undefined
+        ? {}
+        : { calendar: { googleSyncSeconds: input.googleSyncSeconds } }),
     },
   });
   return {

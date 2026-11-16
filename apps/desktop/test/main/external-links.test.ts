@@ -5,6 +5,7 @@ import {
   type LinkRoutingContents,
   routeExternalLinks,
 } from '../../src/main/window/route-external-links';
+import { createAppDocumentPredicate } from '../../src/main/window/app-document';
 
 class RecordingBrowser implements UrlOpener {
   readonly opened: string[] = [];
@@ -50,7 +51,11 @@ class FakeWebContents implements LinkRoutingContents {
 const setup = () => {
   const contents = new FakeWebContents();
   const browser = new RecordingBrowser();
-  routeExternalLinks(contents, browser);
+  routeExternalLinks(
+    contents,
+    browser,
+    createAppDocumentPredicate('http://127.0.0.1:5173/', 'file:///opt/relay/renderer/index.html'),
+  );
   return { contents, browser };
 };
 
@@ -84,6 +89,23 @@ describe('external links from the renderer', () => {
       'https://evil.example.com/',
       'https://news.example.com/article',
     ]);
+  });
+
+  it('lets the app window reload its own document without opening a browser', () => {
+    const { contents, browser } = setup();
+    expect(contents.frameNavigate('http://127.0.0.1:5173/', true)).toBe(false);
+    expect(contents.frameNavigate('file:///opt/relay/renderer/index.html#inbox', true)).toBe(false);
+    expect(contents.frameNavigate('http://127.0.0.1:5173/', false)).toBe(true);
+    expect(contents.frameNavigate('http://127.0.0.1:5174/', true)).toBe(true);
+    expect(browser.opened).toEqual(['http://127.0.0.1:5173/', 'http://127.0.0.1:5174/']);
+  });
+
+  it('does not let the app window become another document of the dev origin', () => {
+    const { contents, browser } = setup();
+    expect(contents.frameNavigate('blob:http://127.0.0.1:5173/3f2a', true)).toBe(true);
+    expect(contents.frameNavigate('http://127.0.0.1:5173/evil.html', true)).toBe(true);
+    expect(contents.frameNavigate('file:///opt/relay/renderer/other.html', true)).toBe(true);
+    expect(browser.opened).toEqual(['http://127.0.0.1:5173/evil.html']);
   });
 
   it('lets the mail iframe load its own srcdoc document', () => {

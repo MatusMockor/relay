@@ -48,14 +48,31 @@ describe('local attachment content over IPC', () => {
     expect(content?.ok && Buffer.from(content.data.contentBase64, 'base64')).toEqual(PDF);
   });
 
-  it('serves uploaded draft attachments and reports unknown ids', async () => {
+  it('serves draft attachments and reports unknown ids', async () => {
     const { bridge } = harness;
-    const uploaded = await bridge.invoke('local.attachments.upload', {
-      filename: 'poznamky.txt',
-      contentType: 'text/plain',
-      contentBase64: Buffer.from('ahoj').toString('base64'),
-    });
-    const id = uploaded.ok ? uploaded.data.id : undefined;
+    const account = await bridge.invoke('local.accounts.create', imapAccountBody(mailbox));
+    const draft = account.ok
+      ? await bridge.invoke('local.drafts.create', {
+          accountId: account.data.id,
+          to: [],
+          cc: [],
+          bcc: [],
+          subject: 'Poznámky',
+          body: '',
+          inReplyToThreadId: null,
+          inReplyToMessageId: null,
+          attachments: [],
+        })
+      : null;
+    const added = draft?.ok
+      ? await bridge.invoke('local.drafts.attachments.add', {
+          draftId: draft.data.id,
+          filename: 'poznamky.txt',
+          contentType: 'text/plain',
+          content: new TextEncoder().encode('ahoj'),
+        })
+      : null;
+    const id = added?.ok ? added.data.attachment.id : undefined;
     expect(id).toBeDefined();
     const content =
       id === undefined

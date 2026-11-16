@@ -18,6 +18,10 @@ const PREFIXES: Readonly<Record<EntityKind, string>> = {
   scheduledSend: 'sch',
   aiJob: 'aij',
   aiResult: 'air',
+  calendarEvent: 'cev',
+  calendarSubscription: 'csb',
+  calendarConnection: 'ccn',
+  googleCalendar: 'gcl',
 };
 
 export class RandomIdGenerator implements IdGenerator {

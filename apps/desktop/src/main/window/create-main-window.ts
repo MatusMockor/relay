@@ -9,6 +9,7 @@ export interface MainWindowOptions {
   readonly rendererFile: string;
   readonly state: WindowState;
   readonly opener: UrlOpener;
+  readonly isAppUrl: (url: string) => boolean;
   readonly icon?: string;
 }
 
@@ -42,7 +43,7 @@ export const createMainWindow = async (options: MainWindowOptions): Promise<Brow
     }
     window.show();
   });
-  routeExternalLinks(window.webContents, options.opener);
+  routeExternalLinks(window.webContents, options.opener, options.isAppUrl);
   window.webContents.on('will-attach-webview', (event) => {
     event.preventDefault();
   });
