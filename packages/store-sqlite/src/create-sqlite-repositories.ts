@@ -1,11 +1,22 @@
-import type { MessageAttachmentLookup, Repositories } from '@relay/engine';
+import type {
+  AttachmentReferenceRepository,
+  MessageAttachmentLookup,
+  Repositories,
+} from '@relay/engine';
 import type { SqliteDatabase } from './database/sqlite-database';
 import { QueuedExecutor } from './executor/queued-executor';
 import type { SqliteExecutor } from './executor/sqlite-executor';
 import { SqliteAccountRepository } from './repositories/sqlite-account-repository';
 import { SqliteAiJobRepository } from './repositories/sqlite-ai-job-repository';
 import { SqliteAiResultRepository } from './repositories/sqlite-ai-result-repository';
+import { SqliteAttachmentReferenceRepository } from './repositories/sqlite-attachment-reference-repository';
+import { SqliteCalendarEventRepository } from './repositories/sqlite-calendar-event-repository';
+import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-calendar-subscription-repository';
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
+import { SqliteGoogleCalendarRepository } from './repositories/sqlite-google-calendar-repository';
+import { SqliteGoogleConnectionRepository } from './repositories/sqlite-google-connection-repository';
+import { SqliteGoogleEventRepository } from './repositories/sqlite-google-event-repository';
+import { SqliteInviteCandidateRepository } from './repositories/sqlite-invite-candidate-repository';
 import { SqliteLabelRepository } from './repositories/sqlite-label-repository';
 import { SqliteMailboxRepository } from './repositories/sqlite-mailbox-repository';
 import { SqliteMessageAttachmentLookup } from './repositories/sqlite-message-attachment-lookup';
@@ -35,6 +46,12 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   aiJobs: new SqliteAiJobRepository(executor),
   syncStates: new SqliteSyncStateRepository(executor),
   pendingWork: new SqlitePendingWorkRepository(executor),
+  calendarEvents: new SqliteCalendarEventRepository(executor),
+  calendarSubscriptions: new SqliteCalendarSubscriptionRepository(executor),
+  googleConnections: new SqliteGoogleConnectionRepository(executor),
+  googleCalendars: new SqliteGoogleCalendarRepository(executor),
+  googleEvents: new SqliteGoogleEventRepository(executor),
+  inviteCandidates: new SqliteInviteCandidateRepository(executor),
 });
 
 export const createSqliteRepositories = (database: SqliteDatabase): Repositories =>
@@ -43,3 +60,8 @@ export const createSqliteRepositories = (database: SqliteDatabase): Repositories
 export const createSqliteMessageAttachmentLookup = (
   database: SqliteDatabase,
 ): MessageAttachmentLookup => new SqliteMessageAttachmentLookup(new QueuedExecutor(database));
+
+export const createSqliteAttachmentReferences = (
+  database: SqliteDatabase,
+): AttachmentReferenceRepository =>
+  new SqliteAttachmentReferenceRepository(new QueuedExecutor(database));

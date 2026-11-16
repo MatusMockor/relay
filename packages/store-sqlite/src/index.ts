@@ -1,4 +1,5 @@
 export {
+  createSqliteAttachmentReferences,
   createSqliteMessageAttachmentLookup,
   createSqliteRepositories,
 } from './create-sqlite-repositories';

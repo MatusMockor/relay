@@ -8,6 +8,8 @@ export type MailToolName =
   | 'list_folder'
   | 'get_thread'
   | 'list_tasks'
+  | 'list_events'
+  | 'get_thread_events'
   | 'create_task'
   | 'create_draft';
 

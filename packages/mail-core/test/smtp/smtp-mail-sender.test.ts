@@ -48,9 +48,9 @@ describe('SmtpMailSender against GreenMail', () => {
     expect(sent.messageIdHeader).toMatch(/^<.+@.+>$/);
     expect(sent.acceptedRecipients).toEqual([harness.user.email, 'hidden@relay.test']);
     expect(sent.rejectedRecipients).toEqual([]);
-    const rawText = new TextDecoder().decode(sent.raw);
-    expect(rawText).toContain(`Message-ID: ${sent.messageIdHeader}`);
-    expect(rawText).not.toMatch(/^Bcc:/m);
+    expect(new TextDecoder().decode(sent.sentCopy)).toContain(
+      `Message-ID: ${sent.messageIdHeader}`,
+    );
 
     let fetched: RawMessage[] = [];
     await vi.waitFor(
@@ -61,6 +61,7 @@ describe('SmtpMailSender against GreenMail', () => {
       { timeout: 5_000, interval: 100 },
     );
 
+    expect(new TextDecoder().decode(fetched[0]?.source)).not.toMatch(/^Bcc:/im);
     const parsed = await parser.parse(fetched[0]?.source ?? new Uint8Array());
     expect(parsed.messageIdHeader).toBe(sent.messageIdHeader);
     expect(parsed.inReplyTo).toBe('<parent@relay.test>');
@@ -73,12 +74,12 @@ describe('SmtpMailSender against GreenMail', () => {
     ]);
   });
 
-  it('can append the returned raw MIME to the Sent mailbox', async () => {
+  it('can append the returned Sent copy to the Sent mailbox', async () => {
     const admin = await harness.admin();
     await admin.mailboxCreate('Sent');
     const sent = await sender.send(harness.account, passwordCredentials(harness.user), reply());
 
-    const appended = await harness.provider.append('Sent', sent.raw, { seen: true });
+    const appended = await harness.provider.append('Sent', sent.sentCopy, { seen: true });
     const stored = await harness.provider.fetchMessage('Sent', appended.uid ?? 0);
 
     expect(new TextDecoder().decode(stored?.source)).toContain(sent.messageIdHeader);

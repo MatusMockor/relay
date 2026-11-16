@@ -1,6 +1,7 @@
 import type { Clock, MessageParser, ParsedAttachment, ParsedMessage } from '@relay/engine';
 import { simpleParser, type Attachment } from 'mailparser';
 import { firstAddress, toAddresses } from './addresses';
+import { calendarPartsOf, isCalendarBodyPart } from './calendar-parts';
 import { toMessageHeaders } from './header-lines';
 import { extractMessageIds, firstMessageId } from './message-ids';
 import { buildSnippet } from './snippet';
@@ -13,7 +14,10 @@ const toParsedAttachment = (attachment: Attachment): ParsedAttachment => ({
   contentType: attachment.contentType || 'application/octet-stream',
   size: attachment.size,
   contentId: attachment.cid ?? null,
-  inline: attachment.contentDisposition === 'inline' || isRelated(attachment),
+  inline:
+    attachment.contentDisposition === 'inline' ||
+    isRelated(attachment) ||
+    isCalendarBodyPart(attachment),
   checksum: attachment.checksum,
 });
 
@@ -54,6 +58,7 @@ export class MailparserMessageParser implements MessageParser {
       snippet: buildSnippet(textBody, htmlBody),
       headers: toMessageHeaders(parsed.headerLines),
       attachments: parsed.attachments.map(toParsedAttachment),
+      calendarParts: calendarPartsOf(parsed.attachments),
     };
   }
 }

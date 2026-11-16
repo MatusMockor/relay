@@ -20,6 +20,7 @@ export const drafts = sqliteTable(
     updatedAt: text('updated_at').notNull(),
     updatedTs: integer('updated_ts').notNull(),
     sendClaimedTs: integer('send_claimed_ts'),
+    sendRenewedTs: integer('send_renewed_ts'),
   },
   (table) => [
     index('drafts_user_order_idx').on(table.userId, table.updatedTs),

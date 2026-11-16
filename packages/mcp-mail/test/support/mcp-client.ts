@@ -12,8 +12,14 @@ export interface ConnectedClient {
   close(): Promise<void>;
 }
 
-export function backendFor(mail: InMemoryMail, userId: string): MailToolBackend {
-  return scopeMailTools(mail, mail, UserIdSchema.parse(userId));
+export const TEST_ZONE = 'Europe/Bratislava';
+
+export function backendFor(
+  mail: InMemoryMail,
+  userId: string,
+  timeZone = TEST_ZONE,
+): MailToolBackend {
+  return scopeMailTools(mail, mail, UserIdSchema.parse(userId), () => timeZone);
 }
 
 export async function connectInMemory(backend: MailToolBackend): Promise<ConnectedClient> {

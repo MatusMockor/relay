@@ -21,6 +21,7 @@ export const buildAccount = (overrides: Partial<MailAccount> = {}): MailAccount 
   userId: LOCAL_USER_ID,
   provider: 'imap',
   displayName: 'Práca',
+  senderName: 'Ján Novák',
   email: 'jan@firma.sk',
   color: '#3366ff',
   isPrimary: false,

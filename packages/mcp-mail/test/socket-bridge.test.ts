@@ -135,6 +135,8 @@ describe('local socket bridge', () => {
       listTasks: (query) => real.listTasks(query),
       createTask: (task) => real.createTask(task),
       createDraft: (content) => real.createDraft(content),
+      listEvents: (range) => real.listEvents(range),
+      getThreadEvents: (threadId) => real.getThreadEvents(threadId),
     };
     const stalledPath = join(dir, 'stalled.sock');
     const stalledHost = new MailToolSocketHost({

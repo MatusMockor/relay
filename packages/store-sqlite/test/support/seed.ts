@@ -14,6 +14,13 @@ export const seedAccount = async (
   overrides: Partial<MailAccount> = {},
 ): Promise<SeededAccount> => {
   const account = await repositories.accounts.create(buildAccount(overrides));
+  return seedMailboxes(repositories, account);
+};
+
+export const seedMailboxes = async (
+  repositories: Repositories,
+  account: MailAccount,
+): Promise<SeededAccount> => {
   const stored = await repositories.mailboxes.upsertMany(account.id, [
     buildMailbox({ id: mailboxId(`${account.id}-inbox`), accountId: account.id }),
     buildMailbox({

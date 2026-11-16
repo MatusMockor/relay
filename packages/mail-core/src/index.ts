@@ -6,8 +6,21 @@ export {
   type RefreshingOAuthTokenProviderOptions,
 } from './auth/refreshing-oauth-token-provider';
 export {
+  type KeyedCredentialStore,
+  RefreshingOAuthTokens,
+  type RefreshingOAuthTokensOptions,
+} from './auth/refreshing-oauth-tokens';
+export {
+  type CalendarAccessTokenSource,
+  GoogleCalendarAccessTokens,
+  type GoogleCalendarAccessTokensOptions,
+} from './auth/google/google-calendar-access-tokens';
+export {
   GOOGLE_AUTH_ENDPOINT,
+  GOOGLE_IDENTITY_SCOPES,
   GOOGLE_MAIL_SCOPES,
+  type GoogleScopeRequest,
+  googleScopesFor,
   GOOGLE_TOKEN_ENDPOINT,
   type GoogleOAuthClientConfig,
 } from './auth/google/google-oauth-config';
@@ -18,7 +31,7 @@ export {
   type GoogleCodeExchangeResult,
 } from './auth/google/exchange-google-code';
 export { GoogleOAuthTokenRefresher } from './auth/google/google-oauth-token-refresher';
-export type { FetchFunction } from './auth/google/google-token-endpoint';
+export { type FetchFunction, GoogleTokenRejectedError } from './auth/google/google-token-endpoint';
 export {
   createOAuthState,
   createPkceChallenge,

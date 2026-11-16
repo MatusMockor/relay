@@ -65,7 +65,7 @@ describe('streamable HTTP transport', () => {
     expect(firstText(resultA.content)).toContain('"threadId":"thr_1"');
     expect(firstText(resultA.content)).not.toContain('thr_2');
     expect(firstText(resultB.content)).toContain('"threadId":"thr_2"');
-    expect((await clientA.listTools()).tools).toHaveLength(6);
+    expect((await clientA.listTools()).tools).toHaveLength(8);
   });
 
   it('rejects requests without a valid token', async () => {

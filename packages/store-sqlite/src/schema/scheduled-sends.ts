@@ -17,6 +17,7 @@ export const scheduledSends = sqliteTable(
     error: text('error'),
     sentAt: text('sent_at'),
     claimedTs: integer('claimed_ts'),
+    renewedTs: integer('renewed_ts'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [

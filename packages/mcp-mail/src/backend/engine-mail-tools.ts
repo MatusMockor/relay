@@ -5,7 +5,7 @@ import { scopeMailTools, type MailToolCommands, type MailToolQueries } from './m
 
 export type MailToolEngineServices = Pick<
   EngineServices,
-  'inbox' | 'threads' | 'tasks' | 'compose'
+  'inbox' | 'threads' | 'tasks' | 'compose' | 'calendar'
 >;
 
 export function engineMailTools(
@@ -38,6 +38,12 @@ export function engineMailTools(
         cursor: query.cursor ?? undefined,
         limit: query.limit,
       }),
+    listEvents: async (userId, range, timeZone) =>
+      (await services.calendar.occurrences(userId, { from: range.from, to: range.to, timeZone }))
+        .filter((occurrence) => occurrence.status !== 'cancelled')
+        .slice(0, range.limit),
+    getThreadEvents: (userId, threadId, timeZone) =>
+      services.calendar.invitations(userId, threadId, timeZone),
     createTask: (userId, task) => services.tasks.createFromAi(userId, task),
     createDraft: (userId, content) => services.compose.createDraft(userId, content),
   };
@@ -46,7 +52,8 @@ export function engineMailTools(
 export function engineMailToolBackend(
   services: MailToolEngineServices,
   userId: UserId,
+  timeZone: () => string,
 ): MailToolBackend {
   const tools = engineMailTools(services);
-  return scopeMailTools(tools, tools, userId);
+  return scopeMailTools(tools, tools, userId, timeZone);
 }

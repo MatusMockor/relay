@@ -30,14 +30,14 @@ interface ChatTexts {
 
 const TEXTS: Localized<ChatTexts> = {
   sk: {
-    task: 'Úloha: Odpovedz na otázku používateľa o jeho pošte. Ak potrebuješ údaje, použi nástroje search_threads, list_folder, get_thread a list_tasks. Koncept (create_draft) alebo úlohu (create_task) vytvor iba vtedy, keď o to používateľ výslovne žiada. Ak sa odpoveď opiera o konkrétne vlákna, uveď ich ID v poli threadIds a v texte na ne odkazuj značkou [thread:ID]. Ak odpoveď nepoznáš, povedz to.',
+    task: 'Úloha: Odpovedz na otázku používateľa o jeho pošte. Ak potrebuješ údaje, použi nástroje search_threads, list_folder, get_thread a list_tasks, na otázky o kalendári list_events a get_thread_events. Časy z kalendára uvádzaj v časovom pásme, ktoré nástroj vráti. Koncept (create_draft) alebo úlohu (create_task) vytvor iba vtedy, keď o to používateľ výslovne žiada. Ak sa odpoveď opiera o konkrétne vlákna, uveď ich ID v poli threadIds a v texte na ne odkazuj značkou [thread:ID]. Ak odpoveď nepoznáš, povedz to.',
     history: 'Doterajšia konverzácia:',
     user: 'Používateľ',
     assistant: 'Asistent',
     question: 'Otázka používateľa:',
   },
   en: {
-    task: 'Task: Answer the user question about their mail. Use the search_threads, list_folder, get_thread and list_tasks tools when you need data. Create a draft (create_draft) or a task (create_task) only when the user explicitly asks for it. When the answer relies on specific threads, list their ids in threadIds and refer to them in the text with the marker [thread:ID]. If you do not know the answer, say so.',
+    task: 'Task: Answer the user question about their mail. Use the search_threads, list_folder, get_thread and list_tasks tools when you need data, and list_events and get_thread_events for calendar questions. State calendar times in the time zone the tool returns. Create a draft (create_draft) or a task (create_task) only when the user explicitly asks for it. When the answer relies on specific threads, list their ids in threadIds and refer to them in the text with the marker [thread:ID]. If you do not know the answer, say so.',
     history: 'Conversation so far:',
     user: 'User',
     assistant: 'Assistant',

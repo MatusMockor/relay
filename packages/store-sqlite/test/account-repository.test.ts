@@ -60,6 +60,19 @@ describe('SqliteAccountRepository', () => {
     expect(await accounts.update(LOCAL_USER_ID, accountId('acc-2'), {})).toEqual(updated);
   });
 
+  it('stores the sender name apart from the account label', async () => {
+    const { accounts } = store.repositories;
+    const created = await accounts.create(buildAccount({ senderName: 'Ján Novák' }));
+
+    const cleared = await accounts.update(LOCAL_USER_ID, created.id, { senderName: null });
+    const renamed = await accounts.update(LOCAL_USER_ID, created.id, { senderName: 'Ján N.' });
+
+    expect(created).toMatchObject({ displayName: 'Práca', senderName: 'Ján Novák' });
+    expect(cleared?.senderName).toBeNull();
+    expect(await accounts.findById(LOCAL_USER_ID, created.id)).toEqual(renamed);
+    expect(renamed).toMatchObject({ displayName: 'Práca', senderName: 'Ján N.' });
+  });
+
   it('sets the primary account and fails for an unknown account', async () => {
     const { accounts } = store.repositories;
     await accounts.create(buildAccount({ isPrimary: true }));

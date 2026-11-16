@@ -1,5 +1,7 @@
 import type { Page, PageRequest, TaskQuery, ThreadFolderQuery } from '@relay/engine';
 import {
+  type CalendarInvitation,
+  type CalendarOccurrence,
   DraftIdSchema,
   TaskIdSchema,
   UserIdSchema,
@@ -16,6 +18,7 @@ import {
 } from '@relay/shared/domain';
 import type { MailToolCommands, MailToolQueries } from '../../src/backend/mail-tool-services';
 import type { NewMailTask } from '../../src/backend/mail-tool-backend';
+import type { CalendarRangeQuery } from '../../src/backend/calendar-tool-types';
 
 const NOW = '2026-11-15T10:00:00+01:00';
 const VIEW_STATES: Partial<Record<FolderView, ThreadState>> = {
@@ -36,6 +39,9 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
   readonly messages: Message[] = [];
   readonly tasks: Task[] = [];
   readonly drafts: { userId: UserId; draft: Draft }[] = [];
+  readonly occurrences: { userId: UserId; occurrence: CalendarOccurrence }[] = [];
+  readonly invitations: { userId: UserId; invitation: CalendarInvitation }[] = [];
+  readonly calendarRequests: { range: CalendarRangeQuery | null; timeZone: string }[] = [];
 
   addThread(userId: string, thread: ThreadSummary, messages: readonly Message[] = []): void {
     const owner = UserIdSchema.parse(userId);
@@ -75,6 +81,32 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
       (task) => task.userId === userId && (query.state === null || task.state === query.state),
     );
     return Promise.resolve(paginate(items, query));
+  }
+
+  listEvents(
+    userId: UserId,
+    range: CalendarRangeQuery,
+    timeZone: string,
+  ): Promise<CalendarOccurrence[]> {
+    this.calendarRequests.push({ range, timeZone });
+    const items = this.occurrences
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => entry.occurrence)
+      .filter((occurrence) => occurrence.start < range.to && occurrence.end > range.from);
+    return Promise.resolve(items.slice(0, range.limit));
+  }
+
+  getThreadEvents(
+    userId: UserId,
+    threadId: ThreadId,
+    timeZone: string,
+  ): Promise<CalendarInvitation[]> {
+    this.calendarRequests.push({ range: null, timeZone });
+    return Promise.resolve(
+      this.invitations
+        .filter((entry) => entry.userId === userId && entry.invitation.threadId === threadId)
+        .map((entry) => entry.invitation),
+    );
   }
 
   createTask(userId: UserId, input: NewMailTask): Promise<Task> {

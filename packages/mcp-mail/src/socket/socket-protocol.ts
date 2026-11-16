@@ -1,8 +1,11 @@
 import {
   AccountIdSchema,
+  CalendarInvitationSchema,
+  CalendarOccurrenceSchema,
   DraftContentSchema,
   DraftSchema,
   FolderViewSchema,
+  IsoDateTimeSchema,
   LabelIdSchema,
   SplitIdSchema,
   TaskSchema,
@@ -10,6 +13,7 @@ import {
   ThreadDetailSchema,
   ThreadIdSchema,
   ThreadSummarySchema,
+  TimeZoneSchema,
 } from '@relay/shared/domain';
 import { z } from 'zod';
 
@@ -21,7 +25,15 @@ export const HelloReplySchema = z.discriminatedUnion('type', [
 
 export const SocketRequestSchema = z.object({
   id: z.number().int().nonnegative(),
-  method: z.enum(['listFolder', 'getThread', 'listTasks', 'createTask', 'createDraft']),
+  method: z.enum([
+    'listFolder',
+    'getThread',
+    'listTasks',
+    'createTask',
+    'createDraft',
+    'listEvents',
+    'getThreadEvents',
+  ]),
   params: z.unknown(),
 });
 export type SocketRequest = z.infer<typeof SocketRequestSchema>;
@@ -70,4 +82,22 @@ export const SOCKET_SCHEMAS = {
     result: TaskSchema,
   },
   createDraft: { params: DraftContentSchema, result: DraftSchema },
+  listEvents: {
+    params: z.object({
+      from: IsoDateTimeSchema,
+      to: IsoDateTimeSchema,
+      limit: z.number().int().min(1).max(200),
+    }),
+    result: z.object({
+      timeZone: TimeZoneSchema,
+      occurrences: z.array(CalendarOccurrenceSchema),
+    }),
+  },
+  getThreadEvents: {
+    params: z.object({ threadId: ThreadIdSchema }),
+    result: z.object({
+      timeZone: TimeZoneSchema,
+      invitations: z.array(CalendarInvitationSchema),
+    }),
+  },
 } as const satisfies Record<SocketMethodName, { params: z.ZodType; result: z.ZodType }>;

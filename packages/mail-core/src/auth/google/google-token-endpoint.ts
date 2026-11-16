@@ -8,6 +8,14 @@ import {
 
 export type FetchFunction = typeof fetch;
 
+const REJECTED_GRANTS = new Set(['invalid_grant', 'unauthorized_client', 'invalid_client']);
+
+export class GoogleTokenRejectedError extends ProviderError {
+  constructor(readonly reason: string) {
+    super(`Google token request failed: ${reason}`);
+  }
+}
+
 export const requestGoogleToken = async (
   config: GoogleOAuthClientConfig,
   grant: Readonly<Record<string, string>>,
@@ -27,6 +35,9 @@ export const requestGoogleToken = async (
   if (!response.ok) {
     const parsedError = GoogleTokenErrorSchema.safeParse(payload);
     const reason = parsedError.success ? parsedError.data.error : `HTTP ${String(response.status)}`;
+    if (REJECTED_GRANTS.has(reason)) {
+      throw new GoogleTokenRejectedError(reason);
+    }
     throw new ProviderError(`Google token request failed: ${reason}`);
   }
   const parsed = GoogleTokenResponseSchema.safeParse(payload);
