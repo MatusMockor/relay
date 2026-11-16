@@ -11,7 +11,7 @@ import { isoSpan, overlaps, spanOf } from './occurrence-span';
 import { parsedEventOf } from './parsed-event';
 import { rangeSpan } from './range-span';
 import { keyInstant } from './recurrence-instant';
-import { exactWins, hiddenByCut, rangeAt, visibleLeftover } from './series-choice';
+import { cutAt, hiddenByCut, rangeAt, shownAt, visibleLeftover } from './series-choice';
 import { seriesPlan } from './series-plan';
 import { seriesRangeEndOf } from './series-range-end';
 
@@ -73,25 +73,28 @@ export class IcalCalendarExpander implements CalendarExpander {
         Date.parse(window.from) - plan.reachBack,
       )) {
         const at = keyInstant(key, timeZone);
-        if (at >= plan.cutAt) {
+        if (at >= plan.stopAt) {
           break;
         }
         const exact = byKey.get(key);
         byKey.delete(key);
-        const range = rangeAt(plan, at);
-        if (exact !== undefined && exactWins(exact, range)) {
+        if (exact !== undefined && shownAt(exact, plan, at)) {
           results.push(...single(exact, window));
           continue;
         }
         if (at >= to) {
           break;
         }
+        if (cutAt(plan, at) !== undefined) {
+          continue;
+        }
+        const range = rangeAt(plan, at);
         const span =
           range === undefined
             ? occurrenceSpan(parsed, time, key, timeZone)
             : rangeSpan(parsed, range, time, key, timeZone);
         if (overlaps(span, window)) {
-          results.push({ event: range?.event ?? master, recurrenceId: key, ...isoSpan(span) });
+          results.push({ event: range?.shown ?? master, recurrenceId: key, ...isoSpan(span) });
         }
       }
     } catch {

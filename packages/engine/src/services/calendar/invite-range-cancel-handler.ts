@@ -2,15 +2,22 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, sameRevision, supersedes } from './event-precedence';
-import { cancelled } from './invite-cancellation';
+import { type CancelScope, cancelled } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
 import { atOrAfter, isMaster, recurrenceInstant } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
+const scopeOf = (target: StoredCalendarEvent, event: ParsedCalendarEvent): CancelScope => {
+  if (target.recurrenceId === event.recurrenceId) {
+    return { link: true, flags: 'cut' };
+  }
+  return isMaster(target) ? { link: true, flags: 'keep' } : { link: false, flags: 'clear' };
+};
+
 const applied = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
   sameRevision(event, member) &&
-  (member.recurrenceId !== event.recurrenceId || member.thisAndFuture === true);
+  (member.recurrenceId !== event.recurrenceId || member.endsSeries === true);
 
 export class InviteRangeCancelHandler {
   constructor(
@@ -42,11 +49,7 @@ export class InviteRangeCancelHandler {
         !applied(member, event),
     );
     for (const target of targets) {
-      const cut = target.recurrenceId === event.recurrenceId;
-      await saveCurrent(
-        repositories,
-        cancelled(target, context, event, { link: cut || isMaster(target), range: cut }),
-      );
+      await saveCurrent(repositories, cancelled(target, context, event, scopeOf(target, event)));
     }
     const created =
       atCut === undefined && (await this.tombstone(repositories, context, event, master));
@@ -64,10 +67,16 @@ export class InviteRangeCancelHandler {
     const summary = event.summary === '' ? (master?.summary ?? '') : event.summary;
     await saveCurrent(
       repositories,
-      storedFrom(this.ids, context, { ...event, summary, status: 'cancelled' }, undefined, {
-        myPartstat: mine?.partstat ?? null,
-        myEmail: mine?.email ?? null,
-      }),
+      storedFrom(
+        this.ids,
+        context,
+        { ...event, summary, status: 'cancelled', thisAndFuture: true, endsSeries: true },
+        undefined,
+        {
+          myPartstat: mine?.partstat ?? null,
+          myEmail: mine?.email ?? null,
+        },
+      ),
     );
     return true;
   }

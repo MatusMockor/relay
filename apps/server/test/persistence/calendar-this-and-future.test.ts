@@ -44,6 +44,7 @@ const tombstone = (account: MailAccount): StoredCalendarEvent =>
   buildEvent(account, {
     recurrenceId: CUT,
     thisAndFuture: true,
+    endsSeries: true,
     status: 'cancelled',
     method: 'CANCEL',
     sequence: 1,
@@ -63,7 +64,7 @@ describe('Postgres THISANDFUTURE rows', () => {
     const cut = await events.saveIfCurrent(tombstone(account));
 
     expect(master).not.toHaveProperty('thisAndFuture');
-    expect(cut).toMatchObject({ thisAndFuture: true, revision: 1 });
+    expect(cut).toMatchObject({ thisAndFuture: true, endsSeries: true, revision: 1 });
     expect(await events.findSeries(tombstone(account).source, 'weekly@partner.test')).toEqual([
       master,
       cut,
@@ -80,10 +81,16 @@ describe('Postgres THISANDFUTURE rows', () => {
       }),
     ).toEqual([]);
 
-    const { thisAndFuture: _flag, ...plain } = cut as StoredCalendarEvent;
+    const { thisAndFuture: _flag, endsSeries: _ends, ...plain } = cut as StoredCalendarEvent;
     const rewritten = await events.saveIfCurrent({ ...plain, sequence: 2 });
     expect(rewritten).not.toHaveProperty('thisAndFuture');
+    expect(rewritten).not.toHaveProperty('endsSeries');
     const upserted = await events.upsert({ ...tombstone(account), sequence: 3 });
-    expect(upserted).toMatchObject({ id: cut?.id, thisAndFuture: true, sequence: 3 });
+    expect(upserted).toMatchObject({
+      id: cut?.id,
+      thisAndFuture: true,
+      endsSeries: true,
+      sequence: 3,
+    });
   });
 });

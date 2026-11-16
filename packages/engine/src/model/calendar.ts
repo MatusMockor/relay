@@ -18,6 +18,7 @@ export interface CalendarEventData {
   readonly uid: string;
   readonly recurrenceId: string | null;
   readonly thisAndFuture?: boolean;
+  readonly endsSeries?: boolean;
   readonly sequence: number;
   readonly dtstamp: string | null;
   readonly status: CalendarEventStatus;

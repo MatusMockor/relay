@@ -3,7 +3,7 @@ import type { StoredCalendarEvent } from '../../model/calendar';
 const DAY_MS = 86_400_000;
 
 export const isRangeRequest = (member: StoredCalendarEvent): boolean =>
-  member.recurrenceId !== null && member.thisAndFuture === true && member.status !== 'cancelled';
+  member.recurrenceId !== null && member.thisAndFuture === true && member.endsSeries !== true;
 
 export const rangeRowEnd = (row: StoredCalendarEvent, seriesEnd: string | null): string | null => {
   if (seriesEnd === null) {

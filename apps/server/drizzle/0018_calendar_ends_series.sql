@@ -1,0 +1,2 @@
+ALTER TABLE "calendar_events" ADD COLUMN "ends_series" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+UPDATE "calendar_events" SET "ends_series" = true WHERE "this_and_future" AND "status" = 'cancelled';

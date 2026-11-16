@@ -14,7 +14,7 @@ export const seriesRangeEndOf = (parsed: ParsedEvent, plan: SeriesPlan): string 
     ...plan.ranges.map((range) => Math.max(range.shift, range.offset) + range.length),
   );
   const natural = seriesEndOf(parsed.event, parsed.start.tzid, longest);
-  const bound = plan.cutAt + longest + SLACK_MS;
+  const bound = plan.stopAt + longest + SLACK_MS;
   if (natural === null) {
     return Number.isFinite(bound) ? toIso(bound) : null;
   }

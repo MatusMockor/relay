@@ -81,6 +81,7 @@ export const calendarEvents = pgTable(
     recurrenceKey: text('recurrence_key').notNull(),
     recurrenceId: text('recurrence_id'),
     thisAndFuture: boolean('this_and_future').notNull().default(false),
+    endsSeries: boolean('ends_series').notNull().default(false),
     sequence: integer('sequence').notNull(),
     dtstamp: timestampTz('dtstamp'),
     method: text('method').$type<CalendarMethod>(),

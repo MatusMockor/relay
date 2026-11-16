@@ -17,31 +17,49 @@ export const isMaster = (member: Pick<CalendarEventData, 'recurrenceId'>): boole
 export const atOrAfter = (member: Pick<CalendarEventData, 'recurrenceId'>, from: number): boolean =>
   member.recurrenceId !== null && recurrenceInstant(member.recurrenceId) >= from;
 
-const isRangeCut = (member: StoredCalendarEvent): boolean =>
-  member.recurrenceId !== null && member.thisAndFuture === true && member.status === 'cancelled';
+const isCut = (member: StoredCalendarEvent): boolean =>
+  member.recurrenceId !== null && member.endsSeries === true;
+
+const isRange = (member: StoredCalendarEvent): boolean =>
+  member.recurrenceId !== null && member.thisAndFuture === true && member.endsSeries !== true;
 
 const instantOf = (member: StoredCalendarEvent): number =>
   recurrenceInstant(member.recurrenceId ?? '');
 
-export const effectiveCut = (
+const lifted = (
+  cut: StoredCalendarEvent,
+  ranges: readonly StoredCalendarEvent[],
+  at: number,
+): boolean =>
+  ranges.some(
+    (range) =>
+      instantOf(range) >= instantOf(cut) && instantOf(range) <= at && !supersedes(cut, range),
+  );
+
+export const blockingCut = (
   series: readonly StoredCalendarEvent[],
-): StoredCalendarEvent | null => {
+  at: number,
+): StoredCalendarEvent | undefined => {
   const master = series.find(isMaster);
-  return series
-    .filter((member) => isRangeCut(member) && (master === undefined || supersedes(member, master)))
-    .reduce<StoredCalendarEvent | null>(
-      (earliest, member) =>
-        earliest === null || instantOf(member) < instantOf(earliest) ? member : earliest,
-      null,
-    );
+  const ranges = series.filter(isRange);
+  return series.find(
+    (member) =>
+      isCut(member) &&
+      (master === undefined || supersedes(member, master)) &&
+      instantOf(member) <= at &&
+      !lifted(member, ranges, at),
+  );
 };
 
 export const cutOffByRange = (
   series: readonly StoredCalendarEvent[],
   event: CalendarEventData,
 ): boolean => {
-  const cut = effectiveCut(series);
-  return cut !== null && atOrAfter(event, instantOf(cut)) && !supersedes(event, cut);
+  if (event.recurrenceId === null) {
+    return false;
+  }
+  const cut = blockingCut(series, recurrenceInstant(event.recurrenceId));
+  return cut !== undefined && !supersedes(event, cut);
 };
 
 export const involvesRange = (

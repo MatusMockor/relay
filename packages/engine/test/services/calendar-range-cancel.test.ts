@@ -22,7 +22,10 @@ const rows = (engine: TestEngine): StoredCalendarEvent[] =>
 
 const byRecurrence = (engine: TestEngine) =>
   Object.fromEntries(
-    rows(engine).map((row) => [row.recurrenceId ?? 'master', [row.status, row.thisAndFuture]]),
+    rows(engine).map((row) => [
+      row.recurrenceId ?? 'master',
+      [row.status, row.thisAndFuture, row.endsSeries],
+    ]),
   );
 
 const SERIES = {
@@ -79,10 +82,10 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     await deliver(engine, seeded, 'cancel', cancelFrom(CUT, { summary: '' }));
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined],
-      '2026-11-09T09:00:00.000Z': ['confirmed', undefined],
-      [CUT]: ['cancelled', true],
-      '2026-11-30T09:00:00.000Z': ['cancelled', undefined],
+      master: ['confirmed', undefined, undefined],
+      '2026-11-09T09:00:00.000Z': ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, true],
+      '2026-11-30T09:00:00.000Z': ['cancelled', undefined, undefined],
     });
     const cancelled = rows(engine);
     const tombstone = cancelled.find((row) => row.recurrenceId === CUT);
@@ -119,10 +122,10 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     await deliver(engine, seeded, 'newer-after', instance('12-07', { sequence: 2 }));
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined],
-      '2026-11-16T09:00:00.000Z': ['confirmed', undefined],
-      [CUT]: ['cancelled', true],
-      '2026-12-07T09:00:00.000Z': ['confirmed', undefined],
+      master: ['confirmed', undefined, undefined],
+      '2026-11-16T09:00:00.000Z': ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, true],
+      '2026-12-07T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
 
@@ -134,8 +137,8 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     await deliver(engine, seeded, 'old-cancel', cancelFrom(CUT));
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined],
-      '2026-11-30T09:00:00.000Z': ['confirmed', undefined],
+      master: ['confirmed', undefined, undefined],
+      '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
 
@@ -146,8 +149,8 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     await deliver(engine, seeded, 'cancel', cancelFrom(SERIES.startsAt));
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['cancelled', undefined],
-      [SERIES.startsAt]: ['cancelled', true],
+      master: ['cancelled', undefined, undefined],
+      [SERIES.startsAt]: ['cancelled', true, true],
     });
     expect(rows(engine).every((row) => row.method === 'CANCEL')).toBe(true);
   });
@@ -165,9 +168,55 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     );
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined],
-      [CUT]: ['cancelled', true],
+      master: ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, true],
     });
     expect(rows(engine).find((row) => row.recurrenceId === CUT)?.sequence).toBe(2);
+  });
+
+  it('keeps the range change when only its anchor occurrence is cancelled', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'range', instance('11-23', { sequence: 1, thisAndFuture: true }));
+    await deliver(
+      engine,
+      seeded,
+      'anchor-cancel',
+      cancelFrom(CUT, { thisAndFuture: false, sequence: 2 }),
+    );
+
+    expect(byRecurrence(engine)).toEqual({
+      master: ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, undefined],
+    });
+  });
+
+  it('accepts only a newer range request after a cut and lets it restore later instances', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'cancel', cancelFrom(CUT));
+    await deliver(
+      engine,
+      seeded,
+      'stale-range',
+      instance('11-30', { sequence: 1, thisAndFuture: true }),
+    );
+    await deliver(
+      engine,
+      seeded,
+      'restore',
+      instance('12-07', { sequence: 2, thisAndFuture: true }),
+    );
+    await deliver(engine, seeded, 'restored-instance', instance('12-14', { sequence: 2 }));
+    await deliver(engine, seeded, 'still-cut', instance('11-30', { sequence: 1 }));
+
+    expect(byRecurrence(engine)).toEqual({
+      master: ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, true],
+      '2026-12-07T09:00:00.000Z': ['confirmed', true, undefined],
+      '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
+    });
   });
 });

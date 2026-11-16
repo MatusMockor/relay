@@ -22,6 +22,7 @@ export const calendarEvents = sqliteTable(
     recurrenceKey: text('recurrence_key').notNull(),
     recurrenceId: text('recurrence_id'),
     thisAndFuture: integer('this_and_future', { mode: 'boolean' }).notNull().default(false),
+    endsSeries: integer('ends_series', { mode: 'boolean' }).notNull().default(false),
     sequence: integer('sequence').notNull(),
     dtstamp: text('dtstamp'),
     method: text('method'),

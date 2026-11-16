@@ -53,14 +53,17 @@ const eventOf = (
     return null;
   }
   const timing = timed ?? untimed(recurrenceId, dtstampOf(vevent));
+  const status = statusOf(vevent, method);
+  const range = recurrenceId !== null && isThisAndFuture(vevent);
   return {
     uid,
     timed: timed !== null,
     recurrenceId,
-    ...(recurrenceId !== null && isThisAndFuture(vevent) ? { thisAndFuture: true } : {}),
+    ...(range ? { thisAndFuture: true } : {}),
+    ...(range && status === 'cancelled' ? { endsSeries: true } : {}),
     sequence: sequenceOf(vevent),
     dtstamp: dtstampOf(vevent),
-    status: statusOf(vevent, method),
+    status,
     summary: textOf(vevent, 'summary', 500) ?? '',
     location: textOf(vevent, 'location', 500),
     description: textOf(vevent, 'description', 10_000),
