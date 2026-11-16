@@ -50,6 +50,18 @@ export class PgPendingWorkRepository implements PendingWorkRepository {
     return row === undefined ? { ...work, revision: '' } : toPendingWork<Kind>(row);
   }
 
+  async replace<Kind extends PendingWorkKind>(
+    work: PendingWork<Kind>,
+    payload: PendingWorkPayloads[Kind],
+  ): Promise<PendingWork<Kind> | null> {
+    const [row] = await this.db
+      .update(pendingWork)
+      .set({ payload, revision: NEW_REVISION })
+      .where(and(keyed(work), eq(pendingWork.revision, work.revision)))
+      .returning();
+    return row === undefined ? null : toPendingWork<Kind>(row);
+  }
+
   async find<Kind extends PendingWorkKind>(
     key: PendingWorkKey<Kind>,
   ): Promise<PendingWork<Kind> | null> {

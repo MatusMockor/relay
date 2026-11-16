@@ -13,7 +13,8 @@ import {
 } from '../../src/persistence/migrations/migration-runner';
 import { PgAttachmentStore } from '../../src/persistence/repositories/attachments/pg-attachment-store';
 import { createPgRepositories } from '../../src/persistence/repositories/create-pg-repositories';
-import { at, seedAccount } from './support/fixtures';
+import { at } from './support/fixtures';
+import { seedLegacyAccount } from './support/legacy-account';
 import { createTestDatabase, type TestDatabase } from './support/test-database';
 
 const MIGRATIONS_BEFORE_UNIQUE_REFERENCES = 7;
@@ -48,7 +49,7 @@ describe('unique draft references migration on an existing database', () => {
     await runMigrations({ databaseUrl: database.url, migrationsFolder: folder });
     connection = openPostgresConnection({ url: database.url, maxConnections: 2 });
     const repositories = createPgRepositories(connection.db);
-    const seeded = await seedAccount(repositories);
+    const seeded = await seedLegacyAccount(database.url, repositories);
     const attachment = await new PgAttachmentStore(connection.db).put(seeded.user.id, {
       filename: 'a.txt',
       contentType: 'text/plain',

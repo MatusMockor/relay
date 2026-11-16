@@ -53,6 +53,18 @@ export class PgThreadRepository implements ThreadRepository {
     return row === undefined ? null : toThreadSummary(row);
   }
 
+  async lockForUpdate(accountId: AccountId, threadId: ThreadId): Promise<ThreadSummary | null> {
+    const locked = await this.db
+      .select({ id: threads.id })
+      .from(threads)
+      .where(and(eq(threads.accountId, accountId), eq(threads.id, threadId)))
+      .for('update');
+    if (locked.length === 0) {
+      return null;
+    }
+    return this.findByIdForAccount(accountId, threadId);
+  }
+
   async upsert(thread: ThreadSummary): Promise<ThreadSummary> {
     return this.db.transaction(async (tx) => {
       const userId = await findAccountOwner(tx, thread.accountId);

@@ -3,10 +3,16 @@ import type { DbExecutor } from '../database/database';
 import { PgAccountRepository } from './accounts/pg-account-repository';
 import { PgAiJobRepository } from './ai-jobs/pg-ai-job-repository';
 import { PgAiResultRepository } from './ai-results/pg-ai-result-repository';
+import { PgCalendarEventRepository } from './calendar/pg-calendar-event-repository';
+import { PgCalendarSubscriptionRepository } from './calendar/pg-calendar-subscription-repository';
 import { PgDeviceRepository } from './devices/pg-device-repository';
 import { PgDraftRepository } from './drafts/pg-draft-repository';
+import { PgGoogleCalendarRepository } from './google-calendar/pg-google-calendar-repository';
+import { PgGoogleConnectionRepository } from './google-calendar/pg-google-connection-repository';
+import { PgGoogleEventRepository } from './google-calendar/pg-google-event-repository';
 import { PgLabelRepository } from './labels/pg-label-repository';
 import { PgMailboxRepository } from './mailboxes/pg-mailbox-repository';
+import { PgInviteCandidateRepository } from './messages/pg-invite-candidate-repository';
 import { PgMessageRepository } from './messages/pg-message-repository';
 import { PgPendingWorkRepository } from './pending-work/pg-pending-work-repository';
 import { PgRefreshTokenRepository } from './refresh-tokens/pg-refresh-token-repository';
@@ -35,6 +41,12 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   aiJobs: new PgAiJobRepository(db),
   syncStates: new PgSyncStateRepository(db),
   pendingWork: new PgPendingWorkRepository(db),
+  calendarEvents: new PgCalendarEventRepository(db),
+  calendarSubscriptions: new PgCalendarSubscriptionRepository(db),
+  googleConnections: new PgGoogleConnectionRepository(db),
+  googleCalendars: new PgGoogleCalendarRepository(db),
+  googleEvents: new PgGoogleEventRepository(db),
+  inviteCandidates: new PgInviteCandidateRepository(db),
   users: new PgUserRepository(db),
   devices: new PgDeviceRepository(db),
   refreshTokens: new PgRefreshTokenRepository(db),

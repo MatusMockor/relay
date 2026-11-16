@@ -20,6 +20,7 @@ export const mailAccounts = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     provider: text('provider').$type<MailProviderKind>().notNull(),
     displayName: text('display_name').notNull(),
+    senderName: text('sender_name'),
     email: text('email').notNull(),
     color: text('color').notNull(),
     isPrimary: boolean('is_primary').notNull(),

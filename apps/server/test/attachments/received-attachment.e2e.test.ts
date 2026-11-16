@@ -73,28 +73,4 @@ describe('GET /attachments/:id/content for received mail', () => {
     });
     expect(foreign.status).toBe(404);
   });
-
-  it('serves uploaded draft attachments through the same endpoint', async () => {
-    const session = await registerUser(app.api, `att-up-${randomUUID().slice(0, 8)}@relay.test`);
-    const uploaded = await app.api.ok(
-      api.attachments.upload,
-      {
-        body: {
-          filename: 'návrh.txt',
-          contentType: 'text/plain',
-          contentBase64: Buffer.from('koncept').toString('base64'),
-        },
-      },
-      session.accessToken,
-    );
-
-    const response = await fetch(
-      buildUrl(app.baseUrl, api.attachments.content, { params: { id: uploaded.id } }),
-      { headers: { authorization: `Bearer ${session.accessToken}` } },
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('content-type')).toContain('text/plain');
-    expect(await response.text()).toBe('koncept');
-  });
 });

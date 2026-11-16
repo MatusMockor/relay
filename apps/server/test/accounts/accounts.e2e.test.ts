@@ -84,10 +84,17 @@ describe('accounts and settings', () => {
 
     const updated = await app.api.ok(
       api.accounts.update,
-      { params: { id: account.id }, body: { displayName: 'Firma', syncIntervalSeconds: 120 } },
+      {
+        params: { id: account.id },
+        body: { displayName: 'Firma', senderName: '  Ján Novák ', syncIntervalSeconds: 120 },
+      },
       token,
     );
-    expect(updated).toMatchObject({ displayName: 'Firma', syncIntervalSeconds: 120 });
+    expect(updated).toMatchObject({
+      displayName: 'Firma',
+      senderName: 'Ján Novák',
+      syncIntervalSeconds: 120,
+    });
     expect(await app.api.ok(api.accounts.list, {}, token)).toEqual([updated]);
 
     const stranger = await registerUser(app.api, uniqueEmail());

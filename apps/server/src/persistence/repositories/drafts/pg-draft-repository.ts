@@ -1,4 +1,9 @@
-import type { DraftRepository, DraftRevision, DraftSendClaim } from '@relay/engine';
+import type {
+  DraftRepository,
+  DraftRevision,
+  DraftSendClaim,
+  DraftSendRenewal,
+} from '@relay/engine';
 import type {
   Draft,
   DraftAttachment,
@@ -7,10 +12,11 @@ import type {
   ThreadId,
   UserId,
 } from '@relay/shared/domain';
-import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { drafts } from '../../schema';
 import { assertOwned } from '../../support/ownership';
+import { leaseStaleBefore } from '../../support/stale-lease';
 import { toDate } from '../../support/timestamps';
 import { replaceDraftAttachments } from './draft-attachments-store';
 import { draftSelection } from './draft-selection';
@@ -136,12 +142,12 @@ export class PgDraftRepository implements DraftRepository {
   async claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean> {
     const rows = await this.db
       .update(drafts)
-      .set({ sendClaimedAt: toDate(claim.claimedAt) })
+      .set({ sendClaimedAt: toDate(claim.claimedAt), sendRenewedAt: null })
       .where(
         and(
           eq(drafts.userId, userId),
           eq(drafts.id, draftId),
-          or(isNull(drafts.sendClaimedAt), lt(drafts.sendClaimedAt, toDate(claim.staleBefore))),
+          leaseStaleBefore(drafts.sendClaimedAt, drafts.sendRenewedAt, claim.staleBefore),
         ),
       )
       .returning({ id: drafts.id });
@@ -151,12 +157,31 @@ export class PgDraftRepository implements DraftRepository {
   async releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean> {
     const rows = await this.db
       .update(drafts)
-      .set({ sendClaimedAt: null })
+      .set({ sendClaimedAt: null, sendRenewedAt: null })
       .where(
         and(
           eq(drafts.userId, userId),
           eq(drafts.id, draftId),
           eq(drafts.sendClaimedAt, toDate(claimedAt)),
+        ),
+      )
+      .returning({ id: drafts.id });
+    return rows.length > 0;
+  }
+
+  async renewSendClaim(
+    userId: UserId,
+    draftId: DraftId,
+    renewal: DraftSendRenewal,
+  ): Promise<boolean> {
+    const rows = await this.db
+      .update(drafts)
+      .set({ sendRenewedAt: toDate(renewal.renewedAt) })
+      .where(
+        and(
+          eq(drafts.userId, userId),
+          eq(drafts.id, draftId),
+          eq(drafts.sendClaimedAt, toDate(renewal.claimedAt)),
         ),
       )
       .returning({ id: drafts.id });

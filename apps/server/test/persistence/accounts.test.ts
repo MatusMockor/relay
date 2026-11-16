@@ -89,6 +89,12 @@ describe('PgAccountRepository', () => {
     await expect(
       context.repositories.accounts.update(buildUser().id, account.id, { displayName: 'X' }),
     ).resolves.toBeNull();
+    await expect(
+      context.repositories.accounts.update(user.id, account.id, { senderName: null }),
+    ).resolves.toMatchObject({ displayName: 'Súkromný', senderName: null });
+    await expect(
+      context.repositories.accounts.update(user.id, account.id, { senderName: 'Ján N.' }),
+    ).resolves.toMatchObject({ displayName: 'Súkromný', senderName: 'Ján N.' });
 
     await context.repositories.accounts.updateStatus(account.id, {
       status: 'error',
