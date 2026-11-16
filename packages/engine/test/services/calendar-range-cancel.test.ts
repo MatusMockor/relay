@@ -1,81 +1,17 @@
-import type { CalendarEventId, ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
+import type { ThreadId } from '@relay/shared/domain';
+import { seedAccount } from '../support/fixtures';
 import {
-  type ParsedCalendar,
-  type ParsedCalendarEvent,
-  type StoredCalendarEvent,
-  ValidationError,
-} from '../../src';
-import { calendarOf, eventData } from '../support/calendar-fixtures';
-import { deliverMail, type SeededAccount, seedAccount } from '../support/fixtures';
-import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
-
-const deliver = async (
-  engine: TestEngine,
-  seeded: SeededAccount,
-  id: string,
-  calendar: ParsedCalendar,
-): Promise<void> => {
-  engine.calendar.parser.register(id, calendar);
-  deliverMail(seeded.server, 'INBOX', { id, headers: { 'X-Test-Calendar': id } });
-  await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
-};
-
-const rows = (engine: TestEngine): StoredCalendarEvent[] =>
-  [...engine.db.tables.calendarEvents.values()].sort((a, b) =>
-    (a.recurrenceId ?? '').localeCompare(b.recurrenceId ?? ''),
-  );
-
-const byRecurrence = (engine: TestEngine) =>
-  Object.fromEntries(
-    rows(engine).map((row) => [
-      row.recurrenceId ?? 'master',
-      [row.status, row.thisAndFuture, row.endsSeries],
-    ]),
-  );
-
-const SERIES = {
-  uid: 'weekly@partner.test',
-  recurring: true,
-  rangeEndsAt: null,
-  startsAt: '2026-11-02T09:00:00.000Z',
-  endsAt: '2026-11-02T10:00:00.000Z',
-};
-
-const master = (overrides: Partial<ParsedCalendarEvent> = {}) =>
-  calendarOf('REQUEST', eventData({ ...SERIES, ...overrides }));
-
-const instance = (day: string, overrides: Partial<ParsedCalendarEvent> = {}) =>
-  calendarOf(
-    'REQUEST',
-    eventData({
-      ...SERIES,
-      recurring: false,
-      recurrenceId: `2026-${day}T09:00:00.000Z`,
-      startsAt: `2026-${day}T13:00:00.000Z`,
-      endsAt: `2026-${day}T14:00:00.000Z`,
-      rangeEndsAt: `2026-${day}T14:00:00.000Z`,
-      ...overrides,
-    }),
-  );
-
-const cancelFrom = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent> = {}) =>
-  calendarOf(
-    'CANCEL',
-    eventData({
-      ...SERIES,
-      timed: false,
-      recurring: false,
-      recurrenceId,
-      thisAndFuture: true,
-      sequence: 1,
-      dtstamp: '2026-11-15T09:00:00.000Z',
-      status: 'cancelled',
-      ...overrides,
-    }),
-  );
-
-const CUT = '2026-11-23T09:00:00.000Z';
+  byRecurrence,
+  cancelFrom,
+  CUT,
+  deliver,
+  instance,
+  master,
+  rows,
+  SERIES,
+} from '../support/range-invites';
+import { createTestEngine, USER_ID } from '../support/test-engine';
 
 describe('THISANDFUTURE cancellations of invitations', () => {
   it('cancels the cut and shows later older overrides as cancelled on their own cards', async () => {
@@ -184,143 +120,5 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       [CUT]: ['cancelled', true, true],
     });
     expect(rows(engine).find((row) => row.recurrenceId === CUT)?.sequence).toBe(2);
-  });
-
-  it('keeps the range change when only its anchor occurrence is cancelled', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'series', master());
-    await deliver(engine, seeded, 'range', instance('11-23', { sequence: 1, thisAndFuture: true }));
-    await deliver(
-      engine,
-      seeded,
-      'anchor-cancel',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 2 }),
-    );
-
-    expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, undefined],
-    });
-  });
-
-  it('accepts only a newer range request after a cut and lets it restore later instances', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'series', master());
-    await deliver(engine, seeded, 'cancel', cancelFrom(CUT));
-    await deliver(
-      engine,
-      seeded,
-      'stale-range',
-      instance('11-30', { sequence: 1, thisAndFuture: true }),
-    );
-    await deliver(
-      engine,
-      seeded,
-      'restore',
-      instance('12-07', { sequence: 2, thisAndFuture: true }),
-    );
-    await deliver(engine, seeded, 'restored-instance', instance('12-14', { sequence: 2 }));
-    await deliver(engine, seeded, 'still-cut', instance('11-30', { sequence: 1 }));
-
-    expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
-      '2026-12-07T09:00:00.000Z': ['confirmed', true, undefined],
-      '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
-    });
-  });
-
-  it('keeps the range revision of a range request whose anchor is cancelled', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'series', master());
-    await deliver(engine, seeded, 'range', instance('11-23', { sequence: 1, thisAndFuture: true }));
-    await deliver(
-      engine,
-      seeded,
-      'later-range',
-      instance('11-30', { sequence: 2, thisAndFuture: true }),
-    );
-    await deliver(
-      engine,
-      seeded,
-      'anchor-cancel',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 3 }),
-    );
-
-    const anchor = rows(engine).find((row) => row.recurrenceId === CUT);
-    expect(anchor).toMatchObject({
-      status: 'cancelled',
-      sequence: 3,
-      thisAndFuture: true,
-      rangeRevision: { sequence: 1, dtstamp: '2026-11-15T07:00:00.000Z' },
-    });
-  });
-
-  it('rejects an override that any applying cut supersedes', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    const secondCut = '2026-12-07T09:00:00.000Z';
-    await deliver(engine, seeded, 'series', master());
-    await deliver(engine, seeded, 'first-cut', cancelFrom(CUT));
-    await deliver(engine, seeded, 'between', instance('12-14', { sequence: 2 }));
-    await deliver(engine, seeded, 'second-cut', cancelFrom(secondCut, { sequence: 3 }));
-    await deliver(engine, seeded, 'behind-both', instance('12-21', { sequence: 2 }));
-
-    expect(byRecurrence(engine)).toEqual({
-      master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
-      [secondCut]: ['cancelled', true, true],
-      '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
-    });
-  });
-
-  it('refuses an RSVP for an override that a newer cut hides before replying', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'series', master());
-    await deliver(engine, seeded, 'later', instance('11-30', { sequence: 1 }));
-    await deliver(engine, seeded, 'cancel', cancelFrom(CUT, { sequence: 2 }));
-    const hidden = rows(engine).find((row) => row.recurrenceId === '2026-11-30T09:00:00.000Z');
-
-    await expect(
-      engine.services.calendar.respond(
-        USER_ID,
-        hidden?.id as CalendarEventId,
-        'accepted',
-        'Europe/Bratislava',
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-    expect(engine.calendar.replyBuilder.built).toEqual([]);
-    expect(rows(engine).find((row) => row.id === hidden?.id)).toMatchObject({
-      status: 'confirmed',
-      myPartstat: hidden?.myPartstat,
-    });
-  });
-
-  it('applies invitations synced together in their arrival order', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    const uids = Array.from({ length: 30 }, (_, index) => `pair-${String(index)}@partner.test`);
-    for (const uid of uids) {
-      const request = `${uid}-range`;
-      const cancel = `${uid}-cancel`;
-      engine.calendar.parser.register(
-        request,
-        instance('11-23', { uid, sequence: 1, thisAndFuture: true }),
-      );
-      engine.calendar.parser.register(
-        cancel,
-        cancelFrom(CUT, { uid, thisAndFuture: false, sequence: 2 }),
-      );
-      deliverMail(seeded.server, 'INBOX', { id: request, headers: { 'X-Test-Calendar': request } });
-      deliverMail(seeded.server, 'INBOX', { id: cancel, headers: { 'X-Test-Calendar': cancel } });
-    }
-    await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
-
-    expect(rows(engine)).toHaveLength(uids.length);
-    expect(rows(engine).filter((row) => row.status !== 'cancelled')).toEqual([]);
   });
 });

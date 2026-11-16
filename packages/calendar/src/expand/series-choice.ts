@@ -14,7 +14,7 @@ const outranks = (a: RangeOverride, b: RangeOverride): number =>
 const endedBefore = (plan: SeriesPlan, range: RangeOverride, at: number): boolean =>
   plan.cuts.some(
     (cut) =>
-      cut.from > range.from && cut.from <= at && compareRevision(cut.event, range.revision) >= 0,
+      cut.from > range.from && cut.from <= at && compareRevision(cut.revision, range.revision) >= 0,
   );
 
 const cutsAt = (plan: SeriesPlan, at: number): SeriesCut[] =>
@@ -36,7 +36,7 @@ export const exactWins = (exact: StoredCalendarEvent, range: RangeOverride | und
 
 export const hiddenByCut = (override: StoredCalendarEvent, plan: SeriesPlan): boolean =>
   cutsAt(plan, recurrenceAt(override, plan.timeZone)).some(
-    (cut) => compareRevision(override, cut.event) < 0,
+    (cut) => compareRevision(override, cut.revision) < 0,
   );
 
 export const shownAt = (exact: StoredCalendarEvent, plan: SeriesPlan, at: number): boolean => {

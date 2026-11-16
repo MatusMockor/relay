@@ -7,7 +7,9 @@ export type RangeFlags = 'keep' | 'cut';
 
 const withFlags = (stored: StoredCalendarEvent, flags: RangeFlags): StoredCalendarEvent => {
   if (flags === 'keep') {
-    return isRangeRequest(stored) ? { ...stored, rangeRevision: rangeRevisionOf(stored) } : stored;
+    return isRangeRequest(stored) || stored.endsSeries === true
+      ? { ...stored, rangeRevision: rangeRevisionOf(stored) }
+      : stored;
   }
   const { rangeRevision: _revision, ...rest } = stored;
   return { ...rest, thisAndFuture: true, endsSeries: true };

@@ -1,5 +1,5 @@
 import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
-import { compareRevisions, rangeRevisionOf, supersedes } from './event-precedence';
+import { compareRevisions, rangeRevisionOf } from './event-precedence';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:\d{2})$/;
@@ -35,7 +35,7 @@ const lifted = (
     (range) =>
       instantOf(range) >= instantOf(cut) &&
       instantOf(range) <= at &&
-      compareRevisions(rangeRevisionOf(range), cut) > 0,
+      compareRevisions(rangeRevisionOf(range), rangeRevisionOf(cut)) > 0,
   );
 
 const blockingCuts = (
@@ -47,7 +47,7 @@ const blockingCuts = (
   return series.filter(
     (member) =>
       isCut(member) &&
-      (master === undefined || supersedes(member, master)) &&
+      (master === undefined || compareRevisions(rangeRevisionOf(member), master) >= 0) &&
       instantOf(member) <= at &&
       !lifted(member, ranges, at),
   );
@@ -61,7 +61,7 @@ export const cutOffByRange = (
     return false;
   }
   return blockingCuts(series, recurrenceInstant(event.recurrenceId)).some(
-    (cut) => !supersedes(event, cut),
+    (cut) => compareRevisions(event, rangeRevisionOf(cut)) < 0,
   );
 };
 

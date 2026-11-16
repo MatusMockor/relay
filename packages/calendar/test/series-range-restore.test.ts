@@ -251,4 +251,29 @@ describe('THISANDFUTURE ranges after cancellations', () => {
       ['2026-03-28T09:00:00.000Z', '2026-03-29T08:00:00.000Z'],
     ]);
   });
+
+  it('keeps a lift when the cut anchor is cancelled again on its own', () => {
+    const cut = stored(present(parsedEvents(rangeCancel('03', 1))[0]));
+    const recancelled = {
+      ...cut,
+      sequence: 3,
+      rangeRevision: { sequence: cut.sequence, dtstamp: cut.dtstamp },
+    };
+    const base = seriesFrom(
+      'daily@partner.test',
+      daily,
+      rangeRequest('05', 2, 'Report znova'),
+      moved('07', 2),
+    );
+
+    expect(shown({ ...base, overrides: [recancelled, ...base.overrides] })).toEqual([
+      ['2026-11-01T09:00:00.000Z', 'Report'],
+      ['2026-11-02T09:00:00.000Z', 'Report'],
+      ['2026-11-05T11:00:00.000Z', 'Report znova'],
+      ['2026-11-06T11:00:00.000Z', 'Report znova'],
+      ['2026-11-07T15:00:00.000Z', 'Report presunutý'],
+      ['2026-11-08T11:00:00.000Z', 'Report znova'],
+      ['2026-11-09T11:00:00.000Z', 'Report znova'],
+    ]);
+  });
 });
