@@ -5,6 +5,7 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import { ValidationError } from '../../errors';
+import { findEffective } from './effective-event';
 import type { RemoteRsvp } from './remote-rsvp';
 import { canRespond } from './rsvp-policy';
 import { RsvpService, type RsvpServiceDeps } from './rsvp-service';
@@ -23,7 +24,7 @@ export class GoogleFirstRsvpService extends RsvpService {
     response: CalendarRsvpResponse,
     timeZone: string,
   ): Promise<CalendarInvitation> {
-    const event = await this.base.events.findById(userId, eventId);
+    const event = await findEffective(this.base.events, userId, eventId);
     if (event?.source.kind !== 'invite') {
       return super.respond(userId, eventId, response, timeZone);
     }

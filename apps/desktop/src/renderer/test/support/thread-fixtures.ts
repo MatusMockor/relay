@@ -34,6 +34,7 @@ export const serverThread = (subject: string, overrides: Partial<ThreadSummary> 
 export interface DetailExtras {
   readonly aiSummary?: string;
   readonly checklist?: readonly { id: string; text: string; done: boolean }[];
+  readonly message?: Partial<z.input<typeof MessageSchema>>;
 }
 
 export const serverDetail = (
@@ -66,6 +67,7 @@ export const serverDetail = (
         flags: { seen: true, flagged: false, answered: false },
         labelIds: [],
         attachments,
+        ...extras.message,
       }),
     ],
     aiSummary: extras.aiSummary ?? null,

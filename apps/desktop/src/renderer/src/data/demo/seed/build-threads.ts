@@ -19,7 +19,7 @@ const snippetOf = (text: string): string =>
 
 const buildMessages = (seed: DemoThread, now: Date, order: number): Message[] => {
   const me = `me-${seed.acct}`;
-  return seed.msgs.map(([from, at, text], index) => ({
+  return seed.msgs.map(([from, at, text, copies], index) => ({
     id: demoIds.message(`${seed.id}-m${String(index)}`),
     threadId: demoIds.thread(seed.id),
     accountId: demoIds.account(seed.acct),
@@ -30,8 +30,8 @@ const buildMessages = (seed: DemoThread, now: Date, order: number): Message[] =>
     references: [],
     from: addressOf(from),
     to: [addressOf(from === me ? seed.from : me)],
-    cc: [],
-    bcc: [],
+    cc: (copies?.cc ?? []).map(addressOf),
+    bcc: (copies?.bcc ?? []).map(addressOf),
     replyTo: [],
     subject: seed.subj,
     date: atPast(now, at, order * 3 + seed.msgs.length - index),

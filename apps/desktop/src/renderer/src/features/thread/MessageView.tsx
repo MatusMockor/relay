@@ -3,6 +3,7 @@ import { Avatar, Icon, IconButton } from '@relay/ui';
 import { messageTimeLabel } from '../../lib/dates';
 import { AttachmentList } from './AttachmentList';
 import { HtmlMailFrame } from './HtmlMailFrame';
+import { MessageCopies } from './MessageCopies';
 import { TextBody } from './TextBody';
 
 export interface MessageViewProps {
@@ -27,6 +28,7 @@ export function MessageView({
       <div>
         <b>{name}</b>
         <small>{mine ? `pre ${recipientName}` : 'pre teba'}</small>
+        <MessageCopies message={message} />
       </div>
       <time dateTime={message.date}>{messageTimeLabel(message.date, new Date())}</time>
     </>

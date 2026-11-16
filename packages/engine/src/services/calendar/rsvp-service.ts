@@ -14,6 +14,7 @@ import type { MailSender } from '../../ports/mail-sender';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import { findEffective } from './effective-event';
 import type { InvitationQuery } from './invitation-query';
 import type { InviteResponses } from './invite-responses';
 import { buildRsvpMessage } from './rsvp-message';
@@ -43,7 +44,7 @@ export class RsvpService {
     response: CalendarRsvpResponse,
     timeZone: string,
   ): Promise<CalendarInvitation> {
-    const event = await this.deps.events.findById(userId, eventId);
+    const event = await findEffective(this.deps.events, userId, eventId);
     if (event === null || event.source.kind !== 'invite') {
       throw new NotFoundError('Calendar event', eventId);
     }

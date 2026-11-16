@@ -8,7 +8,14 @@ const IGNORED_ROLES: ReadonlySet<MailboxRole> = new Set(['drafts', 'spam']);
 export const acceptsInvites = (role: MailboxRole): boolean => !IGNORED_ROLES.has(role);
 
 export class InviteQueue {
+  private last = 0;
+
   constructor(private readonly clock: Clock) {}
+
+  private nextStamp(): string {
+    this.last = Math.max(this.clock.now().getTime(), this.last + 1);
+    return new Date(this.last).toISOString();
+  }
 
   async queue(work: PendingWorkRepository, arrival: CalendarPartsArrival): Promise<void> {
     if (!acceptsInvites(arrival.mailboxRole) || arrival.parts.length === 0) {
@@ -29,7 +36,7 @@ export class InviteQueue {
         failedAt: null,
         lastError: null,
       },
-      createdAt: this.clock.now().toISOString(),
+      createdAt: this.nextStamp(),
     });
   }
 }

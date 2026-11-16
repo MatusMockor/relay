@@ -157,6 +157,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
         'me-efa',
         [-1, 14, 5],
         'Ahoj Lucia, checklist som doplnil o prístupy do GitLabu, Sentry a stage. Pozri prosím, či ti to takto sedí.',
+        { cc: ['mk'], bcc: ['mh'] },
       ],
     ],
   },

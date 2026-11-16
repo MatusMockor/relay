@@ -3,6 +3,7 @@ import type { CalendarAdapters } from '../../ports/calendar-adapters';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { CalendarFeedValidators, StoredCalendarEvent } from '../../model/calendar';
 import { feedEvents, type FeedOwner } from './feed-events';
+import { withSeriesRanges } from './feed-series-ranges';
 
 export interface FeedOutcome {
   readonly record: CalendarFetchRecord;
@@ -18,7 +19,7 @@ export const NO_VALIDATORS: CalendarFeedValidators = { etag: null, lastModified:
 
 export class FeedLoader {
   constructor(
-    private readonly adapters: Pick<CalendarAdapters, 'feedFetcher' | 'parser'>,
+    private readonly adapters: Pick<CalendarAdapters, 'feedFetcher' | 'parser' | 'expander'>,
     private readonly ids: IdGenerator,
   ) {}
 
@@ -39,7 +40,7 @@ export class FeedLoader {
     if (calendar === null) {
       return failedFeed('Súbor nie je platný iCalendar.', attemptedAt);
     }
-    const events = feedEvents(this.ids, owner, calendar);
+    const events = withSeriesRanges(feedEvents(this.ids, owner, calendar), this.adapters.expander);
     return {
       record: {
         status: 'ok',

@@ -47,6 +47,10 @@ const insertAll = (db: RelayDb, records: readonly GoogleEventRecord[]): void => 
         set: {
           remoteId: sql`excluded.remote_id`,
           remoteEtag: sql`excluded.remote_etag`,
+          thisAndFuture: sql`excluded.this_and_future`,
+          endsSeries: sql`excluded.ends_series`,
+          rangeSequence: sql`excluded.range_sequence`,
+          rangeDtstamp: sql`excluded.range_dtstamp`,
           sequence: sql`excluded.sequence`,
           dtstamp: sql`excluded.dtstamp`,
           status: sql`excluded.status`,

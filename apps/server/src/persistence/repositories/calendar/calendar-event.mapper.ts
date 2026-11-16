@@ -38,6 +38,11 @@ export const toStoredCalendarEvent = (row: CalendarEventRow): StoredCalendarEven
   source: sourceOf(row),
   uid: row.uid,
   recurrenceId: row.recurrenceId,
+  ...(row.thisAndFuture ? { thisAndFuture: true } : {}),
+  ...(row.endsSeries ? { endsSeries: true } : {}),
+  ...(row.rangeSequence === null
+    ? {}
+    : { rangeRevision: { sequence: row.rangeSequence, dtstamp: toIsoOrNull(row.rangeDtstamp) } }),
   sequence: row.sequence,
   dtstamp: toIsoOrNull(row.dtstamp),
   method: row.method,
@@ -74,6 +79,10 @@ export const toCalendarEventInsert = (
   uid: event.uid,
   recurrenceKey: event.recurrenceId ?? '',
   recurrenceId: event.recurrenceId,
+  thisAndFuture: event.thisAndFuture === true,
+  endsSeries: event.endsSeries === true,
+  rangeSequence: event.rangeRevision?.sequence ?? null,
+  rangeDtstamp: toDateOrNull(event.rangeRevision?.dtstamp ?? null),
   sequence: event.sequence,
   dtstamp: toDateOrNull(event.dtstamp),
   method: event.method,

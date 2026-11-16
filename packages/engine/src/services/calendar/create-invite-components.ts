@@ -33,7 +33,12 @@ export const createInviteComponents = (
   const processor = new InviteWorkProcessor({
     pendingWork: repositories.pendingWork,
     unitOfWork,
-    ingestor: new InviteIngestor({ parser: deps.calendar.parser, clock, ids: deps.idGenerator }),
+    ingestor: new InviteIngestor({
+      parser: deps.calendar.parser,
+      expander: deps.calendar.expander,
+      clock,
+      ids: deps.idGenerator,
+    }),
     events,
     clock,
     logger,
