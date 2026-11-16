@@ -1,25 +1,21 @@
-import type { CalendarRevision, StoredCalendarEvent } from '@relay/engine';
-import type { CalendarEventStatus } from '@relay/shared/domain';
+import { compareRevisions, type StoredCalendarEvent } from '@relay/engine';
 import { spanOf, type ZonedTime } from './occurrence-span';
 import { type ParsedEvent, parsedEventOf } from './parsed-event';
 import { keyInstant } from './recurrence-instant';
-import { compareRevision, rangeRevisionOf } from './revision';
 import { wallShift } from './wall-shift';
 
 export interface RangeOverride {
   readonly event: StoredCalendarEvent;
-  readonly shown: StoredCalendarEvent;
-  readonly revision: CalendarRevision;
   readonly parsed: ParsedEvent;
   readonly from: number;
   readonly shift: number;
   readonly offset: number;
   readonly length: number;
+  readonly slack: number;
 }
 
 export interface SeriesCut {
   readonly event: StoredCalendarEvent;
-  readonly revision: CalendarRevision;
   readonly from: number;
 }
 
@@ -41,38 +37,23 @@ const isRanged = (event: StoredCalendarEvent): boolean =>
 export const recurrenceAt = (event: StoredCalendarEvent, timeZone: string): number =>
   keyInstant(event.recurrenceId ?? '', timeZone);
 
-const cutsOf = (
-  master: StoredCalendarEvent | null,
-  overrides: readonly StoredCalendarEvent[],
-  timeZone: string,
-): SeriesCut[] =>
+const cutsOf = (overrides: readonly StoredCalendarEvent[], timeZone: string): SeriesCut[] =>
   overrides
-    .filter(
-      (override) =>
-        isCut(override) &&
-        (master === null || compareRevision(rangeRevisionOf(override), master) >= 0),
-    )
+    .filter(isCut)
     .map((event) => ({
       event,
-      revision: rangeRevisionOf(event),
       from: recurrenceAt(event, timeZone),
     }))
     .sort((a, b) => a.from - b.from);
 
 export const lifts = (range: RangeOverride, cut: SeriesCut): boolean =>
-  range.from >= cut.from && compareRevision(range.revision, cut.revision) > 0;
+  range.from >= cut.from && compareRevisions(range.event, cut.event) > 0;
 
 const stopOf = (cuts: readonly SeriesCut[], ranges: readonly RangeOverride[]): number =>
   cuts.find((cut) => !ranges.some((range) => lifts(range, cut)))?.from ?? Number.POSITIVE_INFINITY;
 
 const HOUR_MS = 3_600_000;
-
-const requestStatusOf = (parsed: ParsedEvent): CalendarEventStatus => {
-  const status: unknown = parsed.event.component.getFirstPropertyValue('status');
-  return typeof status === 'string' && status.toUpperCase() === 'TENTATIVE'
-    ? 'tentative'
-    : 'confirmed';
-};
+const DAY_MS = 86_400_000;
 
 const rangeOf = (
   event: StoredCalendarEvent,
@@ -88,23 +69,22 @@ const rangeOf = (
   const offset = span.start - from;
   const timed = zone !== null && !zone.time.isDate && !parsed.start.time.isDate;
   const shift = timed ? wallShift(from, span.start, zone, timeZone) : offset;
-  const shown =
-    event.status === 'cancelled' ? { ...event, status: requestStatusOf(parsed) } : event;
-  const revision = rangeRevisionOf(event);
-  return [{ event, shown, revision, parsed, from, shift, offset, length: span.end - span.start }];
+  const slack = zone !== null && zone.time.isDate !== parsed.start.time.isDate ? DAY_MS : HOUR_MS;
+  return [{ event, parsed, from, shift, offset, length: span.end - span.start, slack }];
 };
 
 const latest = (range: RangeOverride): number =>
-  Math.max(range.shift, range.offset) + range.length + HOUR_MS;
+  Math.max(range.shift, range.offset) + range.length + range.slack;
 
-const earliest = (range: RangeOverride): number => Math.min(range.shift, range.offset) - HOUR_MS;
+const earliest = (range: RangeOverride): number =>
+  Math.min(range.shift, range.offset) - range.slack;
 
 export const seriesPlan = (
   master: StoredCalendarEvent | null,
   overrides: readonly StoredCalendarEvent[],
   timeZone: string,
 ): SeriesPlan => {
-  const cuts = cutsOf(master, overrides, timeZone);
+  const cuts = cutsOf(overrides, timeZone);
   const zone = master === null ? null : (parsedEventOf(master)?.start ?? null);
   const ranges = overrides
     .filter(isRanged)

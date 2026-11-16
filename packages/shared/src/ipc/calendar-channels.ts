@@ -10,6 +10,11 @@ import {
 } from '../api/endpoints/calendar';
 import { CalendarInvitationSchema } from '../domain/calendar-event';
 import { CalendarSubscriptionSchema } from '../domain/calendar-subscription';
+import {
+  FailedInvitationRefSchema,
+  FailedInvitationRetrySchema,
+  FailedInvitationSchema,
+} from '../domain/failed-invitation';
 import { CalendarEventIdSchema, CalendarSubscriptionIdSchema } from '../domain/ids';
 import { invokeChannel } from './define';
 
@@ -44,5 +49,17 @@ export const calendarInvokeChannels = {
   'local.calendar.subscriptions.refresh': invokeChannel(
     subscriptionRef,
     CalendarSubscriptionSchema,
+  ),
+  'local.calendar.failedInvitations.list': invokeChannel(
+    z.undefined(),
+    z.array(FailedInvitationSchema),
+  ),
+  'local.calendar.failedInvitations.retry': invokeChannel(
+    FailedInvitationRefSchema,
+    FailedInvitationRetrySchema,
+  ),
+  'local.calendar.failedInvitations.dismiss': invokeChannel(
+    FailedInvitationRefSchema,
+    OkResponseSchema,
   ),
 };

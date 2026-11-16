@@ -1,5 +1,10 @@
 import type { CalendarEventId, GoogleCalendarId, UserId } from '@relay/shared/domain';
-import type { GoogleEventRecord, GoogleEventRepository, StoredCalendarEvent } from '../../../src';
+import {
+  type GoogleEventRecord,
+  type GoogleEventRepository,
+  sameSlot,
+  type StoredCalendarEvent,
+} from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
 const inCalendar = (event: StoredCalendarEvent, calendarId: GoogleCalendarId): boolean =>
@@ -38,7 +43,7 @@ export class MemoryGoogleEventRepository implements GoogleEventRepository {
         (event) =>
           inCalendar(event, record.calendarId) &&
           event.uid === record.event.uid &&
-          event.recurrenceId === record.event.recurrenceId,
+          sameSlot(event, record.event),
       );
       const id = existing?.id ?? record.event.id;
       this.db.tables.calendarEvents.set(id, {
@@ -70,8 +75,7 @@ export class MemoryGoogleEventRepository implements GoogleEventRepository {
     );
     const carried = records.map((record) => {
       const known = previous.find(
-        (event) =>
-          event.uid === record.event.uid && event.recurrenceId === record.event.recurrenceId,
+        (event) => event.uid === record.event.uid && sameSlot(event, record.event),
       );
       const revision = Math.max(known?.revision ?? 0, record.event.revision);
       return { ...record, event: { ...record.event, revision } };

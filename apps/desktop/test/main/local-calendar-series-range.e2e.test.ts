@@ -191,12 +191,12 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       'DTSTAMP:20261101T080000Z',
       'SEQUENCE:0',
     ];
-    const at11 = (day: string, sequence: number) => [
+    const at11 = (day: string, sequence: number, stamp = '20261102T080000Z') => [
       'SUMMARY:Report o 11:00',
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
       `DTSTART:202611${day}T110000Z`,
       `DTEND:202611${day}T113000Z`,
-      'DTSTAMP:20261102T080000Z',
+      `DTSTAMP:${stamp}`,
       `SEQUENCE:${String(sequence)}`,
     ];
     const cancel = (day: string, range: string, sequence: number) => [
@@ -214,7 +214,7 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       restore,
       cancel('03', ';RANGE=THISANDFUTURE', 1),
     );
-    await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2));
+    await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2, '20261102T100000Z'));
 
     const account = await connectAndSync(6);
 
@@ -286,11 +286,12 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       ['2026-11-06T13:00:00.000Z', 'Report o 13:00'],
       ['2026-11-07T13:00:00.000Z', 'Report o 13:00'],
     ]);
-    expect(
-      (await seriesOf(account.id, uid)).find((row) => row.status === 'cancelled'),
-    ).toMatchObject({
-      sequence: 3,
-      rangeRevision: { sequence: 1 },
-    });
+    const rows = await seriesOf(account.id, uid);
+    expect(rows.map((row) => [row.thisAndFuture, row.status, row.sequence])).toEqual([
+      [undefined, 'confirmed', 0],
+      [undefined, 'cancelled', 3],
+      [true, 'confirmed', 1],
+      [true, 'confirmed', 2],
+    ]);
   });
 });

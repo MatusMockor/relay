@@ -94,9 +94,9 @@ describe('SqlitePendingWorkRepository', () => {
     const stale = await pendingWork.put(refreshWork(seeded, 'thr-a', '2026-11-10T10:00:00.000Z'));
     const fresh = await pendingWork.put(refreshWork(seeded, 'thr-a', '2026-11-10T10:00:00.000Z'));
 
-    await pendingWork.remove([stale]);
+    expect(await pendingWork.remove([stale])).toBe(0);
     expect(await pendingWork.find(stale)).toMatchObject({ revision: fresh.revision });
-    await pendingWork.remove([fresh]);
+    expect(await pendingWork.remove([fresh])).toBe(1);
     expect(await pendingWork.find(stale)).toBeNull();
   });
 

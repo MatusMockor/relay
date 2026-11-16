@@ -3,7 +3,6 @@ import type { PendingWork } from '../../model/pending-work';
 import type { InviteCandidate } from '../../ports/invite-candidate-repository';
 import type { Logger } from '../../ports/logger';
 import type { MailProvider } from '../../ports/mail-provider';
-import type { MessageParser } from '../../ports/message-parser';
 import type { Repositories } from '../../ports/repositories';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { errorMessage } from '../shared/mail-provider-sessions';
@@ -16,7 +15,6 @@ export const DEFAULT_INVITE_BACKFILL_BATCH = 50;
 export interface InviteBackfillDeps {
   readonly repositories: Pick<Repositories, 'inviteCandidates' | 'pendingWork'>;
   readonly unitOfWork: UnitOfWork;
-  readonly parser: MessageParser;
   readonly queue: InviteQueue;
   readonly logger: Logger;
   readonly batchSize: number;
@@ -91,11 +89,6 @@ export class InviteBackfill implements SyncBackfill {
     mailbox: Mailbox,
     candidate: InviteCandidate,
   ): Promise<readonly string[]> {
-    const raw = await provider.fetchMessage(mailbox.path, candidate.uid);
-    if (raw === null) {
-      return [];
-    }
-    const parsed = await this.deps.parser.parse(raw.source).catch(() => null);
-    return parsed?.calendarParts ?? [];
+    return (await provider.fetchCalendarParts(mailbox.path, candidate.uid)) ?? [];
   }
 }

@@ -67,9 +67,9 @@ describe('PgPendingWorkRepository', () => {
     const stale = await pendingWork.put(refreshWork(seeded, 'thr-a', at(0)));
     const fresh = await pendingWork.put(refreshWork(seeded, 'thr-a', at(0)));
 
-    await pendingWork.remove([stale]);
+    await expect(pendingWork.remove([stale])).resolves.toBe(0);
     await expect(pendingWork.find(stale)).resolves.toMatchObject({ revision: fresh.revision });
-    await pendingWork.remove([fresh]);
+    await expect(pendingWork.remove([fresh])).resolves.toBe(1);
     await expect(pendingWork.find(stale)).resolves.toBeNull();
   });
 

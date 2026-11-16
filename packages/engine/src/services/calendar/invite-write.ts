@@ -10,6 +10,12 @@ export class StaleInviteError extends ConflictError {
   }
 }
 
+export class SupersededInviteWorkError extends ConflictError {
+  constructor() {
+    super('The invitation work changed while it was being applied');
+  }
+}
+
 export const saveCurrent = async (
   repositories: Repositories,
   event: StoredCalendarEvent,

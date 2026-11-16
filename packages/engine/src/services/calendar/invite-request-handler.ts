@@ -1,4 +1,5 @@
 import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calendar';
+import type { CalendarParser } from '../../ports/calendar-adapters';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { withStoredAnswers } from './attendee-answers';
@@ -6,14 +7,17 @@ import { findAttendee, resolveMyPartstat, sameRevision, supersedes } from './eve
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
 import type { ParkedReplies } from './parked-replies';
-import { cutOffByRange, involvesRange } from './series-cut';
+import { sameSlot } from './recurrence-slot';
+import { involvesRange } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
+import { retimeUntimedCancels } from './untimed-cancel-times';
 
 export class InviteRequestHandler implements InviteHandler {
   constructor(
     private readonly ids: IdGenerator,
     private readonly parked: ParkedReplies,
     private readonly ranges: SeriesRangeKeeper,
+    private readonly parser: CalendarParser,
   ) {}
 
   async apply(
@@ -22,13 +26,13 @@ export class InviteRequestHandler implements InviteHandler {
     event: ParsedCalendarEvent,
   ): Promise<boolean> {
     const series = await repositories.calendarEvents.findSeries(inviteSource(context), event.uid);
-    const stored = series.find((member) => member.recurrenceId === event.recurrenceId);
+    const stored = series.find((member) => sameSlot(member, event));
     if (stored !== undefined && sameRevision(event, stored)) {
       await this.parked.release(repositories, context, stored);
       await this.refreshRange(repositories, context, series, event);
       return false;
     }
-    if (!event.timed || !supersedes(event, stored) || cutOffByRange(series, event)) {
+    if (!event.timed || !supersedes(event, stored)) {
       return false;
     }
     const merged = { ...event, attendees: withStoredAnswers(event, stored) };
@@ -41,6 +45,7 @@ export class InviteRequestHandler implements InviteHandler {
       }),
     );
     await this.parked.release(repositories, context, saved);
+    await retimeUntimedCancels(repositories, context, saved, this.parser);
     await this.refreshRange(repositories, context, series, event);
     return true;
   }

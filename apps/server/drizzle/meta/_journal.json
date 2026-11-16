@@ -127,6 +127,34 @@
       "when": 1794837129741,
       "tag": "0017_calendar_this_and_future",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794845284843,
+      "tag": "0018_calendar_range_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794848334608,
+      "tag": "0019_calendar_cut_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794851018299,
+      "tag": "0020_calendar_cut_start_masters",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794852390333,
+      "tag": "0021_calendar_invite_rebuild",
+      "breakpoints": true
     }
   ]
 }

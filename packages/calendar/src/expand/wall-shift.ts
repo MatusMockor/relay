@@ -6,7 +6,7 @@ import type { ZonedTime } from './occurrence-span';
 const asUtc = (wall: WallTime): number =>
   Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, wall.second);
 
-const wallOf = (instant: number, zone: ZonedTime, viewerZone: string): WallTime => {
+export const wallOf = (instant: number, zone: ZonedTime, viewerZone: string): WallTime => {
   if (isResolvedZone(zone.time)) {
     return ICAL.Time.fromJSDate(new Date(instant), true).convertToZone(zone.time.zone);
   }

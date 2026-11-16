@@ -34,6 +34,14 @@ export const useCalendarSubscriptions = () => {
   });
 };
 
+export const useFailedInvitations = () => {
+  const client = useClient();
+  return useQuery({
+    queryKey: calendarKeys.failedInvitations(),
+    queryFn: () => client.listFailedInvitations(),
+  });
+};
+
 export const useRefreshCalendar = () => {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: calendarKeys.all() });

@@ -61,6 +61,7 @@ export const useChatRuns = ({ runner, runnerLabel, threadId }: ChatRunOptions) =
       kind: 'createTask',
       threadId,
       hint: trimmed === '' ? null : trimmed.slice(0, 2_000),
+      timeZone: systemTimeZone(),
     });
     return true;
   };

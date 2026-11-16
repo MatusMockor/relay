@@ -31,3 +31,11 @@ export const afterFailure = (
   const nextAttemptAt = new Date(now.getTime() + delay).toISOString();
   return { ...work, attempts, nextAttemptAt, lastError };
 };
+
+export const retryNow = (work: CalendarInviteWork): CalendarInviteWork => ({
+  ...work,
+  attempts: 0,
+  nextAttemptAt: null,
+  failedAt: null,
+  lastError: null,
+});

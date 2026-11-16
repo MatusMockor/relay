@@ -17,6 +17,7 @@ import { HexColorSchema, IsoDateTimeSchema } from '../../domain/primitives';
 import { TimeZoneSchema } from '../../domain/time-zone';
 import { idParamsOf, OkResponseSchema } from '../common';
 import { defineEndpoint } from '../endpoint';
+import { failedInvitationEndpoints } from './failed-invitations';
 
 export const CALENDAR_WINDOW_MAX_DAYS = 62;
 const DAY_MS = 86_400_000;
@@ -124,4 +125,5 @@ export const calendarEndpoints = {
     params: subscriptionParams,
     response: CalendarSubscriptionSchema,
   }),
+  ...failedInvitationEndpoints,
 };

@@ -7,6 +7,7 @@ import type { Clock } from '../../ports/clock';
 import type { EngineEvents } from '../shared/engine-events';
 import { findAttendee, isOlderReply, withAttendeeStatus } from './event-precedence';
 import { identityKey } from './google-copies';
+import { sameSlot } from './recurrence-slot';
 
 const MAX_ATTEMPTS = 5;
 
@@ -26,7 +27,7 @@ export interface InviteResponsesDeps {
 
 const sameInvitation = (current: StoredCalendarEvent, answered: StoredCalendarEvent): boolean =>
   current.uid === answered.uid &&
-  current.recurrenceId === answered.recurrenceId &&
+  sameSlot(current, answered) &&
   current.sequence === answered.sequence;
 
 export class InviteResponses {
@@ -62,7 +63,7 @@ export class InviteResponses {
         await this.deps.events.findSeries({ kind: 'invite', accountId: account.id }, answered.uid)
       ).filter(
         (copy) =>
-          copy.recurrenceId === answered.recurrenceId &&
+          sameSlot(copy, answered) &&
           copy.sequence <= answered.sequence &&
           identityKey(copy) === identity,
       );

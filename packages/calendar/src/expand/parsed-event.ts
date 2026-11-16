@@ -50,14 +50,13 @@ const load = (stored: StoredCalendarEvent): ParsedEvent | null => {
 };
 
 export const parsedEventOf = (stored: StoredCalendarEvent): ParsedEvent | null => {
-  const key = `${stored.id}:${stored.updatedAt}:${String(stored.ics.length)}`;
-  if (cache.has(key)) {
-    return cache.get(key) ?? null;
+  if (cache.has(stored.ics)) {
+    return cache.get(stored.ics) ?? null;
   }
   const parsed = load(stored);
   if (cache.size >= CACHE_LIMIT) {
     cache.clear();
   }
-  cache.set(key, parsed);
+  cache.set(stored.ics, parsed);
   return parsed;
 };

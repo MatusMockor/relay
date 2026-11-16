@@ -27,4 +27,10 @@ export const createLocalCalendarClient = (bridge: RelayBridge): CalendarClient =
   },
   refreshCalendarSubscription: (subscriptionId) =>
     unwrap(bridge.invoke('local.calendar.subscriptions.refresh', { subscriptionId })),
+  listFailedInvitations: () => unwrap(bridge.invoke('local.calendar.failedInvitations.list')),
+  retryFailedInvitation: (ref) =>
+    unwrap(bridge.invoke('local.calendar.failedInvitations.retry', ref)),
+  dismissFailedInvitation: async (ref) => {
+    await unwrap(bridge.invoke('local.calendar.failedInvitations.dismiss', ref));
+  },
 });

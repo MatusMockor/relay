@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { present, stored } from './support/fixtures';
 import {
   expander,
   parsedEvents,
   rangeEndOf,
   seriesFrom,
+  stampAt,
   vcalendar,
   windowOf,
 } from './support/series-ics';
@@ -32,7 +32,7 @@ const rangeRequest = (day: string, sequence: number, summary: string, hour = '11
     [],
     [
       UID,
-      'DTSTAMP:20261102T080000Z',
+      stampAt(sequence, '00'),
       `SEQUENCE:${String(sequence)}`,
       `SUMMARY:${summary}`,
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
@@ -47,7 +47,7 @@ const rangeCancel = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T090000Z',
+      stampAt(sequence, '10'),
       `SEQUENCE:${String(sequence)}`,
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
     ],
@@ -61,7 +61,7 @@ const moved = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T100000Z',
+      stampAt(sequence, '20'),
       `SEQUENCE:${String(sequence)}`,
       'SUMMARY:Report presunutý',
       `RECURRENCE-ID:202611${day}T090000Z`,
@@ -76,7 +76,7 @@ const instanceCancel = (day: string, sequence: number) =>
     [],
     [
       UID,
-      'DTSTAMP:20261102T110000Z',
+      stampAt(sequence, '30'),
       `SEQUENCE:${String(sequence)}`,
       `RECURRENCE-ID:202611${day}T090000Z`,
     ],
@@ -90,33 +90,36 @@ const shown = (series: ReturnType<typeof seriesFrom>, window = NOVEMBER) =>
 
 describe('THISANDFUTURE ranges after cancellations', () => {
   it('keeps the range change when only its anchor occurrence is cancelled', () => {
-    const range = stored(present(parsedEvents(rangeRequest('03', 1, 'Report o 11:00'))[0]));
-    const series = seriesFrom('daily@partner.test', daily);
-    const anchorCancelled = { ...range, status: 'cancelled' as const, sequence: 2 };
+    const series = seriesFrom(
+      'daily@partner.test',
+      daily,
+      rangeRequest('03', 1, 'Report o 11:00'),
+      instanceCancel('03', 2),
+    );
+    const range = series.overrides.find((override) => override.thisAndFuture === true);
 
-    expect(shown({ ...series, overrides: [anchorCancelled] }).slice(0, 4)).toEqual([
+    expect(shown(series).slice(0, 4)).toEqual([
       ['2026-11-01T09:00:00.000Z', 'Report'],
       ['2026-11-02T09:00:00.000Z', 'Report'],
       ['2026-11-04T11:00:00.000Z', 'Report o 11:00'],
       ['2026-11-05T11:00:00.000Z', 'Report o 11:00'],
     ]);
     const derived = expander
-      .expand({ ...series, overrides: [anchorCancelled] }, NOVEMBER)
+      .expand(series, NOVEMBER)
       .find((occurrence) => occurrence.recurrenceId === '2026-11-04T09:00:00.000Z');
-    expect(derived?.event).toMatchObject({ id: range.id, status: 'confirmed' });
+    expect(derived?.event).toMatchObject({ id: range?.id, status: 'confirmed' });
   });
 
   it('keeps the range request revision when its anchor is cancelled later', () => {
-    const [early] = parsedEvents(rangeRequest('03', 1, 'Report o 11:00'));
-    expect(early).toMatchObject({ rangeRevision: { sequence: 1 } });
-    const fromThird = stored(present(early));
-    const fromFifth = stored(
-      present(parsedEvents(rangeRequest('05', 2, 'Report o 13:00', '13'))[0]),
+    const series = seriesFrom(
+      'daily@partner.test',
+      daily,
+      rangeRequest('03', 1, 'Report o 11:00'),
+      rangeRequest('05', 2, 'Report o 13:00', '13'),
+      instanceCancel('03', 3),
     );
-    const series = seriesFrom('daily@partner.test', daily);
-    const anchorCancelled = { ...fromThird, status: 'cancelled' as const, sequence: 3 };
 
-    expect(shown({ ...series, overrides: [anchorCancelled, fromFifth] }).slice(0, 6)).toEqual([
+    expect(shown(series).slice(0, 6)).toEqual([
       ['2026-11-01T09:00:00.000Z', 'Report'],
       ['2026-11-02T09:00:00.000Z', 'Report'],
       ['2026-11-04T11:00:00.000Z', 'Report o 11:00'],
@@ -253,20 +256,16 @@ describe('THISANDFUTURE ranges after cancellations', () => {
   });
 
   it('keeps a lift when the cut anchor is cancelled again on its own', () => {
-    const cut = stored(present(parsedEvents(rangeCancel('03', 1))[0]));
-    const recancelled = {
-      ...cut,
-      sequence: 3,
-      rangeRevision: { sequence: cut.sequence, dtstamp: cut.dtstamp },
-    };
-    const base = seriesFrom(
+    const series = seriesFrom(
       'daily@partner.test',
       daily,
+      rangeCancel('03', 1),
       rangeRequest('05', 2, 'Report znova'),
       moved('07', 2),
+      instanceCancel('03', 3),
     );
 
-    expect(shown({ ...base, overrides: [recancelled, ...base.overrides] })).toEqual([
+    expect(shown(series)).toEqual([
       ['2026-11-01T09:00:00.000Z', 'Report'],
       ['2026-11-02T09:00:00.000Z', 'Report'],
       ['2026-11-05T11:00:00.000Z', 'Report znova'],

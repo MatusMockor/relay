@@ -1,18 +1,19 @@
 import type { CalendarSubscriptionId } from '@relay/shared/domain';
-import type {
-  CalendarAdapters,
-  CalendarExpander,
-  CalendarFeedFetcher,
-  CalendarFeedResult,
-  CalendarFeedSecrets,
-  CalendarParser,
-  CalendarReplyBuilder,
-  CalendarReplyInput,
-  CalendarSeries,
-  CalendarWindow,
-  ExpandedOccurrence,
-  ParsedCalendar,
-  StoredCalendarEvent,
+import {
+  type CalendarAdapters,
+  type CalendarExpander,
+  type CalendarFeedFetcher,
+  type CalendarFeedResult,
+  type CalendarFeedSecrets,
+  type CalendarParser,
+  type CalendarReplyBuilder,
+  type CalendarReplyInput,
+  type CalendarSeries,
+  type CalendarWindow,
+  compareRevisions,
+  type ExpandedOccurrence,
+  type ParsedCalendar,
+  type StoredCalendarEvent,
 } from '../../../src';
 
 export class MapCalendarParser implements CalendarParser {
@@ -47,6 +48,14 @@ export class StoredTimesExpander implements CalendarExpander {
 
   seriesRangeEnd(master: StoredCalendarEvent): string | null {
     return master.rangeEndsAt;
+  }
+
+  isOrphaned(master: StoredCalendarEvent, override: StoredCalendarEvent): boolean {
+    return (
+      master.rangeEndsAt !== null &&
+      compareRevisions(override, master) < 0 &&
+      Date.parse(override.recurrenceId ?? '') >= Date.parse(master.rangeEndsAt)
+    );
   }
 }
 

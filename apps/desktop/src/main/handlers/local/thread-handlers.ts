@@ -13,7 +13,8 @@ export const createThreadHandlers = (
 ): IpcInvokeHandlers => ({
   'local.threads.list': (query) => services.inbox.list(userId, query),
   'local.threads.get': ({ threadId }) => services.threads.getDetail(userId, threadId),
-  'local.threads.prepareAi': ({ threadId }) => services.threadAi.prepare(userId, threadId),
+  'local.threads.prepareAi': ({ threadId, timeZone }) =>
+    services.threadAi.prepare(userId, threadId, timeZone),
   'local.threads.action': ({ threadId, action }) =>
     services.actions.apply(userId, threadId, action),
   'local.threads.updateChecklist': ({ threadId, item }) =>

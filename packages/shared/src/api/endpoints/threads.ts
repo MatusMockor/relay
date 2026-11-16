@@ -9,6 +9,7 @@ import {
   ThreadSummarySchema,
 } from '../../domain/thread';
 import { ThreadActionSchema } from '../../domain/thread-action';
+import { TimeZoneSchema } from '../../domain/time-zone';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
 import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
@@ -24,6 +25,11 @@ export type ThreadListQuery = z.infer<typeof ThreadListQuerySchema>;
 
 export const ThreadPageSchema = pageSchemaOf(ThreadSummarySchema);
 export type ThreadPage = z.infer<typeof ThreadPageSchema>;
+
+export const PrepareThreadAiQuerySchema = z.object({
+  timeZone: TimeZoneSchema.optional(),
+});
+export type PrepareThreadAiQuery = z.infer<typeof PrepareThreadAiQuerySchema>;
 
 export const UpdateChecklistItemBodySchema = z.object({
   itemId: ChecklistItemIdSchema,
@@ -64,6 +70,7 @@ export const threadsEndpoints = {
     path: '/threads/:id/ai/prepare',
     auth: 'user',
     params: threadIdParams,
+    query: PrepareThreadAiQuerySchema,
     response: ThreadAiStateSchema,
   }),
   updateChecklist: defineEndpoint({

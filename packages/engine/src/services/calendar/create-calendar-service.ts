@@ -52,6 +52,7 @@ export const createCalendarComponents = (
     accounts: repositories.accounts,
     timing: new InvitationTimingResolver(calendar.expander),
     occurrences,
+    membership: calendar.expander,
     clock,
   });
   const loader = new FeedLoader(calendar, ids);
@@ -75,6 +76,7 @@ export const createCalendarComponents = (
         sender: deps.mailSender,
         sentCopies,
         replies: calendar.replyBuilder,
+        membership: calendar.expander,
         invitations,
         responses: new InviteResponses({
           events: repositories.calendarEvents,

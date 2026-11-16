@@ -23,6 +23,9 @@ export const CENTRAL_EUROPE = [
   'END:VTIMEZONE',
 ];
 
+export const stampAt = (sequence: number, minute: string): string =>
+  `DTSTAMP:20261102T${String(10 + sequence).padStart(2, '0')}${minute}00Z`;
+
 export const vcalendar = (
   method: string | null,
   zones: readonly string[],

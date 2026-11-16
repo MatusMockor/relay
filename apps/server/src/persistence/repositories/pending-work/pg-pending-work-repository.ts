@@ -90,11 +90,15 @@ export class PgPendingWorkRepository implements PendingWorkRepository {
     return rows.map((row) => toPendingWork<Kind>(row));
   }
 
-  async remove(works: readonly PendingWork[]): Promise<void> {
+  async remove(works: readonly PendingWork[]): Promise<number> {
+    let removed = 0;
     for (const work of works) {
-      await this.db
+      const rows = await this.db
         .delete(pendingWork)
-        .where(and(keyed(work), eq(pendingWork.revision, work.revision)));
+        .where(and(keyed(work), eq(pendingWork.revision, work.revision)))
+        .returning({ ref: pendingWork.ref });
+      removed += rows.length;
     }
+    return removed;
   }
 }

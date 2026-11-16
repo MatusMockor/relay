@@ -55,6 +55,20 @@ const tombstone = (account: MailAccount): StoredCalendarEvent =>
     rangeEndsAt: CUT,
   });
 
+const occurrence = (
+  account: MailAccount,
+  overrides: Partial<StoredCalendarEvent> = {},
+): StoredCalendarEvent =>
+  buildEvent(account, {
+    recurrenceId: CUT,
+    sequence: 1,
+    recurring: false,
+    startsAt: '2026-11-23T13:00:00.000Z',
+    endsAt: '2026-11-23T14:00:00.000Z',
+    rangeEndsAt: '2026-11-23T14:00:00.000Z',
+    ...overrides,
+  });
+
 describe('SQLite THISANDFUTURE rows', () => {
   let store: TestStore;
   let account: MailAccount;
@@ -90,11 +104,6 @@ describe('SQLite THISANDFUTURE rows', () => {
         to: '2026-12-08T00:00:00.000Z',
       }),
     ).toEqual([]);
-
-    const { thisAndFuture: _flag, endsSeries: _ends, ...plain } = cut as StoredCalendarEvent;
-    const rewritten = await events.saveIfCurrent({ ...plain, sequence: 2 });
-    expect(rewritten).not.toHaveProperty('thisAndFuture');
-    expect(rewritten).not.toHaveProperty('endsSeries');
     const upserted = await events.upsert({ ...tombstone(account), sequence: 3 });
     expect(upserted).toMatchObject({
       id: cut?.id,
@@ -102,24 +111,27 @@ describe('SQLite THISANDFUTURE rows', () => {
       endsSeries: true,
       sequence: 3,
     });
+  });
 
-    const anchor = await events.saveIfCurrent(
-      buildEvent(account, {
-        recurrenceId: '2026-11-16T09:00:00.000Z',
-        thisAndFuture: true,
-        rangeRevision: { sequence: 1, dtstamp: '2026-11-14T07:00:00.000Z' },
-        status: 'cancelled',
-        sequence: 3,
-        recurring: false,
-        startsAt: '2026-11-16T11:00:00.000Z',
-        endsAt: '2026-11-16T11:30:00.000Z',
-        rangeEndsAt: null,
-      }),
-    );
-    expect(anchor).toMatchObject({
-      sequence: 3,
-      rangeRevision: { sequence: 1, dtstamp: '2026-11-14T07:00:00.000Z' },
-    });
-    expect(master).not.toHaveProperty('rangeRevision');
+  it('stores an occurrence row and a range record at the same recurrence id side by side', async () => {
+    const events = store.repositories.calendarEvents;
+    await events.saveIfCurrent(buildEvent(account));
+    const cut = await events.saveIfCurrent(tombstone(account));
+    const instance = await events.saveIfCurrent(occurrence(account, { sequence: 2 }));
+
+    expect(instance).toMatchObject({ recurrenceId: CUT, sequence: 2, revision: 1 });
+    expect(instance).not.toHaveProperty('thisAndFuture');
+    expect(await events.saveIfCurrent(occurrence(account))).toBeNull();
+    const again = await events.upsert(occurrence(account, { sequence: 4, summary: 'Iba raz' }));
+    const cutAgain = await events.upsert({ ...tombstone(account), sequence: 5 });
+
+    expect(again).toMatchObject({ id: instance?.id, sequence: 4, summary: 'Iba raz' });
+    expect(cutAgain).toMatchObject({ id: cut?.id, sequence: 5, endsSeries: true });
+    const series = await events.findSeries(tombstone(account).source, 'weekly@partner.test');
+    expect(series.map((row) => [row.recurrenceId, row.thisAndFuture, row.sequence])).toEqual([
+      [null, undefined, 0],
+      [CUT, undefined, 4],
+      [CUT, true, 5],
+    ]);
   });
 });

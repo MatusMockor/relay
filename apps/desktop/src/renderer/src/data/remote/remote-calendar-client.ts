@@ -17,4 +17,9 @@ export const createRemoteCalendarClient = (http: HttpApi): CalendarClient => ({
   },
   refreshCalendarSubscription: (id) =>
     http.call(api.calendar.refreshSubscription, { params: { id } }),
+  listFailedInvitations: () => http.call(api.calendar.listFailedInvitations, {}),
+  retryFailedInvitation: (params) => http.call(api.calendar.retryFailedInvitation, { params }),
+  dismissFailedInvitation: async (params) => {
+    await http.call(api.calendar.dismissFailedInvitation, { params });
+  },
 });

@@ -1,0 +1,1 @@
+UPDATE `calendar_events` SET `recurrence_key` = `recurrence_id` || ';RANGE=THISANDFUTURE;CUT' WHERE `this_and_future` = 1 AND `ends_series` = 1 AND `recurrence_id` IS NOT NULL;

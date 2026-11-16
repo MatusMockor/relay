@@ -48,10 +48,12 @@ describe('PgInviteCandidateRepository', () => {
     const rest = await context.repositories.inviteCandidates.listAfter(inbox.id, 1003, 10);
 
     expect(page).toEqual([
-      { messageId: first.id, threadId: thread.id, uid: 1001 },
-      { messageId: third.id, threadId: thread.id, uid: 1003 },
+      { messageId: first.id, threadId: thread.id, uid: 1001, date: first.date },
+      { messageId: third.id, threadId: thread.id, uid: 1003, date: third.date },
     ]);
-    expect(rest).toEqual([{ messageId: fourth.id, threadId: thread.id, uid: 1004 }]);
+    expect(rest).toEqual([
+      { messageId: fourth.id, threadId: thread.id, uid: 1004, date: fourth.date },
+    ]);
   });
 });
 

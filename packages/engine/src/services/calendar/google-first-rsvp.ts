@@ -24,7 +24,7 @@ export class GoogleFirstRsvpService extends RsvpService {
     response: CalendarRsvpResponse,
     timeZone: string,
   ): Promise<CalendarInvitation> {
-    const event = await findEffective(this.base.events, userId, eventId);
+    const event = await findEffective(this.base.events, this.base.membership, userId, eventId);
     if (event?.source.kind !== 'invite') {
       return super.respond(userId, eventId, response, timeZone);
     }

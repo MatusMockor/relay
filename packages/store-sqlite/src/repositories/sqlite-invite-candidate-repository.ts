@@ -16,7 +16,12 @@ export class SqliteInviteCandidateRepository implements InviteCandidateRepositor
   listAfter(mailboxId: MailboxId, afterUid: number, limit: number): Promise<InviteCandidate[]> {
     return this.executor.execute((db) =>
       db
-        .select({ messageId: messages.id, threadId: messages.threadId, uid: messages.uid })
+        .select({
+          messageId: messages.id,
+          threadId: messages.threadId,
+          uid: messages.uid,
+          date: messages.date,
+        })
         .from(messages)
         .where(and(eq(messages.mailboxId, mailboxId), gt(messages.uid, afterUid), hasCalendarPart))
         .orderBy(asc(messages.uid))
@@ -26,6 +31,7 @@ export class SqliteInviteCandidateRepository implements InviteCandidateRepositor
           messageId: row.messageId as MessageId,
           threadId: row.threadId as ThreadId,
           uid: row.uid,
+          date: row.date,
         })),
     );
   }

@@ -34,10 +34,19 @@ export interface ThreadAiPreparerDeps {
   readonly logger: Logger;
 }
 
+interface ThreadAiInput {
+  readonly kind: ThreadAiKind;
+  readonly threadId: ThreadId;
+  readonly timeZone: string | undefined;
+}
+
+const withZone = ({ kind, threadId, timeZone }: ThreadAiInput) =>
+  timeZone === undefined ? { kind, threadId } : { kind, threadId, timeZone };
+
 export class ThreadAiPreparer {
   constructor(private readonly deps: ThreadAiPreparerDeps) {}
 
-  async prepare(userId: UserId, threadId: ThreadId): Promise<ThreadAiState> {
+  async prepare(userId: UserId, threadId: ThreadId, timeZone?: string): Promise<ThreadAiState> {
     const thread = await this.deps.threads.findById(userId, threadId);
     if (thread === null) {
       throw new NotFoundError('Thread', threadId);
@@ -54,7 +63,7 @@ export class ThreadAiPreparer {
     });
     const jobs: ThreadAiJobRef[] = [];
     for (const kind of kinds) {
-      const job = await this.ensure(userId, threadId, kind, latest);
+      const job = await this.ensure(userId, { kind, threadId, timeZone }, latest);
       if (job !== null) {
         jobs.push({ kind, jobId: job.id });
       }
@@ -64,16 +73,16 @@ export class ThreadAiPreparer {
 
   private async ensure(
     userId: UserId,
-    threadId: ThreadId,
-    kind: ThreadAiKind,
+    input: ThreadAiInput,
     latest: Message,
   ): Promise<AiJob | null> {
+    const { kind, threadId } = input;
     try {
       const result = await this.deps.aiResults.findLatest(userId, threadId, kind);
       if (result?.sourceMessageId === latest.id) {
         return null;
       }
-      return (await this.deps.creator.enqueueJob(userId, { input: { kind, threadId } })).job;
+      return (await this.deps.creator.enqueueJob(userId, { input: withZone(input) })).job;
     } catch (error) {
       this.deps.logger.warn('Could not prepare thread AI', {
         threadId,

@@ -21,7 +21,12 @@ export class MemoryInviteCandidateRepository implements InviteCandidateRepositor
       )
       .sort((a, b) => a.uid - b.uid)
       .slice(0, limit)
-      .map((message) => ({ messageId: message.id, threadId: message.threadId, uid: message.uid }));
+      .map((message) => ({
+        messageId: message.id,
+        threadId: message.threadId,
+        uid: message.uid,
+        date: message.date,
+      }));
     return Promise.resolve(candidates);
   }
 }

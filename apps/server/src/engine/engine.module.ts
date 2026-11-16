@@ -7,6 +7,7 @@ import {
   CalendarService,
   ComposeService,
   type EngineServices,
+  FailedInvitationService,
   GoogleCalendarService,
   InboxQueryService,
   LabelQueryService,
@@ -51,6 +52,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(AccountService, 'accounts'),
   service(SettingsService, 'settings'),
   service(CalendarService, 'calendar'),
+  service(FailedInvitationService, 'failedInvitations'),
   service(GoogleCalendarService, 'googleCalendar'),
 ];
 
@@ -75,6 +77,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     AccountService,
     SettingsService,
     CalendarService,
+    FailedInvitationService,
     GoogleCalendarService,
   ],
 })

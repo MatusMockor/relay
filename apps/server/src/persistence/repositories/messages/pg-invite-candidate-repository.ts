@@ -13,12 +13,22 @@ const hasCalendarPart = sql`exists (
 export class PgInviteCandidateRepository implements InviteCandidateRepository {
   constructor(private readonly db: DbExecutor) {}
 
-  listAfter(mailboxId: MailboxId, afterUid: number, limit: number): Promise<InviteCandidate[]> {
-    return this.db
-      .select({ messageId: messages.id, threadId: messages.threadId, uid: messages.uid })
+  async listAfter(
+    mailboxId: MailboxId,
+    afterUid: number,
+    limit: number,
+  ): Promise<InviteCandidate[]> {
+    const rows = await this.db
+      .select({
+        messageId: messages.id,
+        threadId: messages.threadId,
+        uid: messages.uid,
+        date: messages.date,
+      })
       .from(messages)
       .where(and(eq(messages.mailboxId, mailboxId), gt(messages.uid, afterUid), hasCalendarPart))
       .orderBy(asc(messages.uid))
       .limit(limit);
+    return rows.map((row) => ({ ...row, date: row.date.toISOString() }));
   }
 }

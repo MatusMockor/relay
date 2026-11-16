@@ -1,5 +1,6 @@
 import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
-import { compareRevisions, rangeRevisionOf } from './event-precedence';
+import { compareRevisions } from './revision-order';
+import { isRangeRequest } from './series-range-rows';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:\d{2})$/;
@@ -20,9 +21,6 @@ export const atOrAfter = (member: Pick<CalendarEventData, 'recurrenceId'>, from:
 const isCut = (member: StoredCalendarEvent): boolean =>
   member.recurrenceId !== null && member.endsSeries === true;
 
-const isRange = (member: StoredCalendarEvent): boolean =>
-  member.recurrenceId !== null && member.thisAndFuture === true && member.endsSeries !== true;
-
 const instantOf = (member: StoredCalendarEvent): number =>
   recurrenceInstant(member.recurrenceId ?? '');
 
@@ -35,7 +33,7 @@ const lifted = (
     (range) =>
       instantOf(range) >= instantOf(cut) &&
       instantOf(range) <= at &&
-      compareRevisions(rangeRevisionOf(range), rangeRevisionOf(cut)) > 0,
+      compareRevisions(range, cut) > 0,
   );
 
 const blockingCuts = (
@@ -43,13 +41,21 @@ const blockingCuts = (
   at: number,
 ): StoredCalendarEvent[] => {
   const master = series.find(isMaster);
-  const ranges = series.filter(isRange);
+  const ranges = series.filter(isRangeRequest);
   return series.filter(
     (member) =>
       isCut(member) &&
-      (master === undefined || compareRevisions(rangeRevisionOf(member), master) >= 0) &&
+      (master === undefined || compareRevisions(member, master) >= 0) &&
       instantOf(member) <= at &&
       !lifted(member, ranges, at),
+  );
+};
+
+const outranks = (cut: StoredCalendarEvent, event: CalendarEventData): boolean => {
+  const order = compareRevisions(event, cut);
+  return (
+    order < 0 ||
+    (order === 0 && event.thisAndFuture === true && event.recurrenceId === cut.recurrenceId)
   );
 };
 
@@ -61,8 +67,13 @@ export const cutOffByRange = (
     return false;
   }
   return blockingCuts(series, recurrenceInstant(event.recurrenceId)).some(
-    (cut) => compareRevisions(event, rangeRevisionOf(cut)) < 0,
+    (cut) => cut !== event && outranks(cut, event),
   );
+};
+
+export const cutAtSeriesStart = (series: readonly StoredCalendarEvent[]): boolean => {
+  const master = series.find(isMaster);
+  return master !== undefined && blockingCuts(series, Date.parse(master.startsAt)).length > 0;
 };
 
 export const involvesRange = (

@@ -2,6 +2,7 @@ import type { ParsedCalendarEvent } from '../../model/calendar';
 import type { Repositories } from '../../ports/repositories';
 import { type InviteContext, type InviteHandler, inviteSource } from './invite-context';
 import type { ParkedReplies } from './parked-replies';
+import { sameSlot } from './recurrence-slot';
 import { applyReply } from './reply-application';
 
 export class InviteReplyHandler implements InviteHandler {
@@ -17,7 +18,7 @@ export class InviteReplyHandler implements InviteHandler {
       return false;
     }
     const series = await repositories.calendarEvents.findSeries(inviteSource(context), event.uid);
-    const stored = series.find((member) => member.recurrenceId === event.recurrenceId);
+    const stored = series.find((member) => sameSlot(member, event));
     if (stored === undefined) {
       await this.parked.park(repositories.pendingWork, context, event, replier);
       return false;

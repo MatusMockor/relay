@@ -1,5 +1,5 @@
 import type { IcalTime } from '../ics/ical-time';
-import { occurrenceSpan } from './occurrence-end';
+import { kindChangeSpan } from './kind-change-span';
 import { type Span, spanOf } from './occurrence-span';
 import type { ParsedEvent } from './parsed-event';
 import type { RangeOverride } from './series-plan';
@@ -23,12 +23,11 @@ export const rangeSpan = (
   parsed: ParsedEvent,
   range: RangeOverride,
   time: IcalTime,
-  key: string,
   timeZone: string,
 ): Span => {
   const tzid = parsed.start.tzid;
   if (range.parsed.start.time.isDate !== time.isDate) {
-    return occurrenceSpan(parsed, time, key, timeZone);
+    return kindChangeSpan(parsed, range, time, timeZone);
   }
   if (time.isDate) {
     return shiftedDays(time, range, tzid, timeZone);

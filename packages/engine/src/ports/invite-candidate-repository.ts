@@ -4,6 +4,7 @@ export interface InviteCandidate {
   readonly messageId: MessageId;
   readonly threadId: ThreadId;
   readonly uid: number;
+  readonly date: string;
 }
 
 export interface InviteCandidateRepository {

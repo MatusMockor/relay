@@ -17,7 +17,14 @@ import { UNCONFIGURED_GOOGLE_CALENDAR } from './unconfigured-google-calendar';
 
 export type GoogleCalendarEngineDeps = Pick<
   EngineDeps,
-  'repositories' | 'unitOfWork' | 'googleCalendar' | 'clock' | 'idGenerator' | 'logger' | 'options'
+  | 'repositories'
+  | 'unitOfWork'
+  | 'googleCalendar'
+  | 'calendar'
+  | 'clock'
+  | 'idGenerator'
+  | 'logger'
+  | 'options'
 >;
 
 export interface GoogleCalendarComponents {
@@ -79,6 +86,7 @@ export const createGoogleCalendarComponents = (
         notifier,
         clock,
       }),
+      membership: deps.calendar.expander,
       clock,
     }),
     due: new DueGoogleConnections({
@@ -88,5 +96,8 @@ export const createGoogleCalendarComponents = (
       syncSeconds: deps.options.calendar?.googleSyncSeconds ?? DEFAULT_GOOGLE_SYNC_SECONDS,
     }),
   });
-  return { service, inviteRsvp: new GoogleInviteRsvp(repositories, attendance) };
+  return {
+    service,
+    inviteRsvp: new GoogleInviteRsvp(repositories, attendance, deps.calendar.expander),
+  };
 };

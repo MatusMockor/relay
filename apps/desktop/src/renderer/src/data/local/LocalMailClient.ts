@@ -31,7 +31,8 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     ...createLocalGoogleCalendarClient(bridge),
     listThreads: (query) => unwrap(bridge.invoke('local.threads.list', query)),
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
-    prepareThreadAi: (threadId) => unwrap(bridge.invoke('local.threads.prepareAi', { threadId })),
+    prepareThreadAi: (threadId, timeZone) =>
+      unwrap(bridge.invoke('local.threads.prepareAi', { threadId, timeZone })),
     applyThreadAction: (threadId, action) =>
       unwrap(bridge.invoke('local.threads.action', { threadId, action })),
     listLabels: (accountId) => unwrap(bridge.invoke('local.labels.list', { accountId })),

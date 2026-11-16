@@ -51,10 +51,12 @@ describe('calendar invitation back-fill storage', () => {
     const rest = await store.repositories.inviteCandidates.listAfter(inbox.id, 3, 10);
 
     expect(first).toEqual([
-      { messageId: 'm1', threadId: 'thr-m1', uid: 1 },
-      { messageId: 'm3', threadId: 'thr-m3', uid: 3 },
+      { messageId: 'm1', threadId: 'thr-m1', uid: 1, date: '2026-11-10T10:00:00.000Z' },
+      { messageId: 'm3', threadId: 'thr-m3', uid: 3, date: '2026-11-10T10:00:00.000Z' },
     ]);
-    expect(rest).toEqual([{ messageId: 'm4', threadId: 'thr-m4', uid: 4 }]);
+    expect(rest).toEqual([
+      { messageId: 'm4', threadId: 'thr-m4', uid: 4, date: '2026-11-10T10:00:00.000Z' },
+    ]);
     store.database.close();
   });
 
