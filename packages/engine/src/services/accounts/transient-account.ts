@@ -9,6 +9,7 @@ export const transientAccount = (settings: ImapSmtpSettings): MailAccount => {
     userId: 'connection-test' as UserId,
     provider: 'imap',
     displayName: email,
+    senderName: null,
     email,
     color: '#5b8def',
     isPrimary: false,

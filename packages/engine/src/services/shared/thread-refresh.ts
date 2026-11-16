@@ -37,7 +37,7 @@ export const refreshThread = async (
   threadId: ThreadId,
   hint: ThreadRefreshHint = {},
 ): Promise<ThreadRefreshOutcome> => {
-  const existing = await repositories.threads.findByIdForAccount(accountId, threadId);
+  const existing = await repositories.threads.lockForUpdate(accountId, threadId);
   const messages = await repositories.messages.listByThread(userId, threadId);
   const projected = projectThreadSummary({
     threadId,

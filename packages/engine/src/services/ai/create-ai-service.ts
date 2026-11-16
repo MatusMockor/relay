@@ -1,5 +1,7 @@
 import type { AiOptions, EngineDeps } from '../../engine-deps';
 import type { EngineEvents } from '../shared/engine-events';
+import { LeaseHeartbeat } from '../shared/lease-heartbeat';
+import { systemIntervalTimer } from '../shared/system-interval-timer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { AiTaskBuilder } from '../tasks/ai-task-builder';
 import type { ThreadQueryService } from '../threads/thread-query-service';
@@ -75,6 +77,7 @@ export const createAiComponents = (
     completer,
     writer,
     lease,
+    heartbeat: new LeaseHeartbeat(deps.intervalTimer ?? systemIntervalTimer, logger),
     logger,
   });
   const externalClaims = new ExternalAiJobClaims({

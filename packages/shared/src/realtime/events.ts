@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AccountStatusSchema, MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
+import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
 import { AccountIdSchema, DraftIdSchema, MailboxIdSchema, ThreadIdSchema } from '../domain/ids';
 import { MessageSchema } from '../domain/message';
@@ -86,6 +87,11 @@ export const SplitsUpdatedEventSchema = event(
   z.object({ splits: z.array(SplitSchema) }),
 );
 
+export const CalendarUpdatedEventSchema = event(
+  'calendar.updated',
+  z.object({ sourceKind: CalendarSourceKindSchema, sourceId: z.string().min(1) }),
+);
+
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
@@ -101,6 +107,7 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   DraftRemovedEventSchema,
   ScheduledSendUpsertedEventSchema,
   SplitsUpdatedEventSchema,
+  CalendarUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
 export type RealtimeEventType = RealtimeEvent['type'];

@@ -5,6 +5,7 @@ import type {
   PendingWorkInput,
   PendingWorkKey,
   PendingWorkKind,
+  PendingWorkPayloads,
   PendingWorkRepository,
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
@@ -23,6 +24,23 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
     }
     const key = keyOf(work);
     const stored: PendingWork<Kind> = { ...structuredClone(work), revision: randomUUID() };
+    this.db.tables.pendingWork.set(key, stored);
+    return Promise.resolve(stored);
+  }
+
+  replace<Kind extends PendingWorkKind>(
+    work: PendingWork<Kind>,
+    payload: PendingWorkPayloads[Kind],
+  ): Promise<PendingWork<Kind> | null> {
+    const key = keyOf(work);
+    if (this.db.tables.pendingWork.get(key)?.revision !== work.revision) {
+      return Promise.resolve(null);
+    }
+    const stored: PendingWork<Kind> = {
+      ...structuredClone(work),
+      payload: structuredClone(payload),
+      revision: randomUUID(),
+    };
     this.db.tables.pendingWork.set(key, stored);
     return Promise.resolve(stored);
   }

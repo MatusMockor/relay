@@ -22,6 +22,10 @@ export class AiJobLease {
     };
   }
 
+  get renewalMs(): number {
+    return this.durationMs / 4;
+  }
+
   until(): string {
     return new Date(this.clock.now().getTime() + this.durationMs).toISOString();
   }

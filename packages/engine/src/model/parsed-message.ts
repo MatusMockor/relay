@@ -26,4 +26,5 @@ export interface ParsedMessage {
   readonly snippet: string;
   readonly headers: MessageHeaders;
   readonly attachments: readonly ParsedAttachment[];
+  readonly calendarParts?: readonly string[];
 }

@@ -4,9 +4,11 @@ import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { ScheduledSendRepository } from '../../ports/scheduled-send-repository';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import type { HeldLease } from '../shared/renewed-lease';
 import type { DraftSendClaims } from './draft-send-claims';
 import type { DraftService } from './draft-service';
 import type { ScheduledSendConfirmations } from './scheduled-send-confirmations';
+import type { SendLeases } from './send-leases';
 import type { SendService } from './send-service';
 import type { SentDraftCleanup } from './sent-draft-cleanup';
 
@@ -23,6 +25,7 @@ export interface ScheduledSendDeliveryDeps {
   readonly scheduledSends: ScheduledSendRepository;
   readonly drafts: DraftService;
   readonly claims: DraftSendClaims;
+  readonly leases: SendLeases;
   readonly sending: SendService;
   readonly cleanup: SentDraftCleanup;
   readonly confirmations: ScheduledSendConfirmations;
@@ -33,8 +36,18 @@ export interface ScheduledSendDeliveryDeps {
 export class ScheduledSendDelivery {
   constructor(private readonly deps: ScheduledSendDeliveryDeps) {}
 
-  async deliver(item: ScheduledSend, claimedAt: string): Promise<void> {
-    const outcome = await this.send(item, claimedAt);
+  deliver(item: ScheduledSend, claimedAt: string): Promise<void> {
+    return this.deps.leases.holdScheduled(item, claimedAt, (lease) =>
+      this.deliverHeld(item, claimedAt, lease),
+    );
+  }
+
+  private async deliverHeld(
+    item: ScheduledSend,
+    claimedAt: string,
+    lease: HeldLease,
+  ): Promise<void> {
+    const outcome = await this.send(item, claimedAt, lease);
     if (outcome.kind === 'busy') {
       this.deps.logger.info('A scheduled send waits for another send of its draft', {
         scheduledSendId: item.id,
@@ -66,7 +79,11 @@ export class ScheduledSendDelivery {
     }
   }
 
-  private async send(item: ScheduledSend, claimedAt: string): Promise<SendOutcome> {
+  private async send(
+    item: ScheduledSend,
+    claimedAt: string,
+    lease: HeldLease,
+  ): Promise<SendOutcome> {
     try {
       await this.deps.claims.claim(item.userId, item.draftId, claimedAt);
     } catch (error) {
@@ -77,7 +94,7 @@ export class ScheduledSendDelivery {
     }
     try {
       const draft = await this.deps.drafts.require(item.userId, item.draftId);
-      await this.deps.sending.sendNow(item.userId, draft);
+      await this.deps.sending.sendNow(item.userId, draft, lease);
       return { kind: 'sent', draft };
     } catch (error) {
       await this.deps.claims.release(item.userId, item.draftId, claimedAt);

@@ -39,6 +39,7 @@ export const MailAccountSchema = z.object({
   userId: UserIdSchema,
   provider: MailProviderKindSchema,
   displayName: z.string().min(1).max(200),
+  senderName: z.string().min(1).max(200).nullable(),
   email: EmailAddressSchema,
   color: HexColorSchema,
   isPrimary: z.boolean(),

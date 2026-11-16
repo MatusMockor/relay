@@ -12,6 +12,7 @@ import { defineEndpoint } from '../endpoint';
 
 const AccountPreferencesSchema = z.object({
   displayName: z.string().trim().min(1).max(200).optional(),
+  senderName: z.string().trim().min(1).max(200).nullable().optional(),
   color: HexColorSchema.optional(),
   isPrimary: z.boolean().optional(),
   syncIntervalSeconds: SyncIntervalSecondsSchema.optional(),

@@ -3,6 +3,9 @@ import type {
   AiJob,
   AiJobId,
   AiResult,
+  CalendarEventId,
+  CalendarConnectionId,
+  CalendarSubscriptionId,
   Draft,
   DraftId,
   Label,
@@ -16,6 +19,7 @@ import type {
   ReminderId,
   ScheduledSend,
   ScheduledSendId,
+  GoogleCalendarId,
   Split,
   Task,
   TaskId,
@@ -24,7 +28,15 @@ import type {
   UserId,
   UserSettings,
 } from '@relay/shared/domain';
-import type { MailboxSyncState, MessageHeaders, PendingWork } from '../../../src';
+import type {
+  CalendarSubscriptionRecord,
+  GoogleCalendarRecord,
+  GoogleConnectionRecord,
+  MailboxSyncState,
+  MessageHeaders,
+  PendingWork,
+  StoredCalendarEvent,
+} from '../../../src';
 
 export interface StoredDraft {
   readonly userId: UserId;
@@ -43,8 +55,10 @@ export class MemoryTables {
   readonly reminders = new Map<ReminderId, Reminder>();
   readonly drafts = new Map<DraftId, StoredDraft>();
   readonly draftSendClaims = new Map<DraftId, string>();
+  readonly draftSendRenewals = new Map<DraftId, string>();
   readonly scheduledSends = new Map<ScheduledSendId, ScheduledSend>();
   readonly scheduledSendClaims = new Map<ScheduledSendId, string>();
+  readonly scheduledSendRenewals = new Map<ScheduledSendId, string>();
   readonly settings = new Map<UserId, UserSettings>();
   readonly aiResults: AiResult[] = [];
   readonly aiJobs = new Map<AiJobId, AiJob>();
@@ -52,6 +66,11 @@ export class MemoryTables {
   readonly unindexedAiJobs = new Set<AiJobId>();
   readonly syncStates = new Map<MailboxId, MailboxSyncState>();
   readonly pendingWork = new Map<string, PendingWork>();
+  readonly calendarEvents = new Map<CalendarEventId, StoredCalendarEvent>();
+  readonly calendarSubscriptions = new Map<CalendarSubscriptionId, CalendarSubscriptionRecord>();
+  readonly googleConnections = new Map<CalendarConnectionId, GoogleConnectionRecord>();
+  readonly googleCalendars = new Map<GoogleCalendarId, GoogleCalendarRecord>();
+  readonly googleEventRefs = new Map<CalendarEventId, { remoteId: string; etag: string }>();
 }
 
 export class MemoryDatabase {

@@ -3,6 +3,7 @@ import type { AiJobRepository } from '../../ports/ai-job-repository';
 import type { AiRunner } from '../../ports/ai-runner';
 import type { AiRunnerRegistry } from '../../ports/ai-runner-registry';
 import type { Logger } from '../../ports/logger';
+import type { ActiveLease, LeaseHeartbeat } from '../shared/lease-heartbeat';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { AiJobCompleter } from './ai-job-completer';
 import type { AiJobLease } from './ai-job-lease';
@@ -16,6 +17,7 @@ export interface AiJobExecutorDeps {
   readonly completer: AiJobCompleter;
   readonly writer: AiJobStatusWriter;
   readonly lease: AiJobLease;
+  readonly heartbeat: LeaseHeartbeat;
   readonly logger: Logger;
 }
 
@@ -42,13 +44,15 @@ export class AiJobExecutor {
       });
       return failed ?? (await this.lost(job));
     }
+    const lease = this.keepLeased(job, owner);
+    const stop = signal === null ? lease.signal : AbortSignal.any([signal, lease.signal]);
     const progress = { settled: false };
     const settle = async (change: AiJobChange): Promise<AiJob> => {
       progress.settled = true;
       return (await this.update(job, owner, change)) ?? (await this.lost(job));
     };
     try {
-      const outcome = yield* this.run(job, owner, runner, signal);
+      const outcome = yield* this.run(job, owner, runner, stop);
       if ('error' in outcome) {
         return await settle({ status: 'error', error: outcome.error });
       }
@@ -64,6 +68,7 @@ export class AiJobExecutor {
       this.deps.logger.warn('AI job failed', { jobId: job.id, error: errorMessage(error) });
       return await settle({ status: 'error', error: errorMessage(error) });
     } finally {
+      lease.stop();
       if (!progress.settled) {
         await this.update(job, owner, { status: 'error', error: STOPPED });
       }
@@ -91,6 +96,15 @@ export class AiJobExecutor {
       }
     }
     return outcome;
+  }
+
+  private keepLeased(job: AiJob, owner: string): ActiveLease {
+    const renew = async (): Promise<boolean> =>
+      (await this.deps.writer.renew(job, owner, this.deps.lease.until())) !== null;
+    return this.deps.heartbeat.start(
+      { intervalMs: this.deps.lease.renewalMs, renew },
+      { jobId: job.id },
+    );
   }
 
   private pickRunner(kind: AiRunnerKind): AiRunner | null {

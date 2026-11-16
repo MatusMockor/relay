@@ -9,6 +9,7 @@ import { invokeChannel } from './define';
 export const GoogleAuthorizeInputSchema = z.object({
   mode: AppModeSchema,
   loginHint: EmailAddressSchema.optional(),
+  calendar: z.boolean().optional(),
 });
 export type GoogleAuthorizeInput = z.infer<typeof GoogleAuthorizeInputSchema>;
 

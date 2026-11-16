@@ -61,10 +61,10 @@ describe('ComposeService', () => {
   it('sends uploaded attachments', async () => {
     const engine = createTestEngine();
     const { reply } = await setup(engine);
-    const attachment = await engine.services.compose.uploadAttachment(USER_ID, {
+    const attachment = await engine.attachments.put(USER_ID, {
       filename: 'offer.txt',
       contentType: 'text/plain',
-      contentBase64: btoa('hello'),
+      content: new TextEncoder().encode('hello'),
     });
 
     await engine.services.compose.send(USER_ID, {
@@ -81,10 +81,10 @@ describe('ComposeService', () => {
   it('reports a delivered message as sent even when draft cleanup fails', async () => {
     const engine = createTestEngine();
     const { reply } = await setup(engine);
-    const attachment = await engine.services.compose.uploadAttachment(USER_ID, {
+    const attachment = await engine.attachments.put(USER_ID, {
       filename: 'a.txt',
       contentType: 'text/plain',
-      contentBase64: btoa('a'),
+      content: new TextEncoder().encode('a'),
     });
     const draft = await engine.services.compose.createDraft(USER_ID, {
       ...reply,

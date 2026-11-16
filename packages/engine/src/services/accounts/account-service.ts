@@ -17,6 +17,7 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { CredentialVault } from '../../ports/credential-vault';
 import type { Logger } from '../../ports/logger';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
+import type { AccountAttachmentRelease } from '../attachments/account-attachment-release';
 import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { AccountRegistration, AccountPreferences } from './account-registration';
@@ -43,6 +44,7 @@ export interface AccountServiceDeps {
   readonly updater: AccountUpdater;
   readonly primary: PrimaryAccountPublisher;
   readonly tester: ConnectionTester;
+  readonly attachments: AccountAttachmentRelease;
   readonly events: EngineEvents;
   readonly logger: Logger;
 }
@@ -117,6 +119,7 @@ export class AccountService {
 
   async remove(userId: UserId, accountId: AccountId): Promise<void> {
     const account = await this.require(userId, accountId);
+    const attachments = await this.deps.attachments.attachmentsOf(userId, accountId);
     await this.deps.accounts.delete(userId, accountId);
     await this.deps.vault.delete(accountId).catch((error: unknown) => {
       this.deps.logger.warn('Deleting account credentials failed', {
@@ -124,6 +127,7 @@ export class AccountService {
         error: errorMessage(error),
       });
     });
+    await this.deps.attachments.release(accountId, attachments);
     await this.deps.events.emit(userId, 'account.removed', { accountId });
     if (account.isPrimary) {
       await this.deps.primary.promoteFirst(userId);

@@ -1,19 +1,23 @@
 import type {
   CreateDraftBody,
+  DraftAttachmentAdded,
+  DraftAttachmentsForwarded,
   SendBody,
   SendResponse,
   UpdateDraftBody,
-  UploadAttachmentBody,
 } from '@relay/shared/api';
 import type {
+  AttachmentId,
   Draft,
-  DraftAttachment,
   DraftId,
+  MessageId,
   ScheduledSend,
   ScheduledSendId,
   UserId,
 } from '@relay/shared/domain';
+import type { AttachmentUpload } from '../../model/attachment';
 import type { Clock } from '../../ports/clock';
+import type { DraftAttachmentService } from './draft-attachment-service';
 import type { DraftSender } from './draft-sender';
 import type { DraftService } from './draft-service';
 import type { ScheduledSendService } from './scheduled-send-service';
@@ -21,6 +25,7 @@ import type { SendService } from './send-service';
 
 export interface ComposeServiceDeps {
   readonly drafts: DraftService;
+  readonly attachments: DraftAttachmentService;
   readonly draftSender: DraftSender;
   readonly sending: SendService;
   readonly scheduled: ScheduledSendService;
@@ -32,6 +37,10 @@ export class ComposeService {
 
   listDrafts(userId: UserId): Promise<Draft[]> {
     return this.deps.drafts.list(userId);
+  }
+
+  getDraft(userId: UserId, draftId: DraftId): Promise<Draft> {
+    return this.deps.drafts.require(userId, draftId);
   }
 
   createDraft(userId: UserId, body: CreateDraftBody): Promise<Draft> {
@@ -46,8 +55,28 @@ export class ComposeService {
     return this.deps.drafts.delete(userId, draftId);
   }
 
-  uploadAttachment(userId: UserId, body: UploadAttachmentBody): Promise<DraftAttachment> {
-    return this.deps.drafts.uploadAttachment(userId, body);
+  addDraftAttachment(
+    userId: UserId,
+    draftId: DraftId,
+    upload: AttachmentUpload,
+  ): Promise<DraftAttachmentAdded> {
+    return this.deps.attachments.add(userId, draftId, upload);
+  }
+
+  removeDraftAttachment(
+    userId: UserId,
+    draftId: DraftId,
+    attachmentId: AttachmentId,
+  ): Promise<Draft> {
+    return this.deps.attachments.remove(userId, draftId, attachmentId);
+  }
+
+  forwardAttachments(
+    userId: UserId,
+    draftId: DraftId,
+    messageId: MessageId,
+  ): Promise<DraftAttachmentsForwarded> {
+    return this.deps.attachments.forward(userId, draftId, messageId);
   }
 
   listScheduled(userId: UserId): Promise<ScheduledSend[]> {

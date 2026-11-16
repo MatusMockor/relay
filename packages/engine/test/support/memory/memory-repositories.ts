@@ -1,8 +1,18 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Repositories, UnitOfWork } from '../../../src';
 import { MemoryAccountRepository } from './memory-account-repository';
+import {
+  MemoryCalendarEventRepository,
+  MemoryCalendarSubscriptionRepository,
+} from './memory-calendar-repositories';
 import type { MemoryDatabase } from './memory-database';
 import { MemoryDraftRepository } from './memory-draft-repository';
+import {
+  MemoryGoogleCalendarRepository,
+  MemoryGoogleConnectionRepository,
+} from './memory-google-connection-repositories';
+import { MemoryGoogleEventRepository } from './memory-google-event-repository';
+import { MemoryInviteCandidateRepository } from './memory-invite-candidate-repository';
 import { MemoryLabelRepository } from './memory-label-repository';
 import { MemoryMailboxRepository } from './memory-mailbox-repository';
 import { MemoryMessageRepository } from './memory-message-repository';
@@ -35,6 +45,12 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   aiJobs: new MemoryAiJobRepository(db),
   syncStates: new MemorySyncStateRepository(db),
   pendingWork: new MemoryPendingWorkRepository(db),
+  calendarEvents: new MemoryCalendarEventRepository(db),
+  calendarSubscriptions: new MemoryCalendarSubscriptionRepository(db),
+  googleConnections: new MemoryGoogleConnectionRepository(db),
+  googleCalendars: new MemoryGoogleCalendarRepository(db),
+  googleEvents: new MemoryGoogleEventRepository(db),
+  inviteCandidates: new MemoryInviteCandidateRepository(db),
 });
 
 export class MemoryUnitOfWork implements UnitOfWork {

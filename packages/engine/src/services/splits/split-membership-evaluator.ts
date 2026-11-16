@@ -71,7 +71,7 @@ export class SplitMembershipEvaluator {
       }
       const saved: ThreadSummary[] = [];
       for (const [threadId, members] of changed) {
-        const current = await repositories.threads.findByIdForAccount(accountId, threadId);
+        const current = await repositories.threads.lockForUpdate(accountId, threadId);
         if (current !== null) {
           saved.push(await repositories.threads.upsert({ ...current, splitIds: [...members] }));
         }

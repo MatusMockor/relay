@@ -11,6 +11,7 @@ export interface ThreadRepository {
   queryFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>>;
   findById(userId: UserId, threadId: ThreadId): Promise<ThreadSummary | null>;
   findByIdForAccount(accountId: AccountId, threadId: ThreadId): Promise<ThreadSummary | null>;
+  lockForUpdate(accountId: AccountId, threadId: ThreadId): Promise<ThreadSummary | null>;
   upsert(thread: ThreadSummary): Promise<ThreadSummary>;
   updateState(
     userId: UserId,

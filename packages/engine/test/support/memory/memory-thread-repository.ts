@@ -34,6 +34,10 @@ export class MemoryThreadRepository implements ThreadRepository {
     return Promise.resolve(thread?.accountId === accountId ? thread : null);
   }
 
+  lockForUpdate(accountId: AccountId, threadId: ThreadId): Promise<ThreadSummary | null> {
+    return this.findByIdForAccount(accountId, threadId);
+  }
+
   upsert(thread: ThreadSummary): Promise<ThreadSummary> {
     if (this.failUpsert !== null) {
       return Promise.reject(new Error(this.failUpsert));

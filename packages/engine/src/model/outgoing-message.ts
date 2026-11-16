@@ -6,6 +6,11 @@ export interface OutgoingAttachment {
   readonly content: Uint8Array;
 }
 
+export interface OutgoingCalendarPart {
+  readonly method: 'REPLY' | 'REQUEST' | 'CANCEL';
+  readonly content: string;
+}
+
 export interface OutgoingMessage {
   readonly from: Address;
   readonly to: readonly Address[];
@@ -17,11 +22,12 @@ export interface OutgoingMessage {
   readonly inReplyTo: string | null;
   readonly references: readonly string[];
   readonly attachments: readonly OutgoingAttachment[];
+  readonly calendar?: OutgoingCalendarPart;
 }
 
 export interface SentMessage {
   readonly messageIdHeader: string;
-  readonly raw: Uint8Array;
+  readonly sentCopy: Uint8Array;
   readonly acceptedRecipients: readonly string[];
   readonly rejectedRecipients: readonly string[];
 }

@@ -4,6 +4,7 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { CredentialVault } from '../../ports/credential-vault';
 import type { MailSender } from '../../ports/mail-sender';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import type { HeldLease } from '../shared/renewed-lease';
 import type { OutgoingMessageBuilder } from './outgoing-message-builder';
 import type { SentMessageRecorder } from './sent-message-recorder';
 
@@ -23,7 +24,7 @@ export interface SendServiceDeps {
 export class SendService {
   constructor(private readonly deps: SendServiceDeps) {}
 
-  async sendNow(userId: UserId, content: DraftContent): Promise<SentOutcome> {
+  async sendNow(userId: UserId, content: DraftContent, lease?: HeldLease): Promise<SentOutcome> {
     if (content.to.length + content.cc.length + content.bcc.length === 0) {
       throw new ValidationError('A message needs at least one recipient');
     }
@@ -36,6 +37,7 @@ export class SendService {
       throw new ProviderError(`No credentials stored for account ${account.email}`);
     }
     const outgoing = await this.deps.builder.build(userId, account, content);
+    await lease?.ensureHeld();
     const sent = await this.deps.sender
       .send(account, credentials, outgoing)
       .catch((error: unknown) => {

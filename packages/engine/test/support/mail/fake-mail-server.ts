@@ -42,6 +42,8 @@ export class FakeMailServer {
   readonly uidplus: boolean;
   readonly mailboxes = new Map<string, FakeMailbox>();
   readonly createdMailboxes: string[] = [];
+  readonly fetchedMessages: { path: string; uid: number }[] = [];
+  failFetchUid: number | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();
   connections = 0;

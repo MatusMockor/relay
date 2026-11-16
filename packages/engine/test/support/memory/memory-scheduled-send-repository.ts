@@ -6,6 +6,7 @@ const ACTIVE = new Set<ScheduledSend['status']>(['pending', 'sending']);
 
 export class MemoryScheduledSendRepository implements ScheduledSendRepository {
   failMarkSent = 0;
+  beforeMarkSent: (() => Promise<void>) | null = null;
 
   constructor(private readonly db: MemoryDatabase) {}
 
@@ -48,6 +49,17 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
     }
     this.db.tables.scheduledSends.set(scheduledSendId, { ...item, status: 'sending' });
     this.db.tables.scheduledSendClaims.set(scheduledSendId, claimedAt);
+    this.db.tables.scheduledSendRenewals.delete(scheduledSendId);
+    return Promise.resolve(true);
+  }
+
+  renew(scheduledSendId: ScheduledSendId, claimedAt: string, renewedAt: string): Promise<boolean> {
+    const item = this.db.tables.scheduledSends.get(scheduledSendId);
+    const held = this.db.tables.scheduledSendClaims.get(scheduledSendId) === claimedAt;
+    if (item?.status !== 'sending' || !held) {
+      return Promise.resolve(false);
+    }
+    this.db.tables.scheduledSendRenewals.set(scheduledSendId, renewedAt);
     return Promise.resolve(true);
   }
 
@@ -61,14 +73,17 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
     return Promise.resolve(stale.length);
   }
 
-  markSent(scheduledSendId: ScheduledSendId, sentAt: string, claimedAt: string): Promise<boolean> {
+  async markSent(
+    scheduledSendId: ScheduledSendId,
+    sentAt: string,
+    claimedAt: string,
+  ): Promise<boolean> {
+    await this.beforeMarkSent?.();
     if (this.failMarkSent > 0) {
       this.failMarkSent -= 1;
       return Promise.reject(new Error('database is locked'));
     }
-    return Promise.resolve(
-      this.settle(scheduledSendId, claimedAt, { status: 'sent', sentAt, error: null }),
-    );
+    return this.settle(scheduledSendId, claimedAt, { status: 'sent', sentAt, error: null });
   }
 
   markFailed(scheduledSendId: ScheduledSendId, error: string, claimedAt: string): Promise<boolean> {
@@ -100,8 +115,10 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
     if (item.status !== 'sending') {
       return false;
     }
-    const claimedAt = this.db.tables.scheduledSendClaims.get(item.id);
-    return claimedAt === undefined || Date.parse(claimedAt) < Date.parse(staleBefore);
+    const heartbeat =
+      this.db.tables.scheduledSendRenewals.get(item.id) ??
+      this.db.tables.scheduledSendClaims.get(item.id);
+    return heartbeat === undefined || Date.parse(heartbeat) < Date.parse(staleBefore);
   }
 
   private write(id: ScheduledSendId, changes: Partial<ScheduledSend>): void {
@@ -111,6 +128,7 @@ export class MemoryScheduledSendRepository implements ScheduledSendRepository {
     }
     this.db.tables.scheduledSends.set(id, { ...item, ...changes });
     this.db.tables.scheduledSendClaims.delete(id);
+    this.db.tables.scheduledSendRenewals.delete(id);
   }
 
   private all(): ScheduledSend[] {
