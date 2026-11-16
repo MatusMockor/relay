@@ -10,6 +10,8 @@ import { openRight, openSearch, selectFolder, selectScope, toggleRight } from '.
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
+import { threadComposeCommands } from './thread-compose-commands';
+import { accountCount } from '../../lib/text';
 
 export interface Command {
   readonly id: string;
@@ -90,6 +92,7 @@ export const useCommands = (): Command[] => {
                     actions.compose.startReply(thread.id, thread.accountId);
                   },
                 },
+                ...threadComposeCommands(thread.id, ctx, actions.compose),
               ]),
           {
             id: 'trash',
@@ -129,7 +132,7 @@ export const useCommands = (): Command[] => {
       ? [null, ...model.accounts].map((account, index) => ({
           id: `scope-${account?.id ?? 'all'}`,
           label: `Účet: ${account?.displayName ?? 'Všetky účty'}`,
-          sub: account?.email ?? `${String(model.accounts.length)} účty`,
+          sub: account?.email ?? accountCount(model.accounts.length),
           keys: index < 9 ? [`${MOD}${String(index + 1)}`] : [],
           icon: (
             <AccountSquare

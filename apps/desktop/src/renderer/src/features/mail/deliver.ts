@@ -1,5 +1,6 @@
 import type { DraftContent, DraftId, SendResponse } from '@relay/shared';
 import type { MailClient } from '../../data/MailClient';
+import { withoutAttachments } from '../compose/compose-start';
 
 export const deliver = async (
   client: MailClient,
@@ -12,7 +13,7 @@ export const deliver = async (
     return client.send({ source: 'inline', draft: content, scheduledAt: at });
   }
   const id = draftId as DraftId;
-  await client.updateDraft(id, content);
+  await client.updateDraft(id, withoutAttachments(content));
   return client.send({ source: 'draft', draftId: id, scheduledAt: at });
 };
 
@@ -23,5 +24,5 @@ export const keepAsDraft = async (
 ): Promise<void> => {
   await (draftId === null
     ? client.createDraft(content)
-    : client.updateDraft(draftId as DraftId, content));
+    : client.updateDraft(draftId as DraftId, withoutAttachments(content)));
 };

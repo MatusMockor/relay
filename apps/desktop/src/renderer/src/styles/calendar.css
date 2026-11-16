@@ -1,0 +1,158 @@
+button.ev {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+button.ev:hover {
+  background: var(--hover);
+}
+button.ev:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.ev.pending .eb {
+  border-left-style: dashed;
+}
+.ev.declined .eb b {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.now {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 0 8px;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.now span {
+  text-align: right;
+}
+.now i {
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.7;
+  position: relative;
+}
+.now i::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.cal-foot {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 4px 0 0;
+}
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+}
+.link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+.inv-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.inv {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--raised);
+  padding: 12px 14px;
+  display: grid;
+  gap: 3px;
+  font-size: 13.5px;
+}
+.inv.cancelled {
+  border-left-color: var(--bad);
+}
+.inv.cancelled .inv-t {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.inv .h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.inv.cancelled .h {
+  color: var(--bad);
+}
+.inv-t {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.inv-l {
+  color: var(--fg2);
+}
+.inv-l.muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.inv-warn {
+  color: var(--warn);
+  font-size: 12.5px;
+}
+.inv-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cal-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  justify-items: start;
+}
+.cal-form .fld {
+  width: 100%;
+}
+.cal-swatches {
+  display: flex;
+  gap: 8px;
+}
+.cal-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--c);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+.cal-swatch.on {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 3px var(--c);
+}
+.cal-err {
+  color: var(--bad);
+  font-size: 12.5px;
+  margin: 0;
+}

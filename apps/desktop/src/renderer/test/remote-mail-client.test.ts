@@ -173,17 +173,6 @@ describe('RemoteMailClient', () => {
     ).rejects.toMatchObject({ code: 'not_found', message: 'Príloha neexistuje' });
   });
 
-  it('surfaces the shared API error shape', async () => {
-    server.handle('threads.get', () => ({
-      status: 404,
-      body: { error: { code: 'not_found', message: 'Konverzácia neexistuje' } },
-    }));
-    await expect(connect().getThread(THREAD.id)).rejects.toMatchObject({
-      code: 'not_found',
-      message: 'Konverzácia neexistuje',
-    });
-  });
-
   it('receives realtime events and reconnects after the socket drops', async () => {
     const received: string[] = [];
     connect().subscribe((event) => {

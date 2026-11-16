@@ -15,6 +15,11 @@ export interface AppProps extends AppContextValue {
   readonly createQueryClient?: () => QueryClient;
 }
 
+interface QueryClientSlot {
+  readonly client: QueryClient;
+  readonly key: number;
+}
+
 const defaultQueryClient = () =>
   new QueryClient({
     defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } },
@@ -23,10 +28,14 @@ const defaultQueryClient = () =>
 function Root({ createQueryClient }: { readonly createQueryClient: () => QueryClient }) {
   const phase = useSessionStore((state) => state.phase);
   const services = useSessionStore((state) => state.services);
-  const clients = useRef(new WeakMap<object, QueryClient>());
-  const owner = services ?? clients;
-  const queryClient = clients.current.get(owner) ?? createQueryClient();
-  clients.current.set(owner, queryClient);
+  const slots = useRef(new WeakMap<object, QueryClientSlot>());
+  const created = useRef(0);
+  const owner = services ?? slots;
+  const slot = slots.current.get(owner) ?? {
+    client: createQueryClient(),
+    key: (created.current += 1),
+  };
+  slots.current.set(owner, slot);
   if (phase === 'booting') {
     return (
       <div className="loading" role="status">
@@ -36,7 +45,7 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   }
   const content = phase === 'ready' && services !== null ? <AppShell /> : <OnboardingScreen />;
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider key={slot.key} client={slot.client}>
       {services === null ? (
         content
       ) : (

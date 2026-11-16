@@ -5,6 +5,7 @@ import { type SettingsSection, setUi } from '../../state/ui-store';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
 import { AiSection } from './sections/AiSection';
+import { CalendarsSection } from './sections/CalendarsSection';
 import { DevicesSection } from './sections/DevicesSection';
 import { KeysSection } from './sections/KeysSection';
 import { LookSection } from './sections/LookSection';
@@ -20,6 +21,7 @@ const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
   ['accounts', 'Účty'],
   ['splits', 'Split Inbox'],
   ['sync', 'Synchronizácia'],
+  ['calendars', 'Kalendáre'],
   ['notifications', 'Notifikácie'],
   ['ai', 'AI'],
   ['look', 'Vzhľad'],
@@ -38,6 +40,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     ai: () => <AiSection />,
     look: () => <LookSection />,
     keys: () => <KeysSection />,
+    calendars: () => <CalendarsSection />,
   };
   return map[section]();
 };

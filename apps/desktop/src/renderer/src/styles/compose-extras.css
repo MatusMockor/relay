@@ -1,0 +1,144 @@
+.nm {
+  position: relative;
+}
+.nm-drop {
+  display: contents;
+}
+.nm-f.rcp {
+  gap: 6px 8px;
+  padding: 5px 0;
+}
+.nm-f.rcp input {
+  height: 32px;
+}
+.to-chip.bad {
+  background: rgba(255, 122, 122, 0.12);
+  color: var(--bad);
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 122, 0.35);
+  padding-left: 8px;
+}
+.to-chip .bad-ic {
+  font-weight: 700;
+  font-size: 12px;
+}
+.rcp-more {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.rcp-more button {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.rcp-more button:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.att-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 20px;
+  padding: 4px 0 2px;
+  list-style: none;
+}
+.att-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 300px;
+  height: 30px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--fg);
+  font-size: 12.5px;
+  overflow: hidden;
+}
+.att-chip > svg {
+  flex: none;
+  color: var(--muted);
+}
+.att-chip .n {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.att-chip .z {
+  flex: none;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.att-chip button {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.att-chip button:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.att-chip.failed {
+  border-color: rgba(255, 122, 122, 0.45);
+}
+.att-chip.failed > svg,
+.att-chip.failed .z {
+  color: var(--bad);
+}
+.att-chip .bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 40%;
+  background: var(--accent);
+  animation: att-progress 1.1s ease-in-out infinite;
+}
+@keyframes att-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+.nm-drop-hint {
+  position: absolute;
+  inset: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--accent);
+  border-radius: 12px;
+  background: rgba(13, 15, 20, 0.86);
+  color: var(--fg);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 5;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .att-chip .bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}

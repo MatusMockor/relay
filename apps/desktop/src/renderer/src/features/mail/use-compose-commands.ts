@@ -15,6 +15,7 @@ import { showToast } from '../../state/toast-store';
 import { type ComposeInit, setUi, useUiStore } from '../../state/ui-store';
 import type { ListItem } from './list-items';
 import { backToList, openThread } from './navigation';
+import { withoutAttachments } from '../compose/compose-start';
 import { buildReplyDraft } from './reply-draft';
 import { neighborOf } from './selection';
 import { deliver, keepAsDraft } from './deliver';
@@ -88,7 +89,7 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
     try {
       await (reply.draftId === null
         ? client.createDraft(content)
-        : client.updateDraft(reply.draftId as DraftId, content));
+        : client.updateDraft(reply.draftId as DraftId, withoutAttachments(content)));
     } catch (error) {
       setUi((state) =>
         state.reply === null ? { reply: { ...reply, busy: false, aiOpen: false } } : {},
@@ -163,8 +164,10 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
               kind: 'compose',
               init: {
                 ...init,
-                toEmail: content.to[0]?.email,
-                toName: content.to[0]?.name ?? null,
+                to: content.to,
+                cc: content.cc,
+                bcc: content.bcc,
+                forward: undefined,
                 subject: content.subject,
                 body: content.body,
                 accountId: content.accountId,

@@ -4,6 +4,7 @@ import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
 import { startTurn, trackTurn, updateTurn, useChat } from './chat-store';
 import { reduceTurn } from './chat-turn-reducer';
+import { systemTimeZone } from '../calendar/calendar-time';
 
 export interface ChatRunOptions {
   readonly runner: AiRunnerKind;
@@ -42,7 +43,13 @@ export const useChatRuns = ({ runner, runnerLabel, threadId }: ChatRunOptions) =
           ]
         : [],
     );
-    start(question, { kind: 'chatAnswer', question, threadId, history });
+    start(question, {
+      kind: 'chatAnswer',
+      question,
+      threadId,
+      history,
+      timeZone: systemTimeZone(),
+    });
     return true;
   };
   const createTask = (hint: string): boolean => {

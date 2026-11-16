@@ -1,0 +1,76 @@
+.cal-h .ibtn {
+  margin-left: auto;
+  align-self: center;
+}
+.cal-h:has(.ibtn) {
+  justify-content: flex-start;
+}
+.ev-form {
+  display: grid;
+  gap: 10px;
+  margin: 2px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+}
+.ev-form .fld input,
+.ev-form .fld select {
+  height: 32px;
+}
+.ev-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.ev-form-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.ev-form-acts,
+.ev-acts,
+.gcal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ev-acts {
+  padding: 0 8px 6px 58px;
+}
+.ev-acts .btn {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.gcal-panel {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 22px;
+}
+.gcal-panel h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.gcal {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 2px 12px;
+}
+.gcal-list {
+  padding-left: 14px;
+  border-left: 2px solid var(--line-soft);
+  margin: 0 0 10px 4px;
+}
+.cal-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--warn);
+  font-size: 12.5px;
+  line-height: 1.5;
+}

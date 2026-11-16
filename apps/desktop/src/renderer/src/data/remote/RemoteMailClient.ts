@@ -11,6 +11,10 @@ import type { MailClient, MailEventListener } from '../MailClient';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
 import { RemoteAiRuns } from './RemoteAiRuns';
+import { createRemoteCalendarClient } from './remote-calendar-client';
+import { createRemoteGoogleCalendarClient } from './remote-google-calendar-client';
+import type { CalendarClient } from '../CalendarClient';
+import type { GoogleCalendarClient } from '../GoogleCalendarClient';
 
 export interface RemoteMailClientOptions {
   readonly http: HttpApi;
@@ -21,7 +25,13 @@ export interface RemoteMailClientOptions {
 
 type RemoteMailMethods = Omit<
   MailClient,
-  'kind' | 'subscribe' | 'onRealtimeConnected' | 'dispose' | 'runAi'
+  | 'kind'
+  | 'subscribe'
+  | 'onRealtimeConnected'
+  | 'dispose'
+  | 'runAi'
+  | keyof CalendarClient
+  | keyof GoogleCalendarClient
 >;
 
 const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
@@ -47,6 +57,16 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   deleteDraft: async (id) => {
     await http.call(api.compose.deleteDraft, { params: { id } });
   },
+  addDraftAttachment: (id, file) =>
+    http.upload(
+      api.draftAttachments.add,
+      { params: { id }, query: { filename: file.filename, contentType: file.contentType } },
+      file.blob,
+    ),
+  removeDraftAttachment: (id, attachmentId) =>
+    http.call(api.draftAttachments.remove, { params: { id, attachmentId } }),
+  forwardAttachments: (id, messageId) =>
+    http.call(api.draftAttachments.forward, { params: { id }, body: { messageId } }),
   send: (body) => http.call(api.compose.send, { body }),
   listScheduled: () => http.call(api.compose.listScheduled, {}),
   cancelScheduled: async (id: ScheduledSendId) => {
@@ -90,6 +110,8 @@ export const createRemoteMailClient = (options: RemoteMailClientOptions): MailCl
   return {
     kind: 'remote',
     ...remoteMethods(http),
+    ...createRemoteCalendarClient(http),
+    ...createRemoteGoogleCalendarClient(http),
     runAi: (request, listener) => aiRuns.start(request, listener),
     subscribe: (listener) => bus.subscribe(listener),
     onRealtimeConnected: (listener) =>

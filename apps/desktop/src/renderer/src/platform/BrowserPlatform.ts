@@ -93,6 +93,7 @@ export const createBrowserPlatform = (
     },
     saveFile: saveBlobAs,
     authorizeGoogle: googleUnavailable,
+    authorizeGoogleCalendar: googleUnavailable,
     cancelGoogleAuthorization: () => Promise.resolve(),
   };
 };

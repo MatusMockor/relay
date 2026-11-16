@@ -44,6 +44,7 @@ describe('onboarding', () => {
         userId: 'user-1',
         provider: 'imap',
         displayName: 'Firma',
+        senderName: 'Ján Novák',
         email: 'ja@firma.sk',
         color: '#6aa8ff',
         isPrimary: true,
@@ -93,6 +94,8 @@ describe('onboarding', () => {
     });
     type(field('E-mail'), 'ja@firma.sk');
     expect((field('IMAP server') as HTMLInputElement).value).toBe('imap.firma.sk');
+    expect((field('Meno odosielateľa') as HTMLInputElement).value).toBe('Ján Novák');
+    type(field('Názov účtu (nepovinné)'), 'Firma');
     click(/Pridať účet/);
     expect(screen.getByRole('alert').textContent).toBe('Doplň heslo k schránke.');
     type(password(), 'tajne-heslo');
@@ -105,6 +108,9 @@ describe('onboarding', () => {
     expect(
       server.requests.find((request) => request.key === 'accounts.create')?.authorization,
     ).toBe('Bearer access-1');
+    expect(
+      server.requests.find((request) => request.key === 'accounts.create')?.body,
+    ).toMatchObject({ displayName: 'Firma', senderName: 'Ján Novák' });
   });
 
   it('drops a stale error after a successful connection test', async () => {
@@ -160,6 +166,7 @@ describe('onboarding', () => {
           userId: 'user-1',
           provider: 'imap',
           displayName: 'Firma',
+          senderName: 'Ján Novák',
           email: 'ja@firma.sk',
           color: '#6aa8ff',
           isPrimary: true,

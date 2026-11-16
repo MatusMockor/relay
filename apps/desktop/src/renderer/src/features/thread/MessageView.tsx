@@ -1,5 +1,5 @@
 import type { Message } from '@relay/shared';
-import { Avatar } from '@relay/ui';
+import { Avatar, Icon, IconButton } from '@relay/ui';
 import { messageTimeLabel } from '../../lib/dates';
 import { AttachmentList } from './AttachmentList';
 import { HtmlMailFrame } from './HtmlMailFrame';
@@ -10,9 +10,16 @@ export interface MessageViewProps {
   readonly mine: boolean;
   readonly recipientName: string;
   readonly onCollapse?: () => void;
+  readonly onForward?: () => void;
 }
 
-export function MessageView({ message, mine, recipientName, onCollapse }: MessageViewProps) {
+export function MessageView({
+  message,
+  mine,
+  recipientName,
+  onCollapse,
+  onForward,
+}: MessageViewProps) {
   const name = mine ? 'Ty' : (message.from?.name ?? message.from?.email ?? 'Neznámy');
   const header = (
     <>
@@ -26,13 +33,20 @@ export function MessageView({ message, mine, recipientName, onCollapse }: Messag
   );
   return (
     <article className={`msg${mine ? ' mine' : ''}`} aria-label={`Správa od ${name}`}>
-      {onCollapse === undefined ? (
-        <div className="mh">{header}</div>
-      ) : (
-        <button type="button" className="mh" onClick={onCollapse}>
-          {header}
-        </button>
-      )}
+      <div className="mh">
+        {onCollapse === undefined ? (
+          <div className="mh-main">{header}</div>
+        ) : (
+          <button type="button" className="mh-main" onClick={onCollapse}>
+            {header}
+          </button>
+        )}
+        {onForward === undefined ? null : (
+          <IconButton label="Preposlať túto správu" onClick={onForward}>
+            <Icon name="forward" />
+          </IconButton>
+        )}
+      </div>
       {message.htmlBody !== null ? (
         <HtmlMailFrame html={message.htmlBody} title={`Obsah správy: ${message.subject}`} />
       ) : (

@@ -14,6 +14,7 @@ import {
   withGuessedServers,
 } from './account-form';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { optionalText, useSuggestedSenderName } from './suggested-sender-name';
 
 export interface AddAccountFormProps {
   readonly onDone: () => void;
@@ -35,7 +36,10 @@ const checkText = (result: TestConnectionResponse): string => {
 export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
   const client = useClient();
   const queryClient = useQueryClient();
-  const [values, setValues] = useState<AccountFormValues>(EMPTY_ACCOUNT_FORM);
+  const suggestedSender = useSuggestedSenderName();
+  const [edited, setEdited] = useState<AccountFormValues>(EMPTY_ACCOUNT_FORM);
+  const [senderTouched, setSenderTouched] = useState(false);
+  const values = senderTouched ? edited : { ...edited, senderName: suggestedSender };
   const [error, setError] = useState<string | null>(null);
   const [check, setCheck] = useState<TestConnectionResponse | null>(null);
   const [busy, setBusy] = useState<'test' | 'add' | null>(null);
@@ -50,8 +54,11 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
   const preset = presetFor(values.email);
   const set = (field: keyof AccountFormValues) => (event: { target: { value: string } }) => {
     revision.current += 1;
+    if (field === 'senderName') {
+      setSenderTouched(true);
+    }
     const next = { ...values, [field]: event.target.value };
-    setValues(field === 'email' ? withGuessedServers(next, values.email) : next);
+    setEdited(field === 'email' ? withGuessedServers(next, values.email) : next);
     setError(null);
     setCheck(null);
   };
@@ -84,7 +91,8 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
         email: values.email.trim(),
         password: values.password,
         settings: result.settings,
-        displayName: values.name.trim() === '' ? undefined : values.name.trim(),
+        displayName: optionalText(values.name) ?? undefined,
+        senderName: optionalText(values.senderName),
       });
       await queryClient.invalidateQueries({ queryKey: queryKeys.accounts() });
       showToast(`Účet ${account.displayName} je pripojený`);
@@ -160,13 +168,25 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
           onChange={set('smtpPort')}
         />
       </div>
-      <Field
-        id="acc-f-name"
-        label="Názov účtu (nepovinné)"
-        placeholder="napr. Práca"
-        value={values.name}
-        onChange={set('name')}
-      />
+      <div className="fld-2">
+        <Field
+          id="acc-f-senderName"
+          label="Meno odosielateľa"
+          placeholder="napr. Ján Novák"
+          value={values.senderName}
+          onChange={set('senderName')}
+        />
+        <Field
+          id="acc-f-name"
+          label="Názov účtu (nepovinné)"
+          placeholder="napr. Práca"
+          value={values.name}
+          onChange={set('name')}
+        />
+      </div>
+      <p className="note">
+        Meno odosielateľa uvidia príjemcovia v poli Od. Názov účtu je len pre teba v aplikácii.
+      </p>
       {error === null ? null : (
         <p className="err" role="alert">
           {error}

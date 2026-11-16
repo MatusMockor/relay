@@ -37,7 +37,7 @@ const outgoingMessage = (
     messageIdHeader: `<${nextKey('msg')}@demo.relay>`,
     inReplyTo: null,
     references: [],
-    from: { name: account?.displayName ?? 'Ty', email: account?.email ?? 'ja@relay.local' },
+    from: { name: account?.senderName ?? 'Ty', email: account?.email ?? 'ja@relay.local' },
     to: content.to,
     cc: content.cc,
     bcc: content.bcc,

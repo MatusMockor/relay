@@ -46,6 +46,26 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         <Kbd keys={['H']} />
         Pripomenúť neskôr
       </button>
+      <button
+        type="button"
+        className="sug"
+        onClick={() => {
+          actions.compose.replyAll(thread.id);
+        }}
+      >
+        <Kbd keys={['⇧', 'R']} />
+        Odpovedať všetkým
+      </button>
+      <button
+        type="button"
+        className="sug"
+        onClick={() => {
+          actions.compose.forward(thread.id);
+        }}
+      >
+        <Kbd keys={['F']} />
+        Preposlať
+      </button>
     </>
   );
   const own = (

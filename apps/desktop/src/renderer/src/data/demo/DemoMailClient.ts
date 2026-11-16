@@ -5,6 +5,8 @@ import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { projectThreadAction } from '../thread-projection';
 import { runDemoAi } from './demo-ai';
+import { createDemoAttachments } from './demo-attachments';
+import { createDemoCalendarClient } from './demo-calendar';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { demoTaskFromAi } from './demo-tasks';
@@ -72,6 +74,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
   };
   return {
     kind: 'demo',
+    ...createDemoCalendarClient(now),
     listThreads: (params) => Promise.resolve(queryThreads(state, params)),
     getThread: (threadId) =>
       run(() => {
@@ -172,6 +175,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         removeDraft(state, draftId);
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
+    ...createDemoAttachments(state, now),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
       Promise.resolve(state.scheduled.filter((item) => item.status === 'pending')),

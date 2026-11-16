@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { MOD } from '../../lib/platform-keys';
 import { isControlTarget } from '../keyboard/focus-target';
 import { accountLike } from '../mail/use-accounts-model';
+import { accountCount } from '../../lib/text';
 
 export interface AccountMenuProps {
   readonly anchor: AnchorRect;
@@ -89,7 +90,7 @@ export function AccountMenu({
             <span className="lb">
               {account === null ? 'Všetky účty' : account.displayName}
               <small>
-                {account === null ? `${String(accounts.length)} účty spolu` : account.email}
+                {account === null ? `${accountCount(accounts.length)} spolu` : account.email}
               </small>
             </span>
             {id === current ? (

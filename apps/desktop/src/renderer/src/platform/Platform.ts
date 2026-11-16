@@ -6,6 +6,8 @@ import type {
   DeviceSettingsPatch,
   GoogleAuthorizeInput,
   GoogleAuthorizeOutput,
+  GoogleCalendarAuthorizeInput,
+  GoogleCalendarAuthorizeOutput,
   RelayBridge,
 } from '@relay/shared';
 import type { FetchLike } from '../data/remote/HttpApi';
@@ -29,6 +31,9 @@ export interface Platform {
   saveFile(blob: Blob, filename: string): void;
   authorizeGoogle(input: GoogleAuthorizeInput): Promise<GoogleAuthorizeOutput>;
   cancelGoogleAuthorization(): Promise<void>;
+  authorizeGoogleCalendar(
+    input: GoogleCalendarAuthorizeInput,
+  ): Promise<GoogleCalendarAuthorizeOutput>;
 }
 
 const PLATFORM_LABEL: Readonly<Record<AppInfo['platform'], string>> = {

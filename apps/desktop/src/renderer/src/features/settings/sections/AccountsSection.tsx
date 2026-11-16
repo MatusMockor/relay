@@ -12,6 +12,7 @@ import { setUi } from '../../../state/ui-store';
 import { AddAccountForm } from '../../accounts/AddAccountForm';
 import { accountLike } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
+import { AccountNameRows } from './AccountNameRows';
 
 export const SYNC_OPTIONS = [
   { value: '60', label: '1 min' },
@@ -66,6 +67,7 @@ function AccountCard({
         </span>
         {account.isPrimary ? <span className="chip pri">Hlavný</span> : null}
       </div>
+      <AccountNameRows account={account} onPatch={patch} />
       <SettingRow
         title="Stav"
         description={`${account.settings.imap.host}:${String(account.settings.imap.port)} · ${synced}${account.lastError === null ? '' : ` · ${account.lastError}`}`}

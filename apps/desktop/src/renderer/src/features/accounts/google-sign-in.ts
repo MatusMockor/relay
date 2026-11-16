@@ -11,10 +11,10 @@ const DEMO_GRANT: OAuthGrant = {
 
 const SERVER_MESSAGES: Partial<Record<MailClientError['code'], string>> = {
   forbidden:
-    'Server nemá nastavené prihlásenie cez Google. Na serveri nastavte GOOGLE_OAUTH_CLIENT_ID a GOOGLE_OAUTH_CLIENT_SECRET rovnakého Google OAuth klienta, aký používa táto aplikácia (RELAY_GOOGLE_CLIENT_ID alebo google-oauth.json).',
+    'Server nemá nastavené prihlásenie cez Google. Na serveri nastav GOOGLE_OAUTH_CLIENT_ID a GOOGLE_OAUTH_CLIENT_SECRET rovnakého Google OAuth klienta, aký používa táto aplikácia (RELAY_GOOGLE_CLIENT_ID alebo google-oauth.json).',
   not_implemented: 'Server zatiaľ nepodporuje pripojenie účtu Gmail.',
   provider_error:
-    'Server nedokázal overiť prihlásenie u Googlu. Skontrolujte, či server aj táto aplikácia používajú rovnaký Google OAuth klient.',
+    'Server nedokázal overiť prihlásenie u Googlu. Skontroluj, či server aj táto aplikácia používajú rovnaký Google OAuth klient.',
 };
 
 const unexpectedResult = () =>
@@ -54,7 +54,11 @@ export const signInWithGoogle = async (
   if (services.mode === 'demo') {
     return services.client.createAccount({ provider: 'gmail', oauth: DEMO_GRANT });
   }
-  const result = await platform.authorizeGoogle({ mode: services.mode, ...hintOf(loginHint) });
+  const result = await platform.authorizeGoogle({
+    mode: services.mode,
+    calendar: true,
+    ...hintOf(loginHint),
+  });
   if (result.mode === 'local' && services.mode === 'local') {
     return result.account;
   }

@@ -7,6 +7,8 @@ const TOOL_LABEL: Readonly<Record<string, string>> = {
   get_thread: 'Čítam vlákno…',
   list_folder: 'Prechádzam priečinok…',
   list_tasks: 'Pozerám úlohy…',
+  list_events: 'Pozerám kalendár…',
+  get_thread_events: 'Pozerám udalosť vo vlákne…',
   create_task: 'Vytváram úlohu…',
   create_draft: 'Pripravujem koncept…',
 };
