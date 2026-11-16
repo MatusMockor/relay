@@ -1,5 +1,6 @@
 import type { EngineDeps } from '../../engine-deps';
 import type { EngineEvents } from '../shared/engine-events';
+import { FailedInvitationService } from './failed-invitation-service';
 import { DEFAULT_INVITE_BACKFILL_BATCH, InviteBackfill } from './invite-backfill';
 import { InviteIngestor } from './invite-ingestor';
 import { InviteQueue } from './invite-queue';
@@ -13,6 +14,7 @@ import { type SyncBackfill, SyncBackfills } from '../sync/sync-backfill';
 export interface InviteComponents {
   readonly sink: InviteSink;
   readonly backfill: SyncBackfill;
+  readonly failed: FailedInvitationService;
 }
 
 export type InviteEngineDeps = Pick<
@@ -42,8 +44,9 @@ export const createInviteComponents = (
     logger,
   });
   const batchSize = deps.options.calendar?.inviteBackfillBatch ?? DEFAULT_INVITE_BACKFILL_BATCH;
+  const sink = new InviteSink(queue, processor);
   return {
-    sink: new InviteSink(queue, processor),
+    sink,
     backfill: new SyncBackfills([
       new InviteBackfill({ repositories, unitOfWork, queue, logger, batchSize }),
       new InviteRebuild({
@@ -56,5 +59,11 @@ export const createInviteComponents = (
         logger,
       }),
     ]),
+    failed: new FailedInvitationService({
+      accounts: repositories.accounts,
+      messages: repositories.messages,
+      pendingWork: repositories.pendingWork,
+      invites: sink,
+    }),
   };
 };

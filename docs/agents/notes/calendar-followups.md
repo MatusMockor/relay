@@ -75,6 +75,20 @@ Remaining gaps:
 - `MailProvider.fetchCalendarParts(path, uid)`: IMAP reads BODYSTRUCTURE, picks calendar leaves (same rules as the parser, `parser/calendar-part-rules.ts`; encoded size cap, `message/rfc822` skipped, at most 10 sections), fetches only those body parts and decodes transfer encoding and charset (`imap/calendar-part-reads.ts`, `calendar-sections.ts`, `section-decoding.ts`). `InviteBackfill` uses it instead of `fetchMessage` + parser. Fake provider: calendar parts come from `X-Test-Calendar` headers, calls are logged in `fetchedCalendarParts`.
 - `oneLiner`, `summary`, `replySuggestions` and `createTask` inputs accept an optional `timeZone`. `prepareAi` takes `timeZone` (HTTP query, IPC field), the renderer sends `systemTimeZone()` there and with `createTask`. Server MCP `jobTimeZone` reads it for every kind; jobs without it (automatic one-liners, old clients) fall back to UTC.
 
+## 8. Failed invitations: list, retry, dismiss
+
+Branch `feat/calendar-failed-invites`. No schema change and no new repository method: everything goes through the existing `PendingWorkRepository` (`list`, `find`, revision-checked `replace` and `remove`).
+
+- `FailedInvitationService` (`services/calendar/failed-invitation-service.ts`, built in `createInviteComponents`, exposed as `EngineServices.failedInvitations`):
+  - `list(userId)`: `calendar-invite` rows with `failedAt` of every account of the user, newest failure first, with the account address and the message subject, sender and date when the message still exists (otherwise `null`).
+  - `retry(userId, { accountId, messageId })`: resets the payload (`retryNow`: attempts 0, no `nextAttemptAt`, `failedAt` and `lastError` cleared) with `replace` on the revision that was read, so a concurrent re-queue wins (409 `conflict`), then flushes the account's invitation queue right away through the existing `CalendarPartsSink.flush` (no provider session needed). Returns `{ applied }`: `false` means it failed again and is back on the normal retry schedule.
+  - `dismiss(userId, ref)`: revision-checked `remove`.
+  - Unknown accounts, other users' accounts and rows that are not failed (also re-queued ones) are `not_found`.
+- API: `GET /calendar/failed-invitations`, `POST /calendar/failed-invitations/:accountId/:messageId/retry`, `DELETE /calendar/failed-invitations/:accountId/:messageId` (`api.calendar.*FailedInvitation*`, `FailedInvitationsController`). IPC: `local.calendar.failedInvitations.list|retry|dismiss`. Schemas in `shared/src/domain/failed-invitation.ts`.
+- Renderer: `CalendarClient.listFailedInvitations|retryFailedInvitation|dismissFailedInvitation` (local, remote; the demo client lists none), `useFailedInvitations` (key under `calendarKeys.all()`, so `calendar.updated` refreshes it). Settings → Kalendáre shows "Nespracované pozvánky" only when there are some, each row with "Skúsiť znova" and "Zahodiť", a busy state and toasts for the outcome and errors.
+- Tests: `engine/test/services/calendar-failed-invitations.test.ts`, `server/test/calendar/failed-invitations.e2e.test.ts` (GreenMail + Postgres), `desktop/test/integration/failed-invitations.test.tsx` (local runtime over IPC + SQLite + GreenMail, rendered settings), `desktop/src/renderer/test/failed-invitations.test.tsx` (synced mode against the contract server).
+- Note: `testTransformMode` in `apps/desktop/vitest.config.ts` uses a relative `**` glob that does not match paths with dot directories (for example a worktree under `~/.t3`), so `test/integration/*.test.tsx` fail to load there with "The URL must be of scheme file". Not changed here.
+
 ## Tests
 
 Verified in a clean export of HEAD minus the uncommitted google-calendar layers (the live checkout had google WIP that broke `occurrences` at the time):
@@ -91,7 +105,7 @@ Verified in a clean export of HEAD minus the uncommitted google-calendar layers 
 
 ## Known gaps
 
-- Failed (`failedAt`) invitation rows are kept for diagnostics and only disappear with the account; there is no UI or manual retry for them.
+- None open from items 1-5. Failed invitation rows can now be listed, retried and dismissed (section 8).
 
 ## gpt-6.1-sol review (4 findings, all fixed)
 

@@ -8,6 +8,7 @@ export * from './attachment-file';
 export * from './credentials';
 export * from './device';
 export * from './draft';
+export * from './failed-invitation';
 export * from './folder-view';
 export * from './ids';
 export * from './jira-subject';

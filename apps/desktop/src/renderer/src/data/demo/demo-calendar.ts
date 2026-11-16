@@ -160,4 +160,7 @@ export const createDemoCalendarClient = (
   updateCalendarSubscription: unsupported,
   removeCalendarSubscription: unsupported,
   refreshCalendarSubscription: unsupported,
+  listFailedInvitations: () => Promise.resolve([]),
+  retryFailedInvitation: unsupported,
+  dismissFailedInvitation: unsupported,
 });

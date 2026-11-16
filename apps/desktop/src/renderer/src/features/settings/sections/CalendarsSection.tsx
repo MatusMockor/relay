@@ -9,6 +9,7 @@ import { useSessionStore } from '../../../session/session-store';
 import { showToast } from '../../../state/toast-store';
 import { SettingRow } from '../SettingRow';
 import { CalendarFeedForm } from './CalendarFeedForm';
+import { FailedInvitations } from './FailedInvitations';
 import { GoogleCalendarPanel } from './google/GoogleCalendarPanel';
 import { nextColor } from './calendar-colors';
 
@@ -92,6 +93,7 @@ export function CalendarsSection() {
     <>
       <h2>Kalendáre</h2>
       <p className="lead">Pozvánky z mailov sa do kalendára pridávajú samé.</p>
+      <FailedInvitations />
       {demo ? null : <GoogleCalendarPanel />}
       <h3>Kalendáre cez iCal adresu</h3>
       <p className="lead">

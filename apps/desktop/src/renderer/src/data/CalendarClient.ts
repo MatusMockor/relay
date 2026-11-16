@@ -7,6 +7,9 @@ import type {
   CalendarSubscriptionId,
   CalendarWindowQuery,
   CreateCalendarSubscriptionBody,
+  FailedInvitation,
+  FailedInvitationRef,
+  FailedInvitationRetry,
   ThreadId,
   UpdateCalendarSubscriptionBody,
 } from '@relay/shared';
@@ -29,4 +32,7 @@ export interface CalendarClient {
   refreshCalendarSubscription(
     subscriptionId: CalendarSubscriptionId,
   ): Promise<CalendarSubscription>;
+  listFailedInvitations(): Promise<FailedInvitation[]>;
+  retryFailedInvitation(ref: FailedInvitationRef): Promise<FailedInvitationRetry>;
+  dismissFailedInvitation(ref: FailedInvitationRef): Promise<void>;
 }

@@ -12,6 +12,7 @@ import { createAttachmentContentService } from './services/attachments/create-at
 import type { CalendarService } from './services/calendar/calendar-service';
 import { createCalendarComponents } from './services/calendar/create-calendar-service';
 import { createInviteComponents } from './services/calendar/create-invite-components';
+import type { FailedInvitationService } from './services/calendar/failed-invitation-service';
 import { createAiComponents } from './services/ai/create-ai-service';
 import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
 import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
@@ -57,6 +58,7 @@ export interface EngineServices {
   readonly splits: SplitService;
   readonly ai: AiService;
   readonly calendar: CalendarService;
+  readonly failedInvitations: FailedInvitationService;
   readonly googleCalendar: GoogleCalendarService;
 }
 
@@ -194,6 +196,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     }),
     ai: ai.service,
     calendar,
+    failedInvitations: invites.failed,
     googleCalendar: google.service,
   };
 };

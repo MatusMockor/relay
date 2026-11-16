@@ -7,5 +7,6 @@ export const calendarKeys = {
   invitations: (threadId: ThreadId, timeZone: string) =>
     ['mail', 'calendar', 'invitations', threadId, timeZone] as const,
   subscriptions: () => ['mail', 'calendar', 'subscriptions'] as const,
+  failedInvitations: () => ['mail', 'calendar', 'failed-invitations'] as const,
   google: () => ['mail', 'calendar', 'google'] as const,
 };

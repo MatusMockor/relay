@@ -14,6 +14,7 @@ import { createAttachmentHandlers } from '../handlers/local/attachment-handlers'
 import { createAttachmentPickerHandlers } from '../handlers/attachment-picker-handlers';
 import { createAccountHandlers } from '../handlers/local/account-handlers';
 import { createCalendarHandlers } from '../handlers/local/calendar-handlers';
+import { createFailedInvitationHandlers } from '../handlers/local/failed-invitation-handlers';
 import { createGoogleCalendarHandlers } from '../handlers/local/google-calendar-handlers';
 import { createComposeHandlers } from '../handlers/local/compose-handlers';
 import { createDraftAttachmentHandlers } from '../handlers/local/draft-attachment-handlers';
@@ -69,6 +70,7 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createAccountHandlers(local.services, local.userId),
     createSettingsHandlers(local.services, local.userId),
     createCalendarHandlers(local.services, local.userId),
+    createFailedInvitationHandlers(local.services, local.userId),
     createGoogleCalendarHandlers(local.services, local.userId),
   );
 
