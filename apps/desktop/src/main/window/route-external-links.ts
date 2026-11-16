@@ -17,7 +17,11 @@ const IN_APP_FRAME_PROTOCOLS = new Set(['about:', 'blob:']);
 const staysInFrame = (url: string): boolean =>
   URL.canParse(url) && IN_APP_FRAME_PROTOCOLS.has(new URL(url).protocol);
 
-export const routeExternalLinks = (contents: LinkRoutingContents, opener: UrlOpener): void => {
+export const routeExternalLinks = (
+  contents: LinkRoutingContents,
+  opener: UrlOpener,
+  isAppUrl: (url: string) => boolean,
+): void => {
   const openExternally = (url: string): void => {
     if (!isSafeExternalUrl(url)) {
       return;
@@ -30,6 +34,9 @@ export const routeExternalLinks = (contents: LinkRoutingContents, opener: UrlOpe
   });
   contents.on('will-frame-navigate', (navigation) => {
     if (!navigation.isMainFrame && staysInFrame(navigation.url)) {
+      return;
+    }
+    if (navigation.isMainFrame && isAppUrl(navigation.url)) {
       return;
     }
     navigation.preventDefault();

@@ -5,6 +5,7 @@ import { LOCAL_USER_ID } from '@relay/store-sqlite';
 import type { UserSettings } from '@relay/shared/domain';
 import { AiLocationGate } from '../ai/ai-location-gate';
 import { DeferredMailToolBackend } from '../ai/deferred-mail-tool-backend';
+import { deviceTimeZone } from '../ai/device-time-zone';
 import { EngineLocalAiRuns } from '../ai/engine-local-ai-runs';
 import type { FetchLike } from '../ai/remote/server-session';
 import { ServerSessions } from '../ai/remote/server-sessions';
@@ -18,6 +19,8 @@ import { createLocalBackground, type LocalBackground } from '../background/local
 import { EnvOrFileGoogleClientConfigSource } from '../oauth/google-client-config-source';
 import { GoogleLoopbackFlow } from '../oauth/google-loopback-flow';
 import { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
+import { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
+import { SingleFlightOAuth } from '../oauth/single-flight-oauth';
 import type { PowerEvents } from '../platform/power-events';
 import type { SecretCipher } from '../platform/secret-cipher';
 import type { Timers } from '../platform/timers';
@@ -28,6 +31,10 @@ import { createLocalEngine, type LocalEngine } from './local-engine';
 import type { LocalPaths } from './local-paths';
 import { createMainInfrastructure, type MainInfrastructure } from './main-infrastructure';
 import { EngineGoogleAccountConnector } from './google-account-connector';
+import { EngineGoogleCalendarConnector } from './google-calendar-connector';
+import { createGoogleCalendarAdapters } from './google-calendar-adapters';
+import { calendarFetchEnv } from './calendar-fetch-env';
+import { googleCalendarEnv } from './google-calendar-env';
 import { createLocalDueJobs } from './local-due-jobs';
 import { createLocalSyncTrigger } from './local-sync-trigger';
 
@@ -86,9 +93,17 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     aiRunners,
     mailTools: mailTools?.endpoint ?? null,
     allowPlaintextMail: input.allowPlaintextMail ?? false,
+    calendarFetch: calendarFetchEnv(input.env),
+    googleCalendar: createGoogleCalendarAdapters({
+      configSource: googleClient,
+      credentials: infrastructure.googleCalendarCredentials,
+      clock: input.clock,
+      ...googleCalendarEnv(input.env).adapters,
+    }),
+    ...googleCalendarEnv(input.env).engine,
   });
   const { services } = engine;
-  mailToolsBackend.bind(engineMailToolBackend(services, LOCAL_USER_ID));
+  mailToolsBackend.bind(engineMailToolBackend(services, LOCAL_USER_ID, deviceTimeZone));
   const userSettings = () => services.settings.get(LOCAL_USER_ID);
   const aiGate = new AiLocationGate(() => services.ai.locationFor(LOCAL_USER_ID));
   const background = createLocalBackground({
@@ -104,11 +119,19 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     logger: input.logger,
   });
   const sync = createLocalSyncTrigger(services, LOCAL_USER_ID);
+  const flow = new GoogleLoopbackFlow(googleClient, input.opener, input.oauthTimeoutMs);
+  const flights = new SingleFlightOAuth();
   const oauth = new GoogleOAuthCoordinator(
-    new GoogleLoopbackFlow(googleClient, input.opener, input.oauthTimeoutMs),
+    flow,
     new EngineGoogleAccountConnector(services, LOCAL_USER_ID, {
       verifyConnection: input.verifyGoogleAccounts ?? true,
     }),
+    flights,
+  );
+  const calendarOAuth = new GoogleCalendarOAuthCoordinator(
+    flow,
+    new EngineGoogleCalendarConnector(services, LOCAL_USER_ID),
+    flights,
   );
   return {
     infrastructure,
@@ -125,6 +148,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
       secrets: infrastructure.rendererSecrets,
       sessions: serverSessions,
       oauth,
+      calendarOAuth,
       ai: {
         registry: aiRunners,
         gate: aiGate,

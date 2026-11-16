@@ -12,6 +12,9 @@ import { createQuitGuard } from './bootstrap/quit-guard';
 import { reportFatalError } from './bootstrap/report-fatal-error';
 import { composeIpc } from './composition/compose-ipc';
 import { createLocalRuntime } from './composition/local-runtime';
+import { AttachmentPicker } from './files/attachment-picker';
+import { ElectronFileDialog } from './files/electron-file-dialog';
+import { PickedFileReader } from './files/picked-file-reader';
 import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
@@ -19,11 +22,14 @@ import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { WindowStateStore } from './native/window-state-store';
 import { systemTimers } from './platform/timers';
+import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
 import { hardenSession } from './window/harden-session';
 
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
 const rendererUrl = app.isPackaged ? null : (process.env.ELECTRON_RENDERER_URL ?? null);
+
+const isAppUrl = createAppDocumentPredicate(rendererUrl, rendererFileUrl.href);
 
 const SHUTDOWN_DEADLINE_MS = 10_000;
 
@@ -64,6 +70,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
         electronVersion: process.versions.electron,
       },
       ...runtime.ipc,
+      attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
@@ -76,6 +83,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       rendererFile: fileURLToPath(rendererFileUrl),
       state: await restoreWindowState(windowState),
       opener: platform.opener,
+      isAppUrl,
       icon: appIcon,
     });
     trackWindowState(window, windowState, logger);

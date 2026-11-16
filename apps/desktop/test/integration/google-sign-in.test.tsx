@@ -21,6 +21,7 @@ const gmailAccount = (email: string) => ({
   userId: 'user-1',
   provider: 'gmail',
   displayName: email,
+  senderName: null,
   email,
   color: '#6aa8ff',
   isPrimary: true,

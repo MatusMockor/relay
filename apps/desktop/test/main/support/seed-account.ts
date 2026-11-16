@@ -13,6 +13,7 @@ export const seedImapAccount = async (
     userId: LOCAL_USER_ID,
     provider: 'imap',
     displayName: 'Test',
+    senderName: 'Test',
     email: mailbox.email,
     color: '#4f6ef7',
     isPrimary: true,

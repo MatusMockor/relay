@@ -8,10 +8,10 @@ const page = (title: string, body: string): string =>
 
 export const SUCCESS_PAGE = page(
   'Prihlásenie dokončené',
-  'Môžete zavrieť toto okno a vrátiť sa do aplikácie Relay.',
+  'Môžeš zavrieť toto okno a vrátiť sa do aplikácie Relay.',
 );
 
 export const FAILURE_PAGE = page(
   'Prihlásenie zlyhalo',
-  'Zatvorte toto okno a skúste to v aplikácii Relay znova.',
+  'Zatvor toto okno a skús to v aplikácii Relay znova.',
 );

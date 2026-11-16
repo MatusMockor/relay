@@ -18,31 +18,68 @@ if (args[0] === 'auth') {
 const stdin = fs.readFileSync(0, 'utf8');
 const configIndex = args.indexOf('--mcp-config');
 const mcpConfig = configIndex >= 0 ? fs.readFileSync(args[configIndex + 1], 'utf8') : null;
-fs.appendFileSync(self + '.calls.jsonl', JSON.stringify({ args, stdin, mcpConfig }) + '\n');
 const answer = stdin.includes('Prepíš')
   ? { text: 'Dobrý deň, ďakujem za správu.' }
-  : stdin.includes('vytvor jednu úlohu')
-    ? { title: 'Skontrolovať faktúru', what: 'Skontrolovať faktúru za október do piatka.' }
-    : stdin.includes('Navrhni presne 3')
-      ? {
-          suggestions: [
-            { label: 'Zaplatím', body: 'Ďakujem, faktúru uhradím do piatka.' },
-            { label: 'Mám otázku', body: 'Môžete poslať rozpis položiek?' },
-            { label: 'Neskôr', body: 'Pozriem sa na to budúci týždeň.' },
-          ],
-        }
-      : { summary: 'Jana posiela faktúru za október.', checklist: ['Skontrolovať faktúru'] };
+  : stdin.includes('jednu krátku vetu')
+    ? { text: 'Jana posiela faktúru za október.' }
+    : stdin.includes('vytvor jednu úlohu')
+      ? { title: 'Skontrolovať faktúru', what: 'Skontrolovať faktúru za október do piatka.' }
+      : stdin.includes('Navrhni presne 3')
+        ? {
+            suggestions: [
+              { label: 'Zaplatím', body: 'Ďakujem, faktúru uhradím do piatka.' },
+              { label: 'Mám otázku', body: 'Môžete poslať rozpis položiek?' },
+              { label: 'Neskôr', body: 'Pozriem sa na to budúci týždeň.' },
+            ],
+          }
+        : { summary: 'Jana posiela faktúru za október.', checklist: ['Skontrolovať faktúru'] };
+const httpServer = (() => {
+  try {
+    const servers = Object.values(JSON.parse(mcpConfig ?? '{}').mcpServers ?? {});
+    return servers.find((server) => server !== null && server.type === 'http') ?? null;
+  } catch {
+    return null;
+  }
+})();
+const probeMcp = () =>
+  httpServer === null
+    ? Promise.resolve(null)
+    : fetch(httpServer.url, {
+        method: 'POST',
+        headers: {
+          ...httpServer.headers,
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'stub-claude', version: '1.0.0' },
+          },
+        }),
+      }).then(
+        (response) => response.status,
+        () => 0,
+      );
 const lines = [
   { type: 'system', subtype: 'init', session_id: 's1', tools: [], mcp_servers: [] },
   { type: 'result', subtype: 'success', is_error: false, result: JSON.stringify(answer), session_id: 's1' },
 ];
-for (const line of lines) process.stdout.write(JSON.stringify(line) + '\n');
+void probeMcp().then((mcpStatus) => {
+  fs.appendFileSync(self + '.calls.jsonl', JSON.stringify({ args, stdin, mcpConfig, mcpStatus }) + '\n');
+  for (const line of lines) process.stdout.write(JSON.stringify(line) + '\n');
+});
 `;
 
 const StubCallSchema = z.object({
   args: z.array(z.string()),
   stdin: z.string(),
   mcpConfig: z.string().nullable(),
+  mcpStatus: z.number().int().nullable(),
 });
 export type StubClaudeCall = z.infer<typeof StubCallSchema>;
 

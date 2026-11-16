@@ -1,4 +1,11 @@
 {
   "extends": "@relay/config/tsconfig/node-library.json",
-  "include": ["src/main", "src/preload", "test/main", "*.config.ts", "renderer-csp.ts"]
+  "include": [
+    "src/main",
+    "src/preload",
+    "test/main",
+    "*.config.ts",
+    "renderer-csp.ts",
+    "workspace-packages.ts"
+  ]
 }

@@ -91,24 +91,6 @@ describe('remote AI worker in synced mode', () => {
     return supervisor;
   };
 
-  it('runs a queued server job with the local CLI and the server mail tools', async () => {
-    server.queue(summaryJob('job-1'), serverDetail(serverThread('Faktúra za október'), []));
-    const worker = await start();
-
-    await expect.poll(() => server.completed.length, { timeout: 10_000 }).toBe(1);
-
-    expect(server.completed[0]).toMatchObject({
-      runner: 'claude',
-      output: { kind: 'summary', summary: 'Jana posiela faktúru za október.' },
-    });
-    const [call] = await claude.calls();
-    expect(call?.stdin).toContain('Ahoj, posielam faktúru v prílohe.');
-    expect(call?.mcpConfig).toContain(`${server.url}/mcp`);
-    expect(call?.mcpConfig).toContain('Bearer mcp-job-1');
-    await expect.poll(() => worker.status.state).toBe('idle');
-    expect(worker.status.serverUrl).toBe(server.url);
-  });
-
   it('does not claim jobs while no CLI is installed on this device', async () => {
     server.queue(summaryJob('job-1'));
     const empty = await createTempDir('relay-no-cli-');

@@ -8,8 +8,8 @@ export class OAuthNotConfiguredError extends EngineError {
       'validation_failed',
       [
         'Prihlásenie cez Google nie je nastavené, chýba Google OAuth client ID.',
-        'Nastavte premennú prostredia RELAY_GOOGLE_CLIENT_ID (prípadne aj RELAY_GOOGLE_CLIENT_SECRET) a reštartujte Relay,',
-        `alebo vytvorte súbor ${filePath} s obsahom ${FILE_EXAMPLE}.`,
+        'Nastav premennú prostredia RELAY_GOOGLE_CLIENT_ID (prípadne aj RELAY_GOOGLE_CLIENT_SECRET) a reštartuj Relay,',
+        `alebo vytvor súbor ${filePath} s obsahom ${FILE_EXAMPLE}.`,
       ].join(' '),
     );
   }

@@ -14,6 +14,8 @@ export interface GoogleAuthorization {
 export interface GoogleAuthorizeOptions {
   readonly loginHint?: string;
   readonly signal?: AbortSignal;
+  readonly scopes?: readonly string[];
+  readonly includeGrantedScopes?: boolean;
 }
 
 export class GoogleLoopbackFlow {
@@ -41,6 +43,8 @@ export class GoogleLoopbackFlow {
           state,
           ...(options.loginHint === undefined ? {} : { loginHint: options.loginHint }),
           ...(config.authEndpoint === undefined ? {} : { authEndpoint: config.authEndpoint }),
+          ...(options.scopes === undefined ? {} : { scopes: options.scopes }),
+          ...(options.includeGrantedScopes === true ? { includeGrantedScopes: true } : {}),
         }),
       );
       const code = await receiver.code;

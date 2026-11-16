@@ -17,7 +17,6 @@ export const createComposeHandlers = (
       await compose.deleteDraft(userId, draftId);
       return ok;
     },
-    'local.attachments.upload': (body) => compose.uploadAttachment(userId, body),
     'local.send': (body) => compose.send(userId, body),
     'local.scheduled.list': () => compose.listScheduled(userId),
     'local.scheduled.cancel': async ({ scheduledSendId }) => {

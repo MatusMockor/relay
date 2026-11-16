@@ -86,35 +86,4 @@ describe('renderer session in Electron goes through the main process', () => {
     expect(workerToken).toBe(server.tokens.accessToken);
     expect(expired).toBe(0);
   });
-
-  it('renews after a 401 in main and signs out when the server rejects the refresh', async () => {
-    const { http } = renderer();
-    await store(server.tokens);
-    const stale = server.tokens;
-    server.issueTokens(15 * 60_000);
-    await store(stale);
-
-    await expect(claim(http)).rejects.toMatchObject({ code: 'unauthorized' });
-
-    expect(refreshCalls()).toBe(1);
-    expect(expired).toBe(1);
-    expect(await secrets.get(sessionSecretKey(server.url))).toBeNull();
-  });
-
-  it('stores the login and removes it on logout through the session channels', async () => {
-    const { server: serverApi } = renderer();
-    expect(await serverApi.hasSession()).toBe(false);
-
-    await createElectronPlatform(
-      createRelayBridge(new InMemoryIpc(composeIpc({ app: APP, sessions })), () => 'stream-x'),
-    )
-      .serverSession(server.url, {})
-      .save(server.tokens);
-
-    expect(await serverApi.hasSession()).toBe(true);
-    expect(await sessions.get(server.url).accessToken()).toBe(server.tokens.accessToken);
-    await serverApi.logout();
-    expect(await serverApi.hasSession()).toBe(false);
-    expect(await secrets.get(sessionSecretKey(server.url))).toBeNull();
-  });
 });

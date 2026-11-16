@@ -36,12 +36,12 @@ const senderOf = (thread: ThreadSummary): string => {
 
 const digestBody = (count: number): string => {
   if (count === 1) {
-    return 'Máte 1 novú správu';
+    return 'Máš 1 novú správu';
   }
   if (count < 5) {
-    return `Máte ${String(count)} nové správy`;
+    return `Máš ${String(count)} nové správy`;
   }
-  return `Máte ${String(count)} nových správ`;
+  return `Máš ${String(count)} nových správ`;
 };
 
 export class NewMailNotifier {

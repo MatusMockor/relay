@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { rendererCspPlugin } from './renderer-csp';
+import { workspaceDependencies } from './workspace-packages';
 
 const esmDirnameBanner = [
   "import { fileURLToPath as __relayFileUrlToPath } from 'node:url';",
@@ -10,14 +11,7 @@ const esmDirnameBanner = [
   'const __dirname = __relayDirname(__filename);',
 ].join('\n');
 
-const workspacePackages = [
-  '@relay/ai',
-  '@relay/engine',
-  '@relay/mail-core',
-  '@relay/mcp-mail',
-  '@relay/shared',
-  '@relay/store-sqlite',
-];
+const workspacePackages = workspaceDependencies(resolve(import.meta.dirname, 'package.json'));
 
 export default defineConfig({
   main: {

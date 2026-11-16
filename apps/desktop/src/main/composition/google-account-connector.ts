@@ -1,5 +1,5 @@
 import type { EngineServices } from '@relay/engine';
-import { ValidationError } from '@relay/engine';
+import { grantsGoogleCalendar, ValidationError } from '@relay/engine';
 import { exchangeGoogleCode } from '@relay/mail-core';
 import type { MailAccount, UserId } from '@relay/shared/domain';
 import type { GoogleAuthorization } from '../oauth/google-loopback-flow';
@@ -12,7 +12,7 @@ export interface GoogleAccountConnectorOptions {
 
 export class EngineGoogleAccountConnector implements GoogleAccountConnector {
   constructor(
-    private readonly services: Pick<EngineServices, 'accounts'>,
+    private readonly services: Pick<EngineServices, 'accounts' | 'googleCalendar'>,
     private readonly userId: UserId,
     private readonly options: GoogleAccountConnectorOptions,
   ) {}
@@ -36,11 +36,17 @@ export class EngineGoogleAccountConnector implements GoogleAccountConnector {
     if (email === null) {
       throw new ValidationError('Google nevrátil e-mailovú adresu účtu');
     }
-    return this.services.accounts.createOAuth(this.userId, {
+    const account = await this.services.accounts.createOAuth(this.userId, {
       provider: 'gmail',
       email,
       credentials: exchanged.credentials,
       verify: this.options.verifyConnection,
     });
+    if (grantsGoogleCalendar(exchanged.credentials.scope)) {
+      await this.services.googleCalendar
+        .connect(this.userId, { email: account.email, credentials: exchanged.credentials })
+        .catch(() => undefined);
+    }
+    return account;
   }
 }
