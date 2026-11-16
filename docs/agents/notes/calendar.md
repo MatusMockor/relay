@@ -47,7 +47,7 @@ Fixed:
 9. Postgres and SQLite upserts enforce SEQUENCE/DTSTAMP precedence atomically (`ON CONFLICT ... DO UPDATE ... WHERE`).
 10. Feed refresh locks the subscription row (`lockForRefresh`, `FOR UPDATE` on Postgres) and replaces events and records validators in one transaction.
 
-Deferred (with reasons): 8. `RECURRENCE-ID;RANGE=THISANDFUTURE` cancellations only cancel the one instance. Needs a series cut-off in the expander. Google and Outlook usually send a new REQUEST with a shortened RRULE instead. 12. Invite ingestion is best effort after the message commit. Running it inside the message transaction would let one bad invite block the message forever, because Postgres aborts the whole transaction on error. The cleaner fix is a pending-work entry in the message transaction, done by the change flusher.
+Deferred (with reasons): 8. `RECURRENCE-ID;RANGE=THISANDFUTURE` is now handled, see `calendar-followups.md` section 6. 12. Invite ingestion is best effort after the message commit. Running it inside the message transaction would let one bad invite block the message forever, because Postgres aborts the whole transaction on error. The cleaner fix is a pending-work entry in the message transaction, done by the change flusher.
 
 ## Known gaps
 

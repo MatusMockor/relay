@@ -48,7 +48,8 @@ export class InviteRangeCancelHandler {
         cancelled(target, context, event, { link: cut || isMaster(target), range: cut }),
       );
     }
-    const created = atCut === undefined && (await this.tombstone(repositories, context, event));
+    const created =
+      atCut === undefined && (await this.tombstone(repositories, context, event, master));
     if (targets.length === 0 && !created) {
       return false;
     }
@@ -60,11 +61,13 @@ export class InviteRangeCancelHandler {
     repositories: Repositories,
     context: InviteContext,
     event: ParsedCalendarEvent,
+    master: StoredCalendarEvent | undefined,
   ): Promise<boolean> {
     const mine = findAttendee(event.attendees, context.account.email);
+    const summary = event.summary === '' ? (master?.summary ?? '') : event.summary;
     await saveCurrent(
       repositories,
-      storedFrom(this.ids, context, { ...event, status: 'cancelled' }, undefined, {
+      storedFrom(this.ids, context, { ...event, summary, status: 'cancelled' }, undefined, {
         myPartstat: mine?.partstat ?? null,
         myEmail: mine?.email ?? null,
       }),

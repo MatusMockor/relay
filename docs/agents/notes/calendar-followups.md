@@ -33,16 +33,43 @@ Items 1-5 done: `d73cfef` (durable queue, REPLY parking, back-fill, RSVP sent co
 
 - Flattening at parse time records each period's exact length as `X-RELAY-RDATE-DURATION:<recurrence key>|<ms>` in the stored ICS. The expander uses it for that occurrence's end, and the stored series range covers the longest period. The REPLY builder does not copy X- properties.
 
+## 6. RECURRENCE-ID;RANGE=THISANDFUTURE
+
+Branch `fix/bcc-and-series-cancel`.
+
+Design: a series cut-off honoured by the expander, not a rewrite of the organizer's ICS. The stored ICS of the master stays exactly what the organizer sent (valid for REPLY building and later updates), and the range lives on the override row.
+
+- Parser: `ParsedCalendarEvent.thisAndFuture` (optional, only set when `RECURRENCE-ID;RANGE=THISANDFUTURE`). Stores persist it in `calendar_events.this_and_future` (SQLite `0015_calendar_this_and_future`, Postgres `0017_calendar_this_and_future`, boolean, default false). Mappers only put the field on the event when it is true, so existing rows and fixtures compare unchanged.
+- Expander (`expand/series-plan.ts`, `series-choice.ts`, `range-span.ts`):
+  - Cut: a cancelled THISANDFUTURE override whose SEQUENCE/DTSTAMP is not older than the master ends the series. No occurrence at or after its recurrence id is produced (RRULE with COUNT or UNTIL, RDATE incl. flattened PERIOD lengths, EXDATE all go through the same iterator), and overrides at or after it that are older than the cut are dropped. Overrides newer than the cut (the organizer sent the instance again) stay. A cut older than the master is ignored, like an old instance CANCEL. A cut at or before DTSTART leaves nothing.
+  - Range REQUEST: from the override's recurrence id on, every master occurrence gets the override's time shift (applied in wall time of the master zone, so it survives DST), the override's duration and all its properties (the occurrence's `event` is the override row, `recurrenceId` the original instance key). Among several range overrides the newest (SEQUENCE, DTSTAMP, then the later one) wins. An exact override wins when it is cancelled or not older than the range override; older exact overrides are replaced. Expansion widens its iteration by the largest shift so occurrences shifted into a window from far outside it are found.
+  - Recurrence ids are compared as instants: UTC keys directly, date and floating keys in the viewer zone (`recurrence-instant.ts`).
+- `CalendarExpander.seriesRangeEnd(master, overrides)` (new port method): the stored range end of a master with its cut and shifts, `min(natural series end, cut + longest occurrence + 1 day)` where the longest occurrence includes RDATE periods and range shifts. Fake expanders return `master.rangeEndsAt`.
+- Engine:
+  - `InviteRangeCancelHandler` (CANCEL with the flag): ignored when older than the master or than the row at the cut. Otherwise cancels the row at the cut (keeps the flag, linked to the CANCEL message), every later override it supersedes (they keep their own message and thread, so their thread cards show "cancelled"), and the master when the cut is at or before its start (whole series). Without a row at the cut (CANCEL first, also untimed CANCELs) a tombstone is stored; a bare CANCEL takes the series title. Replays with the same SEQUENCE/DTSTAMP write nothing.
+  - `InviteRequestHandler`: an override REQUEST at or after an effective cut that is older than the cut is ignored (out-of-order delivery). A plain instance CANCEL of the cut row keeps the cut.
+  - `SeriesRangeKeeper` recomputes the master's `rangeEndsAt` through `seriesRangeEnd` after every invite write that touches a series with THISANDFUTURE rows (cut added, master replaced after the cut, range override added) and saves it with `saveIfCurrent`, inside the same retried unit of work. `listForRange` therefore stops returning a cut series after the cut. Feed refreshes do the same per feed (`feed-series-ranges.ts`).
+- Google Calendar API path: unchanged. Google events carry no RANGE (RECURRENCE-ID comes from `originalStartTime`), Google sends a new REQUEST with a shortened RRULE for "this and following", which is a normal master update. The SQLite Google upsert copies the new column.
+
+Remaining gaps:
+
+- A newer instance REQUEST exactly at the cut replaces the tombstone row (same series + recurrence key), so the cut disappears and later instances return. Needs a separate row kind for cuts.
+- A plain instance CANCEL of a THISANDFUTURE REQUEST row cancels that instance and drops its range change for later instances (one row holds both).
+- Overrides cancelled by a cut stay cancelled when a newer master later extends the series again.
+- Range REQUEST overrides whose all-day kind differs from the master apply only their properties, not the shift.
+- Rows stored before the migration keep `this_and_future = false` (a THISANDFUTURE CANCEL ingested earlier stays single-instance until it is ingested again).
+- Pre-existing: overrides beyond a shortened RRULE (Google "this and following") stay visible as standalone instances.
+
 ## Tests
 
 Verified in a clean export of HEAD minus the uncommitted google-calendar layers (the live checkout had google WIP that broke `occurrences` at the time):
 
 - `@relay/engine` 253, `@relay/mcp-mail` 36, `@relay/ai` 57, `@relay/shared` 50, `@relay/calendar` 71, `@relay/store-sqlite` 121, `apps/server` 246, `apps/desktop` 325 (incl. `test/main/local-calendar-tools.e2e.test.ts` with GreenMail and `test/ai/mail-mcp-calendar.e2e.test.ts` with Postgres).
 - New: `engine/test/services/calendar-invite-queue|calendar-invite-backfill|calendar-reply-order|calendar-rsvp-sent.test.ts`, `store-sqlite/test/invite-backfill.test.ts`, `server/test/persistence/invite-backfill.test.ts`, `mcp-mail/test/calendar-tools.test.ts`, `calendar/test/rdate-periods.test.ts`.
+- THISANDFUTURE: `calendar/test/series-cancel-range.test.ts` and `series-range-override.test.ts` (real ICS through parser, expander and REPLY builder), `engine/test/services/calendar-range-cancel.test.ts` (ordering, idempotency, precedence), `store-sqlite/test/calendar-this-and-future.test.ts`, `server/test/persistence/calendar-this-and-future.test.ts`, `server/test/calendar/series-range.e2e.test.ts` (GreenMail + Postgres, in-order and CANCEL-first delivery, stored range end), `desktop/test/main/local-calendar-series-range.e2e.test.ts` (GreenMail + SQLite, Outlook VTIMEZONE, all-day, replayed CANCEL).
 
 ## Known gaps
 
-- `RECURRENCE-ID;RANGE=THISANDFUTURE` (deferred by the calendar agent) is still single-instance.
 - Failed (`failedAt`) invitation rows are kept for diagnostics and only disappear with the account; there is no UI or manual retry for them.
 - Back-fill re-fetches whole candidate messages (IMAP part fetch by section is not in the `MailProvider` port).
 - Non-chat AI jobs (summary, reply suggestions, create task) get calendar times in UTC because only `chatAnswer` carries the device zone.

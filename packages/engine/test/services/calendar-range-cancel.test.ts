@@ -72,11 +72,11 @@ describe('THISANDFUTURE cancellations of invitations', () => {
   it('cancels the cut and later overrides, keeps earlier ones and their threads', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'series', master({ summary: 'Porada' }));
     await deliver(engine, seeded, 'before', instance('11-09'));
     await deliver(engine, seeded, 'after', instance('11-30'));
     const afterMessage = rows(engine).find((row) => row.recurrenceId?.startsWith('2026-11-30'));
-    await deliver(engine, seeded, 'cancel', cancelFrom(CUT));
+    await deliver(engine, seeded, 'cancel', cancelFrom(CUT, { summary: '' }));
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined],
@@ -89,7 +89,7 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     const later = cancelled.find((row) => row.recurrenceId?.startsWith('2026-11-30'));
     expect(later?.messageId).toBe(afterMessage?.messageId);
     expect(tombstone?.messageId).not.toBe(afterMessage?.messageId);
-    expect(tombstone).toMatchObject({ method: 'CANCEL', sequence: 1 });
+    expect(tombstone).toMatchObject({ method: 'CANCEL', sequence: 1, summary: 'Porada' });
     expect(engine.events.ofType('calendar.updated').length).toBeGreaterThan(0);
   });
 
