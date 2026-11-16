@@ -12,7 +12,7 @@ import type { Clock } from '../../ports/clock';
 import type { InvitationTiming, InvitationTimingResolver } from './invitation-timing';
 import type { OccurrenceQuery } from './occurrence-query';
 import { canRespond } from './rsvp-policy';
-import { cutOffByRange } from './series-cut';
+import { effectiveEvent } from './effective-event';
 
 const MAX_CONFLICTS = 5;
 
@@ -52,7 +52,7 @@ export class InvitationQuery {
       return null;
     }
     const series = await this.deps.events.findSeries(event.source, event.uid);
-    const shown = cutOffByRange(series, event) ? { ...event, status: 'cancelled' as const } : event;
+    const shown = effectiveEvent(event, series);
     const now = this.deps.clock.now().toISOString();
     const timing = this.deps.timing.resolve(shown, series, timeZone, now);
     return {

@@ -1,6 +1,11 @@
-import type { ThreadId } from '@relay/shared/domain';
+import type { CalendarEventId, ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import type { ParsedCalendar, ParsedCalendarEvent, StoredCalendarEvent } from '../../src';
+import {
+  type ParsedCalendar,
+  type ParsedCalendarEvent,
+  type StoredCalendarEvent,
+  ValidationError,
+} from '../../src';
 import { calendarOf, eventData } from '../support/calendar-fixtures';
 import { deliverMail, type SeededAccount, seedAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
@@ -269,6 +274,29 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       [CUT]: ['cancelled', true, true],
       [secondCut]: ['cancelled', true, true],
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
+    });
+  });
+
+  it('refuses an RSVP for an override that a newer cut hides before replying', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'later', instance('11-30', { sequence: 1 }));
+    await deliver(engine, seeded, 'cancel', cancelFrom(CUT, { sequence: 2 }));
+    const hidden = rows(engine).find((row) => row.recurrenceId === '2026-11-30T09:00:00.000Z');
+
+    await expect(
+      engine.services.calendar.respond(
+        USER_ID,
+        hidden?.id as CalendarEventId,
+        'accepted',
+        'Europe/Bratislava',
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(engine.calendar.replyBuilder.built).toEqual([]);
+    expect(rows(engine).find((row) => row.id === hidden?.id)).toMatchObject({
+      status: 'confirmed',
+      myPartstat: hidden?.myPartstat,
     });
   });
 });
