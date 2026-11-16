@@ -7,6 +7,11 @@ import type {
   ThreadId,
   ThreadSummary,
 } from '@relay/shared/domain';
+import type {
+  CalendarEventsResult,
+  CalendarRangeQuery,
+  ThreadEventsResult,
+} from './calendar-tool-types';
 
 export interface NewMailTask {
   readonly threadId: ThreadId | null;
@@ -20,4 +25,6 @@ export interface MailToolBackend {
   listTasks(query: TaskQuery): Promise<Page<Task>>;
   createTask(task: NewMailTask): Promise<Task>;
   createDraft(content: DraftContent): Promise<Draft>;
+  listEvents(range: CalendarRangeQuery): Promise<CalendarEventsResult>;
+  getThreadEvents(threadId: ThreadId): Promise<ThreadEventsResult>;
 }

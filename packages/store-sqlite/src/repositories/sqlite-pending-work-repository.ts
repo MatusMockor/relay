@@ -3,6 +3,7 @@ import type {
   PendingWorkInput,
   PendingWorkKey,
   PendingWorkKind,
+  PendingWorkPayloads,
   PendingWorkRepository,
 } from '@relay/engine';
 import type { AccountId } from '@relay/shared/domain';
@@ -39,6 +40,21 @@ export class SqlitePendingWorkRepository implements PendingWorkRepository {
         .returning()
         .get();
       return toPendingWork<Kind>(row);
+    });
+  }
+
+  replace<Kind extends PendingWorkKind>(
+    work: PendingWork<Kind>,
+    payload: PendingWorkPayloads[Kind],
+  ): Promise<PendingWork<Kind> | null> {
+    return this.executor.execute((db) => {
+      const [row] = db
+        .update(pendingWork)
+        .set({ payload, revision: NEW_REVISION })
+        .where(and(keyed(work), eq(pendingWork.revision, work.revision)))
+        .returning()
+        .all();
+      return row === undefined ? null : toPendingWork<Kind>(row);
     });
   }
 

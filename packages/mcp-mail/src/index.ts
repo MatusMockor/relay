@@ -1,3 +1,8 @@
+export type {
+  CalendarEventsResult,
+  CalendarRangeQuery,
+  ThreadEventsResult,
+} from './backend/calendar-tool-types';
 export type { MailToolBackend, NewMailTask } from './backend/mail-tool-backend';
 export {
   engineMailToolBackend,

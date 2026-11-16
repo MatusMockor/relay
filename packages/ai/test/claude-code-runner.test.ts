@@ -79,7 +79,7 @@ describe('ClaudeCodeRunner', () => {
     );
     expect(call?.args[call.args.indexOf('--tools') + 1]).toBe('');
     expect(call?.args[call.args.indexOf('--allowedTools') + 1]).toBe(
-      'mcp__mail__search_threads,mcp__mail__list_folder,mcp__mail__get_thread,mcp__mail__list_tasks',
+      'mcp__mail__search_threads,mcp__mail__list_folder,mcp__mail__get_thread,mcp__mail__list_tasks,mcp__mail__list_events,mcp__mail__get_thread_events',
     );
     expect(JSON.parse(call?.mcpConfig ?? '{}')).toEqual({
       mcpServers: {

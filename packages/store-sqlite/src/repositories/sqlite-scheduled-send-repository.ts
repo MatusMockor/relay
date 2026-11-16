@@ -1,18 +1,19 @@
 import type { ScheduledSendRepository } from '@relay/engine';
 import type { ScheduledSend, ScheduledSendId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, isNull, lt, lte, notInArray, or } from 'drizzle-orm';
+import { and, asc, eq, lte, notInArray, or } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toScheduledSend, toScheduledSendRow } from '../mappers/scheduled-send-mapper';
 import { toTimestamp } from '../mappers/timestamp';
 import { assertPageLimit } from '../pagination/page-limit';
 import { scheduledSends } from '../schema';
+import { leaseStaleBefore } from './stale-lease';
 
 const isPending = eq(scheduledSends.status, 'pending');
 
 const isStaleSending = (staleBefore: string) =>
   and(
     eq(scheduledSends.status, 'sending'),
-    or(isNull(scheduledSends.claimedTs), lt(scheduledSends.claimedTs, toTimestamp(staleBefore))),
+    leaseStaleBefore(scheduledSends.claimedTs, scheduledSends.renewedTs, staleBefore),
   );
 
 const claimedBy = (scheduledSendId: ScheduledSendId, claimedAt: string) =>
@@ -73,8 +74,19 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'sending', claimedTs: toTimestamp(claimedAt) })
+          .set({ status: 'sending', claimedTs: toTimestamp(claimedAt), renewedTs: null })
           .where(and(eq(scheduledSends.id, scheduledSendId), isPending))
+          .run().changes > 0,
+    );
+  }
+
+  renew(scheduledSendId: ScheduledSendId, claimedAt: string, renewedAt: string): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db
+          .update(scheduledSends)
+          .set({ renewedTs: toTimestamp(renewedAt) })
+          .where(claimedBy(scheduledSendId, claimedAt))
           .run().changes > 0,
     );
   }
@@ -84,7 +96,7 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'pending', claimedTs: null })
+          .set({ status: 'pending', claimedTs: null, renewedTs: null })
           .where(
             and(
               isStaleSending(staleBefore),
@@ -100,7 +112,7 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'sent', sentAt, error: null, claimedTs: null })
+          .set({ status: 'sent', sentAt, error: null, claimedTs: null, renewedTs: null })
           .where(claimedBy(scheduledSendId, claimedAt))
           .run().changes > 0,
     );
@@ -111,7 +123,7 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'failed', error, claimedTs: null })
+          .set({ status: 'failed', error, claimedTs: null, renewedTs: null })
           .where(claimedBy(scheduledSendId, claimedAt))
           .run().changes > 0,
     );
@@ -122,7 +134,7 @@ export class SqliteScheduledSendRepository implements ScheduledSendRepository {
       (db) =>
         db
           .update(scheduledSends)
-          .set({ status: 'cancelled', claimedTs: null })
+          .set({ status: 'cancelled', claimedTs: null, renewedTs: null })
           .where(
             and(
               eq(scheduledSends.userId, userId),

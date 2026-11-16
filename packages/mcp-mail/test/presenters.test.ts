@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 import { describe, expect, it } from 'vitest';
 import { htmlToText } from '../src/presenters/html-to-text';
 import { threadDetailView } from '../src/presenters/views';
+import { zonedDateTime } from '../src/presenters/zoned-time';
 import { message, thread } from './support/fixtures';
 
 function elapsedMs(run: () => void): number {
@@ -40,5 +41,20 @@ describe('mail presenters', () => {
     expect(elapsedMs(() => htmlToText('<script'.repeat(40_000)))).toBeLessThan(300);
     expect(elapsedMs(() => htmlToText('<a'.repeat(100_000)))).toBeLessThan(300);
     expect(htmlToText('<p>Ahoj</p><style>zvyšok')).toBe('Ahoj\nzvyšok');
+  });
+});
+
+describe('zoned times', () => {
+  it('renders wall time with the offset of the zone across DST changes', () => {
+    expect(zonedDateTime('2026-03-29T00:30:00.000Z', 'Europe/Bratislava')).toBe(
+      '2026-03-29T01:30:00+01:00',
+    );
+    expect(zonedDateTime('2026-03-29T01:30:00.000Z', 'Europe/Bratislava')).toBe(
+      '2026-03-29T03:30:00+02:00',
+    );
+    expect(zonedDateTime('2026-11-16T09:00:00.000Z', 'Asia/Kolkata')).toBe(
+      '2026-11-16T14:30:00+05:30',
+    );
+    expect(zonedDateTime('2026-11-16T09:00:00.000Z', 'UTC')).toBe('2026-11-16T09:00:00+00:00');
   });
 });

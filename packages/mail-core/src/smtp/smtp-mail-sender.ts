@@ -44,7 +44,7 @@ export class SmtpMailSender implements MailSender {
       const info = await transport.sendMail({ envelope: mime.envelope, raw: mime.raw });
       return {
         messageIdHeader: mime.messageIdHeader,
-        raw: new Uint8Array(mime.raw),
+        sentCopy: new Uint8Array(mime.sentCopy),
         acceptedRecipients: toAddressList(info.accepted),
         rejectedRecipients: toAddressList(info.rejected),
       };

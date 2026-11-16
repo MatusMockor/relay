@@ -81,7 +81,7 @@ describe('CodexRunner', () => {
         `mcp_servers.mail.command="${STDIO_TOOLS.command ?? ''}"`,
         'mcp_servers.mail.args=["/opt/relay/mcp.js", "--socket", "/tmp/relay.sock"]',
         'mcp_servers.mail.env_vars=["RELAY_MAIL_MCP_TOKEN"]',
-        'mcp_servers.mail.enabled_tools=["search_threads", "list_folder", "get_thread", "list_tasks", "create_task", "create_draft"]',
+        'mcp_servers.mail.enabled_tools=["search_threads", "list_folder", "get_thread", "list_tasks", "list_events", "get_thread_events", "create_task", "create_draft"]',
       ]),
     );
     expect(args[args.indexOf('--cd') + 1]).toBe(call?.cwd);

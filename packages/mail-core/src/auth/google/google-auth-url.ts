@@ -7,6 +7,8 @@ export interface GoogleAuthUrlInput {
   readonly state: string;
   readonly loginHint?: string;
   readonly authEndpoint?: string;
+  readonly scopes?: readonly string[];
+  readonly includeGrantedScopes?: boolean;
 }
 
 export const buildGoogleAuthUrl = (input: GoogleAuthUrlInput): string => {
@@ -15,12 +17,15 @@ export const buildGoogleAuthUrl = (input: GoogleAuthUrlInput): string => {
   params.set('client_id', input.clientId);
   params.set('redirect_uri', input.redirectUri);
   params.set('response_type', 'code');
-  params.set('scope', GOOGLE_MAIL_SCOPES.join(' '));
+  params.set('scope', (input.scopes ?? GOOGLE_MAIL_SCOPES).join(' '));
   params.set('code_challenge', input.codeChallenge);
   params.set('code_challenge_method', 'S256');
   params.set('state', input.state);
   params.set('access_type', 'offline');
   params.set('prompt', 'consent');
+  if (input.includeGrantedScopes === true) {
+    params.set('include_granted_scopes', 'true');
+  }
   if (input.loginHint) {
     params.set('login_hint', input.loginHint);
   }

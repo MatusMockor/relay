@@ -16,5 +16,11 @@ export function dispatchSocketRequest(
       return backend.createTask(SOCKET_SCHEMAS.createTask.params.parse(request.params));
     case 'createDraft':
       return backend.createDraft(SOCKET_SCHEMAS.createDraft.params.parse(request.params));
+    case 'listEvents':
+      return backend.listEvents(SOCKET_SCHEMAS.listEvents.params.parse(request.params));
+    case 'getThreadEvents':
+      return backend.getThreadEvents(
+        SOCKET_SCHEMAS.getThreadEvents.params.parse(request.params).threadId,
+      );
   }
 }

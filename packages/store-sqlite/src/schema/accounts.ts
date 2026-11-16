@@ -8,6 +8,7 @@ export const accounts = sqliteTable(
     userId: text('user_id').notNull(),
     provider: text('provider').notNull(),
     displayName: text('display_name').notNull(),
+    senderName: text('sender_name'),
     email: text('email').notNull(),
     color: text('color').notNull(),
     isPrimary: integer('is_primary', { mode: 'boolean' }).notNull(),

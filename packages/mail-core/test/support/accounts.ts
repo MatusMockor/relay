@@ -10,6 +10,7 @@ export const buildAccount = (
   userId: 'user_test' as UserId,
   provider: 'imap',
   displayName: 'Test',
+  senderName: 'Test',
   email: user.email,
   color: '#336699',
   isPrimary: true,

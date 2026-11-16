@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createSqliteRepositories, migrate, openDatabase } from '../src';
 import { writeMigrationsBefore } from './support/partial-migrations';
-import { seedAccount } from './support/seed';
+import { seedLegacyAccount } from './support/legacy-account';
 import { createTempDirectory, type TempDirectory } from './support/test-database';
 
 describe('scheduled send lease migration', () => {
@@ -20,7 +20,7 @@ describe('scheduled send lease migration', () => {
     migrate(database, {
       migrationsFolder: writeMigrationsBefore('0005_scheduled_send_lease', directory.path),
     });
-    const { account } = await seedAccount(createSqliteRepositories(database));
+    const { account } = await seedLegacyAccount(database, createSqliteRepositories(database));
     const insert = database.sqlite.prepare(
       `insert into scheduled_sends (id, user_id, account_id, draft_id, scheduled_at, scheduled_ts, status, created_at)
        values (?, 'local', ?, ?, '2026-11-12T08:00:00.000Z', 0, ?, ?)`,

@@ -51,6 +51,10 @@ export class SqliteThreadRepository implements ThreadRepository {
     );
   }
 
+  lockForUpdate(accountId: AccountId, threadId: ThreadId): Promise<ThreadSummary | null> {
+    return this.findByIdForAccount(accountId, threadId);
+  }
+
   upsert(thread: ThreadSummary): Promise<ThreadSummary> {
     return this.executor.execute((db) => {
       const row = toThreadRow(accountOwnerOf(db, thread.accountId), thread);

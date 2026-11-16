@@ -64,7 +64,7 @@ describe('relay mail MCP server', () => {
     await connected.close();
   });
 
-  it('lists the six mail tools with untrusted-content warnings and safety annotations', async () => {
+  it('lists the eight mail tools with untrusted-content warnings and safety annotations', async () => {
     const { tools } = await connected.client.listTools();
 
     expect(tools.map((tool) => tool.name)).toEqual([
@@ -72,11 +72,21 @@ describe('relay mail MCP server', () => {
       'list_folder',
       'get_thread',
       'list_tasks',
+      'list_events',
+      'get_thread_events',
       'create_task',
       'create_draft',
     ]);
     const byName = new Map(tools.map((tool) => [tool.name, tool]));
-    for (const name of ['search_threads', 'list_folder', 'get_thread', 'list_tasks']) {
+    const readTools = [
+      'search_threads',
+      'list_folder',
+      'get_thread',
+      'list_tasks',
+      'list_events',
+      'get_thread_events',
+    ];
+    for (const name of readTools) {
       expect(byName.get(name)?.description).toMatch(/untrusted/i);
       expect(byName.get(name)?.annotations?.readOnlyHint).toBe(true);
     }

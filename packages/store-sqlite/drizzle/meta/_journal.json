@@ -57,6 +57,55 @@
       "when": 1794737752002,
       "tag": "0007_draft_send_claim",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794781056819,
+      "tag": "0008_send_lease_renewal",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794781658464,
+      "tag": "0009_calendar",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794782225002,
+      "tag": "0010_calendar_loose_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794784429196,
+      "tag": "0011_calendar_invite_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794785304036,
+      "tag": "0012_google_calendar",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1794788885104,
+      "tag": "0013_calendar_event_revision",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1794790198657,
+      "tag": "0014_account_sender_name",
+      "breakpoints": true
     }
   ]
 }

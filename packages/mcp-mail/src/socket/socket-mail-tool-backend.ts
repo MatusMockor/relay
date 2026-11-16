@@ -9,6 +9,11 @@ import type {
   ThreadSummary,
 } from '@relay/shared/domain';
 import type { z } from 'zod';
+import type {
+  CalendarEventsResult,
+  CalendarRangeQuery,
+  ThreadEventsResult,
+} from '../backend/calendar-tool-types';
 import type { MailToolBackend, NewMailTask } from '../backend/mail-tool-backend';
 import { JsonLineChannel } from './json-line-channel';
 import {
@@ -92,6 +97,14 @@ export class SocketMailToolBackend implements MailToolBackend {
 
   createDraft(content: DraftContent): Promise<Draft> {
     return this.call('createDraft', content, SOCKET_SCHEMAS.createDraft.result);
+  }
+
+  listEvents(range: CalendarRangeQuery): Promise<CalendarEventsResult> {
+    return this.call('listEvents', range, SOCKET_SCHEMAS.listEvents.result);
+  }
+
+  getThreadEvents(threadId: ThreadId): Promise<ThreadEventsResult> {
+    return this.call('getThreadEvents', { threadId }, SOCKET_SCHEMAS.getThreadEvents.result);
   }
 
   private handshake(token: string, timeoutMs: number): Promise<void> {
