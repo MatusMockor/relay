@@ -234,6 +234,7 @@ button.mh-main {
 }
 .msg .mh-main > div {
   display: grid;
+  min-width: 0;
   text-align: left;
 }
 .msg .mh b {
@@ -242,6 +243,11 @@ button.mh-main {
 .msg .mh small {
   color: var(--muted);
   font-size: 12px;
+}
+.msg .mh .mh-copy {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .msg .mh time {
   margin-left: auto;

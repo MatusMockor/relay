@@ -2,7 +2,11 @@ export type DemoAccountKey = 'efa' | 'os' | 'fl';
 export type DemoSplitKey = 'jira' | 'other' | 'clients';
 export type DemoLabelKey = 'efa' | 'jira' | 'fam' | 'shop' | 'cli' | 'inv';
 export type DemoAt = readonly [days: number, hours: number, minutes: number];
-export type DemoMessage = readonly [from: string, at: DemoAt, text: string];
+export interface DemoCopies {
+  readonly cc?: readonly string[];
+  readonly bcc?: readonly string[];
+}
+export type DemoMessage = readonly [from: string, at: DemoAt, text: string, copies?: DemoCopies];
 
 export interface DemoPerson {
   readonly name: string;
