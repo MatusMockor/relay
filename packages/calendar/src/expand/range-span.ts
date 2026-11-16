@@ -35,6 +35,11 @@ export const rangeSpan = (
   }
   const start = time.clone();
   start.adjust(0, 0, 0, Math.round(range.shift / 1000));
+  if (range.parsed.nominal !== null) {
+    const end = start.clone();
+    end.addDuration(range.parsed.nominal);
+    return spanOf({ time: start, tzid }, { time: end, tzid }, timeZone);
+  }
   const at = spanOf({ time: start, tzid }, { time: start, tzid }, timeZone);
   return { start: at.start, end: at.start + range.length, allDay: false };
 };

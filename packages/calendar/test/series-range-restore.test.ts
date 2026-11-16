@@ -53,9 +53,38 @@ const rangeCancel = (day: string, sequence: number) =>
     ],
   );
 
-const shown = (series: ReturnType<typeof seriesFrom>) =>
+const LATE_NOVEMBER = windowOf('2026-11-09T00:00:00Z', '2026-12-01T00:00:00Z', 'UTC');
+
+const moved = (day: string, sequence: number) =>
+  vcalendar(
+    'REQUEST',
+    [],
+    [
+      UID,
+      'DTSTAMP:20261102T100000Z',
+      `SEQUENCE:${String(sequence)}`,
+      'SUMMARY:Report presunutý',
+      `RECURRENCE-ID:202611${day}T090000Z`,
+      `DTSTART:202611${day}T150000Z`,
+      `DTEND:202611${day}T153000Z`,
+    ],
+  );
+
+const instanceCancel = (day: string, sequence: number) =>
+  vcalendar(
+    'CANCEL',
+    [],
+    [
+      UID,
+      'DTSTAMP:20261102T110000Z',
+      `SEQUENCE:${String(sequence)}`,
+      `RECURRENCE-ID:202611${day}T090000Z`,
+    ],
+  );
+
+const shown = (series: ReturnType<typeof seriesFrom>, window = NOVEMBER) =>
   expander
-    .expand(series, NOVEMBER)
+    .expand(series, window)
     .filter((occurrence) => occurrence.event.status !== 'cancelled')
     .map((occurrence) => [occurrence.start, occurrence.event.summary]);
 
@@ -146,5 +175,80 @@ describe('THISANDFUTURE ranges after cancellations', () => {
       '2026-11-07T11:00:00.000Z',
     ]);
     expect(rangeEndOf(endedAgain)).toBe('2026-11-09T11:30:00.000Z');
+  });
+
+  it('hides an override behind every cut that applies to it', () => {
+    const series = seriesFrom(
+      'daily@partner.test',
+      daily,
+      rangeCancel('10', 1),
+      moved('15', 2),
+      moved('25', 2),
+      rangeCancel('20', 3),
+    );
+
+    expect(shown(series, LATE_NOVEMBER)).toEqual([
+      ['2026-11-09T09:00:00.000Z', 'Report'],
+      ['2026-11-15T15:00:00.000Z', 'Report presunutý'],
+    ]);
+  });
+
+  it('restores older instance changes under a lifting range and keeps newer cancellations', () => {
+    const series = seriesFrom(
+      'daily@partner.test',
+      daily,
+      rangeCancel('03', 1),
+      rangeRequest('05', 2, 'Report znova'),
+      moved('08', 0),
+      instanceCancel('06', 1),
+      instanceCancel('07', 3),
+    );
+
+    expect(shown(series)).toEqual([
+      ['2026-11-01T09:00:00.000Z', 'Report'],
+      ['2026-11-02T09:00:00.000Z', 'Report'],
+      ['2026-11-05T11:00:00.000Z', 'Report znova'],
+      ['2026-11-06T11:00:00.000Z', 'Report znova'],
+      ['2026-11-08T11:00:00.000Z', 'Report znova'],
+      ['2026-11-09T11:00:00.000Z', 'Report znova'],
+    ]);
+  });
+
+  it('applies a nominal DURATION of a range request in wall time across DST', () => {
+    const spring = vcalendar(
+      null,
+      [],
+      [
+        UID,
+        'DTSTAMP:20260301T080000Z',
+        'SUMMARY:Služba',
+        'DTSTART;TZID=Europe/Bratislava:20260320T090000',
+        'DTEND;TZID=Europe/Bratislava:20260320T100000',
+        'RRULE:FREQ=DAILY',
+      ],
+    );
+    const allDayLong = vcalendar(
+      'REQUEST',
+      [],
+      [
+        UID,
+        'DTSTAMP:20260302T080000Z',
+        'SEQUENCE:1',
+        'SUMMARY:Služba na celý deň',
+        'RECURRENCE-ID;TZID=Europe/Bratislava;RANGE=THISANDFUTURE:20260325T090000',
+        'DTSTART;TZID=Europe/Bratislava:20260325T100000',
+        'DURATION:P1D',
+      ],
+    );
+    const window = windowOf('2026-03-27T23:00:00Z', '2026-03-28T23:00:00Z');
+
+    const occurrences = expander
+      .expand(seriesFrom('daily@partner.test', spring, allDayLong), window)
+      .map((occurrence) => [occurrence.start, occurrence.end]);
+
+    expect(occurrences).toEqual([
+      ['2026-03-27T09:00:00.000Z', '2026-03-28T09:00:00.000Z'],
+      ['2026-03-28T09:00:00.000Z', '2026-03-29T08:00:00.000Z'],
+    ]);
   });
 });
