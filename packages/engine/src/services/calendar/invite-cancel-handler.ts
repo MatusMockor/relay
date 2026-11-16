@@ -2,29 +2,25 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, supersedes } from './event-precedence';
+import { cancelled } from './invite-cancellation';
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
+import { InviteRangeCancelHandler } from './invite-range-cancel-handler';
 import { saveCurrent } from './invite-write';
-
-const cancelled = (
-  stored: StoredCalendarEvent,
-  context: InviteContext,
-  event: ParsedCalendarEvent,
-): StoredCalendarEvent => ({
-  ...stored,
-  status: 'cancelled',
-  method: 'CANCEL',
-  sequence: event.sequence,
-  dtstamp: event.dtstamp ?? stored.dtstamp,
-  messageId: context.messageId,
-  threadId: context.threadId,
-  updatedAt: context.now,
-});
+import { involvesRange } from './series-cut';
+import type { SeriesRangeKeeper } from './series-range-keeper';
 
 const inScope = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
   event.recurrenceId === null || member.recurrenceId === event.recurrenceId;
 
 export class InviteCancelHandler implements InviteHandler {
-  constructor(private readonly ids: IdGenerator) {}
+  private readonly range: InviteRangeCancelHandler;
+
+  constructor(
+    private readonly ids: IdGenerator,
+    private readonly ranges: SeriesRangeKeeper,
+  ) {
+    this.range = new InviteRangeCancelHandler(ids, ranges);
+  }
 
   async apply(
     repositories: Repositories,
@@ -32,11 +28,17 @@ export class InviteCancelHandler implements InviteHandler {
     event: ParsedCalendarEvent,
   ): Promise<boolean> {
     const series = await repositories.calendarEvents.findSeries(inviteSource(context), event.uid);
+    if (event.thisAndFuture === true) {
+      return this.range.apply(repositories, context, event, series);
+    }
     const targets = series.filter((member) => inScope(member, event) && supersedes(event, member));
     for (const target of targets) {
       await saveCurrent(repositories, cancelled(target, context, event));
     }
     if (targets.length > 0) {
+      if (involvesRange(series, event)) {
+        await this.ranges.refresh(repositories, context, event.uid);
+      }
       return true;
     }
     if (!event.timed || series.some((member) => inScope(member, event))) {

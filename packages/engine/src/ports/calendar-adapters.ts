@@ -15,6 +15,10 @@ export interface CalendarParser {
 
 export interface CalendarExpander {
   expand(series: CalendarSeries, window: CalendarWindow): ExpandedOccurrence[];
+  seriesRangeEnd(
+    master: StoredCalendarEvent,
+    overrides: readonly StoredCalendarEvent[],
+  ): string | null;
 }
 
 export interface CalendarReplyInput {

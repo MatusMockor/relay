@@ -1,5 +1,5 @@
 import type { CalendarMethod, UserId } from '@relay/shared/domain';
-import type { CalendarParser } from '../../ports/calendar-adapters';
+import type { CalendarExpander, CalendarParser } from '../../ports/calendar-adapters';
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
@@ -10,9 +10,11 @@ import { InviteReplyHandler } from './invite-reply-handler';
 import { InviteRequestHandler } from './invite-request-handler';
 import { retryStale } from './invite-write';
 import { ParkedReplies } from './parked-replies';
+import { SeriesRangeKeeper } from './series-range-keeper';
 
 export interface InviteIngestorDeps {
   readonly parser: CalendarParser;
+  readonly expander: CalendarExpander;
   readonly clock: Clock;
   readonly ids: IdGenerator;
 }
@@ -22,11 +24,12 @@ export class InviteIngestor {
 
   constructor(private readonly deps: InviteIngestorDeps) {
     const parked = new ParkedReplies();
-    const request = new InviteRequestHandler(deps.ids, parked);
+    const ranges = new SeriesRangeKeeper(deps.expander);
+    const request = new InviteRequestHandler(deps.ids, parked, ranges);
     this.handlers = {
       REQUEST: request,
       PUBLISH: request,
-      CANCEL: new InviteCancelHandler(deps.ids),
+      CANCEL: new InviteCancelHandler(deps.ids, ranges),
       REPLY: new InviteReplyHandler(parked),
     };
   }

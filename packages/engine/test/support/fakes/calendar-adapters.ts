@@ -12,6 +12,7 @@ import type {
   CalendarWindow,
   ExpandedOccurrence,
   ParsedCalendar,
+  StoredCalendarEvent,
 } from '../../../src';
 
 export class MapCalendarParser implements CalendarParser {
@@ -42,6 +43,10 @@ export class StoredTimesExpander implements CalendarExpander {
         end: row.endsAt,
         allDay: row.allDay,
       }));
+  }
+
+  seriesRangeEnd(master: StoredCalendarEvent): string | null {
+    return master.rangeEndsAt;
   }
 }
 

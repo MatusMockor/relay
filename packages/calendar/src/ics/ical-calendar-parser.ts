@@ -5,6 +5,7 @@ import { attendeesOf, organizerOf } from './event-people';
 import { methodOf, sequenceOf, statusOf, textOf } from './event-text';
 import { type EventTiming, timingOf, tzidOf } from './event-timing';
 import { recurrenceKeyOf, toIso } from './ical-time';
+import { isThisAndFuture } from './recurrence-range';
 import { parseCalendar, standaloneIcs } from './standalone-ics';
 import { normalizeEvent } from './zone-normalizer';
 
@@ -56,6 +57,7 @@ const eventOf = (
     uid,
     timed: timed !== null,
     recurrenceId,
+    ...(recurrenceId !== null && isThisAndFuture(vevent) ? { thisAndFuture: true } : {}),
     sequence: sequenceOf(vevent),
     dtstamp: dtstampOf(vevent),
     status: statusOf(vevent, method),

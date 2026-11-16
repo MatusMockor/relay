@@ -17,6 +17,7 @@ import type {
 export interface CalendarEventData {
   readonly uid: string;
   readonly recurrenceId: string | null;
+  readonly thisAndFuture?: boolean;
   readonly sequence: number;
   readonly dtstamp: string | null;
   readonly status: CalendarEventStatus;

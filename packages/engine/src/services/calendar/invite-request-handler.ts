@@ -6,11 +6,14 @@ import { findAttendee, resolveMyPartstat, sameRevision, supersedes } from './eve
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
 import type { ParkedReplies } from './parked-replies';
+import { cutOffByRange, involvesRange } from './series-cut';
+import type { SeriesRangeKeeper } from './series-range-keeper';
 
 export class InviteRequestHandler implements InviteHandler {
   constructor(
     private readonly ids: IdGenerator,
     private readonly parked: ParkedReplies,
+    private readonly ranges: SeriesRangeKeeper,
   ) {}
 
   async apply(
@@ -24,7 +27,7 @@ export class InviteRequestHandler implements InviteHandler {
       await this.parked.release(repositories, context, stored);
       return false;
     }
-    if (!event.timed || !supersedes(event, stored)) {
+    if (!event.timed || !supersedes(event, stored) || cutOffByRange(series, event)) {
       return false;
     }
     const merged = { ...event, attendees: withStoredAnswers(event, stored) };
@@ -37,6 +40,9 @@ export class InviteRequestHandler implements InviteHandler {
       }),
     );
     await this.parked.release(repositories, context, saved);
+    if (involvesRange(series, event)) {
+      await this.ranges.refresh(repositories, context, event.uid);
+    }
     return true;
   }
 }
