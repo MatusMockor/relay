@@ -19,6 +19,7 @@ export interface CalendarExpander {
     master: StoredCalendarEvent,
     overrides: readonly StoredCalendarEvent[],
   ): string | null;
+  isOrphaned(master: StoredCalendarEvent, override: StoredCalendarEvent): boolean;
 }
 
 export interface CalendarReplyInput {

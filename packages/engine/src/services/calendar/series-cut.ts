@@ -71,6 +71,11 @@ export const cutOffByRange = (
   );
 };
 
+export const cutAtSeriesStart = (series: readonly StoredCalendarEvent[]): boolean => {
+  const master = series.find(isMaster);
+  return master !== undefined && blockingCuts(series, Date.parse(master.startsAt)).length > 0;
+};
+
 export const involvesRange = (
   series: readonly StoredCalendarEvent[],
   event: CalendarEventData,

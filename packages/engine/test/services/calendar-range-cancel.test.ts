@@ -113,10 +113,19 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     await deliver(engine, seeded, 'cancel', cancelFrom(SERIES.startsAt));
 
     expect(byRecurrence(engine)).toEqual({
-      master: ['cancelled', undefined, undefined],
+      master: ['confirmed', undefined, undefined],
       [cutKey(SERIES.startsAt)]: ['cancelled', true, true],
     });
-    expect(rows(engine).every((row) => row.method === 'CANCEL')).toBe(true);
+    const series = rows(engine).find((row) => row.recurrenceId === null);
+    const cards = await engine.services.calendar.invitations(
+      USER_ID,
+      series?.threadId as ThreadId,
+      'Europe/Bratislava',
+    );
+    expect(cards.find((card) => card.eventId === series?.id)).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
+    });
   });
 
   it('keeps the cut when the cut instance is cancelled again on its own', async () => {

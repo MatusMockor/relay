@@ -127,6 +127,13 @@
       "when": 1794848334252,
       "tag": "0017_calendar_cut_records",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1794851017892,
+      "tag": "0018_calendar_cut_start_masters",
+      "breakpoints": true
     }
   ]
 }

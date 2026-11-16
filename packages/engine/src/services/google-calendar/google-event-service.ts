@@ -16,8 +16,10 @@ import type { GoogleCalendarRecord, GoogleEventRecord } from '../../model/google
 import type { Clock } from '../../ports/clock';
 import type { GoogleCalendarGateway } from '../../ports/google-calendar-adapters';
 import type { Repositories } from '../../ports/repositories';
+import type { SeriesMembership } from '../calendar/effective-event';
 import type { InviteResponses } from '../calendar/invite-responses';
 import type { GoogleAttendance } from './google-attendance';
+import { effectiveGoogleEvent } from './google-effective-event';
 import { canDeleteGoogleEvent, canRespondToGoogleEvent } from './google-event-access';
 import type { GoogleEventStore } from './google-event-store';
 import { GOOGLE_MESSAGES } from './google-messages';
@@ -29,6 +31,7 @@ export interface GoogleEventServiceDeps {
   readonly store: GoogleEventStore;
   readonly attendance: GoogleAttendance;
   readonly responses: InviteResponses;
+  readonly membership: SeriesMembership;
   readonly clock: Clock;
 }
 
@@ -99,7 +102,13 @@ export class GoogleEventService {
     response: CalendarRsvpResponse,
   ): Promise<void> {
     const { calendar, record } = await this.load(userId, eventId);
-    if (!canRespondToGoogleEvent(record.event, calendar.accessRole)) {
+    const effective = await effectiveGoogleEvent(
+      this.deps.repositories.googleEvents,
+      this.deps.membership,
+      userId,
+      record,
+    );
+    if (!canRespondToGoogleEvent(effective.event, calendar.accessRole)) {
       throw new ForbiddenError(GOOGLE_MESSAGES.cannotRespond);
     }
     const repliedAt = this.deps.clock.now().toISOString();

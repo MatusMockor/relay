@@ -26,7 +26,7 @@ import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engi
 
 const ZONE = 'Europe/Bratislava';
 const LATER = '2026-11-30T09:00:00.000Z';
-const at = (hour: number): string => `2026-11-15T${String(hour)}:00:00.000Z`;
+const at = (hour: number): string => `2026-11-15T${String(hour).padStart(2, '0')}:00:00.000Z`;
 
 const wholeSeriesCancel = (sequence: number, dtstamp: string) =>
   cancelOne(CUT, { recurrenceId: null, sequence, dtstamp, timed: true });
@@ -193,7 +193,7 @@ describe('revision order across components of an invitation series', () => {
     expect(occurrenceRow(engine, LATER)).toMatchObject({ summary: 'Druhá verzia', sequence: 2 });
   });
 
-  it('keeps the series cancelled by a later cut at its start when the older master is replayed', async () => {
+  it('keeps the series cut at its start under a replayed older master', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     const start = SERIES.startsAt;
@@ -201,7 +201,12 @@ describe('revision order across components of an invitation series', () => {
     await deliver(engine, seeded, 'series', master({ sequence: 4, dtstamp: at(10) }));
     await deliver(engine, seeded, 'cut', cancelFrom(start, { sequence: 1, dtstamp: at(11) }));
 
-    expect(masterRow()).toMatchObject({ status: 'cancelled', sequence: 4, dtstamp: at(11) });
+    expect(masterRow()).toMatchObject({ status: 'confirmed', sequence: 4, dtstamp: at(10) });
+    expect(cutRow(engine, start)).toMatchObject({ sequence: 1, dtstamp: at(11) });
+    expect(await cardOf(engine, masterRow())).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
+    });
     await deliver(engine, seeded, 'series-replay', master({ sequence: 4, dtstamp: at(10) }));
     const revisions = rows(engine).map((row) => row.revision);
     await deliver(
@@ -212,11 +217,14 @@ describe('revision order across components of an invitation series', () => {
     );
 
     expect(rows(engine).map((row) => row.revision)).toEqual(revisions);
-    expect(masterRow()).toMatchObject({ status: 'cancelled', sequence: 4 });
+    expect(await cardOf(engine, masterRow())).toMatchObject({ status: 'cancelled' });
     await expect(respond(engine, masterRow())).rejects.toBeInstanceOf(ValidationError);
 
     await deliver(engine, seeded, 'restore', master({ sequence: 5, dtstamp: at(12) }));
-    expect(masterRow()).toMatchObject({ status: 'confirmed', sequence: 5 });
+    expect(await cardOf(engine, masterRow())).toMatchObject({
+      status: 'confirmed',
+      canRespond: true,
+    });
   });
 
   it('restores the series with a later master whose SEQUENCE is lower than the cut', async () => {
@@ -230,33 +238,12 @@ describe('revision order across components of an invitation series', () => {
       'cut',
       cancelFrom(SERIES.startsAt, { sequence: 10, dtstamp: at(11) }),
     );
+    expect(await cardOf(engine, masterRow())).toMatchObject({ status: 'cancelled' });
 
-    expect(masterRow()).toMatchObject({ status: 'cancelled', sequence: 4, dtstamp: at(11) });
     await deliver(engine, seeded, 'restore', master({ sequence: 5, dtstamp: at(12) }));
-    expect(masterRow()).toMatchObject({ status: 'confirmed', sequence: 5 });
-  });
-
-  it('keeps an instance cancelled by a later whole-series CANCEL when the instance is replayed', async () => {
-    const engine = createTestEngine();
-    const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'edited', instance('11-30', { sequence: 5, dtstamp: at(10) }));
-    await deliver(engine, seeded, 'all', wholeSeriesCancel(1, at(11)));
-
-    expect(occurrenceRow(engine, LATER)).toMatchObject({
-      status: 'cancelled',
-      sequence: 5,
-      dtstamp: at(11),
+    expect(await cardOf(engine, masterRow())).toMatchObject({
+      status: 'confirmed',
+      canRespond: true,
     });
-    await deliver(
-      engine,
-      seeded,
-      'edited-replay',
-      instance('11-30', { sequence: 5, dtstamp: at(10) }),
-    );
-    const revisions = rows(engine).map((row) => row.revision);
-    await deliver(engine, seeded, 'all-replay', wholeSeriesCancel(1, at(11)));
-
-    expect(rows(engine).map((row) => row.revision)).toEqual(revisions);
-    expect(occurrenceRow(engine, LATER)).toMatchObject({ status: 'cancelled' });
   });
 });

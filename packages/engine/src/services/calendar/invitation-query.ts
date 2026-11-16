@@ -12,7 +12,7 @@ import type { Clock } from '../../ports/clock';
 import type { InvitationTiming, InvitationTimingResolver } from './invitation-timing';
 import type { OccurrenceQuery } from './occurrence-query';
 import { canRespond } from './rsvp-policy';
-import { effectiveEvent } from './effective-event';
+import { effectiveEvent, type SeriesMembership } from './effective-event';
 
 const MAX_CONFLICTS = 5;
 
@@ -21,6 +21,7 @@ export interface InvitationQueryDeps {
   readonly accounts: AccountRepository;
   readonly timing: InvitationTimingResolver;
   readonly occurrences: OccurrenceQuery;
+  readonly membership: SeriesMembership;
   readonly clock: Clock;
 }
 
@@ -52,7 +53,7 @@ export class InvitationQuery {
       return null;
     }
     const series = await this.deps.events.findSeries(event.source, event.uid);
-    const shown = effectiveEvent(event, series);
+    const shown = effectiveEvent(event, series, this.deps.membership);
     const now = this.deps.clock.now().toISOString();
     const timing = this.deps.timing.resolve(shown, series, timeZone, now);
     return {

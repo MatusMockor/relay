@@ -17,3 +17,8 @@ export const liveOverrides = (
     (override) => !ignoredCut(override, master) && !cancelledWithSeries(override, master),
   );
 };
+
+export const isTombstone = (
+  master: StoredCalendarEvent,
+  overrides: readonly StoredCalendarEvent[],
+): boolean => !master.recurring && master.status === 'cancelled' && overrides.length > 0;

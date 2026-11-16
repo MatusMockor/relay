@@ -1,29 +1,18 @@
 import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calendar';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
-import { findAttendee, supersedes } from './event-precedence';
-import { cancelled, cancels } from './invite-cancellation';
+import { cancelTiming } from './cancel-timing';
+import { findAttendee, sameRevision, supersedes } from './event-precedence';
+import { cancelled } from './invite-cancellation';
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { InviteRangeCancelHandler } from './invite-range-cancel-handler';
 import { saveCurrent } from './invite-write';
+import { sameSlot } from './recurrence-slot';
 import { compareRevisions } from './revision-order';
-import { isRangeRecord, sameSlot } from './recurrence-slot';
 import { involvesRange, isMaster } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
 type Series = readonly StoredCalendarEvent[];
-
-const inScope =
-  (series: Series, event: ParsedCalendarEvent) =>
-  (member: StoredCalendarEvent): boolean => {
-    if (event.recurrenceId !== null || series.some(isMaster)) {
-      return sameSlot(member, event);
-    }
-    return member.endsSeries !== true;
-  };
-
-const anchorsRange = (series: Series, event: ParsedCalendarEvent): boolean =>
-  series.some((member) => member.recurrenceId === event.recurrenceId && isRangeRecord(member));
 
 export class InviteCancelHandler implements InviteHandler {
   private readonly range: InviteRangeCancelHandler;
@@ -44,28 +33,48 @@ export class InviteCancelHandler implements InviteHandler {
     if (event.thisAndFuture === true) {
       return this.range.apply(repositories, context, event, series);
     }
-    const scoped = series.filter(inScope(series, event));
-    const targets = scoped.filter((member) => supersedes(event, member) && cancels(member, event));
-    for (const target of targets) {
-      await saveCurrent(repositories, cancelled(target, context, event));
+    const slot = series.find((member) => sameSlot(member, event));
+    const changed =
+      slot === undefined
+        ? await this.storeNew(repositories, context, event, series)
+        : await this.cancelSlot(repositories, context, event, slot);
+    if (changed && involvesRange(series, event)) {
+      await this.ranges.refresh(repositories, context, event.uid);
     }
-    if (targets.length > 0) {
-      if (involvesRange(series, event)) {
-        await this.ranges.refresh(repositories, context, event.uid);
-      }
-      return true;
-    }
-    if ((!event.timed && !anchorsRange(series, event)) || scoped.length > 0) {
+    return changed;
+  }
+
+  private async cancelSlot(
+    repositories: Repositories,
+    context: InviteContext,
+    event: ParsedCalendarEvent,
+    slot: StoredCalendarEvent,
+  ): Promise<boolean> {
+    if (!supersedes(event, slot) || sameRevision(event, slot)) {
       return false;
     }
+    await saveCurrent(repositories, cancelled(slot, context, event));
+    return true;
+  }
+
+  private async storeNew(
+    repositories: Repositories,
+    context: InviteContext,
+    event: ParsedCalendarEvent,
+    series: Series,
+  ): Promise<boolean> {
     const master = series.find(isMaster);
     if (master !== undefined && compareRevisions(event, master) < 0) {
+      return false;
+    }
+    const timing = cancelTiming(event, series);
+    if (timing === null) {
       return false;
     }
     const mine = findAttendee(event.attendees, context.account.email);
     await saveCurrent(
       repositories,
-      storedFrom(this.ids, context, { ...event, status: 'cancelled' }, undefined, {
+      storedFrom(this.ids, context, { ...event, ...timing, status: 'cancelled' }, undefined, {
         myPartstat: mine?.partstat ?? null,
         myEmail: mine?.email ?? null,
       }),

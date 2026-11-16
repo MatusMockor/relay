@@ -2,11 +2,10 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, sameRevision, supersedes } from './event-precedence';
-import { cancelled, cancels } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
 import { cutRecordAt, rangeRecordAt } from './recurrence-slot';
-import { isMaster, recurrenceInstant } from './series-cut';
+import { isMaster } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
 const titleOf = (...candidates: (StoredCalendarEvent | ParsedCalendarEvent | undefined)[]) =>
@@ -36,9 +35,8 @@ export class InviteRangeCancelHandler {
     }
     const summary = titleOf(event, slot, range, master);
     const cut = await this.storeCut(repositories, context, { ...event, summary }, slot);
-    const whole = await this.cancelWholeSeries(repositories, context, event, master);
     await this.ranges.refresh(repositories, context, event.uid);
-    return cut || whole;
+    return cut;
   }
 
   private async storeCut(
@@ -64,23 +62,6 @@ export class InviteRangeCancelHandler {
         myEmail: mine?.email ?? slot?.myEmail ?? null,
       }),
     );
-    return true;
-  }
-
-  private async cancelWholeSeries(
-    repositories: Repositories,
-    context: InviteContext,
-    event: ParsedCalendarEvent,
-    master: StoredCalendarEvent | undefined,
-  ): Promise<boolean> {
-    if (
-      master === undefined ||
-      recurrenceInstant(event.recurrenceId ?? '') > Date.parse(master.startsAt) ||
-      !cancels(master, event)
-    ) {
-      return false;
-    }
-    await saveCurrent(repositories, cancelled(master, context, event));
     return true;
   }
 }
