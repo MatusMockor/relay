@@ -6,11 +6,15 @@ import { cancelled } from './invite-cancellation';
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { InviteRangeCancelHandler } from './invite-range-cancel-handler';
 import { saveCurrent } from './invite-write';
-import { involvesRange } from './series-cut';
+import { rangeRecordAt, sameSlot } from './recurrence-slot';
+import { involvesRange, isMaster } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
 const inScope = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
-  event.recurrenceId === null || member.recurrenceId === event.recurrenceId;
+  event.recurrenceId === null ? member.endsSeries !== true : sameSlot(member, event);
+
+const anchorsRange = (series: readonly StoredCalendarEvent[], event: ParsedCalendarEvent) =>
+  event.recurrenceId !== null && rangeRecordAt(series, event.recurrenceId) !== undefined;
 
 export class InviteCancelHandler implements InviteHandler {
   private readonly range: InviteRangeCancelHandler;
@@ -41,10 +45,13 @@ export class InviteCancelHandler implements InviteHandler {
       }
       return true;
     }
-    if (!event.timed || series.some((member) => inScope(member, event))) {
+    if (
+      (!event.timed && !anchorsRange(series, event)) ||
+      series.some((member) => inScope(member, event))
+    ) {
       return false;
     }
-    const master = series.find((member) => member.recurrenceId === null);
+    const master = series.find(isMaster);
     if (master !== undefined && event.sequence < master.sequence) {
       return false;
     }

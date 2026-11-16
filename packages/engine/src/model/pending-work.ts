@@ -70,6 +70,7 @@ export interface CalendarInviteWork {
 export interface CalendarReplyWork {
   readonly uid: string;
   readonly recurrenceId: string | null;
+  readonly thisAndFuture?: boolean;
   readonly sequence: number;
   readonly dtstamp: string | null;
   readonly attendee: CalendarAttendee;

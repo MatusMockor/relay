@@ -1,4 +1,10 @@
-import type { ParsedCalendar, ParsedCalendarEvent, StoredCalendarEvent } from '../../src';
+import {
+  calendarRecurrenceKey,
+  type ParsedCalendar,
+  type ParsedCalendarEvent,
+  RANGE_RECORD_SUFFIX,
+  type StoredCalendarEvent,
+} from '../../src';
 import { calendarOf, eventData } from './calendar-fixtures';
 import { deliverMail, type SeededAccount } from './fixtures';
 import { type TestEngine, USER_ID } from './test-engine';
@@ -16,13 +22,21 @@ export const deliver = async (
 
 export const rows = (engine: TestEngine): StoredCalendarEvent[] =>
   [...engine.db.tables.calendarEvents.values()].sort((a, b) =>
-    (a.recurrenceId ?? '').localeCompare(b.recurrenceId ?? ''),
+    calendarRecurrenceKey(a).localeCompare(calendarRecurrenceKey(b)),
   );
+
+export const rangeKey = (recurrenceId: string): string => `${recurrenceId}${RANGE_RECORD_SUFFIX}`;
+
+export const occurrenceRow = (engine: TestEngine, recurrenceId: string) =>
+  rows(engine).find((row) => calendarRecurrenceKey(row) === recurrenceId);
+
+export const rangeRow = (engine: TestEngine, recurrenceId: string) =>
+  rows(engine).find((row) => calendarRecurrenceKey(row) === rangeKey(recurrenceId));
 
 export const byRecurrence = (engine: TestEngine) =>
   Object.fromEntries(
     rows(engine).map((row) => [
-      row.recurrenceId ?? 'master',
+      calendarRecurrenceKey(row) || 'master',
       [row.status, row.thisAndFuture, row.endsSeries],
     ]),
   );
@@ -52,20 +66,22 @@ export const instance = (day: string, overrides: Partial<ParsedCalendarEvent> = 
     }),
   );
 
+const cancelData = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent>) =>
+  eventData({
+    ...SERIES,
+    timed: false,
+    recurring: false,
+    recurrenceId,
+    sequence: 1,
+    dtstamp: '2026-11-15T09:00:00.000Z',
+    status: 'cancelled',
+    ...overrides,
+  });
+
 export const cancelFrom = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent> = {}) =>
-  calendarOf(
-    'CANCEL',
-    eventData({
-      ...SERIES,
-      timed: false,
-      recurring: false,
-      recurrenceId,
-      thisAndFuture: true,
-      sequence: 1,
-      dtstamp: '2026-11-15T09:00:00.000Z',
-      status: 'cancelled',
-      ...overrides,
-    }),
-  );
+  calendarOf('CANCEL', cancelData(recurrenceId, { thisAndFuture: true, ...overrides }));
+
+export const cancelOne = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent> = {}) =>
+  calendarOf('CANCEL', cancelData(recurrenceId, overrides));
 
 export const CUT = '2026-11-23T09:00:00.000Z';

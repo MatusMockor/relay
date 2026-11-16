@@ -13,6 +13,7 @@ export * from './attachments/attachment-sweep-options';
 export * from './attachments/attachment-sweeper';
 export * from './calendar/calendar-service';
 export * from './calendar/due-subscriptions';
+export * from './calendar/recurrence-slot';
 export * from './google-calendar/google-calendar-service';
 export * from './google-calendar/google-scopes';
 export * from './google-calendar/unconfigured-google-calendar';

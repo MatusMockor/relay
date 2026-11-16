@@ -2,17 +2,16 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, sameRevision, supersedes } from './event-precedence';
-import { cancelled, type RangeFlags } from './invite-cancellation';
+import { cancelled } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
+import { rangeRecordAt } from './recurrence-slot';
 import { isMaster, recurrenceInstant } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
-const flagsOf = (target: StoredCalendarEvent): RangeFlags => (isMaster(target) ? 'keep' : 'cut');
-
-const applied = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
-  sameRevision(event, member) &&
-  (member.recurrenceId !== event.recurrenceId || member.endsSeries === true);
+const titleOf = (...candidates: (StoredCalendarEvent | ParsedCalendarEvent | undefined)[]) =>
+  candidates.find((candidate) => candidate !== undefined && candidate.summary !== '')?.summary ??
+  '';
 
 export class InviteRangeCancelHandler {
   constructor(
@@ -27,52 +26,61 @@ export class InviteRangeCancelHandler {
     series: readonly StoredCalendarEvent[],
   ): Promise<boolean> {
     const master = series.find(isMaster);
-    const atCut = series.find((member) => member.recurrenceId === event.recurrenceId);
-    if (
-      event.recurrenceId === null ||
-      (master !== undefined && !supersedes(event, master)) ||
-      (atCut !== undefined && !supersedes(event, atCut))
-    ) {
+    if (event.recurrenceId === null || (master !== undefined && !supersedes(event, master))) {
       return false;
     }
-    const from = recurrenceInstant(event.recurrenceId);
-    const wholeSeries = master !== undefined && from <= Date.parse(master.startsAt);
-    const targets = series.filter(
-      (member) =>
-        (isMaster(member) ? wholeSeries : member.recurrenceId === event.recurrenceId) &&
-        supersedes(event, member) &&
-        !applied(member, event),
-    );
-    for (const target of targets) {
-      await saveCurrent(repositories, cancelled(target, context, event, flagsOf(target)));
+    const slot = rangeRecordAt(series, event.recurrenceId);
+    if (!supersedes(event, slot)) {
+      return false;
     }
-    const created =
-      atCut === undefined && (await this.tombstone(repositories, context, event, master));
+    const cut = await this.storeCut(repositories, context, event, slot, master);
+    const whole = await this.cancelWholeSeries(repositories, context, event, master);
     await this.ranges.refresh(repositories, context, event.uid);
-    return targets.length > 0 || created;
+    return cut || whole;
   }
 
-  private async tombstone(
+  private async storeCut(
+    repositories: Repositories,
+    context: InviteContext,
+    event: ParsedCalendarEvent,
+    slot: StoredCalendarEvent | undefined,
+    master: StoredCalendarEvent | undefined,
+  ): Promise<boolean> {
+    if (slot?.endsSeries === true && sameRevision(event, slot)) {
+      return false;
+    }
+    const mine = findAttendee(event.attendees, context.account.email);
+    const cut = {
+      ...event,
+      summary: titleOf(event, slot, master),
+      status: 'cancelled' as const,
+      thisAndFuture: true,
+      endsSeries: true,
+    };
+    await saveCurrent(
+      repositories,
+      storedFrom(this.ids, context, cut, slot, {
+        myPartstat: mine?.partstat ?? slot?.myPartstat ?? null,
+        myEmail: mine?.email ?? slot?.myEmail ?? null,
+      }),
+    );
+    return true;
+  }
+
+  private async cancelWholeSeries(
     repositories: Repositories,
     context: InviteContext,
     event: ParsedCalendarEvent,
     master: StoredCalendarEvent | undefined,
   ): Promise<boolean> {
-    const mine = findAttendee(event.attendees, context.account.email);
-    const summary = event.summary === '' ? (master?.summary ?? '') : event.summary;
-    await saveCurrent(
-      repositories,
-      storedFrom(
-        this.ids,
-        context,
-        { ...event, summary, status: 'cancelled', thisAndFuture: true, endsSeries: true },
-        undefined,
-        {
-          myPartstat: mine?.partstat ?? null,
-          myEmail: mine?.email ?? null,
-        },
-      ),
-    );
+    if (
+      master === undefined ||
+      recurrenceInstant(event.recurrenceId ?? '') > Date.parse(master.startsAt) ||
+      sameRevision(event, master)
+    ) {
+      return false;
+    }
+    await saveCurrent(repositories, cancelled(master, context, event));
     return true;
   }
 }

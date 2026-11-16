@@ -1,15 +1,12 @@
-import type { CalendarRevision, StoredCalendarEvent } from '@relay/engine';
-import type { CalendarEventStatus } from '@relay/shared/domain';
+import type { StoredCalendarEvent } from '@relay/engine';
 import { spanOf, type ZonedTime } from './occurrence-span';
 import { type ParsedEvent, parsedEventOf } from './parsed-event';
 import { keyInstant } from './recurrence-instant';
-import { compareRevision, rangeRevisionOf } from './revision';
+import { compareRevision } from './revision';
 import { wallShift } from './wall-shift';
 
 export interface RangeOverride {
   readonly event: StoredCalendarEvent;
-  readonly shown: StoredCalendarEvent;
-  readonly revision: CalendarRevision;
   readonly parsed: ParsedEvent;
   readonly from: number;
   readonly shift: number;
@@ -19,7 +16,6 @@ export interface RangeOverride {
 
 export interface SeriesCut {
   readonly event: StoredCalendarEvent;
-  readonly revision: CalendarRevision;
   readonly from: number;
 }
 
@@ -48,31 +44,21 @@ const cutsOf = (
 ): SeriesCut[] =>
   overrides
     .filter(
-      (override) =>
-        isCut(override) &&
-        (master === null || compareRevision(rangeRevisionOf(override), master) >= 0),
+      (override) => isCut(override) && (master === null || compareRevision(override, master) >= 0),
     )
     .map((event) => ({
       event,
-      revision: rangeRevisionOf(event),
       from: recurrenceAt(event, timeZone),
     }))
     .sort((a, b) => a.from - b.from);
 
 export const lifts = (range: RangeOverride, cut: SeriesCut): boolean =>
-  range.from >= cut.from && compareRevision(range.revision, cut.revision) > 0;
+  range.from >= cut.from && compareRevision(range.event, cut.event) > 0;
 
 const stopOf = (cuts: readonly SeriesCut[], ranges: readonly RangeOverride[]): number =>
   cuts.find((cut) => !ranges.some((range) => lifts(range, cut)))?.from ?? Number.POSITIVE_INFINITY;
 
 const HOUR_MS = 3_600_000;
-
-const requestStatusOf = (parsed: ParsedEvent): CalendarEventStatus => {
-  const status: unknown = parsed.event.component.getFirstPropertyValue('status');
-  return typeof status === 'string' && status.toUpperCase() === 'TENTATIVE'
-    ? 'tentative'
-    : 'confirmed';
-};
 
 const rangeOf = (
   event: StoredCalendarEvent,
@@ -88,10 +74,7 @@ const rangeOf = (
   const offset = span.start - from;
   const timed = zone !== null && !zone.time.isDate && !parsed.start.time.isDate;
   const shift = timed ? wallShift(from, span.start, zone, timeZone) : offset;
-  const shown =
-    event.status === 'cancelled' ? { ...event, status: requestStatusOf(parsed) } : event;
-  const revision = rangeRevisionOf(event);
-  return [{ event, shown, revision, parsed, from, shift, offset, length: span.end - span.start }];
+  return [{ event, parsed, from, shift, offset, length: span.end - span.start }];
 };
 
 const latest = (range: RangeOverride): number =>

@@ -4,10 +4,14 @@ import { seedAccount } from '../support/fixtures';
 import {
   byRecurrence,
   cancelFrom,
+  cancelOne,
   CUT,
   deliver,
   instance,
   master,
+  occurrenceRow,
+  rangeKey,
+  rangeRow,
   rows,
   SERIES,
 } from '../support/range-invites';
@@ -26,10 +30,10 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       '2026-11-09T09:00:00.000Z': ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
+      [rangeKey(CUT)]: ['cancelled', true, true],
       '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
-    const tombstone = rows(engine).find((row) => row.recurrenceId === CUT);
+    const tombstone = rangeRow(engine, CUT);
     expect(tombstone?.messageId).not.toBe(afterMessage?.messageId);
     const cards = await engine.services.calendar.invitations(
       USER_ID,
@@ -72,7 +76,7 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       '2026-11-16T09:00:00.000Z': ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
+      [rangeKey(CUT)]: ['cancelled', true, true],
       '2026-12-07T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
@@ -98,7 +102,7 @@ describe('THISANDFUTURE cancellations of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['cancelled', undefined, undefined],
-      [SERIES.startsAt]: ['cancelled', true, true],
+      [rangeKey(SERIES.startsAt)]: ['cancelled', true, true],
     });
     expect(rows(engine).every((row) => row.method === 'CANCEL')).toBe(true);
   });
@@ -108,17 +112,14 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     const seeded = await seedAccount(engine);
     await deliver(engine, seeded, 'series', master());
     await deliver(engine, seeded, 'cancel', cancelFrom(CUT));
-    await deliver(
-      engine,
-      seeded,
-      'instance-cancel',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 2 }),
-    );
+    await deliver(engine, seeded, 'instance-cancel', cancelOne(CUT, { sequence: 2 }));
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
+      [CUT]: ['cancelled', undefined, undefined],
+      [rangeKey(CUT)]: ['cancelled', true, true],
     });
-    expect(rows(engine).find((row) => row.recurrenceId === CUT)?.sequence).toBe(2);
+    expect(occurrenceRow(engine, CUT)?.sequence).toBe(2);
+    expect(rangeRow(engine, CUT)?.sequence).toBe(1);
   });
 });

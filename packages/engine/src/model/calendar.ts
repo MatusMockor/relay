@@ -24,7 +24,6 @@ export interface CalendarEventData {
   readonly recurrenceId: string | null;
   readonly thisAndFuture?: boolean;
   readonly endsSeries?: boolean;
-  readonly rangeRevision?: CalendarRevision;
   readonly sequence: number;
   readonly dtstamp: string | null;
   readonly status: CalendarEventStatus;

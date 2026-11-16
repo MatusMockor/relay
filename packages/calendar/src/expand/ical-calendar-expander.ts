@@ -5,6 +5,7 @@ import type {
   ExpandedOccurrence,
   StoredCalendarEvent,
 } from '@relay/engine';
+import { exactRows } from './exact-rows';
 import { occurrenceSpan } from './occurrence-end';
 import { occurrenceTimes } from './occurrence-times';
 import { isoSpan, overlaps, spanOf } from './occurrence-span';
@@ -32,7 +33,7 @@ export class IcalCalendarExpander implements CalendarExpander {
     const { master } = series;
     if (master === null) {
       const plan = seriesPlan(null, series.overrides, window.timeZone);
-      return series.overrides
+      return [...exactRows(series.overrides).values()]
         .filter((override) => !hiddenByCut(override, plan))
         .flatMap((override) => single(override, window));
     }
@@ -64,7 +65,7 @@ export class IcalCalendarExpander implements CalendarExpander {
     }
     const { timeZone } = window;
     const plan = seriesPlan(master, overrides, timeZone);
-    const byKey = new Map(overrides.map((override) => [override.recurrenceId, override]));
+    const byKey = exactRows(overrides);
     const results: ExpandedOccurrence[] = [];
     const to = Date.parse(window.to) + plan.reachAhead;
     try {
@@ -94,7 +95,7 @@ export class IcalCalendarExpander implements CalendarExpander {
             ? occurrenceSpan(parsed, time, key, timeZone)
             : rangeSpan(parsed, range, time, key, timeZone);
         if (overlaps(span, window)) {
-          results.push({ event: range?.shown ?? master, recurrenceId: key, ...isoSpan(span) });
+          results.push({ event: range?.event ?? master, recurrenceId: key, ...isoSpan(span) });
         }
       }
     } catch {

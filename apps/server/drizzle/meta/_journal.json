@@ -127,6 +127,13 @@
       "when": 1794837129741,
       "tag": "0017_calendar_this_and_future",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794845284843,
+      "tag": "0018_calendar_range_records",
+      "breakpoints": true
     }
   ]
 }

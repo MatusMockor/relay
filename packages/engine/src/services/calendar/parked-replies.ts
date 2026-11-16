@@ -4,6 +4,7 @@ import type { CalendarReplyWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { Repositories } from '../../ports/repositories';
 import type { InviteContext } from './invite-context';
+import { calendarRecurrenceKey, isRangeRecord, sameSlot } from './recurrence-slot';
 import { applyReply } from './reply-application';
 
 const PARKED_REPLY_TTL_MS = 90 * 24 * 60 * 60 * 1000;
@@ -18,7 +19,7 @@ const isNewer = (
   (stored.sequence === incoming.sequence && stampOf(stored.dtstamp) > stampOf(incoming.dtstamp));
 
 const sameInstance = (work: CalendarReplyWork, event: StoredCalendarEvent): boolean =>
-  work.uid === event.uid && work.recurrenceId === event.recurrenceId;
+  work.uid === event.uid && sameSlot(work, event);
 
 export class ParkedReplies {
   async park(
@@ -27,7 +28,11 @@ export class ParkedReplies {
     event: CalendarEventData,
     attendee: CalendarAttendee,
   ): Promise<void> {
-    const ref = JSON.stringify([event.uid, event.recurrenceId, attendee.email.toLowerCase()]);
+    const ref = JSON.stringify([
+      event.uid,
+      calendarRecurrenceKey(event) || null,
+      attendee.email.toLowerCase(),
+    ]);
     const key = { accountId: context.account.id, kind: 'calendar-reply' as const, ref };
     const stored = await work.find(key);
     if (stored !== null && isNewer(stored.payload, event)) {
@@ -38,6 +43,7 @@ export class ParkedReplies {
       payload: {
         uid: event.uid,
         recurrenceId: event.recurrenceId,
+        ...(isRangeRecord(event) ? { thisAndFuture: true } : {}),
         sequence: event.sequence,
         dtstamp: event.dtstamp,
         attendee,

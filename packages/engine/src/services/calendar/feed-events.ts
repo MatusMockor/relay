@@ -6,6 +6,7 @@ import type {
 } from '../../model/calendar';
 import type { IdGenerator } from '../../ports/id-generator';
 import { supersedes } from './event-precedence';
+import { calendarRecurrenceKey } from './recurrence-slot';
 
 export const MAX_FEED_EVENTS = 20_000;
 
@@ -41,7 +42,7 @@ export const feedEvents = (
 ): StoredCalendarEvent[] => {
   const latest = new Map<string, StoredCalendarEvent>();
   for (const event of calendar.events.filter((entry) => entry.timed).slice(0, MAX_FEED_EVENTS)) {
-    const key = `${event.uid}\u0000${event.recurrenceId ?? ''}`;
+    const key = `${event.uid}\u0000${calendarRecurrenceKey(event)}`;
     const known = latest.get(key);
     if (supersedes(event, known)) {
       latest.set(key, toStored(ids, owner, event));

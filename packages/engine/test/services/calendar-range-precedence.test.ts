@@ -5,10 +5,14 @@ import { deliverMail, seedAccount } from '../support/fixtures';
 import {
   byRecurrence,
   cancelFrom,
+  cancelOne,
   CUT,
   deliver,
   instance,
   master,
+  occurrenceRow,
+  rangeKey,
+  rangeRow,
   rows,
 } from '../support/range-invites';
 import { createTestEngine, USER_ID } from '../support/test-engine';
@@ -19,16 +23,12 @@ describe('THISANDFUTURE range precedence of invitations', () => {
     const seeded = await seedAccount(engine);
     await deliver(engine, seeded, 'series', master());
     await deliver(engine, seeded, 'range', instance('11-23', { sequence: 1, thisAndFuture: true }));
-    await deliver(
-      engine,
-      seeded,
-      'anchor-cancel',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 2 }),
-    );
+    await deliver(engine, seeded, 'anchor-cancel', cancelOne(CUT, { sequence: 2 }));
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, undefined],
+      [CUT]: ['cancelled', undefined, undefined],
+      [rangeKey(CUT)]: ['confirmed', true, undefined],
     });
   });
 
@@ -54,8 +54,8 @@ describe('THISANDFUTURE range precedence of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
-      '2026-12-07T09:00:00.000Z': ['confirmed', true, undefined],
+      [rangeKey(CUT)]: ['cancelled', true, true],
+      [rangeKey('2026-12-07T09:00:00.000Z')]: ['confirmed', true, undefined],
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
@@ -71,19 +71,14 @@ describe('THISANDFUTURE range precedence of invitations', () => {
       'later-range',
       instance('11-30', { sequence: 2, thisAndFuture: true }),
     );
-    await deliver(
-      engine,
-      seeded,
-      'anchor-cancel',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 3 }),
-    );
+    await deliver(engine, seeded, 'anchor-cancel', cancelOne(CUT, { sequence: 3 }));
 
-    const anchor = rows(engine).find((row) => row.recurrenceId === CUT);
-    expect(anchor).toMatchObject({
-      status: 'cancelled',
-      sequence: 3,
-      thisAndFuture: true,
-      rangeRevision: { sequence: 1, dtstamp: '2026-11-15T07:00:00.000Z' },
+    expect(occurrenceRow(engine, CUT)).toMatchObject({ status: 'cancelled', sequence: 3 });
+    expect(rangeRow(engine, CUT)).toMatchObject({
+      status: 'confirmed',
+      method: 'REQUEST',
+      sequence: 1,
+      dtstamp: '2026-11-15T07:00:00.000Z',
     });
   });
 
@@ -99,8 +94,8 @@ describe('THISANDFUTURE range precedence of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [CUT]: ['cancelled', true, true],
-      [secondCut]: ['cancelled', true, true],
+      [rangeKey(CUT)]: ['cancelled', true, true],
+      [rangeKey(secondCut)]: ['cancelled', true, true],
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
@@ -139,17 +134,20 @@ describe('THISANDFUTURE range precedence of invitations', () => {
         request,
         instance('11-23', { uid, sequence: 1, thisAndFuture: true }),
       );
-      engine.calendar.parser.register(
-        cancel,
-        cancelFrom(CUT, { uid, thisAndFuture: false, sequence: 2 }),
-      );
+      engine.calendar.parser.register(cancel, cancelOne(CUT, { uid, sequence: 2 }));
       deliverMail(seeded.server, 'INBOX', { id: request, headers: { 'X-Test-Calendar': request } });
       deliverMail(seeded.server, 'INBOX', { id: cancel, headers: { 'X-Test-Calendar': cancel } });
     }
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
 
-    expect(rows(engine)).toHaveLength(uids.length);
-    expect(rows(engine).filter((row) => row.status !== 'cancelled')).toEqual([]);
+    const occurrences = rows(engine).filter((row) => row.thisAndFuture !== true);
+    const ranges = rows(engine).filter((row) => row.thisAndFuture === true);
+    expect(occurrences.map((row) => [row.uid, row.status]).sort()).toEqual(
+      uids.map((uid) => [uid, 'cancelled']).sort(),
+    );
+    expect(ranges.map((row) => [row.uid, row.status]).sort()).toEqual(
+      uids.map((uid) => [uid, 'confirmed']).sort(),
+    );
   });
 
   it('keeps the cut revision when the cut anchor is cancelled again after a lift', async () => {
@@ -159,19 +157,15 @@ describe('THISANDFUTURE range precedence of invitations', () => {
     await deliver(engine, seeded, 'cut', cancelFrom(CUT));
     await deliver(engine, seeded, 'lift', instance('11-30', { sequence: 2, thisAndFuture: true }));
     await deliver(engine, seeded, 'restored', instance('12-07', { sequence: 2 }));
-    await deliver(
-      engine,
-      seeded,
-      'anchor-again',
-      cancelFrom(CUT, { thisAndFuture: false, sequence: 3 }),
-    );
+    await deliver(engine, seeded, 'anchor-again', cancelOne(CUT, { sequence: 3 }));
     await deliver(engine, seeded, 'late', instance('12-14', { sequence: 2 }));
 
-    expect(rows(engine).find((row) => row.recurrenceId === CUT)).toMatchObject({
-      sequence: 3,
+    expect(rangeRow(engine, CUT)).toMatchObject({
+      sequence: 1,
+      dtstamp: '2026-11-15T09:00:00.000Z',
       endsSeries: true,
-      rangeRevision: { sequence: 1, dtstamp: '2026-11-15T09:00:00.000Z' },
     });
+    expect(occurrenceRow(engine, CUT)).toMatchObject({ status: 'cancelled', sequence: 3 });
     expect(rows(engine).some((row) => row.recurrenceId === '2026-12-14T09:00:00.000Z')).toBe(true);
     const restored = rows(engine).find((row) => row.recurrenceId === '2026-12-07T09:00:00.000Z');
     const cards = await engine.services.calendar.invitations(

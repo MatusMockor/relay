@@ -4,16 +4,17 @@ import type {
   ThreadId,
   UserId,
 } from '@relay/shared/domain';
-import type {
-  CalendarEventRepository,
-  CalendarFetchRecord,
-  CalendarRange,
-  CalendarResponseChange,
-  CalendarSource,
-  CalendarSubscriptionChanges,
-  CalendarSubscriptionRecord,
-  CalendarSubscriptionRepository,
-  StoredCalendarEvent,
+import {
+  type CalendarEventRepository,
+  type CalendarFetchRecord,
+  type CalendarRange,
+  type CalendarResponseChange,
+  type CalendarSource,
+  type CalendarSubscriptionChanges,
+  type CalendarSubscriptionRecord,
+  type CalendarSubscriptionRepository,
+  sameSlot,
+  type StoredCalendarEvent,
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
@@ -142,7 +143,7 @@ export class MemoryCalendarEventRepository implements CalendarEventRepository {
       (row) =>
         sourceOf(row.source) === sourceOf(event.source) &&
         row.uid === event.uid &&
-        row.recurrenceId === event.recurrenceId,
+        sameSlot(row, event),
     );
   }
 

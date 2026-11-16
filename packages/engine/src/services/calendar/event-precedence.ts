@@ -10,9 +10,6 @@ const stampOf = (value: string | null): number => (value === null ? 0 : Date.par
 export const compareRevisions = (a: CalendarRevision, b: CalendarRevision): number =>
   a.sequence - b.sequence || stampOf(a.dtstamp) - stampOf(b.dtstamp);
 
-export const rangeRevisionOf = (event: CalendarEventData): CalendarRevision =>
-  event.rangeRevision ?? { sequence: event.sequence, dtstamp: event.dtstamp };
-
 export const supersedes = (
   incoming: CalendarEventData,
   stored: StoredCalendarEvent | undefined,

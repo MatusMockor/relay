@@ -1,4 +1,4 @@
-import type { GoogleEventRecord } from '@relay/engine';
+import { calendarRecurrenceKey, type GoogleEventRecord } from '@relay/engine';
 import type { GoogleCalendarId } from '@relay/shared/domain';
 import { eq } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
@@ -28,7 +28,7 @@ export const withCarriedRevisions = (
   return records.map((record) => {
     const key = keyOf(
       seriesKeyOf(record.event.source, record.event.uid),
-      record.event.recurrenceId ?? '',
+      calendarRecurrenceKey(record.event),
     );
     const revision = Math.max(previous.get(key) ?? 0, record.event.revision);
     return { ...record, event: { ...record.event, revision } };

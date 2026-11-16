@@ -286,11 +286,12 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       ['2026-11-06T13:00:00.000Z', 'Report o 13:00'],
       ['2026-11-07T13:00:00.000Z', 'Report o 13:00'],
     ]);
-    expect(
-      (await seriesOf(account.id, uid)).find((row) => row.status === 'cancelled'),
-    ).toMatchObject({
-      sequence: 3,
-      rangeRevision: { sequence: 1 },
-    });
+    const rows = await seriesOf(account.id, uid);
+    expect(rows.map((row) => [row.thisAndFuture, row.status, row.sequence])).toEqual([
+      [undefined, 'confirmed', 0],
+      [undefined, 'cancelled', 3],
+      [true, 'confirmed', 1],
+      [true, 'confirmed', 2],
+    ]);
   });
 });

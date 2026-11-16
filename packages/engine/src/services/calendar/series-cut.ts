@@ -1,5 +1,6 @@
 import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
-import { compareRevisions, rangeRevisionOf } from './event-precedence';
+import { compareRevisions } from './event-precedence';
+import { isRangeRequest } from './series-range-rows';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:\d{2})$/;
@@ -20,9 +21,6 @@ export const atOrAfter = (member: Pick<CalendarEventData, 'recurrenceId'>, from:
 const isCut = (member: StoredCalendarEvent): boolean =>
   member.recurrenceId !== null && member.endsSeries === true;
 
-const isRange = (member: StoredCalendarEvent): boolean =>
-  member.recurrenceId !== null && member.thisAndFuture === true && member.endsSeries !== true;
-
 const instantOf = (member: StoredCalendarEvent): number =>
   recurrenceInstant(member.recurrenceId ?? '');
 
@@ -35,7 +33,7 @@ const lifted = (
     (range) =>
       instantOf(range) >= instantOf(cut) &&
       instantOf(range) <= at &&
-      compareRevisions(rangeRevisionOf(range), rangeRevisionOf(cut)) > 0,
+      compareRevisions(range, cut) > 0,
   );
 
 const blockingCuts = (
@@ -43,11 +41,11 @@ const blockingCuts = (
   at: number,
 ): StoredCalendarEvent[] => {
   const master = series.find(isMaster);
-  const ranges = series.filter(isRange);
+  const ranges = series.filter(isRangeRequest);
   return series.filter(
     (member) =>
       isCut(member) &&
-      (master === undefined || compareRevisions(rangeRevisionOf(member), master) >= 0) &&
+      (master === undefined || compareRevisions(member, master) >= 0) &&
       instantOf(member) <= at &&
       !lifted(member, ranges, at),
   );
@@ -61,7 +59,7 @@ export const cutOffByRange = (
     return false;
   }
   return blockingCuts(series, recurrenceInstant(event.recurrenceId)).some(
-    (cut) => compareRevisions(event, rangeRevisionOf(cut)) < 0,
+    (cut) => compareRevisions(event, cut) < 0,
   );
 };
 
