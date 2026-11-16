@@ -279,6 +279,7 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
       ['2026-11-03T09:00:00.000Z', 'cancelled'],
       ['2026-11-08T09:00:00.000Z', 'cancelled'],
       ['2026-11-09T09:00:00.000Z', 'confirmed'],
+      ['2026-11-10T09:00:00.000Z', 'confirmed'],
     ]);
     await client.logout();
     await deleteGreenMailUser(mailbox);

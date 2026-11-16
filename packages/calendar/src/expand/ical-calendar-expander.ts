@@ -9,11 +9,13 @@ import { exactRows } from './exact-rows';
 import { occurrenceSpan } from './occurrence-end';
 import { occurrenceTimes } from './occurrence-times';
 import { isoSpan, overlaps, spanOf } from './occurrence-span';
-import { parsedEventOf } from './parsed-event';
+import { type ParsedEvent, parsedEventOf } from './parsed-event';
 import { rangeSpan } from './range-span';
 import { keyInstant } from './recurrence-instant';
+import { liveOverrides } from './live-overrides';
 import { cutAt, hiddenByCut, rangeAt, shownAt, visibleLeftover } from './series-choice';
-import { seriesPlan } from './series-plan';
+import { orphaned } from './series-membership';
+import { type SeriesPlan, seriesPlan } from './series-plan';
 import { seriesRangeEndOf } from './series-range-end';
 
 const single = (stored: StoredCalendarEvent, window: CalendarWindow): ExpandedOccurrence[] => {
@@ -40,7 +42,7 @@ export class IcalCalendarExpander implements CalendarExpander {
     if (!master.recurring) {
       return single(master, window);
     }
-    return this.recurring(master, series.overrides, window);
+    return this.recurring(master, liveOverrides(master, series.overrides), window);
   }
 
   seriesRangeEnd(
@@ -51,7 +53,7 @@ export class IcalCalendarExpander implements CalendarExpander {
     if (parsed === null || !master.recurring) {
       return master.rangeEndsAt;
     }
-    return seriesRangeEndOf(parsed, seriesPlan(master, overrides, 'UTC'));
+    return seriesRangeEndOf(parsed, seriesPlan(master, liveOverrides(master, overrides), 'UTC'));
   }
 
   private recurring(
@@ -93,7 +95,7 @@ export class IcalCalendarExpander implements CalendarExpander {
         const span =
           range === undefined
             ? occurrenceSpan(parsed, time, key, timeZone)
-            : rangeSpan(parsed, range, time, key, timeZone);
+            : rangeSpan(parsed, range, time, timeZone);
         if (overlaps(span, window)) {
           results.push({ event: range?.event ?? master, recurrenceId: key, ...isoSpan(span) });
         }
@@ -101,7 +103,19 @@ export class IcalCalendarExpander implements CalendarExpander {
     } catch {
       return results;
     }
-    const leftovers = [...byKey.values()].filter((override) => visibleLeftover(override, plan));
-    return [...results, ...leftovers.flatMap((override) => single(override, window))];
+    return [...results, ...this.leftovers(master, parsed, [...byKey.values()], plan, window)];
+  }
+
+  private leftovers(
+    master: StoredCalendarEvent,
+    parsed: ParsedEvent,
+    overrides: readonly StoredCalendarEvent[],
+    plan: SeriesPlan,
+    window: CalendarWindow,
+  ): ExpandedOccurrence[] {
+    return overrides
+      .filter((override) => visibleLeftover(override, plan))
+      .flatMap((override) => single(override, window))
+      .filter(({ event }) => !orphaned(event, master, parsed, window.timeZone));
   }
 }

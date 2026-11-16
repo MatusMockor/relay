@@ -1,5 +1,6 @@
 import {
   calendarRecurrenceKey,
+  CUT_RECORD_SUFFIX,
   type ParsedCalendar,
   type ParsedCalendarEvent,
   RANGE_RECORD_SUFFIX,
@@ -27,11 +28,16 @@ export const rows = (engine: TestEngine): StoredCalendarEvent[] =>
 
 export const rangeKey = (recurrenceId: string): string => `${recurrenceId}${RANGE_RECORD_SUFFIX}`;
 
+export const cutKey = (recurrenceId: string): string => `${recurrenceId}${CUT_RECORD_SUFFIX}`;
+
 export const occurrenceRow = (engine: TestEngine, recurrenceId: string) =>
   rows(engine).find((row) => calendarRecurrenceKey(row) === recurrenceId);
 
 export const rangeRow = (engine: TestEngine, recurrenceId: string) =>
   rows(engine).find((row) => calendarRecurrenceKey(row) === rangeKey(recurrenceId));
+
+export const cutRow = (engine: TestEngine, recurrenceId: string) =>
+  rows(engine).find((row) => calendarRecurrenceKey(row) === cutKey(recurrenceId));
 
 export const byRecurrence = (engine: TestEngine) =>
   Object.fromEntries(

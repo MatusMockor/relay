@@ -12,6 +12,7 @@ export interface RangeOverride {
   readonly shift: number;
   readonly offset: number;
   readonly length: number;
+  readonly slack: number;
 }
 
 export interface SeriesCut {
@@ -37,15 +38,9 @@ const isRanged = (event: StoredCalendarEvent): boolean =>
 export const recurrenceAt = (event: StoredCalendarEvent, timeZone: string): number =>
   keyInstant(event.recurrenceId ?? '', timeZone);
 
-const cutsOf = (
-  master: StoredCalendarEvent | null,
-  overrides: readonly StoredCalendarEvent[],
-  timeZone: string,
-): SeriesCut[] =>
+const cutsOf = (overrides: readonly StoredCalendarEvent[], timeZone: string): SeriesCut[] =>
   overrides
-    .filter(
-      (override) => isCut(override) && (master === null || compareRevision(override, master) >= 0),
-    )
+    .filter(isCut)
     .map((event) => ({
       event,
       from: recurrenceAt(event, timeZone),
@@ -59,6 +54,7 @@ const stopOf = (cuts: readonly SeriesCut[], ranges: readonly RangeOverride[]): n
   cuts.find((cut) => !ranges.some((range) => lifts(range, cut)))?.from ?? Number.POSITIVE_INFINITY;
 
 const HOUR_MS = 3_600_000;
+const DAY_MS = 86_400_000;
 
 const rangeOf = (
   event: StoredCalendarEvent,
@@ -74,20 +70,22 @@ const rangeOf = (
   const offset = span.start - from;
   const timed = zone !== null && !zone.time.isDate && !parsed.start.time.isDate;
   const shift = timed ? wallShift(from, span.start, zone, timeZone) : offset;
-  return [{ event, parsed, from, shift, offset, length: span.end - span.start }];
+  const slack = zone !== null && zone.time.isDate !== parsed.start.time.isDate ? DAY_MS : HOUR_MS;
+  return [{ event, parsed, from, shift, offset, length: span.end - span.start, slack }];
 };
 
 const latest = (range: RangeOverride): number =>
-  Math.max(range.shift, range.offset) + range.length + HOUR_MS;
+  Math.max(range.shift, range.offset) + range.length + range.slack;
 
-const earliest = (range: RangeOverride): number => Math.min(range.shift, range.offset) - HOUR_MS;
+const earliest = (range: RangeOverride): number =>
+  Math.min(range.shift, range.offset) - range.slack;
 
 export const seriesPlan = (
   master: StoredCalendarEvent | null,
   overrides: readonly StoredCalendarEvent[],
   timeZone: string,
 ): SeriesPlan => {
-  const cuts = cutsOf(master, overrides, timeZone);
+  const cuts = cutsOf(overrides, timeZone);
   const zone = master === null ? null : (parsedEventOf(master)?.start ?? null);
   const ranges = overrides
     .filter(isRanged)

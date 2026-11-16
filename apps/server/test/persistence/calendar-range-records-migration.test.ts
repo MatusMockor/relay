@@ -47,6 +47,7 @@ const D1 = '2026-11-10T08:00:00.000Z';
 const D3 = '2026-11-12T08:00:00.000Z';
 const at = (day: string) => `2026-${day}T09:00:00.000Z`;
 const range = (day: string) => `${at(day)};RANGE=THISANDFUTURE`;
+const cut = (day: string) => `${range(day)};CUT`;
 
 const LEGACY: readonly LegacyRow[] = [
   { id: 'cev-master', uid: 'a', recurrenceId: null, sequence: 0, dtstamp: D1, status: 'confirmed' },
@@ -214,7 +215,7 @@ describe('calendar range records migration', () => {
     rmSync(folder, { recursive: true, force: true });
   });
 
-  it('splits rows that held an instance and a range into an occurrence row and a range record', async () => {
+  it('splits instance and range rows and moves cuts into their own slot', async () => {
     await runMigrations({ databaseUrl: database.url, migrationsFolder: folder });
     connection = openPostgresConnection({ url: database.url, maxConnections: 2 });
     const repositories = createPgRepositories(connection.db);
@@ -231,14 +232,14 @@ describe('calendar range records migration', () => {
       ['generated', at('11-16'), 'cancelled', 'CANCEL', 3, D3, false, false],
       ['cev-anchor', range('11-16'), 'confirmed', 'REQUEST', 1, D1, true, false],
       ['generated', at('11-23'), 'cancelled', 'CANCEL', 3, D3, false, false],
-      ['cev-recut', range('11-23'), 'cancelled', 'CANCEL', 2, D1, true, true],
+      ['cev-recut', cut('11-23'), 'cancelled', 'CANCEL', 2, D1, true, true],
       ['cev-range', range('12-07'), 'confirmed', 'REQUEST', 4, D1, true, false],
     ]);
     expect((await events.findSeries(source, 'b')).map(summaryOf)).toEqual([
       ['cev-b-master', '', 'confirmed', 'REQUEST', 0, D1, false, false],
       ['generated', at('11-16'), 'cancelled', 'CANCEL', 2, D3, false, false],
       ['cev-b-tentative', range('11-16'), 'tentative', 'REQUEST', 1, D1, true, false],
-      ['cev-b-cut', range('11-30'), 'cancelled', 'CANCEL', 1, D1, true, true],
+      ['cev-b-cut', cut('11-30'), 'cancelled', 'CANCEL', 1, D1, true, true],
     ]);
     expect((await events.findSeries(source, 'c')).map(summaryOf)).toEqual([
       ['cev-c-master', '', 'cancelled', 'CANCEL', 2, D3, false, false],
@@ -263,5 +264,14 @@ describe('calendar range records migration', () => {
       revision: 0,
     });
     expect(restored).toMatchObject({ recurrenceId: at('11-30'), status: 'confirmed' });
+    const rangeAtCut = await events.saveIfCurrent({
+      ...(anchor as StoredCalendarEvent),
+      id: CalendarEventIdSchema.parse('cev-range-at-cut'),
+      recurrenceId: at('11-23'),
+      thisAndFuture: true,
+      status: 'confirmed',
+      revision: 0,
+    });
+    expect(rangeAtCut).toMatchObject({ recurrenceId: at('11-23'), thisAndFuture: true });
   });
 });

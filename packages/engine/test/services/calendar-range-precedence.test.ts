@@ -7,6 +7,8 @@ import {
   cancelFrom,
   cancelOne,
   CUT,
+  cutKey,
+  cutRow,
   deliver,
   instance,
   master,
@@ -32,7 +34,7 @@ describe('THISANDFUTURE range precedence of invitations', () => {
     });
   });
 
-  it('accepts only a newer range request after a cut and lets it restore later instances', async () => {
+  it('keeps older requests behind a cut hidden and lets a newer range restore later instances', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     await deliver(engine, seeded, 'series', master());
@@ -54,9 +56,21 @@ describe('THISANDFUTURE range precedence of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
+      '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
+      [rangeKey('2026-11-30T09:00:00.000Z')]: ['confirmed', true, undefined],
       [rangeKey('2026-12-07T09:00:00.000Z')]: ['confirmed', true, undefined],
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
+    });
+    const stale = rangeRow(engine, '2026-11-30T09:00:00.000Z');
+    const cards = await engine.services.calendar.invitations(
+      USER_ID,
+      stale?.threadId as ThreadId,
+      'Europe/Bratislava',
+    );
+    expect(cards.find((card) => card.eventId === stale?.id)).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
     });
   });
 
@@ -82,7 +96,7 @@ describe('THISANDFUTURE range precedence of invitations', () => {
     });
   });
 
-  it('rejects an override that any applying cut supersedes', async () => {
+  it('hides an override that any applying cut supersedes', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     const secondCut = '2026-12-07T09:00:00.000Z';
@@ -94,10 +108,22 @@ describe('THISANDFUTURE range precedence of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
-      [rangeKey(secondCut)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
+      [cutKey(secondCut)]: ['cancelled', true, true],
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
+      '2026-12-21T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
+    const cardOf = async (recurrenceId: string) => {
+      const row = occurrenceRow(engine, recurrenceId);
+      const cards = await engine.services.calendar.invitations(
+        USER_ID,
+        row?.threadId as ThreadId,
+        'Europe/Bratislava',
+      );
+      return cards.find((card) => card.eventId === row?.id)?.status;
+    };
+    expect(await cardOf('2026-12-14T09:00:00.000Z')).toBe('cancelled');
+    expect(await cardOf('2026-12-21T09:00:00.000Z')).toBe('cancelled');
   });
 
   it('refuses an RSVP for an override that a newer cut hides before replying', async () => {
@@ -160,7 +186,7 @@ describe('THISANDFUTURE range precedence of invitations', () => {
     await deliver(engine, seeded, 'anchor-again', cancelOne(CUT, { sequence: 3 }));
     await deliver(engine, seeded, 'late', instance('12-14', { sequence: 2 }));
 
-    expect(rangeRow(engine, CUT)).toMatchObject({
+    expect(cutRow(engine, CUT)).toMatchObject({
       sequence: 1,
       dtstamp: '2026-11-15T09:00:00.000Z',
       endsSeries: true,

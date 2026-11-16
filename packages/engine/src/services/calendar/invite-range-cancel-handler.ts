@@ -5,7 +5,7 @@ import { findAttendee, sameRevision, supersedes } from './event-precedence';
 import { cancelled } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
-import { rangeRecordAt } from './recurrence-slot';
+import { cutRecordAt, rangeRecordAt } from './recurrence-slot';
 import { isMaster, recurrenceInstant } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
@@ -29,11 +29,13 @@ export class InviteRangeCancelHandler {
     if (event.recurrenceId === null || (master !== undefined && !supersedes(event, master))) {
       return false;
     }
-    const slot = rangeRecordAt(series, event.recurrenceId);
-    if (!supersedes(event, slot)) {
+    const slot = cutRecordAt(series, event.recurrenceId);
+    const range = rangeRecordAt(series, event.recurrenceId);
+    if (!supersedes(event, slot) || !supersedes(event, range)) {
       return false;
     }
-    const cut = await this.storeCut(repositories, context, event, slot, master);
+    const summary = titleOf(event, slot, range, master);
+    const cut = await this.storeCut(repositories, context, { ...event, summary }, slot);
     const whole = await this.cancelWholeSeries(repositories, context, event, master);
     await this.ranges.refresh(repositories, context, event.uid);
     return cut || whole;
@@ -44,15 +46,13 @@ export class InviteRangeCancelHandler {
     context: InviteContext,
     event: ParsedCalendarEvent,
     slot: StoredCalendarEvent | undefined,
-    master: StoredCalendarEvent | undefined,
   ): Promise<boolean> {
-    if (slot?.endsSeries === true && sameRevision(event, slot)) {
+    if (slot !== undefined && sameRevision(event, slot)) {
       return false;
     }
     const mine = findAttendee(event.attendees, context.account.email);
     const cut = {
       ...event,
-      summary: titleOf(event, slot, master),
       status: 'cancelled' as const,
       thisAndFuture: true,
       endsSeries: true,

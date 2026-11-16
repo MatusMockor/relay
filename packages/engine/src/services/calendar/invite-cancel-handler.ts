@@ -6,15 +6,23 @@ import { cancelled } from './invite-cancellation';
 import { type InviteContext, type InviteHandler, inviteSource, storedFrom } from './invite-context';
 import { InviteRangeCancelHandler } from './invite-range-cancel-handler';
 import { saveCurrent } from './invite-write';
-import { rangeRecordAt, sameSlot } from './recurrence-slot';
+import { isRangeRecord, sameSlot } from './recurrence-slot';
 import { involvesRange, isMaster } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
-const inScope = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
-  event.recurrenceId === null ? member.endsSeries !== true : sameSlot(member, event);
+type Series = readonly StoredCalendarEvent[];
 
-const anchorsRange = (series: readonly StoredCalendarEvent[], event: ParsedCalendarEvent) =>
-  event.recurrenceId !== null && rangeRecordAt(series, event.recurrenceId) !== undefined;
+const inScope =
+  (series: Series, event: ParsedCalendarEvent) =>
+  (member: StoredCalendarEvent): boolean => {
+    if (event.recurrenceId !== null || series.some(isMaster)) {
+      return sameSlot(member, event);
+    }
+    return member.endsSeries !== true;
+  };
+
+const anchorsRange = (series: Series, event: ParsedCalendarEvent): boolean =>
+  series.some((member) => member.recurrenceId === event.recurrenceId && isRangeRecord(member));
 
 export class InviteCancelHandler implements InviteHandler {
   private readonly range: InviteRangeCancelHandler;
@@ -35,7 +43,8 @@ export class InviteCancelHandler implements InviteHandler {
     if (event.thisAndFuture === true) {
       return this.range.apply(repositories, context, event, series);
     }
-    const targets = series.filter((member) => inScope(member, event) && supersedes(event, member));
+    const scoped = series.filter(inScope(series, event));
+    const targets = scoped.filter((member) => supersedes(event, member));
     for (const target of targets) {
       await saveCurrent(repositories, cancelled(target, context, event));
     }
@@ -45,10 +54,7 @@ export class InviteCancelHandler implements InviteHandler {
       }
       return true;
     }
-    if (
-      (!event.timed && !anchorsRange(series, event)) ||
-      series.some((member) => inScope(member, event))
-    ) {
+    if ((!event.timed && !anchorsRange(series, event)) || scoped.length > 0) {
       return false;
     }
     const master = series.find(isMaster);

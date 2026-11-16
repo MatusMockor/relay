@@ -134,6 +134,13 @@
       "when": 1794845284843,
       "tag": "0018_calendar_range_records",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794848334608,
+      "tag": "0019_calendar_cut_records",
+      "breakpoints": true
     }
   ]
 }

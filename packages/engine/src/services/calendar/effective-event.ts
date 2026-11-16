@@ -1,13 +1,24 @@
 import type { CalendarEventId, UserId } from '@relay/shared/domain';
 import type { StoredCalendarEvent } from '../../model/calendar';
 import type { CalendarEventRepository } from '../../ports/calendar-event-repository';
-import { cutOffByRange } from './series-cut';
+import { compareRevisions } from './event-precedence';
+import { cutOffByRange, isMaster } from './series-cut';
+
+const cancelledWithSeries = (
+  event: StoredCalendarEvent,
+  series: readonly StoredCalendarEvent[],
+): boolean => {
+  const master = series.find(isMaster);
+  return !isMaster(event) && master?.status === 'cancelled' && compareRevisions(event, master) < 0;
+};
 
 export const effectiveEvent = (
   event: StoredCalendarEvent,
   series: readonly StoredCalendarEvent[],
 ): StoredCalendarEvent =>
-  cutOffByRange(series, event) ? { ...event, status: 'cancelled' } : event;
+  cutOffByRange(series, event) || cancelledWithSeries(event, series)
+    ? { ...event, status: 'cancelled' }
+    : event;
 
 export const findEffective = async (
   events: CalendarEventRepository,

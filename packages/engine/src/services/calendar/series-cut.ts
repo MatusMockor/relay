@@ -51,6 +51,14 @@ const blockingCuts = (
   );
 };
 
+const outranks = (cut: StoredCalendarEvent, event: CalendarEventData): boolean => {
+  const order = compareRevisions(event, cut);
+  return (
+    order < 0 ||
+    (order === 0 && event.thisAndFuture === true && event.recurrenceId === cut.recurrenceId)
+  );
+};
+
 export const cutOffByRange = (
   series: readonly StoredCalendarEvent[],
   event: CalendarEventData,
@@ -59,7 +67,7 @@ export const cutOffByRange = (
     return false;
   }
   return blockingCuts(series, recurrenceInstant(event.recurrenceId)).some(
-    (cut) => compareRevisions(event, cut) < 0,
+    (cut) => cut !== event && outranks(cut, event),
   );
 };
 

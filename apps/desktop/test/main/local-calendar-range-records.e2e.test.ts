@@ -188,7 +188,12 @@ describe('local mode THISANDFUTURE records next to exact instances (SQLite + Gre
       }),
     );
 
-    expect(answered).toMatchObject({ canRespond: true, myStatus: 'accepted' });
+    expect(answered).toMatchObject({
+      canRespond: true,
+      myStatus: 'accepted',
+      start: '2026-11-04T11:00:00.000Z',
+      end: '2026-11-04T11:30:00.000Z',
+    });
     await expect
       .poll(() => subjectsIn(organizer, 'INBOX'), { timeout: 10_000 })
       .toEqual(['Prijaté: Report o 11:00']);

@@ -160,6 +160,7 @@ describe('THISANDFUTURE records next to exact instances over the server (Postgre
       ['2026-11-03T09:00:00.000Z', undefined, 'confirmed'],
       ['2026-11-03T09:00:00.000Z', true, 'cancelled'],
     ]);
+    expect(cutSeries[2]?.endsSeries).toBe(true);
     expect(cutSeries[0]?.rangeEndsAt).toBe('2026-11-04T09:30:00.000Z');
   });
 
@@ -184,7 +185,12 @@ describe('THISANDFUTURE records next to exact instances over the server (Postgre
       token,
     );
 
-    expect(answered).toMatchObject({ canRespond: true, myStatus: 'accepted' });
+    expect(answered).toMatchObject({
+      canRespond: true,
+      myStatus: 'accepted',
+      start: '2026-11-04T11:00:00.000Z',
+      end: '2026-11-04T11:30:00.000Z',
+    });
     const inbox = await openImap(organizer);
     let replies: string[] = [];
     await expect

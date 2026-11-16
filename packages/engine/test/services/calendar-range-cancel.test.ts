@@ -6,12 +6,12 @@ import {
   cancelFrom,
   cancelOne,
   CUT,
+  cutKey,
+  cutRow,
   deliver,
   instance,
   master,
   occurrenceRow,
-  rangeKey,
-  rangeRow,
   rows,
   SERIES,
 } from '../support/range-invites';
@@ -30,10 +30,10 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       '2026-11-09T09:00:00.000Z': ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
       '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
-    const tombstone = rangeRow(engine, CUT);
+    const tombstone = cutRow(engine, CUT);
     expect(tombstone?.messageId).not.toBe(afterMessage?.messageId);
     const cards = await engine.services.calendar.invitations(
       USER_ID,
@@ -76,8 +76,20 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       '2026-11-16T09:00:00.000Z': ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [CUT]: ['confirmed', undefined, undefined],
+      [cutKey(CUT)]: ['cancelled', true, true],
+      '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
       '2026-12-07T09:00:00.000Z': ['confirmed', undefined, undefined],
+    });
+    const stale = occurrenceRow(engine, '2026-11-30T09:00:00.000Z');
+    const cards = await engine.services.calendar.invitations(
+      USER_ID,
+      stale?.threadId as ThreadId,
+      'Europe/Bratislava',
+    );
+    expect(cards.find((card) => card.eventId === stale?.id)).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
     });
   });
 
@@ -102,7 +114,7 @@ describe('THISANDFUTURE cancellations of invitations', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['cancelled', undefined, undefined],
-      [rangeKey(SERIES.startsAt)]: ['cancelled', true, true],
+      [cutKey(SERIES.startsAt)]: ['cancelled', true, true],
     });
     expect(rows(engine).every((row) => row.method === 'CANCEL')).toBe(true);
   });
@@ -117,9 +129,9 @@ describe('THISANDFUTURE cancellations of invitations', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       [CUT]: ['cancelled', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
     });
     expect(occurrenceRow(engine, CUT)?.sequence).toBe(2);
-    expect(rangeRow(engine, CUT)?.sequence).toBe(1);
+    expect(cutRow(engine, CUT)?.sequence).toBe(1);
   });
 });

@@ -14,7 +14,7 @@ const outranks = (a: RangeOverride, b: RangeOverride): number =>
 const endedBefore = (plan: SeriesPlan, range: RangeOverride, at: number): boolean =>
   plan.cuts.some(
     (cut) =>
-      cut.from > range.from && cut.from <= at && compareRevision(cut.event, range.event) >= 0,
+      cut.from >= range.from && cut.from <= at && compareRevision(cut.event, range.event) >= 0,
   );
 
 const cutsAt = (plan: SeriesPlan, at: number): SeriesCut[] =>

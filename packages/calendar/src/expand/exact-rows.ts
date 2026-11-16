@@ -1,6 +1,13 @@
 import type { StoredCalendarEvent } from '@relay/engine';
 import { compareRevision } from './revision';
 
+const slotRank = (row: StoredCalendarEvent): number => {
+  if (row.thisAndFuture !== true) {
+    return 2;
+  }
+  return row.endsSeries === true ? 1 : 0;
+};
+
 const newer = (
   known: StoredCalendarEvent | undefined,
   row: StoredCalendarEvent,
@@ -8,8 +15,7 @@ const newer = (
   if (known === undefined) {
     return row;
   }
-  const [occurrence, record] = row.thisAndFuture === true ? [known, row] : [row, known];
-  return compareRevision(occurrence, record) >= 0 ? occurrence : record;
+  return (compareRevision(row, known) || slotRank(row) - slotRank(known)) > 0 ? row : known;
 };
 
 export const exactRows = (

@@ -8,6 +8,8 @@ import {
   cancelFrom,
   cancelOne,
   CUT,
+  cutKey,
+  cutRow,
   deliver,
   instance,
   master,
@@ -64,11 +66,16 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       [CUT]: ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
+      [LATER]: ['confirmed', undefined, undefined],
     });
     expect(await cardOf(engine, occurrenceRow(engine, CUT))).toMatchObject({
       status: 'confirmed',
       canRespond: true,
+    });
+    expect(await cardOf(engine, occurrenceRow(engine, LATER))).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
     });
   });
 
@@ -83,7 +90,8 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       [CUT]: ['confirmed', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, true],
+      [cutKey(CUT)]: ['cancelled', true, true],
+      [LATER]: ['confirmed', undefined, undefined],
     });
   });
 
@@ -98,7 +106,8 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
       'same-revision',
       instance('11-23', { sequence: 2, dtstamp: '2026-11-15T09:00:00.000Z', thisAndFuture: true }),
     );
-    expect(rangeRow(engine, CUT)).toMatchObject({ endsSeries: true, sequence: 2 });
+    expect(cutRow(engine, CUT)).toMatchObject({ endsSeries: true, sequence: 2 });
+    expect(await cardOf(engine, rangeRow(engine, CUT))).toMatchObject({ status: 'cancelled' });
 
     await deliver(engine, seeded, 'lift', instance('11-23', { sequence: 3, thisAndFuture: true }));
     await deliver(engine, seeded, 'cut-replay', cancelFrom(CUT, { sequence: 2 }));
@@ -106,6 +115,12 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
     expect(byRecurrence(engine)).toEqual({
       master: ['confirmed', undefined, undefined],
       [rangeKey(CUT)]: ['confirmed', true, undefined],
+      [cutKey(CUT)]: ['cancelled', true, true],
+    });
+    expect(rangeRow(engine, CUT)?.sequence).toBe(3);
+    expect(await cardOf(engine, rangeRow(engine, CUT))).toMatchObject({
+      status: 'confirmed',
+      canRespond: true,
     });
   });
 
@@ -174,7 +189,7 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
     expect(occurrenceRow(engine, CUT)).toMatchObject({ status: 'cancelled' });
   });
 
-  it('cancels range records with the whole series but keeps the cut revision', async () => {
+  it('cancels only the master with the whole series and shows its records as cancelled', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     await deliver(engine, seeded, 'series', master());
@@ -189,11 +204,16 @@ describe('THISANDFUTURE range records next to occurrence rows', () => {
 
     expect(byRecurrence(engine)).toEqual({
       master: ['cancelled', undefined, undefined],
-      [rangeKey(CUT)]: ['cancelled', true, undefined],
-      [rangeKey(LATER)]: ['cancelled', true, true],
+      [rangeKey(CUT)]: ['confirmed', true, undefined],
+      [cutKey(LATER)]: ['cancelled', true, true],
     });
-    expect(rangeRow(engine, LATER)?.sequence).toBe(2);
+    expect(cutRow(engine, LATER)?.sequence).toBe(2);
+    expect(rangeRow(engine, CUT)?.sequence).toBe(1);
     expect(rows(engine).find((row) => row.recurrenceId === null)?.sequence).toBe(3);
+    expect(await cardOf(engine, rangeRow(engine, CUT))).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
+    });
   });
 
   it('parks a REPLY to a range and applies it to the range record only', async () => {
