@@ -24,14 +24,12 @@ function FailedInvitationRow({ invitation }: { readonly invitation: FailedInvita
   const run = (work: () => Promise<string>) => {
     setBusy(true);
     work()
-      .then(async (done) => {
-        await refresh();
-        showToast(done);
-      })
+      .then(showToast)
       .catch((error: unknown) => {
         showToast(describeError(error));
       })
-      .finally(() => {
+      .finally(async () => {
+        await refresh();
         setBusy(false);
       });
   };

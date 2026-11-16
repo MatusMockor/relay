@@ -91,14 +91,16 @@ describe('failed invitations in synced mode', () => {
           request.url === '/calendar/failed-invitations/acc-1/msg-1/retry',
       ),
     ).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Zahodiť' })).toHaveProperty('disabled', false);
+    });
 
     act(() => {
-      fireEvent.click(within(section).getByRole('button', { name: 'Zahodiť' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Zahodiť' }));
     });
     expect(await screen.findByText('Pozvánka sa už nenašla.')).toBeTruthy();
-    expect(within(section).getByRole('button', { name: 'Zahodiť' })).toHaveProperty(
-      'disabled',
-      false,
-    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Zahodiť' })).toHaveProperty('disabled', false);
+    });
   });
 });

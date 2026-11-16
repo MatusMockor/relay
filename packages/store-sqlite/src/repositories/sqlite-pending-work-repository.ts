@@ -92,13 +92,17 @@ export class SqlitePendingWorkRepository implements PendingWorkRepository {
     );
   }
 
-  remove(works: readonly PendingWork[]): Promise<void> {
-    return this.executor.execute((db) => {
-      works.forEach((work) => {
-        db.delete(pendingWork)
-          .where(and(keyed(work), eq(pendingWork.revision, work.revision)))
-          .run();
-      });
-    });
+  remove(works: readonly PendingWork[]): Promise<number> {
+    return this.executor.execute((db) =>
+      works.reduce(
+        (removed, work) =>
+          removed +
+          db
+            .delete(pendingWork)
+            .where(and(keyed(work), eq(pendingWork.revision, work.revision)))
+            .run().changes,
+        0,
+      ),
+    );
   }
 }

@@ -64,6 +64,7 @@ export const createInviteComponents = (
       messages: repositories.messages,
       pendingWork: repositories.pendingWork,
       invites: sink,
+      events,
     }),
   };
 };

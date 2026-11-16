@@ -10,6 +10,7 @@ import type { PendingWork } from '../../model/pending-work';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
+import type { EngineEvents } from '../shared/engine-events';
 import type { CalendarPartsSink } from '../sync/calendar-parts-sink';
 import { toFailedInvitation } from './failed-invitation-view';
 import { retryNow } from './invite-retry';
@@ -19,6 +20,7 @@ export interface FailedInvitationServiceDeps {
   readonly messages: MessageRepository;
   readonly pendingWork: PendingWorkRepository;
   readonly invites: Pick<CalendarPartsSink, 'flush'>;
+  readonly events: EngineEvents;
 }
 
 interface FailedWork {
@@ -42,12 +44,24 @@ export class FailedInvitationService {
       throw new ConflictError('The invitation changed while it was being retried');
     }
     await this.deps.invites.flush(userId, account);
-    return { applied: (await this.deps.pendingWork.find(queued)) === null };
+    const applied = (await this.deps.pendingWork.find(queued)) === null;
+    await this.changed(userId, account);
+    return { applied };
   }
 
   async dismiss(userId: UserId, ref: FailedInvitationRef): Promise<void> {
-    const { work } = await this.require(userId, ref);
-    await this.deps.pendingWork.remove([work]);
+    const { account, work } = await this.require(userId, ref);
+    if ((await this.deps.pendingWork.remove([work])) === 0) {
+      throw new ConflictError('The invitation changed while it was being dismissed');
+    }
+    await this.changed(userId, account);
+  }
+
+  private changed(userId: UserId, account: MailAccount): Promise<void> {
+    return this.deps.events.emit(userId, 'calendar.updated', {
+      sourceKind: 'invite',
+      sourceId: account.id,
+    });
   }
 
   private async failedOf(userId: UserId, account: MailAccount): Promise<FailedInvitation[]> {

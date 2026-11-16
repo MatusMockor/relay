@@ -70,13 +70,14 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
     return Promise.resolve(matches as PendingWork<Kind>[]);
   }
 
-  remove(works: readonly PendingWork[]): Promise<void> {
-    works.forEach((work) => {
+  remove(works: readonly PendingWork[]): Promise<number> {
+    const removed = works.filter((work) => {
       const key = keyOf(work);
-      if (this.db.tables.pendingWork.get(key)?.revision === work.revision) {
-        this.db.tables.pendingWork.delete(key);
+      if (this.db.tables.pendingWork.get(key)?.revision !== work.revision) {
+        return false;
       }
+      return this.db.tables.pendingWork.delete(key);
     });
-    return Promise.resolve();
+    return Promise.resolve(removed.length);
   }
 }

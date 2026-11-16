@@ -8,7 +8,7 @@ import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { InviteIngestor } from './invite-ingestor';
 import { afterConflict, afterFailure, isDue } from './invite-retry';
-import { StaleInviteError } from './invite-write';
+import { StaleInviteError, SupersededInviteWorkError } from './invite-write';
 
 export interface InviteWorkProcessorDeps {
   readonly pendingWork: PendingWorkRepository;
@@ -20,6 +20,7 @@ export interface InviteWorkProcessorDeps {
 }
 
 type InviteWork = PendingWork<'calendar-invite'>;
+type WorkOutcome = 'changed' | 'unchanged' | 'failed';
 
 export class InviteWorkProcessor {
   constructor(private readonly deps: InviteWorkProcessorDeps) {}
@@ -29,8 +30,8 @@ export class InviteWorkProcessor {
     const work = await this.deps.pendingWork.list(account.id, 'calendar-invite');
     let publish = false;
     for (const item of work.filter((entry) => isDue(entry.payload, now))) {
-      const changed = await this.process(userId, account, item);
-      publish = publish || (changed && item.payload.publish);
+      const outcome = await this.process(userId, account, item);
+      publish = publish || outcome === 'failed' || (outcome === 'changed' && item.payload.publish);
     }
     if (!publish) {
       return;
@@ -41,23 +42,31 @@ export class InviteWorkProcessor {
     });
   }
 
-  private async process(userId: UserId, account: MailAccount, item: InviteWork) {
+  private async process(
+    userId: UserId,
+    account: MailAccount,
+    item: InviteWork,
+  ): Promise<WorkOutcome> {
     try {
       return await this.deps.unitOfWork.run(async (repositories) => {
         const changed = await this.deps.ingestor.apply(repositories, userId, {
           ...item.payload,
           account,
         });
-        await repositories.pendingWork.remove([item]);
-        return changed;
+        if ((await repositories.pendingWork.remove([item])) === 0) {
+          throw new SupersededInviteWorkError();
+        }
+        return changed ? 'changed' : 'unchanged';
       });
     } catch (error) {
-      await this.reschedule(item, error);
-      return false;
+      if (error instanceof SupersededInviteWorkError) {
+        return 'unchanged';
+      }
+      return (await this.reschedule(item, error)) ? 'failed' : 'unchanged';
     }
   }
 
-  private async reschedule(item: InviteWork, cause: unknown): Promise<void> {
+  private async reschedule(item: InviteWork, cause: unknown): Promise<boolean> {
     const error = errorMessage(cause);
     const retry = cause instanceof StaleInviteError ? afterConflict : afterFailure;
     const payload = retry(item.payload, this.deps.clock.now(), error);
@@ -68,11 +77,13 @@ export class InviteWorkProcessor {
       failed: payload.failedAt !== null,
       error,
     });
-    await this.deps.pendingWork.replace(item, payload).catch((cause: unknown) => {
+    const replaced = await this.deps.pendingWork.replace(item, payload).catch((cause: unknown) => {
       this.deps.logger.warn('Calendar invitation retry could not be scheduled', {
         accountId: item.accountId,
         error: errorMessage(cause),
       });
+      return null;
     });
+    return replaced !== null && payload.failedAt !== null;
   }
 }

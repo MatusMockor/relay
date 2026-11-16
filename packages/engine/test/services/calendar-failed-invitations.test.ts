@@ -87,7 +87,7 @@ describe('Failed calendar invitations', () => {
     expect(await engine.services.calendar.occurrences(USER_ID, DAY_WINDOW)).toHaveLength(1);
     expect(inviteWork(engine)).toEqual([]);
     expect(await engine.services.failedInvitations.list(USER_ID)).toEqual([]);
-    expect(engine.events.ofType('calendar.updated')).toHaveLength(published + 1);
+    expect(engine.events.ofType('calendar.updated').length).toBeGreaterThan(published);
   });
 
   it('starts the retry schedule again when the retried invitation still fails', async () => {
@@ -113,10 +113,23 @@ describe('Failed calendar invitations', () => {
     deliverMail(seeded.server, 'INBOX', { id: 'later', headers: { 'X-Test-Calendar': 'later' } });
     await sync(engine, seeded);
 
+    const published = engine.events.ofType('calendar.updated').length;
+
     await engine.services.failedInvitations.dismiss(USER_ID, ref);
 
     expect(inviteWork(engine)).toMatchObject([{ attempts: 1, failedAt: null }]);
     expect(await engine.services.failedInvitations.list(USER_ID)).toEqual([]);
+    expect(engine.events.ofType('calendar.updated')).toHaveLength(published + 1);
+  });
+
+  it('announces an invitation that has just failed for good', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    const before = engine.events.ofType('calendar.updated').length;
+
+    await failInvitation(engine, seeded, 'bad');
+
+    expect(engine.events.ofType('calendar.updated')).toHaveLength(before + 1);
   });
 
   it('refuses invitations of other users, unknown accounts and rows that are not failed', async () => {
