@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { GreenMailUser } from '@relay/config/test-infra';
+import { type CalendarEventRepository, PORT_TOKENS } from '@relay/engine';
 import { api } from '@relay/shared/api';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { registerUser } from '../support/auth-flow';
@@ -84,29 +85,29 @@ describe('cancellations without a master row or DTSTART over the server (Postgre
     await client.logout();
     const account = await addImapAccount(app.api, session.accessToken, owner);
     await waitForInvites(app, session.accessToken, account.id, messages.length);
-    return (
+    const shown = (
       await app.api.ok(api.calendar.occurrences, { query: WINDOW }, session.accessToken)
     ).items
       .map((item) => `${item.uid.split('-')[0] ?? ''} ${item.start.slice(5, 16)} ${item.title}`)
       .sort();
+    return { shown, accountId: account.id };
   };
 
   it('hides instances under a whole-series CANCEL until a newer master arrives', async () => {
     const tomb = parties('tomb');
     const back = parties('back');
 
-    expect(
-      await occurrencesOf([
-        [tomb, moved('03')],
-        [tomb, moved('05')],
-        [tomb, cancelAll],
-        [tomb, moved('06', '20261102T090000Z')],
-        [back, moved('03')],
-        [back, moved('05')],
-        [back, cancelAll],
-        [back, daily(3, '20261103T070000Z')],
-      ]),
-    ).toEqual([
+    const { shown } = await occurrencesOf([
+      [tomb, moved('03')],
+      [tomb, moved('05')],
+      [tomb, cancelAll],
+      [tomb, moved('06', '20261102T090000Z')],
+      [back, moved('03')],
+      [back, moved('05')],
+      [back, cancelAll],
+      [back, daily(3, '20261103T070000Z')],
+    ]);
+    expect(shown).toEqual([
       'back 11-01T09:00 Report',
       'back 11-02T09:00 Report',
       'back 11-03T15:00 Report presunutý',
@@ -123,15 +124,27 @@ describe('cancellations without a master row or DTSTART over the server (Postgre
     const before = parties('before');
     const days = ['01', '02', '03', '05', '06', '07'];
 
-    expect(
-      await occurrencesOf([
-        [after, daily(0, '20261101T070000Z')],
-        [after, cancelDay('04')],
-        [before, cancelDay('04')],
-        [before, daily(0, '20261101T070000Z')],
-      ]),
-    ).toEqual(
+    const { shown, accountId } = await occurrencesOf([
+      [after, daily(0, '20261101T070000Z')],
+      [after, cancelDay('04')],
+      [before, cancelDay('04')],
+      [before, daily(0, '20261101T070000Z')],
+    ]);
+    expect(shown).toEqual(
       ['after', 'before'].flatMap((name) => days.map((day) => `${name} 11-${day}T09:00 Report`)),
     );
+    const events = app.app.get<symbol, CalendarEventRepository>(
+      PORT_TOKENS.CalendarEventRepository,
+    );
+    for (const series of [after, before]) {
+      const cancelled = (await events.findSeries({ kind: 'invite', accountId }, series.uid)).find(
+        (row) => row.recurrenceId === '2026-11-04T09:00:00.000Z',
+      );
+      expect(cancelled).toMatchObject({
+        status: 'cancelled',
+        startsAt: '2026-11-04T09:00:00.000Z',
+        endsAt: '2026-11-04T09:30:00.000Z',
+      });
+    }
   });
 });

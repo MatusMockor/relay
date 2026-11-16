@@ -128,18 +128,38 @@ describe('instance CANCEL without DTSTART for an instance without a row', () => 
     expect(rows(engine).map((row) => row.revision)).toEqual(revisions);
   });
 
-  it('keeps the cancellation of an instance whose series arrives later', async () => {
+  it('keeps the cancellation of an instance whose series arrives later and takes its times', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
-    await deliver(engine, seeded, 'cancel', cancelOne(FIRST, { sequence: 1, dtstamp: at(11) }));
+    const timedAt = '2026-12-07T09:00:00.000Z';
+    await deliver(
+      engine,
+      seeded,
+      'cancel',
+      cancelOne(FIRST, { sequence: 1, dtstamp: at(11), ics: 'cancel' }),
+    );
+    await deliver(
+      engine,
+      seeded,
+      'timed-cancel',
+      cancelOne(timedAt, {
+        sequence: 1,
+        dtstamp: at(11),
+        timed: true,
+        startsAt: timedAt,
+        endsAt: timedAt,
+        ics: 'timed-cancel',
+      }),
+    );
     await deliver(engine, seeded, 'series', master({ dtstamp: at(10) }));
     await deliver(engine, seeded, 'old-instance', instance('11-30', { dtstamp: at(9) }));
 
     expect(occurrenceRow(engine, FIRST)).toMatchObject({
       status: 'cancelled',
       startsAt: FIRST,
-      endsAt: FIRST,
+      endsAt: '2026-11-30T10:00:00.000Z',
     });
+    expect(occurrenceRow(engine, timedAt)).toMatchObject({ startsAt: timedAt, endsAt: timedAt });
     expect(masterRow(engine)).toMatchObject({ status: 'confirmed' });
   });
 });

@@ -142,7 +142,7 @@ describe('local mode cancellations without a master row or DTSTART (SQLite + Gre
   });
 
   it('cancels an instance named only by its RECURRENCE-ID before and after the series', async () => {
-    await deliverAll([
+    const accountId = await deliverAll([
       ['after-daily@corp.test', 'REQUEST', daily(0, '20261101T070000Z')],
       ['after-daily@corp.test', 'CANCEL', cancelDay('04')],
       ['before-daily@corp.test', 'CANCEL', cancelDay('04')],
@@ -153,5 +153,18 @@ describe('local mode cancellations without a master row or DTSTART (SQLite + Gre
     expect(await occurrences()).toEqual(
       ['after', 'before'].flatMap((name) => days.map((day) => `${name} 11-${day}T09:00 Report`)),
     );
+    for (const uid of ['after-daily@corp.test', 'before-daily@corp.test']) {
+      const cancelled = (
+        await harness.runtime.engine.repositories.calendarEvents.findSeries(
+          { kind: 'invite', accountId },
+          uid,
+        )
+      ).find((row) => row.recurrenceId === '2026-11-04T09:00:00.000Z');
+      expect(cancelled).toMatchObject({
+        status: 'cancelled',
+        startsAt: '2026-11-04T09:00:00.000Z',
+        endsAt: '2026-11-04T09:30:00.000Z',
+      });
+    }
   });
 });

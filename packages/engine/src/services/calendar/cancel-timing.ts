@@ -16,7 +16,10 @@ const ownTiming = (event: ParsedCalendarEvent): Timing => ({
   rangeEndsAt: event.rangeEndsAt,
 });
 
-const instanceTiming = (recurrenceId: string, master: StoredCalendarEvent | undefined): Timing => {
+export const instanceTiming = (
+  recurrenceId: string,
+  master: StoredCalendarEvent | undefined,
+): Timing => {
   const start = recurrenceInstant(recurrenceId);
   const length = master === undefined ? 0 : Date.parse(master.endsAt) - Date.parse(master.startsAt);
   const end = new Date(start + length).toISOString();

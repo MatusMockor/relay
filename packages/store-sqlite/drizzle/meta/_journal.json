@@ -134,6 +134,13 @@
       "when": 1794851017892,
       "tag": "0018_calendar_cut_start_masters",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1794852389950,
+      "tag": "0019_calendar_invite_rebuild",
+      "breakpoints": true
     }
   ]
 }

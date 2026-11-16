@@ -1,4 +1,5 @@
 import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calendar';
+import type { CalendarParser } from '../../ports/calendar-adapters';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { withStoredAnswers } from './attendee-answers';
@@ -9,12 +10,14 @@ import type { ParkedReplies } from './parked-replies';
 import { sameSlot } from './recurrence-slot';
 import { involvesRange } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
+import { retimeUntimedCancels } from './untimed-cancel-times';
 
 export class InviteRequestHandler implements InviteHandler {
   constructor(
     private readonly ids: IdGenerator,
     private readonly parked: ParkedReplies,
     private readonly ranges: SeriesRangeKeeper,
+    private readonly parser: CalendarParser,
   ) {}
 
   async apply(
@@ -42,6 +45,7 @@ export class InviteRequestHandler implements InviteHandler {
       }),
     );
     await this.parked.release(repositories, context, saved);
+    await retimeUntimedCancels(repositories, context, saved, this.parser);
     await this.refreshRange(repositories, context, series, event);
     return true;
   }

@@ -5,10 +5,14 @@ import { InviteIngestor } from './invite-ingestor';
 import { InviteQueue } from './invite-queue';
 import { InviteSink } from './invite-sink';
 import { InviteWorkProcessor } from './invite-work-processor';
+import { InviteRebuild } from './rebuild/invite-rebuild';
+import { RebuildCollector } from './rebuild/rebuild-collector';
+import { SeriesRebuilder } from './rebuild/series-rebuilder';
+import { type SyncBackfill, SyncBackfills } from '../sync/sync-backfill';
 
 export interface InviteComponents {
   readonly sink: InviteSink;
-  readonly backfill: InviteBackfill;
+  readonly backfill: SyncBackfill;
 }
 
 export type InviteEngineDeps = Pick<
@@ -23,27 +27,34 @@ export const createInviteComponents = (
   const { repositories, unitOfWork, clock } = deps;
   const logger = deps.logger.child({ component: 'calendar-invites' });
   const queue = new InviteQueue(clock);
+  const ingestor = new InviteIngestor({
+    parser: deps.calendar.parser,
+    expander: deps.calendar.expander,
+    clock,
+    ids: deps.idGenerator,
+  });
   const processor = new InviteWorkProcessor({
     pendingWork: repositories.pendingWork,
     unitOfWork,
-    ingestor: new InviteIngestor({
-      parser: deps.calendar.parser,
-      expander: deps.calendar.expander,
-      clock,
-      ids: deps.idGenerator,
-    }),
+    ingestor,
     events,
     clock,
     logger,
   });
+  const batchSize = deps.options.calendar?.inviteBackfillBatch ?? DEFAULT_INVITE_BACKFILL_BATCH;
   return {
     sink: new InviteSink(queue, processor),
-    backfill: new InviteBackfill({
-      repositories,
-      unitOfWork,
-      queue,
-      logger,
-      batchSize: deps.options.calendar?.inviteBackfillBatch ?? DEFAULT_INVITE_BACKFILL_BATCH,
-    }),
+    backfill: new SyncBackfills([
+      new InviteBackfill({ repositories, unitOfWork, queue, logger, batchSize }),
+      new InviteRebuild({
+        repositories,
+        unitOfWork,
+        collector: new RebuildCollector({ repositories, unitOfWork, clock, batchSize }),
+        rebuilder: new SeriesRebuilder(ingestor, clock),
+        ingestor,
+        events,
+        logger,
+      }),
+    ]),
   };
 };

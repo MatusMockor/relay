@@ -25,7 +25,7 @@ export class InviteIngestor {
   constructor(private readonly deps: InviteIngestorDeps) {
     const parked = new ParkedReplies();
     const ranges = new SeriesRangeKeeper(deps.expander);
-    const request = new InviteRequestHandler(deps.ids, parked, ranges);
+    const request = new InviteRequestHandler(deps.ids, parked, ranges, deps.parser);
     this.handlers = {
       REQUEST: request,
       PUBLISH: request,
@@ -38,6 +38,7 @@ export class InviteIngestor {
     repositories: Repositories,
     userId: UserId,
     arrival: CalendarPartsArrival,
+    uid?: string,
   ): Promise<boolean> {
     let changed = false;
     for (const part of arrival.parts) {
@@ -54,10 +55,22 @@ export class InviteIngestor {
         now: this.deps.clock.now().toISOString(),
       };
       const handler = this.handlers[calendar.method ?? 'PUBLISH'];
-      for (const event of calendar.events) {
+      for (const event of calendar.events.filter(
+        (entry) => uid === undefined || entry.uid === uid,
+      )) {
         changed = (await retryStale(() => handler.apply(repositories, context, event))) || changed;
       }
     }
     return changed;
+  }
+
+  uidsOf(parts: readonly string[]): string[] {
+    return [
+      ...new Set(
+        parts
+          .flatMap((part) => this.deps.parser.parse(part)?.events ?? [])
+          .map((event) => event.uid),
+      ),
+    ];
   }
 }

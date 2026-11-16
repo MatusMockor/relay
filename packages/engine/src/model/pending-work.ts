@@ -83,6 +83,21 @@ export interface CalendarBackfillWork {
   readonly afterUid: number;
 }
 
+export interface CalendarRebuildWork {
+  readonly mailboxId: MailboxId;
+  readonly afterUid: number;
+  readonly uidValidity?: number | null;
+  readonly failedReplays?: number;
+}
+
+export interface CalendarRebuildPartWork {
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
+  readonly mailboxRole: MailboxRole;
+  readonly date: string;
+  readonly parts: readonly string[];
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
@@ -92,6 +107,8 @@ export interface PendingWorkPayloads {
   readonly 'calendar-invite': CalendarInviteWork;
   readonly 'calendar-reply': CalendarReplyWork;
   readonly 'calendar-backfill': CalendarBackfillWork;
+  readonly 'calendar-rebuild': CalendarRebuildWork;
+  readonly 'calendar-rebuild-part': CalendarRebuildPartWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;
