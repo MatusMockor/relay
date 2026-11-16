@@ -6,8 +6,10 @@ import { useThreadAiPending } from '../../data/hooks/use-thread-ai';
 import { describeWhen } from '../../lib/dates';
 import { plural } from '../../lib/text';
 import { setUi, useUiStore } from '../../state/ui-store';
+import { useMailActions } from '../mail/MailActionsProvider';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { AiSummary } from './AiSummary';
+import { InvitationCards } from './InvitationCards';
 import { CollapsedMessage, MessageView } from './MessageView';
 import { NextActions } from './NextActions';
 import { ReplyComposer } from './ReplyComposer';
@@ -77,12 +79,16 @@ export function ThreadView() {
   const reply = useUiStore((state) => state.reply);
   const expanded = useUiStore((state) => state.expanded);
   const model = useAccountsModel();
+  const actions = useMailActions();
   const { data: detail } = useThreadDetail(threadId);
   const pending = useThreadAiPending(detail?.thread ?? null);
   if (detail === null || detail === undefined) {
     return <div className="t-scroll" aria-busy="true" />;
   }
   const own = new Set(model.accounts.map((account) => account.email));
+  const forward = (message: Message) => () => {
+    actions.compose.forward(detail.thread.id, message.id);
+  };
   const last = detail.messages.at(-1);
   const earlier = detail.messages.slice(0, -1);
   const recipient =
@@ -97,6 +103,7 @@ export function ThreadView() {
         </h1>
         <ThreadMeta detail={detail} own={own} />
         <AiSummary detail={detail} pending={pending.includes('summary')} />
+        <InvitationCards threadId={detail.thread.id} />
         <div className="t-earlier">
           {earlier.map((message) => {
             const key = `${detail.thread.id}:${message.id}`;
@@ -109,6 +116,7 @@ export function ThreadView() {
                 onCollapse={() => {
                   toggle(key);
                 }}
+                onForward={forward(message)}
               />
             ) : (
               <CollapsedMessage
@@ -128,6 +136,7 @@ export function ThreadView() {
             message={last}
             mine={isMine(last, own)}
             recipientName={recipient}
+            onForward={forward(last)}
           />
         )}
         {reply?.threadId === detail.thread.id ? (

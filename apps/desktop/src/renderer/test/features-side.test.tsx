@@ -37,7 +37,7 @@ describe('right panel', () => {
   it('shows the other participant of a thread the user started', async () => {
     const base = demoClient();
     const [account] = await base.listAccounts();
-    const me = { name: account?.displayName ?? null, email: account?.email ?? '' };
+    const me = { name: account?.senderName ?? null, email: account?.email ?? '' };
     const subject = 'Výlet do Tatier';
     await base.send({
       source: 'inline',

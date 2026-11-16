@@ -1,74 +1,121 @@
-import type { Address, Draft, DraftContent, DraftId } from '@relay/shared';
-import { AccountSquare, Button, Icon, IconButton, Kbd, Sheet, Spark } from '@relay/ui';
+import type { Draft, DraftContent, DraftId } from '@relay/shared';
+import { Sheet } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
-import { useClient } from '../../data/hooks/services-context';
 import { MOD } from '../../lib/platform-keys';
 import { showToast } from '../../state/toast-store';
 import { type ComposeInit, setUi, useUiStore } from '../../state/ui-store';
-import { composeText, rewriteText } from '../ai/run-ai';
 import { rectOf } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
-import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
+import { useAccountsModel } from '../mail/use-accounts-model';
 import { AiBar, BusyOverlay } from './AiBar';
+import { AttachmentChips } from './attachments/AttachmentChips';
+import { filesOf, inputsFromFiles } from './attachments/attachment-inputs';
+import { readyAttachments } from './attachments/compose-attachment';
+import { useComposeAttachments } from './attachments/use-compose-attachments';
+import { useFileDrop } from './attachments/use-file-drop';
+import { ComposeFooter } from './ComposeFooter';
+import { ComposeHeader } from './ComposeHeader';
 import { ComposePopups, type Popup } from './ComposePopups';
-import { composePayload, extrasOf } from './draft-extras';
-import { DraftExtrasRows } from './DraftExtrasRows';
-import { RecipientField } from './RecipientField';
+import { composeContent, composeStart } from './compose-start';
+import { composeProblem } from './compose-validation';
+import { RECIPIENT_INPUT_IDS, type RecipientKind } from './recipients/compose-recipients';
+import { RecipientRows } from './recipients/RecipientRows';
+import { useAttachmentPicker } from './use-attachment-picker';
+import { useComposeAi } from './use-compose-ai';
+import { useComposeDraft } from './use-compose-draft';
+import { composeShortcut } from './compose-shortcuts';
 
 function ComposeForm({ init }: { readonly init: ComposeInit }) {
   const model = useAccountsModel();
   const scope = useUiStore((state) => state.scope);
-  const client = useClient();
   const queryClient = useQueryClient();
   const actions = useMailActions();
   const fallback =
     init.accountId ?? (scope === 'all' ? model.primary?.id : scope) ?? model.accounts[0]?.id;
   const [chosenAccountId, setAccountId] = useState(init.accountId);
   const accountId = chosenAccountId ?? fallback;
-  const [extras] = useState(() =>
-    extrasOf(
+  const account = accountId === undefined ? undefined : model.byId.get(accountId);
+  const [start] = useState(() =>
+    composeStart(
+      init,
       queryClient
         .getQueryData<Draft[]>(queryKeys.drafts())
         ?.find((draft) => draft.id === init.draftId),
     ),
   );
+  const [recipients, setRecipients] = useState(start.recipients);
+  const [visible, setVisible] = useState(start.visible);
+  const [subject, setSubject] = useState(start.subject);
+  const [body, setBody] = useState(start.body);
   const [saving, setSaving] = useState(false);
-  const [to, setTo] = useState<Address | null>(
-    init.toEmail === undefined ? null : { name: init.toName ?? null, email: init.toEmail },
-  );
-  const [subject, setSubject] = useState(init.subject ?? '');
-  const [body, setBody] = useState(init.body ?? '');
-  const [aiOpen, setAiOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [popup, setPopup] = useState<Popup>(null);
-  const account = accountId === undefined ? undefined : model.byId.get(accountId);
+  const draft = useComposeDraft((init.draftId ?? null) as DraftId | null);
+  const contentWith = (attachments: Draft['attachments']): DraftContent | null =>
+    account === undefined
+      ? null
+      : composeContent({ accountId: account.id, recipients, subject, body, attachments, init });
+  const attachments = useComposeAttachments({
+    initial: start.attachments,
+    ensureDraft: () => draft.ensure(() => contentWith([])),
+  });
+  const content = () => contentWith(readyAttachments(attachments.items));
+  const ai = useComposeAi({
+    body,
+    setBody,
+    saving,
+    recipientName: recipients.to[0]?.address.name ?? null,
+  });
+  const picker = useAttachmentPicker(attachments);
+  const drop = useFileDrop((files) => {
+    attachments.add(inputsFromFiles(files));
+  });
+  const forwarded = useRef(false);
+  useEffect(() => {
+    if (forwarded.current || init.forward === undefined || init.forward.attachmentCount === 0) {
+      return;
+    }
+    forwarded.current = true;
+    attachments.forward(init.forward.messageId, init.forward.attachmentCount);
+  });
+  const autosave = useRef<() => void>(() => undefined);
+  autosave.current = () => {
+    const ready = content();
+    const worth = body.trim() !== '' || subject.trim() !== '' || draft.current() !== null;
+    if (ready !== null && worth && !saving) {
+      draft.schedule(ready);
+    }
+  };
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!touched.current) {
+      touched.current = true;
+      return;
+    }
+    autosave.current();
+  }, [recipients, subject, body]);
   const close = () => {
     setUi((state) =>
       state.overlay?.kind === 'compose' && state.overlay.init === init ? { overlay: null } : {},
     );
   };
-  const content = (): DraftContent | null =>
-    account === undefined || to === null
-      ? null
-      : composePayload({ accountId: account.id, to, subject, body: body.trim(), extras });
   const saveAndClose = () => {
     if (saving) {
       return;
     }
-    if (account === undefined || (body.trim() === '' && subject.trim() === '')) {
+    const ready = content();
+    const empty = body.trim() === '' && subject.trim() === '' && attachments.items.length === 0;
+    if (ready === null || empty) {
+      draft.cancelScheduled();
+      const discard = init.draftId === undefined ? draft.discard() : Promise.resolve();
+      void discard.catch(() => undefined);
       close();
       return;
     }
-    const draft = composePayload({ accountId: account.id, to, subject, body, extras });
     setSaving(true);
-    const persisted =
-      init.draftId === undefined
-        ? client.createDraft(draft)
-        : client.updateDraft(init.draftId as DraftId, draft);
-    void persisted.then(
+    draft.save(ready).then(
       () => {
         close();
         showToast('Koncept uložený do Konceptov');
@@ -84,193 +131,126 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
     if (saving) {
       return null;
     }
-    if (to === null) {
-      showToast('Doplň, komu správu posielaš');
-      return null;
-    }
-    if (body.trim() === '') {
-      showToast('Správa je prázdna');
+    const problem = composeProblem({
+      recipients,
+      body,
+      attachments: attachments.items,
+      removing: attachments.removing,
+    });
+    if (problem !== null) {
+      showToast(problem);
       return null;
     }
     return content();
   };
-  const runAi = (instruction: string) => {
-    if (busy || saving) {
-      return;
-    }
-    setAiOpen(false);
-    setBusy(true);
-    const work =
-      body.trim() === ''
-        ? composeText(client, instruction, to?.name ?? null)
-        : rewriteText(client, body, instruction === '' ? 'vylepšiť' : instruction);
-    work
-      .then((text) => {
-        setBody(text);
-      })
-      .catch((error: unknown) => {
-        showToast(`AI nedokončila text: ${describeError(error)}`);
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+  const reveal = (kind: RecipientKind) => {
+    setVisible((current) => new Set([...current, kind]));
+    setTimeout(() => document.getElementById(RECIPIENT_INPUT_IDS[kind])?.focus(), 0);
   };
-  const onKey = (event: KeyboardEvent) => {
-    const mod = event.metaKey || event.ctrlKey;
-    if (mod && event.key === 'Enter') {
-      event.preventDefault();
-      if (event.shiftKey) {
-        const button = document.getElementById('nm-sched');
-        if (validate() !== null && button !== null) {
-          setPopup({ kind: 'schedule', anchor: rectOf(button) });
-        }
-        return true;
-      }
-      if (validate() !== null) {
-        setPopup({ kind: 'confirm' });
-      }
-      return true;
+  const askSchedule = (button: HTMLElement | null) => {
+    if (validate() !== null && button !== null) {
+      setPopup({ kind: 'schedule', anchor: rectOf(button) });
     }
-    if (mod && event.key.toLowerCase() === 'j') {
-      event.preventDefault();
-      setAiOpen((value) => !value);
-      return true;
-    }
-    if (event.key === 'Escape' && aiOpen) {
-      event.preventDefault();
-      setAiOpen(false);
-      return true;
-    }
-    return false;
   };
-  const empty = body.trim() === '';
-  const recipientName = to?.name ?? to?.email ?? '';
+  const askSend = () => {
+    if (validate() !== null) {
+      setPopup({ kind: 'confirm' });
+    }
+  };
+  const onKey = composeShortcut({
+    send: askSend,
+    schedule: () => {
+      askSchedule(document.getElementById('nm-sched'));
+    },
+    reveal,
+    attach: picker.pick,
+    ai,
+  });
+  const first = recipients.to[0]?.address;
+  const recipientName = first?.name ?? first?.email ?? '';
+  const more = recipients.to.length + recipients.cc.length + recipients.bcc.length - 1;
   return (
     <Sheet label="Nová správa" className="nm" onClose={saveAndClose} onKey={onKey}>
-      <div className="nm-h">
-        <b>{init.draftId === undefined ? 'Nová správa' : 'Koncept'}</b>
-        <span className="sp" />
-        <span className="mono">Esc uloží do Konceptov</span>
-        <IconButton label="Zavrieť a uložiť" onClick={saveAndClose}>
-          <Icon name="x" />
-        </IconButton>
-      </div>
-      <div className="nm-f">
-        <span className="lb">Od</span>
-        {account === undefined ? null : (
-          <button
-            type="button"
-            id="nm-from"
-            className="from-btn"
-            aria-haspopup="menu"
-            aria-label={`Od: ${account.displayName}, ${account.email}. Zmeniť účet`}
-            onClick={(event) => {
-              setPopup({ kind: 'from', anchor: rectOf(event.currentTarget) });
-            }}
-          >
-            <AccountSquare account={accountLike(account)} small />
-            <span>{account.displayName}</span>
-            <small>{account.email}</small>
-            <Icon name="down" />
-          </button>
-        )}
-      </div>
-      <RecipientField
-        value={to}
-        onChange={(next) => {
-          if (!saving) {
-            setTo(next);
+      <div
+        className="nm-drop"
+        {...drop.handlers}
+        onPaste={(event) => {
+          const files = filesOf(event.clipboardData.files);
+          if (files.length > 0) {
+            event.preventDefault();
+            attachments.add(inputsFromFiles(files));
           }
         }}
-        autoFocus={to === null}
-        onDone={() => {
-          document.getElementById('nm-subj')?.focus();
-        }}
-      />
-      <DraftExtrasRows extras={extras} />
-      <div className="nm-f">
-        <span className="lb">Predmet</span>
-        <input
-          id="nm-subj"
-          placeholder="O čom píšeš"
-          autoComplete="off"
-          aria-label="Predmet"
+      >
+        <ComposeHeader
+          title={init.draftId === undefined ? 'Nová správa' : 'Koncept'}
+          account={account}
+          onClose={saveAndClose}
+          onPickAccount={(button) => {
+            setPopup({ kind: 'from', anchor: rectOf(button) });
+          }}
+        />
+        <RecipientRows
+          recipients={recipients}
+          visible={visible}
           readOnly={saving}
-          value={subject}
-          onChange={(event) => {
+          autoFocus={recipients.to.length === 0}
+          onChange={(kind, entries) => {
             if (!saving) {
-              setSubject(event.target.value);
+              setRecipients((current) => ({ ...current, [kind]: entries }));
             }
+          }}
+          onReveal={reveal}
+          onDone={() => {
+            document.getElementById('nm-subj')?.focus();
           }}
         />
-      </div>
-      <div className={`cmp-b${busy ? ' busy' : ''}`}>
-        <textarea
-          id="nm-t"
-          placeholder={`Napíš správu, alebo nechaj AI: ${MOD}J`}
-          aria-label="Text správy"
-          readOnly={busy || saving}
-          value={body}
-          onChange={(event) => {
-            if (!saving) {
-              setBody(event.target.value);
-            }
-          }}
+        <div className="nm-f">
+          <span className="lb">Predmet</span>
+          <input
+            id="nm-subj"
+            placeholder="O čom píšeš"
+            autoComplete="off"
+            aria-label="Predmet"
+            readOnly={saving}
+            value={subject}
+            onChange={(event) => {
+              if (!saving) {
+                setSubject(event.target.value);
+              }
+            }}
+          />
+        </div>
+        <div className={`cmp-b${ai.busy ? ' busy' : ''}`}>
+          <textarea
+            id="nm-t"
+            placeholder={`Napíš správu, alebo nechaj AI: ${MOD}J`}
+            aria-label="Text správy"
+            readOnly={ai.busy || saving}
+            value={body}
+            onChange={(event) => {
+              if (!saving) {
+                setBody(event.target.value);
+              }
+            }}
+          />
+          {ai.busy ? <BusyOverlay label={ai.empty ? 'Píšem…' : 'Upravujem…'} /> : null}
+        </div>
+        <AttachmentChips items={attachments.items} onRemove={attachments.remove} />
+        {ai.open ? <AiBar {...ai.bar} /> : null}
+        <ComposeFooter
+          empty={ai.empty}
+          onAi={ai.toggle}
+          onAttach={picker.pick}
+          onSchedule={askSchedule}
+          onSend={askSend}
         />
-        {busy ? <BusyOverlay label={empty ? 'Píšem…' : 'Upravujem…'} /> : null}
-      </div>
-      {aiOpen ? (
-        <AiBar
-          placeholder={empty ? 'Čo má AI napísať?' : 'Ako upraviť?'}
-          chips={
-            empty
-              ? ['navrhni termín', 'poďakuj', 'ospravedlnenie']
-              : ['kratšie', 'formálnejšie', 'pridať termín']
-          }
-          onRun={runAi}
-          onClose={() => {
-            setAiOpen(false);
-          }}
-        />
-      ) : null}
-      <div className="cmp-f">
-        <Button
-          variant="ghost"
-          title={`${empty ? 'Napíše správu' : 'Prepíše text'} podľa pokynu (${MOD}J)`}
-          onClick={() => {
-            setAiOpen((value) => !value);
-          }}
-        >
-          <Spark />
-          {empty ? 'Napísať s AI' : 'Upraviť s AI'}
-        </Button>
-        <span className="sp" />
-        <Button
-          id="nm-sched"
-          title={`Odošle sa neskôr (${MOD}⇧↵)`}
-          onClick={(event) => {
-            if (validate() !== null) {
-              setPopup({ kind: 'schedule', anchor: rectOf(event.currentTarget) });
-            }
-          }}
-        >
-          <Icon name="clock" />
-          Naplánovať odoslanie
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => {
-            if (validate() !== null) {
-              setPopup({ kind: 'confirm' });
-            }
-          }}
-        >
-          Odoslať <Kbd keys={[`${MOD}↵`]} />
-        </Button>
+        {picker.fallback}
+        {drop.active ? <div className="nm-drop-hint">Pusti súbory sem a priložia sa</div> : null}
       </div>
       <ComposePopups
         popup={popup}
-        title={`Odoslať ${recipientName}${model.multi && account !== undefined ? ` z účtu ${account.displayName}` : ''}?`}
+        title={`Odoslať ${recipientName}${more > 0 ? ` a ďalším (${String(more)})` : ''}${model.multi && account !== undefined ? ` z účtu ${account.displayName}` : ''}?`}
         body={body}
         accountId={accountId}
         onClose={() => {
@@ -280,10 +260,13 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
         onSend={(date) => {
           const ready = content();
           setPopup(null);
-          if (ready !== null) {
-            close();
-            actions.compose.sendNew(ready, init, date);
+          if (ready === null) {
+            return;
           }
+          close();
+          draft.whenSettled((draftId) => {
+            actions.compose.sendNew(ready, { ...init, draftId: draftId ?? undefined }, date);
+          });
         }}
       />
     </Sheet>

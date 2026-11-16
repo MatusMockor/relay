@@ -1,5 +1,6 @@
 import {
   ApiErrorResponseSchema,
+  DRAFT_ATTACHMENT_UPLOAD_CONTENT_TYPE,
   buildUrl,
   type EndpointDefinition,
   type EndpointRequest,
@@ -40,6 +41,29 @@ export class HttpApi {
       return this.send(endpoint, request, null);
     }
     return this.authorized((token) => this.send(endpoint, request, token));
+  }
+
+  upload<E extends EndpointDefinition>(
+    endpoint: E,
+    request: EndpointRequest<E>,
+    blob: Blob,
+  ): Promise<EndpointResponse<E>> {
+    return this.authorized((token) =>
+      this.parse(
+        endpoint,
+        this.fetchImpl(buildUrl(this.options.baseUrl, endpoint, request), {
+          method: endpoint.method,
+          headers: {
+            accept: 'application/json',
+            'content-type': DRAFT_ATTACHMENT_UPLOAD_CONTENT_TYPE,
+            ...(token === null ? {} : { authorization: `Bearer ${token}` }),
+          },
+          body: blob,
+        }).catch(() => {
+          throw networkError(this.options.baseUrl);
+        }),
+      ),
+    );
   }
 
   download<E extends EndpointDefinition>(
@@ -115,7 +139,14 @@ export class HttpApi {
     request: EndpointRequest<E>,
     token: string | null,
   ): Promise<EndpointResponse<E>> {
-    const response = await this.request(endpoint, request, token, 'application/json');
+    return this.parse(endpoint, this.request(endpoint, request, token, 'application/json'));
+  }
+
+  private async parse<E extends EndpointDefinition>(
+    endpoint: E,
+    pending: Promise<Response>,
+  ): Promise<EndpointResponse<E>> {
+    const response = await pending;
     const payload: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       throw this.toError(payload, response.status);

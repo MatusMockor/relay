@@ -167,7 +167,7 @@
   flex-wrap: wrap;
 }
 .nm-f > .lb {
-  width: 56px;
+  width: 84px;
   flex: none;
   color: var(--muted);
   font-size: 13px;
@@ -211,7 +211,7 @@
 }
 .ac {
   position: absolute;
-  left: 62px;
+  left: 90px;
   top: 100%;
   margin-top: 4px;
   width: 360px;

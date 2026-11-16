@@ -5,6 +5,7 @@ export interface AccountFormValues {
   readonly email: string;
   readonly password: string;
   readonly name: string;
+  readonly senderName: string;
   readonly imapHost: string;
   readonly imapPort: string;
   readonly smtpHost: string;
@@ -15,6 +16,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   email: '',
   password: '',
   name: '',
+  senderName: '',
   imapHost: '',
   imapPort: '993',
   smtpHost: '',

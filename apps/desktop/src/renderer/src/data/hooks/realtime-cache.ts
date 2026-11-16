@@ -1,6 +1,7 @@
 import type { RealtimeEvent, ThreadDetail } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import { applyAiJobUpdate } from './ai-job-cache';
+import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
 import { queryKeys } from './query-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
@@ -38,6 +39,10 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     client.setQueryData(queryKeys.splits(), event.data.splits);
     return;
   }
+  if (event.type === 'calendar.updated') {
+    invalidate(client, calendarKeys.all());
+    return;
+  }
   if (event.type === 'task.upserted') {
     invalidate(client, queryKeys.taskLists());
     return;
@@ -57,6 +62,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   ) {
     invalidate(client, queryKeys.accounts());
     if (event.type === 'account.removed') {
+      invalidate(client, calendarKeys.all());
       invalidate(client, queryKeys.threadLists());
     }
   }

@@ -9,10 +9,13 @@ import type {
   AiRunRequest,
   CreateAccountBody,
   DraftAttachment,
+  DraftAttachmentAdded,
+  DraftAttachmentsForwarded,
   DraftContent,
   DraftId,
   Label,
   MailAccount,
+  MessageId,
   Draft,
   RealtimeEvent,
   ScheduledSend,
@@ -42,6 +45,9 @@ import type {
   UserSettingsPatch,
 } from '@relay/shared';
 
+import type { CalendarClient } from './CalendarClient';
+import type { GoogleCalendarClient } from './GoogleCalendarClient';
+
 export type MailClientKind = 'remote' | 'local' | 'demo';
 
 export type ThreadListParams = Omit<ThreadListQuery, 'limit'> & { readonly limit?: number };
@@ -49,6 +55,12 @@ export type TaskListParams = Omit<TaskListQuery, 'limit'> & { readonly limit?: n
 export type CreateDraftInput = Omit<DraftContent, 'attachments'> & {
   readonly attachments?: DraftAttachment[];
 };
+
+export interface AttachmentUploadInput {
+  readonly filename: string;
+  readonly contentType: string;
+  readonly blob: Blob;
+}
 
 export interface AttachmentFile {
   readonly contentType: string;
@@ -82,6 +94,9 @@ export interface Composer {
   createDraft(content: CreateDraftInput): Promise<Draft>;
   updateDraft(draftId: DraftId, patch: UpdateDraftBody): Promise<Draft>;
   deleteDraft(draftId: DraftId): Promise<void>;
+  addDraftAttachment(draftId: DraftId, file: AttachmentUploadInput): Promise<DraftAttachmentAdded>;
+  removeDraftAttachment(draftId: DraftId, attachmentId: AttachmentId): Promise<Draft>;
+  forwardAttachments(draftId: DraftId, messageId: MessageId): Promise<DraftAttachmentsForwarded>;
   send(body: SendBody): Promise<SendResponse>;
   listScheduled(): Promise<ScheduledSend[]>;
   cancelScheduled(scheduledSendId: ScheduledSendId): Promise<void>;
@@ -106,7 +121,14 @@ export interface AiAssistant {
   runAi(request: AiRunRequest, listener: AiEventListener): Unsubscribe;
 }
 
-export interface MailClient extends ThreadReader, AccountManager, Composer, Organizer, AiAssistant {
+export interface MailClient
+  extends ThreadReader,
+    AccountManager,
+    Composer,
+    Organizer,
+    AiAssistant,
+    CalendarClient,
+    GoogleCalendarClient {
   readonly kind: MailClientKind;
   subscribe(listener: MailEventListener): Unsubscribe;
   onRealtimeConnected(listener: () => void): Unsubscribe;

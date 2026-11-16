@@ -218,6 +218,9 @@
   color: var(--muted);
   font-size: 13px;
 }
+.acc-name-fld {
+  width: 220px;
+}
 .srow .r {
   display: flex;
   align-items: center;

@@ -15,6 +15,9 @@ export const plural = (count: number, one: string, few: string, many: string): s
   return count >= 2 && count <= 4 ? few : many;
 };
 
+export const accountCount = (count: number): string =>
+  `${String(count)} ${plural(count, 'účet', 'účty', 'účtov')}`;
+
 export const capitalize = (value: string): string =>
   value.charAt(0).toLocaleUpperCase('sk') + value.slice(1);
 

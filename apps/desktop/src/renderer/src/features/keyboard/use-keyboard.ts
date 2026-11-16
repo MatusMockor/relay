@@ -177,6 +177,16 @@ export const useKeyboard = (): void => {
           actions.compose.startReply(thread.id, thread.accountId);
         }
       },
+      R: () => {
+        if (thread !== null) {
+          actions.compose.replyAll(thread.id);
+        }
+      },
+      f: () => {
+        if (thread !== null) {
+          actions.compose.forward(thread.id);
+        }
+      },
       z: undoLast,
       a: () => {
         openRight('ai');

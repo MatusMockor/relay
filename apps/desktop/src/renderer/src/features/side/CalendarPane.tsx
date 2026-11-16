@@ -1,35 +1,68 @@
-import { useSessionStore } from '../../session/session-store';
-import { atDay, dm, hm, WEEKDAYS, WEEKDAYS_SHORT } from '../../lib/dates';
+import { useOccurrences } from '../../data/hooks/use-calendar';
+import { dm, WEEKDAYS, WEEKDAYS_SHORT } from '../../lib/dates';
 import { capitalize } from '../../lib/text';
+import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
-import { minutesOf, SAMPLE_AGENDA } from './calendar-sample';
+import { onDay, startOfDay, weekWindow } from '../calendar/calendar-time';
+import { useNow } from '../calendar/use-now';
+import { useState } from 'react';
+import { IconButton, Icon } from '@relay/ui';
+import { AgendaList } from './AgendaList';
+import { CalendarEventForm } from './CalendarEventForm';
+
+const titleOf = (offset: number, date: Date): string => {
+  if (offset === 0) {
+    return 'Dnes';
+  }
+  if (offset === 1) {
+    return 'Zajtra';
+  }
+  return capitalize(WEEKDAYS[date.getDay()] ?? '');
+};
+
+const openCalendarSettings = () => {
+  setUi({ overlay: { kind: 'settings', section: 'calendars', adding: false } });
+};
 
 export function CalendarPane() {
   const day = useUiStore((state) => state.calendarDay);
-  const mode = useSessionStore((state) => state.services?.mode);
-  const now = new Date();
-  const date = atDay(now, day, 0);
-  const events = mode === 'demo' ? SAMPLE_AGENDA.filter((event) => event.day === day) : [];
-  const nowMinutes = minutesOf(hm(now));
-  const title =
-    day === 0 ? 'Dnes' : day === 1 ? 'Zajtra' : capitalize(WEEKDAYS[date.getDay()] ?? '');
+  const demo = useSessionStore((state) => state.services?.mode === 'demo');
+  const now = useNow();
+  const base = startOfDay(now, 0);
+  const week = useOccurrences(weekWindow(base));
+  const occurrences = (week.data ?? []).filter((occurrence) => occurrence.status !== 'cancelled');
+  const date = startOfDay(base, day);
+  const events = occurrences.filter((occurrence) => onDay(occurrence, base, day));
+  const [creating, setCreating] = useState(false);
   return (
     <div className="spane" role="tabpanel" aria-label="Kalendár">
       <div className="sbody">
         <div className="cal-h">
-          <h3>{title}</h3>
+          <h3>{titleOf(day, date)}</h3>
           <span>{`${capitalize(WEEKDAYS[date.getDay()] ?? '')} ${dm(date)}`}</span>
+          {demo ? null : (
+            <IconButton
+              label="Nová udalosť"
+              active={creating}
+              onClick={() => {
+                setCreating((open) => !open);
+              }}
+            >
+              <Icon name="plus" />
+            </IconButton>
+          )}
         </div>
         <div className="week">
           {[0, 1, 2, 3, 4, 5, 6].map((offset) => {
-            const cell = atDay(now, offset, 0);
-            const has = mode === 'demo' && SAMPLE_AGENDA.some((event) => event.day === offset);
+            const cell = startOfDay(base, offset);
+            const has = occurrences.some((occurrence) => onDay(occurrence, base, offset));
             return (
               <button
                 key={offset}
                 type="button"
                 className={`wd${offset === day ? ' on' : ''}${offset === 0 ? ' today' : ''}`}
                 aria-label={`${capitalize(WEEKDAYS[cell.getDay()] ?? '')} ${dm(cell)}`}
+                aria-pressed={offset === day}
                 onClick={() => {
                   setUi({ calendarDay: offset });
                 }}
@@ -41,30 +74,33 @@ export function CalendarPane() {
             );
           })}
         </div>
-        <div className="agenda">
-          {events.length === 0 ? (
+        {creating ? (
+          <CalendarEventForm
+            day={date}
+            onClose={() => {
+              setCreating(false);
+            }}
+          />
+        ) : null}
+        {events.length === 0 ? (
+          <div className="agenda">
             <div className="ev-empty">
-              {mode === 'demo'
-                ? 'Žiadne stretnutia.'
-                : 'Kalendár zatiaľ nie je prepojený. Prepojenie s Google a Outlook kalendárom pribudne v ďalšej verzii.'}
+              {week.isError ? 'Kalendár sa nepodarilo načítať.' : 'Žiadne stretnutia.'}
             </div>
-          ) : (
-            events.map((event) => (
-              <div
-                key={`${event.start}-${event.title}`}
-                className={`ev${day === 0 && minutesOf(event.end) <= nowMinutes ? ' past' : ''}`}
-                style={{ ['--c' as string]: event.color }}
-              >
-                <time>{event.start}</time>
-                <span className="eb">
-                  <b>{event.title}</b>
-                  <span>{`${event.start}-${event.end} · ${event.sub}`}</span>
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-        {mode === 'demo' ? <p className="mono">Ukážková agenda</p> : null}
+          </div>
+        ) : (
+          <AgendaList occurrences={events} base={base} offset={day} now={now} />
+        )}
+        {demo ? (
+          <p className="mono">Ukážková agenda</p>
+        ) : (
+          <p className="cal-foot">
+            Pozvánky z mailov sa pridávajú samé.{' '}
+            <button type="button" className="link" onClick={openCalendarSettings}>
+              Pridať kalendár
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

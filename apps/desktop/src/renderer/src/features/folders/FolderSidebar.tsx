@@ -5,6 +5,7 @@ import { setUi, useUiStore } from '../../state/ui-store';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { FolderNav } from './FolderNav';
 import { rectOf } from './rect';
+import { accountCount } from '../../lib/text';
 
 function ModeStatus() {
   const services = useSessionStore((state) => state.services);
@@ -46,7 +47,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
   const tasks = useTasks();
   const mode = useSessionStore((state) => state.services?.mode);
   const name = model.current?.displayName ?? 'Všetky účty';
-  const sub = model.current?.email ?? `${String(model.accounts.length)} účty`;
+  const sub = model.current?.email ?? accountCount(model.accounts.length);
   const scopedLabels = (labels.data ?? []).filter(
     (label) => scope === 'all' || label.accountId === scope,
   );

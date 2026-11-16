@@ -1,5 +1,6 @@
 import type { AiOutput, AiRunRequest } from '@relay/shared';
 import type { MailClient } from '../../data/MailClient';
+import { systemTimeZone } from '../calendar/calendar-time';
 
 export const runAiToCompletion = (client: MailClient, request: AiRunRequest): Promise<AiOutput> =>
   new Promise((resolve, reject) => {
@@ -34,7 +35,13 @@ export const composeText = async (
 ): Promise<string> => {
   const question = `Napíš krátky e-mail po slovensky${recipient === null ? '' : ` pre ${recipient}`}. Zadanie: ${instruction.trim() === '' ? 'stručná správa' : instruction}. Vráť iba text e-mailu.`;
   const output = await runAiToCompletion(client, {
-    input: { kind: 'chatAnswer', question, threadId: null, history: [] },
+    input: {
+      kind: 'chatAnswer',
+      question,
+      threadId: null,
+      history: [],
+      timeZone: systemTimeZone(),
+    },
   });
   return output.kind === 'chatAnswer' || output.kind === 'rewrite' ? output.text : '';
 };

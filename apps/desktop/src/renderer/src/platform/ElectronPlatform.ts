@@ -26,6 +26,8 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => ({
   },
   saveFile: saveBlobAs,
   authorizeGoogle: (input) => unwrap(bridge.invoke('oauth.google.authorize', input)),
+  authorizeGoogleCalendar: (input) =>
+    unwrap(bridge.invoke('oauth.google.authorizeCalendar', input)),
   cancelGoogleAuthorization: async () => {
     await unwrap(bridge.invoke('oauth.google.cancel'));
   },

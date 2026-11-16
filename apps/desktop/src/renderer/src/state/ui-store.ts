@@ -1,4 +1,4 @@
-import type { AccountId, ThreadId } from '@relay/shared';
+import type { AccountId, Address, MessageId, ThreadId } from '@relay/shared';
 import { create } from 'zustand';
 import type { AnchorRect } from '@relay/ui';
 import { type AccountScope, type Folder, INBOX } from './folders';
@@ -14,15 +14,22 @@ export type SettingsSection =
   | 'notifications'
   | 'ai'
   | 'look'
-  | 'keys';
+  | 'keys'
+  | 'calendars';
 
 export interface ComposeInit {
   readonly draftId?: string;
   readonly toEmail?: string;
   readonly toName?: string | null;
+  readonly to?: readonly Address[];
+  readonly cc?: readonly Address[];
+  readonly bcc?: readonly Address[];
   readonly subject?: string;
   readonly body?: string;
   readonly accountId?: AccountId;
+  readonly inReplyToThreadId?: ThreadId;
+  readonly inReplyToMessageId?: MessageId;
+  readonly forward?: { readonly messageId: MessageId; readonly attachmentCount: number };
 }
 
 export type OverlayState =

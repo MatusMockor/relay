@@ -1,11 +1,12 @@
 import { createContext, type ReactNode, useContext } from 'react';
 import { type ComposeCommands, useComposeCommands } from './use-compose-commands';
 import { type SelectionModel, useSelection } from './use-selection';
+import { type ThreadComposeCommands, useThreadCompose } from './use-thread-compose';
 import { type ThreadCommands, useThreadCommands } from './use-thread-commands';
 
 export interface MailActions extends SelectionModel {
   readonly thread: ThreadCommands;
-  readonly compose: ComposeCommands;
+  readonly compose: ComposeCommands & ThreadComposeCommands;
 }
 
 const MailActionsContext = createContext<MailActions | null>(null);
@@ -13,7 +14,7 @@ const MailActionsContext = createContext<MailActions | null>(null);
 export function MailActionsProvider({ children }: { readonly children: ReactNode }) {
   const selection = useSelection();
   const thread = useThreadCommands(selection.items);
-  const compose = useComposeCommands(selection.items);
+  const compose = { ...useComposeCommands(selection.items), ...useThreadCompose() };
   return (
     <MailActionsContext.Provider value={{ ...selection, thread, compose }}>
       {children}

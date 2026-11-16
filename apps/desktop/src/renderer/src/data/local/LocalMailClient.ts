@@ -3,6 +3,8 @@ import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient } from '../MailClient';
 import { attachmentFileOf } from './attachment-file';
+import { createLocalCalendarClient } from './local-calendar-client';
+import { createLocalGoogleCalendarClient } from './local-google-calendar-client';
 
 const unwrap = async <T>(result: Promise<IpcResult<T>>): Promise<T> => {
   const settled = await result;
@@ -25,6 +27,8 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
   });
   return {
     kind: 'local',
+    ...createLocalCalendarClient(bridge),
+    ...createLocalGoogleCalendarClient(bridge),
     listThreads: (query) => unwrap(bridge.invoke('local.threads.list', query)),
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
     prepareThreadAi: (threadId) => unwrap(bridge.invoke('local.threads.prepareAi', { threadId })),
@@ -45,6 +49,19 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     updateDraft: (draftId, patch) =>
       unwrap(bridge.invoke('local.drafts.update', { draftId, patch })),
     deleteDraft: (draftId) => ignore(bridge.invoke('local.drafts.delete', { draftId })),
+    addDraftAttachment: async (draftId, file) =>
+      unwrap(
+        bridge.invoke('local.drafts.attachments.add', {
+          draftId,
+          filename: file.filename,
+          contentType: file.contentType,
+          content: new Uint8Array(await file.blob.arrayBuffer()),
+        }),
+      ),
+    removeDraftAttachment: (draftId, attachmentId) =>
+      unwrap(bridge.invoke('local.drafts.attachments.remove', { draftId, attachmentId })),
+    forwardAttachments: (draftId, messageId) =>
+      unwrap(bridge.invoke('local.drafts.attachments.forward', { draftId, messageId })),
     send: (body) => unwrap(bridge.invoke('local.send', body)),
     listScheduled: () => unwrap(bridge.invoke('local.scheduled.list')),
     cancelScheduled: (scheduledSendId) =>

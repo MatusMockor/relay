@@ -38,6 +38,8 @@ export const demoAccountFrom = (
     displayName:
       body.displayName ??
       (domain.split('.')[0] ?? 'Účet').replace(/^./, (c) => c.toLocaleUpperCase('sk')),
+    senderName:
+      body.senderName ?? existing.find((account) => account.isPrimary)?.senderName ?? null,
     email,
     color: body.color ?? PALETTE.find((color) => !used.has(color)) ?? PALETTE[0] ?? '#8ea2ff',
     isPrimary: existing.length === 0,

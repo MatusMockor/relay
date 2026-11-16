@@ -14,24 +14,31 @@ export const useOpenItem = () => {
   const client = useClient();
   const queryClient = useQueryClient();
   const openDraft = (draft: Draft) => {
-    if (draft.inReplyToThreadId !== null) {
+    const simpleReply =
+      draft.to.length <= 1 &&
+      draft.cc.length === 0 &&
+      draft.bcc.length === 0 &&
+      draft.attachments.length === 0;
+    if (draft.inReplyToThreadId !== null && simpleReply) {
       actions.compose.startReply(draft.inReplyToThreadId, draft.accountId, draft.body);
       setUi((state) => ({
         reply: state.reply === null ? null : { ...state.reply, draftId: draft.id },
       }));
       return;
     }
-    const to = draft.to[0];
     setUi({
       overlay: {
         kind: 'compose',
         init: {
           draftId: draft.id,
-          toEmail: to?.email,
-          toName: to?.name ?? null,
+          to: draft.to,
+          cc: draft.cc,
+          bcc: draft.bcc,
           subject: draft.subject,
           body: draft.body,
           accountId: draft.accountId,
+          inReplyToThreadId: draft.inReplyToThreadId ?? undefined,
+          inReplyToMessageId: draft.inReplyToMessageId ?? undefined,
         },
       },
     });
