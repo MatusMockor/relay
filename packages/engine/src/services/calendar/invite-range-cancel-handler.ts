@@ -2,18 +2,13 @@ import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calen
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { findAttendee, sameRevision, supersedes } from './event-precedence';
-import { type CancelScope, cancelled } from './invite-cancellation';
+import { cancelled, type RangeFlags } from './invite-cancellation';
 import { type InviteContext, storedFrom } from './invite-context';
 import { saveCurrent } from './invite-write';
-import { atOrAfter, isMaster, recurrenceInstant } from './series-cut';
+import { isMaster, recurrenceInstant } from './series-cut';
 import type { SeriesRangeKeeper } from './series-range-keeper';
 
-const scopeOf = (target: StoredCalendarEvent, event: ParsedCalendarEvent): CancelScope => {
-  if (target.recurrenceId === event.recurrenceId) {
-    return { link: true, flags: 'cut' };
-  }
-  return isMaster(target) ? { link: true, flags: 'keep' } : { link: false, flags: 'clear' };
-};
+const flagsOf = (target: StoredCalendarEvent): RangeFlags => (isMaster(target) ? 'keep' : 'cut');
 
 const applied = (member: StoredCalendarEvent, event: ParsedCalendarEvent): boolean =>
   sameRevision(event, member) &&
@@ -44,12 +39,12 @@ export class InviteRangeCancelHandler {
     const wholeSeries = master !== undefined && from <= Date.parse(master.startsAt);
     const targets = series.filter(
       (member) =>
-        (isMaster(member) ? wholeSeries : atOrAfter(member, from)) &&
+        (isMaster(member) ? wholeSeries : member.recurrenceId === event.recurrenceId) &&
         supersedes(event, member) &&
         !applied(member, event),
     );
     for (const target of targets) {
-      await saveCurrent(repositories, cancelled(target, context, event, scopeOf(target, event)));
+      await saveCurrent(repositories, cancelled(target, context, event, flagsOf(target)));
     }
     const created =
       atCut === undefined && (await this.tombstone(repositories, context, event, master));

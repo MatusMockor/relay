@@ -181,4 +181,110 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
     await client.logout();
     await deleteGreenMailUser(mailbox);
   });
+
+  it('restores overrides under a lifting range and keeps every applying cut', async () => {
+    const mailbox = await createGreenMailUser('cuts');
+    const client = await openImap(mailbox);
+    const session = await registerUser(app.api, `cuts-${randomUUID().slice(0, 8)}@relay.test`);
+    const parties = (name: string) => ({
+      uid: `${name}-${randomUUID()}@range.test`,
+      organizer: 'peter@partner.test',
+      attendee: mailbox.email,
+    });
+    const lifted = parties('lifted');
+    const twice = parties('twice');
+    const daily: SeriesMessage = {
+      method: 'REQUEST',
+      subject: 'Pozvánka: Report',
+      lines: [
+        'DTSTAMP:20261101T080000Z',
+        'SEQUENCE:0',
+        'SUMMARY:Report',
+        'DTSTART:20261101T090000Z',
+        'DTEND:20261101T093000Z',
+        'RRULE:FREQ=DAILY',
+      ],
+    };
+    const moved = (day: string, sequence: number): SeriesMessage => ({
+      method: 'REQUEST',
+      subject: `Presunuté ${day}`,
+      lines: [
+        'DTSTAMP:20261102T070000Z',
+        `SEQUENCE:${String(sequence)}`,
+        'SUMMARY:Report presunutý',
+        `RECURRENCE-ID:202611${day}T090000Z`,
+        `DTSTART:202611${day}T150000Z`,
+        `DTEND:202611${day}T153000Z`,
+      ],
+    });
+    const cutFrom = (day: string, sequence: number): SeriesMessage => ({
+      method: 'CANCEL',
+      subject: `Zrušené od ${day}`,
+      lines: [
+        'DTSTAMP:20261102T090000Z',
+        `SEQUENCE:${String(sequence)}`,
+        `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
+      ],
+    });
+    const againFrom: SeriesMessage = {
+      method: 'REQUEST',
+      subject: 'Report znova od 5.11.',
+      lines: [
+        'DTSTAMP:20261102T100000Z',
+        'SEQUENCE:2',
+        'SUMMARY:Report znova',
+        'RECURRENCE-ID;RANGE=THISANDFUTURE:20261105T090000Z',
+        'DTSTART:20261105T110000Z',
+        'DTEND:20261105T113000Z',
+      ],
+    };
+    for (const [series, message] of [
+      [lifted, daily],
+      [lifted, moved('08', 0)],
+      [lifted, cutFrom('03', 1)],
+      [lifted, againFrom],
+      [twice, daily],
+      [twice, cutFrom('03', 1)],
+      [twice, moved('09', 2)],
+      [twice, cutFrom('08', 3)],
+      [twice, moved('10', 2)],
+    ] as const) {
+      await client.append('INBOX', await seriesMail(series, message));
+    }
+    const account = await addImapAccount(app.api, session.accessToken, mailbox);
+    const window = { from: '2026-11-01T00:00:00Z', to: '2026-11-11T00:00:00Z', timeZone: 'UTC' };
+
+    await expect
+      .poll(
+        async () =>
+          (await occurrences(session.accessToken, window)).sort((a, b) =>
+            `${a[1] ?? ''}${a[0] ?? ''}`.localeCompare(`${b[1] ?? ''}${b[0] ?? ''}`),
+          ),
+        { timeout: 20_000, interval: 250 },
+      )
+      .toEqual([
+        ['lifted', '2026-11-01T09:00:00.000Z', 'Report'],
+        ['twice', '2026-11-01T09:00:00.000Z', 'Report'],
+        ['lifted', '2026-11-02T09:00:00.000Z', 'Report'],
+        ['twice', '2026-11-02T09:00:00.000Z', 'Report'],
+        ['lifted', '2026-11-05T11:00:00.000Z', 'Report znova'],
+        ['lifted', '2026-11-06T11:00:00.000Z', 'Report znova'],
+        ['lifted', '2026-11-07T11:00:00.000Z', 'Report znova'],
+        ['lifted', '2026-11-08T11:00:00.000Z', 'Report znova'],
+        ['lifted', '2026-11-09T11:00:00.000Z', 'Report znova'],
+        ['lifted', '2026-11-10T11:00:00.000Z', 'Report znova'],
+      ]);
+    const events = app.app.get<symbol, CalendarEventRepository>(
+      PORT_TOKENS.CalendarEventRepository,
+    );
+    const stored = await events.findSeries({ kind: 'invite', accountId: account.id }, twice.uid);
+    expect(stored.map((row) => [row.recurrenceId, row.status])).toEqual([
+      [null, 'confirmed'],
+      ['2026-11-03T09:00:00.000Z', 'cancelled'],
+      ['2026-11-08T09:00:00.000Z', 'cancelled'],
+      ['2026-11-09T09:00:00.000Z', 'confirmed'],
+    ]);
+    await client.logout();
+    await deleteGreenMailUser(mailbox);
+  });
 });

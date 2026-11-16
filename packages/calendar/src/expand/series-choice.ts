@@ -17,10 +17,12 @@ const endedBefore = (plan: SeriesPlan, range: RangeOverride, at: number): boolea
       cut.from > range.from && cut.from <= at && compareRevision(cut.event, range.revision) >= 0,
   );
 
-export const cutAt = (plan: SeriesPlan, at: number): SeriesCut | undefined =>
-  plan.cuts.find(
+const cutsAt = (plan: SeriesPlan, at: number): SeriesCut[] =>
+  plan.cuts.filter(
     (cut) => cut.from <= at && !plan.ranges.some((range) => range.from <= at && lifts(range, cut)),
   );
+
+export const cutAt = (plan: SeriesPlan, at: number): SeriesCut | undefined => cutsAt(plan, at)[0];
 
 export const rangeAt = (plan: SeriesPlan, at: number): RangeOverride | undefined =>
   plan.ranges
@@ -30,15 +32,12 @@ export const rangeAt = (plan: SeriesPlan, at: number): RangeOverride | undefined
     >((best, range) => (best === undefined || outranks(range, best) > 0 ? range : best), undefined);
 
 export const exactWins = (exact: StoredCalendarEvent, range: RangeOverride | undefined): boolean =>
-  range === undefined ||
-  exact === range.event ||
-  exact.status === 'cancelled' ||
-  compareRevision(exact, range.revision) >= 0;
+  range === undefined || exact === range.event || compareRevision(exact, range.revision) >= 0;
 
-export const hiddenByCut = (override: StoredCalendarEvent, plan: SeriesPlan): boolean => {
-  const cut = cutAt(plan, recurrenceAt(override, plan.timeZone));
-  return cut !== undefined && compareRevision(override, cut.event) < 0;
-};
+export const hiddenByCut = (override: StoredCalendarEvent, plan: SeriesPlan): boolean =>
+  cutsAt(plan, recurrenceAt(override, plan.timeZone)).some(
+    (cut) => compareRevision(override, cut.event) < 0,
+  );
 
 export const shownAt = (exact: StoredCalendarEvent, plan: SeriesPlan, at: number): boolean => {
   if (cutAt(plan, at) !== undefined) {

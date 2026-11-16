@@ -79,7 +79,7 @@ const rows = (series: ReturnType<typeof seriesFrom>, from: string, to: string, z
     .map((occurrence) => [occurrence.start, occurrence.end, occurrence.event.summary]);
 
 describe('RECURRENCE-ID;RANGE=THISANDFUTURE requests', () => {
-  it('shifts and renames this and all later occurrences', () => {
+  it('shifts and renames this and later occurrences over older instance changes', () => {
     expect(parsedEvents(FROM_16TH)[0]).toMatchObject({ thisAndFuture: true, sequence: 1 });
     const series = seriesFrom(
       'porada@partner.test',
@@ -96,6 +96,7 @@ describe('RECURRENCE-ID;RANGE=THISANDFUTURE requests', () => {
       ['2026-11-16T10:30:00.000Z', '2026-11-16T12:00:00.000Z', 'Porada (nový čas)'],
       ['2026-11-23T10:30:00.000Z', '2026-11-23T12:00:00.000Z', 'Porada (nový čas)'],
       ['2026-11-30T14:00:00.000Z', '2026-11-30T15:00:00.000Z', 'Porada (presunutá)'],
+      ['2026-12-07T10:30:00.000Z', '2026-12-07T12:00:00.000Z', 'Porada (nový čas)'],
       ['2026-12-14T10:30:00.000Z', '2026-12-14T12:00:00.000Z', 'Porada (nový čas)'],
     ]);
     const derived = expander

@@ -1,3 +1,4 @@
+import type { ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import type { ParsedCalendar, ParsedCalendarEvent, StoredCalendarEvent } from '../../src';
 import { calendarOf, eventData } from '../support/calendar-fixtures';
@@ -72,7 +73,7 @@ const cancelFrom = (recurrenceId: string, overrides: Partial<ParsedCalendarEvent
 const CUT = '2026-11-23T09:00:00.000Z';
 
 describe('THISANDFUTURE cancellations of invitations', () => {
-  it('cancels the cut and later overrides, keeps earlier ones and their threads', async () => {
+  it('cancels the cut and shows later older overrides as cancelled on their own cards', async () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     await deliver(engine, seeded, 'series', master({ summary: 'Porada' }));
@@ -85,13 +86,19 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       master: ['confirmed', undefined, undefined],
       '2026-11-09T09:00:00.000Z': ['confirmed', undefined, undefined],
       [CUT]: ['cancelled', true, true],
-      '2026-11-30T09:00:00.000Z': ['cancelled', undefined, undefined],
+      '2026-11-30T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
-    const cancelled = rows(engine);
-    const tombstone = cancelled.find((row) => row.recurrenceId === CUT);
-    const later = cancelled.find((row) => row.recurrenceId?.startsWith('2026-11-30'));
-    expect(later?.messageId).toBe(afterMessage?.messageId);
+    const tombstone = rows(engine).find((row) => row.recurrenceId === CUT);
     expect(tombstone?.messageId).not.toBe(afterMessage?.messageId);
+    const cards = await engine.services.calendar.invitations(
+      USER_ID,
+      afterMessage?.threadId as ThreadId,
+      'Europe/Bratislava',
+    );
+    expect(cards.find((card) => card.eventId === afterMessage?.id)).toMatchObject({
+      status: 'cancelled',
+      canRespond: false,
+    });
     expect(tombstone).toMatchObject({ method: 'CANCEL', sequence: 1, summary: 'Porada' });
     expect(engine.events.ofType('calendar.updated').length).toBeGreaterThan(0);
   });
@@ -244,6 +251,24 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       sequence: 3,
       thisAndFuture: true,
       rangeRevision: { sequence: 1, dtstamp: '2026-11-15T07:00:00.000Z' },
+    });
+  });
+
+  it('rejects an override that any applying cut supersedes', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    const secondCut = '2026-12-07T09:00:00.000Z';
+    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'first-cut', cancelFrom(CUT));
+    await deliver(engine, seeded, 'between', instance('12-14', { sequence: 2 }));
+    await deliver(engine, seeded, 'second-cut', cancelFrom(secondCut, { sequence: 3 }));
+    await deliver(engine, seeded, 'behind-both', instance('12-21', { sequence: 2 }));
+
+    expect(byRecurrence(engine)).toEqual({
+      master: ['confirmed', undefined, undefined],
+      [CUT]: ['cancelled', true, true],
+      [secondCut]: ['cancelled', true, true],
+      '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
 });

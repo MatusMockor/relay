@@ -38,13 +38,13 @@ const lifted = (
       compareRevisions(rangeRevisionOf(range), cut) > 0,
   );
 
-export const blockingCut = (
+const blockingCuts = (
   series: readonly StoredCalendarEvent[],
   at: number,
-): StoredCalendarEvent | undefined => {
+): StoredCalendarEvent[] => {
   const master = series.find(isMaster);
   const ranges = series.filter(isRange);
-  return series.find(
+  return series.filter(
     (member) =>
       isCut(member) &&
       (master === undefined || supersedes(member, master)) &&
@@ -60,8 +60,9 @@ export const cutOffByRange = (
   if (event.recurrenceId === null) {
     return false;
   }
-  const cut = blockingCut(series, recurrenceInstant(event.recurrenceId));
-  return cut !== undefined && !supersedes(event, cut);
+  return blockingCuts(series, recurrenceInstant(event.recurrenceId)).some(
+    (cut) => !supersedes(event, cut),
+  );
 };
 
 export const involvesRange = (
