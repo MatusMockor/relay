@@ -1,5 +1,7 @@
 export type * from './ai';
 export type * from './attachment';
+export type * from './calendar';
+export type * from './google-calendar';
 export type * from './jira';
 export type * from './outgoing-message';
 export type * from './page';

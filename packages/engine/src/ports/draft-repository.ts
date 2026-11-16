@@ -10,6 +10,11 @@ export interface DraftSendClaim {
   readonly staleBefore: string;
 }
 
+export interface DraftSendRenewal {
+  readonly claimedAt: string;
+  readonly renewedAt: string;
+}
+
 export interface DraftRepository {
   listByUser(userId: UserId): Promise<Draft[]>;
   findById(userId: UserId, draftId: DraftId): Promise<Draft | null>;
@@ -25,4 +30,5 @@ export interface DraftRepository {
   deleteRevision(userId: UserId, draftId: DraftId, updatedAt: string): Promise<boolean>;
   claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean>;
   releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean>;
+  renewSendClaim(userId: UserId, draftId: DraftId, renewal: DraftSendRenewal): Promise<boolean>;
 }

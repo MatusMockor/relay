@@ -115,9 +115,11 @@ export class MemoryCredentialVault implements ConditionalCredentialVault {
   readonly entries = new Map<AccountId, AccountCredentials>();
   failSet: string | null = null;
   beforeSet: (() => Promise<void>) | null = null;
+  beforeGet: (() => Promise<void>) | null = null;
 
-  get(accountId: AccountId): Promise<AccountCredentials | null> {
-    return Promise.resolve(this.entries.get(accountId) ?? null);
+  async get(accountId: AccountId): Promise<AccountCredentials | null> {
+    await this.beforeGet?.();
+    return this.entries.get(accountId) ?? null;
   }
 
   async set(accountId: AccountId, credentials: AccountCredentials): Promise<void> {
@@ -146,11 +148,20 @@ export class MemoryCredentialVault implements ConditionalCredentialVault {
   }
 }
 
+export interface MemoryAttachmentEntry {
+  readonly userId: UserId;
+  readonly stored: StoredAttachment;
+  readonly createdAt: string;
+}
+
 export class MemoryAttachmentStore implements AttachmentStore {
-  readonly entries = new Map<AttachmentId, { userId: UserId; stored: StoredAttachment }>();
+  readonly entries = new Map<AttachmentId, MemoryAttachmentEntry>();
   failDeletes: string | null = null;
 
-  constructor(private readonly ids: IdGenerator) {}
+  constructor(
+    private readonly ids: IdGenerator,
+    private readonly clock: Clock,
+  ) {}
 
   put(userId: UserId, upload: AttachmentUpload): Promise<DraftAttachment> {
     const attachment: DraftAttachment = {
@@ -159,7 +170,11 @@ export class MemoryAttachmentStore implements AttachmentStore {
       contentType: upload.contentType,
       size: upload.content.byteLength,
     };
-    this.entries.set(attachment.id, { userId, stored: { attachment, content: upload.content } });
+    this.entries.set(attachment.id, {
+      userId,
+      stored: { attachment, content: upload.content },
+      createdAt: this.clock.now().toISOString(),
+    });
     return Promise.resolve(attachment);
   }
 
@@ -174,6 +189,13 @@ export class MemoryAttachmentStore implements AttachmentStore {
     }
     if (this.entries.get(attachmentId)?.userId !== userId) {
       return Promise.resolve(false);
+    }
+    return Promise.resolve(this.entries.delete(attachmentId));
+  }
+
+  removeBlob(attachmentId: AttachmentId): Promise<boolean> {
+    if (this.failDeletes !== null) {
+      return Promise.reject(new Error(this.failDeletes));
     }
     return Promise.resolve(this.entries.delete(attachmentId));
   }

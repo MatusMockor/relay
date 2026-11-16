@@ -10,6 +10,8 @@ import {
 import { IsoDateTimeSchema } from './primitives';
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+export const MAX_DRAFT_ATTACHMENTS_BYTES = 25 * 1024 * 1024;
+export const MAX_DRAFT_ATTACHMENT_COUNT = 50;
 
 export const DraftAttachmentSchema = z.object({
   id: AttachmentIdSchema,
@@ -18,6 +20,8 @@ export const DraftAttachmentSchema = z.object({
   size: z.number().int().nonnegative().max(MAX_ATTACHMENT_BYTES),
 });
 export type DraftAttachment = z.infer<typeof DraftAttachmentSchema>;
+
+const DraftAttachmentListSchema = z.array(DraftAttachmentSchema).max(MAX_DRAFT_ATTACHMENT_COUNT);
 
 export const DraftContentSchema = z.object({
   accountId: AccountIdSchema,
@@ -28,9 +32,14 @@ export const DraftContentSchema = z.object({
   body: z.string(),
   inReplyToThreadId: ThreadIdSchema.nullable(),
   inReplyToMessageId: MessageIdSchema.nullable(),
-  attachments: z.array(DraftAttachmentSchema).max(50).default([]),
+  attachments: DraftAttachmentListSchema.default([]),
 });
 export type DraftContent = z.infer<typeof DraftContentSchema>;
+
+export const DraftContentPatchSchema = DraftContentSchema.extend({
+  attachments: DraftAttachmentListSchema,
+}).partial();
+export type DraftContentPatch = z.infer<typeof DraftContentPatchSchema>;
 
 export const DraftSchema = DraftContentSchema.extend({
   id: DraftIdSchema,

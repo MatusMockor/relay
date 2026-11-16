@@ -4,8 +4,10 @@ import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { AccountSynchronizer } from './account-synchronizer';
 import { ChangeFlusher } from './change-flusher';
+import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
+import type { SyncBackfill } from './sync-backfill';
 import { KeywordLabels } from './keyword-labels';
 import { MailboxReconciler } from './mailbox-reconciler';
 import { MailboxRefresher } from './mailbox-refresher';
@@ -25,6 +27,8 @@ export interface SyncComponents {
 export const createSyncComponents = (
   deps: EngineDeps,
   shared: {
+    readonly calendarParts: CalendarPartsSink;
+    readonly backfill: SyncBackfill;
     readonly events: EngineEvents;
     readonly sessions: MailProviderSessions;
     readonly tasks: JiraTaskSink;
@@ -42,6 +46,7 @@ export const createSyncComponents = (
     messages: repositories.messages,
     events: shared.events,
     tasks: shared.tasks,
+    calendarParts: shared.calendarParts,
     logger,
   });
   const ingestor = new MessageIngestor({
@@ -53,6 +58,7 @@ export const createSyncComponents = (
     splitMatcher: deps.splitMatcher,
     keywordLabels,
     ids,
+    calendarParts: shared.calendarParts,
   });
   const fetcher = new NewMessageFetcher({
     ingestor,
@@ -90,6 +96,7 @@ export const createSyncComponents = (
     refresher,
     mailboxSync,
     flusher,
+    backfill: shared.backfill,
     replayer: shared.replayer,
     reporter,
     arrivals: shared.arrivals,

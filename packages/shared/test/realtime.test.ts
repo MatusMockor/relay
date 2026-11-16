@@ -8,6 +8,7 @@ describe('realtime protocol', () => {
       'account.status',
       'account.upserted',
       'ai.job.updated',
+      'calendar.updated',
       'draft.removed',
       'draft.upserted',
       'message.upserted',

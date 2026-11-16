@@ -6,10 +6,18 @@ import { ProviderOpReplayer } from './services/actions/provider-op-replayer';
 import type { MessageActionsService } from './services/actions/message-actions-service';
 import type { AiService } from './services/ai/ai-service';
 import type { AttachmentContentService } from './services/attachments/attachment-content-service';
+import type { AttachmentSweeper } from './services/attachments/attachment-sweeper';
+import { createAttachmentSweeper } from './services/attachments/create-attachment-sweeper';
 import { createAttachmentContentService } from './services/attachments/create-attachment-content-service';
+import type { CalendarService } from './services/calendar/calendar-service';
+import { createCalendarComponents } from './services/calendar/create-calendar-service';
+import { createInviteComponents } from './services/calendar/create-invite-components';
 import { createAiComponents } from './services/ai/create-ai-service';
+import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
+import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
 import type { ComposeService } from './services/compose/compose-service';
 import { createComposeService } from './services/compose/create-compose-service';
+import { SentMessageRecorder } from './services/compose/sent-message-recorder';
 import { InboxQueryService } from './services/inbox/inbox-query-service';
 import { LabelQueryService } from './services/inbox/label-query-service';
 import { ReminderService } from './services/reminders/reminder-service';
@@ -45,8 +53,11 @@ export interface EngineServices {
   readonly sync: SyncService;
   readonly compose: ComposeService;
   readonly attachments: AttachmentContentService;
+  readonly attachmentSweeper: AttachmentSweeper;
   readonly splits: SplitService;
   readonly ai: AiService;
+  readonly calendar: CalendarService;
+  readonly googleCalendar: GoogleCalendarService;
 }
 
 export const createEngineServices = (deps: EngineDeps): EngineServices => {
@@ -97,15 +108,36 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     readMarker: actions,
   });
   const ai = createAiComponents(deps, { events, threads, settings: userSettings });
+  const invites = createInviteComponents(deps, events);
   const sync = createSyncComponents(deps, {
+    calendarParts: invites.sink,
+    backfill: invites.backfill,
     events,
     sessions,
     tasks,
     arrivals: ai.oneLiners,
     replayer,
   });
+  const google = createGoogleCalendarComponents(deps, events);
+  const calendar = createCalendarComponents(
+    deps,
+    events,
+    new SentMessageRecorder({
+      roleMailboxes,
+      splits: repositories.splits,
+      sessions,
+      ingestor: sync.ingestor,
+      unitOfWork,
+      events,
+      clock,
+      logger: deps.logger,
+    }),
+    google.inviteRsvp,
+  );
+  const attachments = createAttachmentContentService(deps, sessions);
+  const attachmentSweeper = createAttachmentSweeper(deps);
   return {
-    accounts: createAccountService(deps, { events }),
+    accounts: createAccountService(deps, { events, attachmentSweeper }),
     settings: new SettingsService({
       settings: repositories.settings,
       reader: userSettings,
@@ -141,8 +173,11 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       sessions,
       ingestor: sync.ingestor,
       roleMailboxes,
+      attachmentContent: attachments,
+      attachmentSweeper,
     }),
-    attachments: createAttachmentContentService(deps, sessions),
+    attachments,
+    attachmentSweeper,
     splits: new SplitService({
       splits: repositories.splits,
       accounts: repositories.accounts,
@@ -158,5 +193,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
     }),
     ai: ai.service,
+    calendar,
+    googleCalendar: google.service,
   };
 };

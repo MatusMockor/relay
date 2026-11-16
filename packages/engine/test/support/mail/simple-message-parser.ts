@@ -75,7 +75,15 @@ export class SimpleMessageParser implements MessageParser {
       htmlBody: null,
       snippet: body.replace(/\s+/g, ' ').trim().slice(0, 140),
       headers,
-      attachments: [],
+      attachments: (headers.get('x-test-calendar') ?? []).map((token) => ({
+        filename: 'invite.ics',
+        contentType: 'text/calendar',
+        size: token.length,
+        contentId: null,
+        inline: false,
+        checksum: token,
+      })),
+      calendarParts: headers.get('x-test-calendar') ?? [],
     });
   }
 }

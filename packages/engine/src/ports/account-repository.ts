@@ -8,6 +8,7 @@ import type {
 
 export interface AccountChanges {
   readonly displayName?: string;
+  readonly senderName?: string | null;
   readonly color?: string;
   readonly isPrimary?: boolean;
   readonly syncIntervalSeconds?: number;

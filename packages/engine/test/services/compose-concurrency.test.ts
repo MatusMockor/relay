@@ -41,10 +41,10 @@ describe('ComposeService concurrency', () => {
   it('refuses to share an attachment between drafts', async () => {
     const engine = createTestEngine();
     const { reply } = await setupReply(engine);
-    const attachment = await engine.services.compose.uploadAttachment(USER_ID, {
+    const attachment = await engine.attachments.put(USER_ID, {
       filename: 'offer.txt',
       contentType: 'text/plain',
-      contentBase64: btoa('offer'),
+      content: new TextEncoder().encode('offer'),
     });
     const first = await engine.services.compose.createDraft(USER_ID, {
       ...reply,

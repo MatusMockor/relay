@@ -17,7 +17,7 @@ export class OutgoingMessageBuilder {
   ): Promise<OutgoingMessage> {
     const threading = await this.threading(userId, content);
     return {
-      from: { name: account.displayName, email: account.email },
+      from: { name: account.senderName, email: account.email },
       to: content.to,
       cc: content.cc,
       bcc: content.bcc,

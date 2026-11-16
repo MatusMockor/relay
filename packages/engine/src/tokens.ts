@@ -2,13 +2,24 @@ import type { AccountRepository } from './ports/account-repository';
 import type { AiJobRepository } from './ports/ai-job-repository';
 import type { AiResultRepository } from './ports/ai-result-repository';
 import type { AiRunnerRegistry } from './ports/ai-runner-registry';
+import type { AttachmentBlobCatalog } from './ports/attachment-blob-catalog';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { AttachmentStore } from './ports/attachment-store';
+import type { CalendarAdapters } from './ports/calendar-adapters';
+import type { CalendarEventRepository } from './ports/calendar-event-repository';
+import type { CalendarSubscriptionRepository } from './ports/calendar-subscription-repository';
 import type { Clock } from './ports/clock';
 import type { CredentialVault } from './ports/credential-vault';
 import type { DraftRepository } from './ports/draft-repository';
 import type { EventPublisher } from './ports/event-publisher';
+import type { GoogleCalendarAdapters } from './ports/google-calendar-adapters';
+import type {
+  GoogleCalendarRepository,
+  GoogleConnectionRepository,
+  GoogleEventRepository,
+} from './ports/google-calendar-repositories';
 import type { IdGenerator } from './ports/id-generator';
+import type { InviteCandidateRepository } from './ports/invite-candidate-repository';
 import type { JiraClassifier } from './ports/jira-classifier';
 import type { LabelRepository } from './ports/label-repository';
 import type { Logger } from './ports/logger';
@@ -47,6 +58,14 @@ export const PORT_TOKENS = {
   AiJobRepository: Symbol.for('relay.engine.AiJobRepository'),
   SyncStateRepository: Symbol.for('relay.engine.SyncStateRepository'),
   PendingWorkRepository: Symbol.for('relay.engine.PendingWorkRepository'),
+  CalendarEventRepository: Symbol.for('relay.engine.CalendarEventRepository'),
+  CalendarSubscriptionRepository: Symbol.for('relay.engine.CalendarSubscriptionRepository'),
+  CalendarAdapters: Symbol.for('relay.engine.CalendarAdapters'),
+  InviteCandidateRepository: Symbol.for('relay.engine.InviteCandidateRepository'),
+  GoogleConnectionRepository: Symbol.for('relay.engine.GoogleConnectionRepository'),
+  GoogleCalendarRepository: Symbol.for('relay.engine.GoogleCalendarRepository'),
+  GoogleEventRepository: Symbol.for('relay.engine.GoogleEventRepository'),
+  GoogleCalendarAdapters: Symbol.for('relay.engine.GoogleCalendarAdapters'),
   MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
@@ -54,6 +73,7 @@ export const PORT_TOKENS = {
   CredentialVault: Symbol.for('relay.engine.CredentialVault'),
   AttachmentStore: Symbol.for('relay.engine.AttachmentStore'),
   AttachmentExtractor: Symbol.for('relay.engine.AttachmentExtractor'),
+  AttachmentBlobCatalog: Symbol.for('relay.engine.AttachmentBlobCatalog'),
   MessageParser: Symbol.for('relay.engine.MessageParser'),
   ThreadResolver: Symbol.for('relay.engine.ThreadResolver'),
   JiraClassifier: Symbol.for('relay.engine.JiraClassifier'),
@@ -82,6 +102,14 @@ export interface PortRegistry {
   AiJobRepository: AiJobRepository;
   SyncStateRepository: SyncStateRepository;
   PendingWorkRepository: PendingWorkRepository;
+  CalendarEventRepository: CalendarEventRepository;
+  CalendarSubscriptionRepository: CalendarSubscriptionRepository;
+  CalendarAdapters: CalendarAdapters;
+  InviteCandidateRepository: InviteCandidateRepository;
+  GoogleConnectionRepository: GoogleConnectionRepository;
+  GoogleCalendarRepository: GoogleCalendarRepository;
+  GoogleEventRepository: GoogleEventRepository;
+  GoogleCalendarAdapters: GoogleCalendarAdapters;
   MessageAttachmentLookup: MessageAttachmentLookup;
   UnitOfWork: UnitOfWork;
   MailProviderFactory: MailProviderFactory;
@@ -89,6 +117,7 @@ export interface PortRegistry {
   CredentialVault: CredentialVault;
   AttachmentStore: AttachmentStore;
   AttachmentExtractor: AttachmentExtractor;
+  AttachmentBlobCatalog: AttachmentBlobCatalog;
   MessageParser: MessageParser;
   ThreadResolver: ThreadResolver;
   JiraClassifier: JiraClassifier;

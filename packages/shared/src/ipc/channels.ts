@@ -1,6 +1,9 @@
 import type { z } from 'zod';
 import { appInvokeChannels, appStreamChannels } from './app-channels';
+import { attachmentInvokeChannels } from './attachment-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
+import { calendarInvokeChannels } from './calendar-channels';
+import { googleCalendarInvokeChannels } from './google-calendar-channels';
 import { oauthInvokeChannels } from './oauth-channels';
 import { sessionInvokeChannels } from './session-channels';
 
@@ -8,7 +11,10 @@ export const ipcInvokeChannels = {
   ...appInvokeChannels,
   ...oauthInvokeChannels,
   ...sessionInvokeChannels,
+  ...calendarInvokeChannels,
+  ...googleCalendarInvokeChannels,
   ...localInvokeChannels,
+  ...attachmentInvokeChannels,
 };
 export const ipcStreamChannels = { ...appStreamChannels, ...localStreamChannels };
 

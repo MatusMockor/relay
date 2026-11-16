@@ -17,6 +17,10 @@ export const DraftIdSchema = EntityIdBaseSchema.brand<'DraftId'>();
 export const ScheduledSendIdSchema = EntityIdBaseSchema.brand<'ScheduledSendId'>();
 export const AiJobIdSchema = EntityIdBaseSchema.brand<'AiJobId'>();
 export const AiResultIdSchema = EntityIdBaseSchema.brand<'AiResultId'>();
+export const CalendarEventIdSchema = EntityIdBaseSchema.brand<'CalendarEventId'>();
+export const CalendarSubscriptionIdSchema = EntityIdBaseSchema.brand<'CalendarSubscriptionId'>();
+export const CalendarConnectionIdSchema = EntityIdBaseSchema.brand<'CalendarConnectionId'>();
+export const GoogleCalendarIdSchema = EntityIdBaseSchema.brand<'GoogleCalendarId'>();
 
 export type UserId = z.infer<typeof UserIdSchema>;
 export type DeviceId = z.infer<typeof DeviceIdSchema>;
@@ -33,6 +37,10 @@ export type DraftId = z.infer<typeof DraftIdSchema>;
 export type ScheduledSendId = z.infer<typeof ScheduledSendIdSchema>;
 export type AiJobId = z.infer<typeof AiJobIdSchema>;
 export type AiResultId = z.infer<typeof AiResultIdSchema>;
+export type CalendarEventId = z.infer<typeof CalendarEventIdSchema>;
+export type CalendarSubscriptionId = z.infer<typeof CalendarSubscriptionIdSchema>;
+export type CalendarConnectionId = z.infer<typeof CalendarConnectionIdSchema>;
+export type GoogleCalendarId = z.infer<typeof GoogleCalendarIdSchema>;
 
 export interface EntityIdMap {
   user: UserId;
@@ -50,6 +58,10 @@ export interface EntityIdMap {
   scheduledSend: ScheduledSendId;
   aiJob: AiJobId;
   aiResult: AiResultId;
+  calendarEvent: CalendarEventId;
+  calendarSubscription: CalendarSubscriptionId;
+  calendarConnection: CalendarConnectionId;
+  googleCalendar: GoogleCalendarId;
 }
 
 export type EntityKind = keyof EntityIdMap;

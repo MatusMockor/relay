@@ -4,12 +4,14 @@ import type { Clock } from '../../ports/clock';
 import type { DraftSendClaims } from './draft-send-claims';
 import type { DraftService } from './draft-service';
 import type { ScheduledSendConfirmations } from './scheduled-send-confirmations';
+import type { SendLeases } from './send-leases';
 import type { SendService, SentOutcome } from './send-service';
 import type { SentDraftCleanup } from './sent-draft-cleanup';
 
 export interface DraftSenderDeps {
   readonly drafts: DraftService;
   readonly claims: DraftSendClaims;
+  readonly leases: SendLeases;
   readonly sending: SendService;
   readonly cleanup: SentDraftCleanup;
   readonly confirmations: ScheduledSendConfirmations;
@@ -27,9 +29,11 @@ export class DraftSender {
         throw new ConflictError('The draft was already sent by its scheduled send');
       }
       const draft = await this.deps.drafts.require(userId, draftId);
-      const outcome = await this.deps.sending.sendNow(userId, draft);
-      await this.deps.cleanup.remove({ userId, draftId, updatedAt: draft.updatedAt, claimedAt });
-      return outcome;
+      return await this.deps.leases.holdDraft(userId, draftId, claimedAt, async (lease) => {
+        const outcome = await this.deps.sending.sendNow(userId, draft, lease);
+        await this.deps.cleanup.remove({ userId, draftId, updatedAt: draft.updatedAt, claimedAt });
+        return outcome;
+      });
     } catch (error) {
       await this.deps.claims.release(userId, draftId, claimedAt);
       throw error;

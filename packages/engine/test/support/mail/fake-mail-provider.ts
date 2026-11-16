@@ -165,7 +165,11 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {
-    return this.withMailbox(mailboxPath, (mailbox) => {
+    return this.withMailbox(mailboxPath, (mailbox, server) => {
+      server.fetchedMessages.push({ path: mailboxPath, uid });
+      if (server.failFetchUid === uid) {
+        return Promise.reject(new Error('Connection reset'));
+      }
       const record = mailbox.messages.get(uid);
       return Promise.resolve(record === undefined ? null : toRaw(mailboxPath, record));
     });

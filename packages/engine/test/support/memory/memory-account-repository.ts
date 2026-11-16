@@ -91,6 +91,8 @@ export class MemoryAccountRepository implements AccountRepository {
     removeWhere(tables.threads, (thread) => thread.accountId === accountId);
     removeWhere(tables.labels, (label) => label.accountId === accountId);
     removeWhere(tables.syncStates, (state) => state.accountId === accountId);
+    removeWhere(tables.drafts, (stored) => stored.draft.accountId === accountId);
+    removeWhere(tables.scheduledSends, (item) => item.accountId === accountId);
     return Promise.resolve(true);
   }
 }

@@ -61,3 +61,9 @@ export class UidValidityChangedError extends ProviderError {
     );
   }
 }
+
+export class LeaseLostError extends ConflictError {
+  constructor() {
+    super('The work lease was taken over by another worker');
+  }
+}

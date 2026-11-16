@@ -10,11 +10,12 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { Clock } from '../../ports/clock';
 import type { CredentialVault } from '../../ports/credential-vault';
 import type { IdGenerator } from '../../ports/id-generator';
-import { accountColor, DEFAULT_SYNC_INTERVAL_SECONDS } from './account-defaults';
+import { accountColor, DEFAULT_SYNC_INTERVAL_SECONDS, defaultSenderName } from './account-defaults';
 import { type ConnectionTester, describeFailure } from './connection-tester';
 
 export interface AccountPreferences {
   readonly displayName?: string;
+  readonly senderName?: string | null;
   readonly color?: string;
   readonly isPrimary?: boolean;
   readonly syncIntervalSeconds?: number;
@@ -48,6 +49,7 @@ export class AccountRegistration {
       userId,
       provider: input.provider,
       displayName: input.displayName ?? input.email,
+      senderName: input.senderName === undefined ? defaultSenderName(existing) : input.senderName,
       email: input.email,
       color: input.color ?? accountColor(existing.length),
       isPrimary: input.isPrimary ?? existing.length === 0,

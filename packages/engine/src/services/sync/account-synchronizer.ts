@@ -10,6 +10,7 @@ import { errorMessage, type MailProviderSessions } from '../shared/mail-provider
 import type { ChangeFlusher } from './change-flusher';
 import type { MailboxRefresher } from './mailbox-refresher';
 import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
+import type { SyncBackfill } from './sync-backfill';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync-arrivals';
 import type { SyncContext, SyncStats } from './sync-context';
 import type { SyncOptions } from './sync-options';
@@ -31,6 +32,7 @@ export interface AccountSynchronizerDeps {
   readonly refresher: MailboxRefresher;
   readonly mailboxSync: MailboxSynchronizer;
   readonly flusher: ChangeFlusher;
+  readonly backfill: SyncBackfill;
   readonly replayer: ProviderOpReplayer;
   readonly reporter: SyncReporter;
   readonly arrivals: SyncArrivalListener;
@@ -131,6 +133,7 @@ export class AccountSynchronizer {
     for (const pass of passes) {
       await this.deps.mailboxSync.reconcile(context, pass);
     }
+    await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
   }

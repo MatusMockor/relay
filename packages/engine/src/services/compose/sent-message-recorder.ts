@@ -34,7 +34,10 @@ export class SentMessageRecorder {
         if (mailbox === null) {
           return null;
         }
-        return { mailbox, appended: await provider.append(mailbox.path, sent.raw, { seen: true }) };
+        return {
+          mailbox,
+          appended: await provider.append(mailbox.path, sent.sentCopy, { seen: true }),
+        };
       });
       const uid = stored?.appended.uid ?? null;
       if (stored === null || uid === null) {
@@ -56,9 +59,9 @@ export class SentMessageRecorder {
           flags: { seen: true, flagged: false, answered: false },
           keywords: [],
           internalDate: this.deps.clock.now().toISOString(),
-          size: sent.raw.byteLength,
+          size: sent.sentCopy.byteLength,
           modseq: null,
-          source: sent.raw,
+          source: sent.sentCopy,
         },
       );
       if (outcome.kind === 'skipped') {

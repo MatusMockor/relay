@@ -1,3 +1,5 @@
+export * from './google-calendar-stub';
+
 export interface PostgresTestInfra {
   readonly url: string;
 }

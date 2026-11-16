@@ -3,8 +3,11 @@ import { accountsEndpoints, oauthEndpoints } from './endpoints/accounts';
 import { aiEndpoints } from './endpoints/ai';
 import { attachmentsEndpoints } from './endpoints/attachments';
 import { authEndpoints } from './endpoints/auth';
+import { calendarEndpoints } from './endpoints/calendar';
 import { composeEndpoints } from './endpoints/compose';
 import { devicesEndpoints } from './endpoints/devices';
+import { draftAttachmentsEndpoints } from './endpoints/draft-attachments';
+import { googleCalendarEndpoints } from './endpoints/google-calendar';
 import { healthEndpoints } from './endpoints/health';
 import { labelsEndpoints } from './endpoints/labels';
 import { settingsEndpoints } from './endpoints/settings';
@@ -23,11 +26,14 @@ export const api = {
   labels: labelsEndpoints,
   compose: composeEndpoints,
   attachments: attachmentsEndpoints,
+  draftAttachments: draftAttachmentsEndpoints,
   tasks: tasksEndpoints,
   splits: splitsEndpoints,
   settings: settingsEndpoints,
   sync: syncEndpoints,
   ai: aiEndpoints,
+  calendar: calendarEndpoints,
+  googleCalendar: googleCalendarEndpoints,
 } as const;
 
 export type ApiContract = typeof api;

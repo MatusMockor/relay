@@ -41,7 +41,7 @@ export class FakeMailSender implements MailSender {
     );
     const sent: SentMessage = {
       messageIdHeader,
-      raw,
+      sentCopy: raw,
       acceptedRecipients: recipients,
       rejectedRecipients: [],
     };

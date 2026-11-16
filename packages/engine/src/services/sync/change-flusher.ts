@@ -5,6 +5,7 @@ import type { PendingWorkRepository } from '../../ports/pending-work-repository'
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import type { CalendarPartsSink } from './calendar-parts-sink';
 import { publishThreadOutcomes, refreshThread } from '../shared/thread-refresh';
 import type { JiraTaskSink } from './jira-task-sink';
 import { inboxMailboxIds, type SyncContext } from './sync-context';
@@ -16,6 +17,7 @@ export interface ChangeFlusherDeps {
   readonly messages: MessageRepository;
   readonly events: EngineEvents;
   readonly tasks: JiraTaskSink;
+  readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
 }
 
@@ -26,6 +28,7 @@ export class ChangeFlusher {
     const removed = await this.refreshThreads(context);
     await this.applyMessageEffects(context, removed);
     await this.applyJiraEvents(context, removed);
+    await this.deps.calendarParts.flush(context.userId, context.account);
   }
 
   private async refreshThreads(context: SyncContext): Promise<Set<ThreadId>> {

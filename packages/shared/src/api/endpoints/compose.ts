@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DraftContentSchema, DraftSchema } from '../../domain/draft';
+import { DraftContentPatchSchema, DraftContentSchema, DraftSchema } from '../../domain/draft';
 import { DraftIdSchema, ScheduledSendIdSchema, ThreadIdSchema } from '../../domain/ids';
 import { IsoDateTimeSchema } from '../../domain/primitives';
 import { ScheduledSendSchema } from '../../domain/scheduled-send';
@@ -9,7 +9,7 @@ import { defineEndpoint } from '../endpoint';
 export const CreateDraftBodySchema = DraftContentSchema;
 export type CreateDraftBody = z.infer<typeof CreateDraftBodySchema>;
 
-export const UpdateDraftBodySchema = DraftContentSchema.partial();
+export const UpdateDraftBodySchema = DraftContentPatchSchema;
 export type UpdateDraftBody = z.infer<typeof UpdateDraftBodySchema>;
 
 export const SendBodySchema = z.discriminatedUnion('source', [

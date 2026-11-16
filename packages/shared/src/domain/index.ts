@@ -1,6 +1,10 @@
 export * from './account';
 export * from './address';
 export * from './ai';
+export * from './calendar-event';
+export * from './calendar-subscription';
+export * from './google-calendar';
+export * from './attachment-file';
 export * from './credentials';
 export * from './device';
 export * from './draft';
@@ -18,4 +22,5 @@ export * from './split';
 export * from './task';
 export * from './thread';
 export * from './thread-action';
+export * from './time-zone';
 export * from './user';

@@ -1,7 +1,9 @@
 import type {
   AccountId,
+  CalendarAttendee,
   DraftId,
   JiraKey,
+  MailboxId,
   MailboxRole,
   MessageId,
   ScheduledSendId,
@@ -53,12 +55,42 @@ export interface ScheduledSendSentWork {
   readonly claimedAt: string;
 }
 
+export interface CalendarInviteWork {
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
+  readonly mailboxRole: MailboxRole;
+  readonly parts: readonly string[];
+  readonly publish: boolean;
+  readonly attempts: number;
+  readonly nextAttemptAt: string | null;
+  readonly failedAt: string | null;
+  readonly lastError: string | null;
+}
+
+export interface CalendarReplyWork {
+  readonly uid: string;
+  readonly recurrenceId: string | null;
+  readonly sequence: number;
+  readonly dtstamp: string | null;
+  readonly attendee: CalendarAttendee;
+  readonly messageId: MessageId;
+  readonly parkedAt: string;
+}
+
+export interface CalendarBackfillWork {
+  readonly mailboxId: MailboxId;
+  readonly afterUid: number;
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
   readonly 'message-effects': MessageEffectsWork;
   readonly 'jira-event': JiraEventWork;
   readonly 'scheduled-send-sent': ScheduledSendSentWork;
+  readonly 'calendar-invite': CalendarInviteWork;
+  readonly 'calendar-reply': CalendarReplyWork;
+  readonly 'calendar-backfill': CalendarBackfillWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

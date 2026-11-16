@@ -9,6 +9,7 @@ import {
 } from './ids';
 import { IsoDateTimeSchema } from './primitives';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
+import { TimeZoneSchema } from './time-zone';
 
 export const AiRunnerKindSchema = z.enum(['claude', 'codex']);
 export type AiRunnerKind = z.infer<typeof AiRunnerKindSchema>;
@@ -55,6 +56,7 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     question: z.string().min(1).max(10_000),
     threadId: ThreadIdSchema.nullable(),
     history: z.array(ChatTurnSchema),
+    timeZone: TimeZoneSchema.nullable().optional(),
   }),
   z.object({
     kind: z.literal('rewrite'),

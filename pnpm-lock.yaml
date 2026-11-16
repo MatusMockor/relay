@@ -35,6 +35,9 @@ importers:
       '@relay/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@relay/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@relay/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -81,6 +84,9 @@ importers:
       '@types/nodemailer':
         specifier: 7.0.12
         version: 7.0.12
+      '@types/pg':
+        specifier: 8.15.6
+        version: 8.15.6
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -111,6 +117,9 @@ importers:
       nodemailer:
         specifier: 7.0.13
         version: 7.0.13
+      pg:
+        specifier: 8.16.3
+        version: 8.16.3
       react:
         specifier: 19.2.9
         version: 19.2.9
@@ -156,6 +165,9 @@ importers:
       '@relay/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@relay/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@relay/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -250,6 +262,37 @@ importers:
       execa:
         specifier: 9.6.1
         version: 9.6.1
+      zod:
+        specifier: 4.1.13
+        version: 4.1.13
+    devDependencies:
+      '@relay/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(jsdom@26.1.0)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/calendar:
+    dependencies:
+      '@relay/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@relay/shared':
+        specifier: workspace:*
+        version: link:../shared
+      ical.js:
+        specifier: 2.2.1
+        version: 2.2.1
       zod:
         specifier: 4.1.13
         version: 4.1.13
@@ -3032,6 +3075,9 @@ packages:
     resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
     engines: {node: '>=18'}
     hasBin: true
+
+  ical.js@2.2.1:
+    resolution: {integrity: sha512-yK/UlPbEs316igb/tjRgbFA8ZV75rCsBJp/hWOatpyaPNlgw0dGDmU+FoicOcwX4xXkeXOkYiOmCqNPFpNPkQg==}
 
   iconv-corefoundation@1.1.7:
     resolution: {integrity: sha512-T10qvkw0zz4wnm560lOEg0PovVqUXuOFhhHAkixw8/sycy7TJt7v/RrkEKEQnAw2viPSJu6iAkErxnzR0g8PpQ==}
@@ -7246,6 +7292,8 @@ snapshots:
       ms: 2.1.3
 
   husky@9.1.7: {}
+
+  ical.js@2.2.1: {}
 
   iconv-corefoundation@1.1.7:
     dependencies:

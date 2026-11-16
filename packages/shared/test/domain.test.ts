@@ -13,6 +13,7 @@ import {
   UserSettingsPatchSchema,
   UserSettingsSchema,
 } from '../src/domain';
+import { UpdateDraftBodySchema } from '../src/api';
 
 describe('domain schemas', () => {
   it('ships defaults that satisfy their own schemas', () => {
@@ -83,6 +84,13 @@ describe('ids and server urls', () => {
       inReplyToMessageId: null,
     });
     expect(draft.attachments).toEqual([]);
+  });
+
+  it('leaves draft attachments untouched when an update omits them', () => {
+    expect(UpdateDraftBodySchema.parse({ subject: 'Nový predmet' })).toEqual({
+      subject: 'Nový predmet',
+    });
+    expect(UpdateDraftBodySchema.parse({ attachments: [] })).toEqual({ attachments: [] });
   });
 });
 

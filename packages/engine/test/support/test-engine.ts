@@ -1,6 +1,7 @@
 import type { AiRunnerLocation, UserId } from '@relay/shared/domain';
 import {
   type AiOptions,
+  type CalendarOptions,
   createEngineServices,
   type EngineServices,
   type Repositories,
@@ -16,6 +17,13 @@ import {
   RecordingEventPublisher,
   SequentialIdGenerator,
 } from './fakes/infrastructure';
+import { ManualIntervalTimer } from './fakes/manual-interval-timer';
+import {
+  MemoryAttachmentBlobCatalog,
+  MemoryAttachmentReferences,
+} from './fakes/memory-attachment-blobs';
+import { type CalendarFakes, createCalendarFakes } from './fakes/calendar-adapters';
+import { createGoogleCalendarFakes, type GoogleCalendarFakes } from './fakes/fake-google-calendar';
 import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider';
 import { FakeMailSender } from './mail/fake-mail-sender';
@@ -35,6 +43,7 @@ export interface TestEngineOptions {
   readonly sync?: Partial<SyncOptions>;
   readonly ai?: Partial<AiOptions>;
   readonly settings?: SettingsOptions;
+  readonly calendar?: Partial<CalendarOptions>;
   readonly splitMatcher?: SplitMatcher;
 }
 
@@ -44,15 +53,19 @@ export interface TestEngine {
   readonly unitOfWork: MemoryUnitOfWork;
   readonly services: EngineServices;
   readonly clock: ManualClock;
+  readonly timer: ManualIntervalTimer;
   readonly ids: SequentialIdGenerator;
   readonly events: RecordingEventPublisher;
   readonly logger: MemoryLogger;
   readonly vault: MemoryCredentialVault;
   readonly attachments: MemoryAttachmentStore;
+  readonly attachmentBlobs: MemoryAttachmentBlobCatalog;
   readonly providers: FakeMailProviderFactory;
   readonly sender: FakeMailSender;
   readonly runners: MemoryAiRunnerRegistry;
   readonly claude: StubAiRunner;
+  readonly calendar: CalendarFakes;
+  readonly google: GoogleCalendarFakes;
 }
 
 export const createTestEngine = (options: TestEngineOptions = {}): TestEngine => {
@@ -60,16 +73,23 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
   const repositories = createMemoryRepositories(db);
   const unitOfWork = new MemoryUnitOfWork(db, repositories);
   const clock = new ManualClock(TEST_NOW);
+  const timer = new ManualIntervalTimer();
   const ids = new SequentialIdGenerator();
   const events = new RecordingEventPublisher();
   const logger = new MemoryLogger();
   const vault = new MemoryCredentialVault();
-  const attachments = new MemoryAttachmentStore(ids);
+  const attachments = new MemoryAttachmentStore(ids, clock);
+  const attachmentBlobs = new MemoryAttachmentBlobCatalog(
+    attachments,
+    new MemoryAttachmentReferences(db),
+  );
   const providers = new FakeMailProviderFactory();
   const sender = new FakeMailSender();
   const runners = new MemoryAiRunnerRegistry();
   const claude = new StubAiRunner('claude', () => []);
   runners.register(claude);
+  const calendar = createCalendarFakes();
+  const google = createGoogleCalendarFakes();
   const services = createEngineServices({
     repositories,
     unitOfWork,
@@ -77,20 +97,25 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     mailSender: sender,
     credentialVault: vault,
     attachmentStore: attachments,
+    attachmentBlobs,
     messageParser: new SimpleMessageParser(),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
     aiRunnerRegistry: runners,
+    calendar,
+    googleCalendar: google,
     eventPublisher: events,
     clock,
     idGenerator: ids,
+    intervalTimer: timer,
     logger,
     options: {
       aiRunnerLocation: options.aiRunnerLocation ?? 'local',
       sync: options.sync,
       ai: options.ai,
       settings: options.settings,
+      calendar: options.calendar,
     },
   });
   return {
@@ -99,14 +124,18 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     unitOfWork,
     services,
     clock,
+    timer,
     ids,
     events,
     logger,
     vault,
     attachments,
+    attachmentBlobs,
     providers,
     sender,
     runners,
     claude,
+    calendar,
+    google,
   };
 };

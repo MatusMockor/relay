@@ -12,7 +12,6 @@ import {
   SendResponseSchema,
   UpdateDraftBodySchema,
 } from '../api/endpoints/compose';
-import { UploadAttachmentBodySchema } from '../api/endpoints/attachments';
 import { LabelListQuerySchema } from '../api/endpoints/labels';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
@@ -24,7 +23,7 @@ import {
 } from '../api/endpoints/threads';
 import { MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { DraftAttachmentSchema, DraftSchema } from '../domain/draft';
+import { DraftSchema } from '../domain/draft';
 import {
   AccountIdSchema,
   AiJobIdSchema,
@@ -103,7 +102,6 @@ export const localInvokeChannels = {
     DraftSchema,
   ),
   'local.drafts.delete': invokeChannel(z.object({ draftId: DraftIdSchema }), OkResponseSchema),
-  'local.attachments.upload': invokeChannel(UploadAttachmentBodySchema, DraftAttachmentSchema),
   'local.attachments.content': invokeChannel(
     z.object({ attachmentId: AttachmentIdSchema }),
     LocalAttachmentContentSchema,

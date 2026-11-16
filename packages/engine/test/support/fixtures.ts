@@ -31,6 +31,7 @@ export const seedAccount = async (
     userId,
     provider: 'imap',
     displayName: ME.name ?? 'Alice',
+    senderName: ME.name ?? 'Alice',
     email,
     color: '#3366ff',
     isPrimary: true,

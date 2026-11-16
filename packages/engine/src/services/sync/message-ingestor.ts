@@ -12,6 +12,7 @@ import type { ThreadResolver } from '../../ports/thread-resolver';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
+import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { KeywordLabels } from './keyword-labels';
 import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
@@ -46,6 +47,7 @@ export interface MessageIngestorDeps {
   readonly splitMatcher: SplitMatcher;
   readonly keywordLabels: KeywordLabels;
   readonly ids: IdGenerator;
+  readonly calendarParts: CalendarPartsSink;
 }
 
 export class MessageIngestor {
@@ -99,6 +101,14 @@ export class MessageIngestor {
       );
       const stored = await repositories.messages.upsert(built, parsed.headers);
       await this.journalArrival(repositories.pendingWork, target, stored, parsed, jira, splitIds);
+      await this.deps.calendarParts.queue(repositories.pendingWork, {
+        account: target.account,
+        mailboxRole: target.mailbox.role,
+        messageId: stored.id,
+        threadId: stored.threadId,
+        parts: parsed.calendarParts ?? [],
+        publish: target.publish,
+      });
       return stored;
     });
     return { kind: 'created', message, parsed, jira, splitIds };
