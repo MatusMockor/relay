@@ -1,5 +1,5 @@
 {
-  "id": "e3a490a8-e2ba-43d7-8c2b-3839aaca05c9",
+  "id": "0ae0d7b0-bd96-4a58-97be-2d06031e4f09",
   "prevId": "f412123b-cf31-4fa2-8c74-a6dd60063dc6",
   "version": "7",
   "dialect": "postgresql",
@@ -612,6 +612,25 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "ends_series": {
+          "name": "ends_series",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "range_sequence": {
+          "name": "range_sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "range_dtstamp": {
+          "name": "range_dtstamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "sequence": {
           "name": "sequence",

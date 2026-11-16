@@ -1,5 +1,5 @@
 import type { CalendarEventData, StoredCalendarEvent } from '../../model/calendar';
-import { supersedes } from './event-precedence';
+import { compareRevisions, rangeRevisionOf, supersedes } from './event-precedence';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:\d{2})$/;
@@ -33,7 +33,9 @@ const lifted = (
 ): boolean =>
   ranges.some(
     (range) =>
-      instantOf(range) >= instantOf(cut) && instantOf(range) <= at && !supersedes(cut, range),
+      instantOf(range) >= instantOf(cut) &&
+      instantOf(range) <= at &&
+      compareRevisions(rangeRevisionOf(range), cut) > 0,
   );
 
 export const blockingCut = (

@@ -53,6 +53,9 @@ export const toStoredCalendarEvent = (row: CalendarEventRow): StoredCalendarEven
   recurrenceId: row.recurrenceId,
   ...(row.thisAndFuture ? { thisAndFuture: true } : {}),
   ...(row.endsSeries ? { endsSeries: true } : {}),
+  ...(row.rangeSequence === null
+    ? {}
+    : { rangeRevision: { sequence: row.rangeSequence, dtstamp: row.rangeDtstamp } }),
   sequence: row.sequence,
   dtstamp: row.dtstamp,
   method: CalendarMethodSchema.nullable().parse(row.method),
@@ -91,6 +94,8 @@ export const toCalendarEventRow = (
   recurrenceId: event.recurrenceId,
   thisAndFuture: event.thisAndFuture === true,
   endsSeries: event.endsSeries === true,
+  rangeSequence: event.rangeRevision?.sequence ?? null,
+  rangeDtstamp: event.rangeRevision?.dtstamp ?? null,
   sequence: event.sequence,
   dtstamp: event.dtstamp,
   method: event.method,

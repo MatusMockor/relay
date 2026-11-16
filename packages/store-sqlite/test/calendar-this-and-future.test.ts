@@ -102,5 +102,24 @@ describe('SQLite THISANDFUTURE rows', () => {
       endsSeries: true,
       sequence: 3,
     });
+
+    const anchor = await events.saveIfCurrent(
+      buildEvent(account, {
+        recurrenceId: '2026-11-16T09:00:00.000Z',
+        thisAndFuture: true,
+        rangeRevision: { sequence: 1, dtstamp: '2026-11-14T07:00:00.000Z' },
+        status: 'cancelled',
+        sequence: 3,
+        recurring: false,
+        startsAt: '2026-11-16T11:00:00.000Z',
+        endsAt: '2026-11-16T11:30:00.000Z',
+        rangeEndsAt: null,
+      }),
+    );
+    expect(anchor).toMatchObject({
+      sequence: 3,
+      rangeRevision: { sequence: 1, dtstamp: '2026-11-14T07:00:00.000Z' },
+    });
+    expect(master).not.toHaveProperty('rangeRevision');
   });
 });

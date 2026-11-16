@@ -1,4 +1,4 @@
-import type { StoredCalendarEvent } from '@relay/engine';
+import type { CalendarRevision, StoredCalendarEvent } from '@relay/engine';
 import type { CalendarEventStatus } from '@relay/shared/domain';
 import { spanOf, type ZonedTime } from './occurrence-span';
 import { type ParsedEvent, parsedEventOf } from './parsed-event';
@@ -9,6 +9,7 @@ import { wallShift } from './wall-shift';
 export interface RangeOverride {
   readonly event: StoredCalendarEvent;
   readonly shown: StoredCalendarEvent;
+  readonly revision: CalendarRevision;
   readonly parsed: ParsedEvent;
   readonly from: number;
   readonly shift: number;
@@ -52,7 +53,7 @@ const cutsOf = (
     .sort((a, b) => a.from - b.from);
 
 export const lifts = (range: RangeOverride, cut: SeriesCut): boolean =>
-  range.from >= cut.from && compareRevision(range.event, cut.event) > 0;
+  range.from >= cut.from && compareRevision(range.revision, cut.event) > 0;
 
 const stopOf = (cuts: readonly SeriesCut[], ranges: readonly RangeOverride[]): number =>
   cuts.find((cut) => !ranges.some((range) => lifts(range, cut)))?.from ?? Number.POSITIVE_INFINITY;
@@ -82,7 +83,8 @@ const rangeOf = (
   const shift = timed ? wallShift(from, span.start, zone, timeZone) : offset;
   const shown =
     event.status === 'cancelled' ? { ...event, status: requestStatusOf(parsed) } : event;
-  return [{ event, shown, parsed, from, shift, offset, length: span.end - span.start }];
+  const revision = event.rangeRevision ?? { sequence: event.sequence, dtstamp: event.dtstamp };
+  return [{ event, shown, revision, parsed, from, shift, offset, length: span.end - span.start }];
 };
 
 const latest = (range: RangeOverride): number =>

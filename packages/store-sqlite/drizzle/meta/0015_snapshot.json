@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8580e85c-d152-46b0-aad3-1be3eda737ca",
+  "id": "19b01016-bb89-4333-b814-abf7e1187afb",
   "prevId": "cbc3b1ea-30a6-4bb9-a40c-693ef4bcb711",
   "tables": {
     "accounts": {
@@ -434,6 +434,28 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "ends_series": {
+          "name": "ends_series",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "range_sequence": {
+          "name": "range_sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "range_dtstamp": {
+          "name": "range_dtstamp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "sequence": {
           "name": "sequence",

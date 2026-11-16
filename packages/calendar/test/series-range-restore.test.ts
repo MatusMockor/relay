@@ -26,7 +26,7 @@ const daily = vcalendar(
   ],
 );
 
-const rangeRequest = (day: string, sequence: number, summary: string) =>
+const rangeRequest = (day: string, sequence: number, summary: string, hour = '11') =>
   vcalendar(
     'REQUEST',
     [],
@@ -36,8 +36,8 @@ const rangeRequest = (day: string, sequence: number, summary: string) =>
       `SEQUENCE:${String(sequence)}`,
       `SUMMARY:${summary}`,
       `RECURRENCE-ID;RANGE=THISANDFUTURE:202611${day}T090000Z`,
-      `DTSTART:202611${day}T110000Z`,
-      `DTEND:202611${day}T113000Z`,
+      `DTSTART:202611${day}T${hour}0000Z`,
+      `DTEND:202611${day}T${hour}3000Z`,
     ],
   );
 
@@ -75,6 +75,26 @@ describe('THISANDFUTURE ranges after cancellations', () => {
       .expand({ ...series, overrides: [anchorCancelled] }, NOVEMBER)
       .find((occurrence) => occurrence.recurrenceId === '2026-11-04T09:00:00.000Z');
     expect(derived?.event).toMatchObject({ id: range.id, status: 'confirmed' });
+  });
+
+  it('keeps the range request revision when its anchor is cancelled later', () => {
+    const [early] = parsedEvents(rangeRequest('03', 1, 'Report o 11:00'));
+    expect(early).toMatchObject({ rangeRevision: { sequence: 1 } });
+    const fromThird = stored(present(early));
+    const fromFifth = stored(
+      present(parsedEvents(rangeRequest('05', 2, 'Report o 13:00', '13'))[0]),
+    );
+    const series = seriesFrom('daily@partner.test', daily);
+    const anchorCancelled = { ...fromThird, status: 'cancelled' as const, sequence: 3 };
+
+    expect(shown({ ...series, overrides: [anchorCancelled, fromFifth] }).slice(0, 6)).toEqual([
+      ['2026-11-01T09:00:00.000Z', 'Report'],
+      ['2026-11-02T09:00:00.000Z', 'Report'],
+      ['2026-11-04T11:00:00.000Z', 'Report o 11:00'],
+      ['2026-11-05T13:00:00.000Z', 'Report o 13:00'],
+      ['2026-11-06T13:00:00.000Z', 'Report o 13:00'],
+      ['2026-11-07T13:00:00.000Z', 'Report o 13:00'],
+    ]);
   });
 
   it('brings occurrences back from the anchor of a newer range request', () => {

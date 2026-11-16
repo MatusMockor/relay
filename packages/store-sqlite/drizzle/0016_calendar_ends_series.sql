@@ -1,2 +1,0 @@
-ALTER TABLE `calendar_events` ADD `ends_series` integer DEFAULT false NOT NULL;--> statement-breakpoint
-UPDATE `calendar_events` SET `ends_series` = 1 WHERE `this_and_future` = 1 AND `status` = 'cancelled';

@@ -9,12 +9,12 @@ import {
 } from './series-plan';
 
 const outranks = (a: RangeOverride, b: RangeOverride): number =>
-  compareRevision(a.event, b.event) || a.from - b.from;
+  compareRevision(a.revision, b.revision) || a.from - b.from;
 
 const endedBefore = (plan: SeriesPlan, range: RangeOverride, at: number): boolean =>
   plan.cuts.some(
     (cut) =>
-      cut.from > range.from && cut.from <= at && compareRevision(cut.event, range.event) >= 0,
+      cut.from > range.from && cut.from <= at && compareRevision(cut.event, range.revision) >= 0,
   );
 
 export const cutAt = (plan: SeriesPlan, at: number): SeriesCut | undefined =>
@@ -33,7 +33,7 @@ export const exactWins = (exact: StoredCalendarEvent, range: RangeOverride | und
   range === undefined ||
   exact === range.event ||
   exact.status === 'cancelled' ||
-  compareRevision(exact, range.event) >= 0;
+  compareRevision(exact, range.revision) >= 0;
 
 export const hiddenByCut = (override: StoredCalendarEvent, plan: SeriesPlan): boolean => {
   const cut = cutAt(plan, recurrenceAt(override, plan.timeZone));

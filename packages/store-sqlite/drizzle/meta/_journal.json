@@ -110,15 +110,8 @@
     {
       "idx": 15,
       "version": "6",
-      "when": 1794835440477,
+      "when": 1794837129306,
       "tag": "0015_calendar_this_and_future",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "6",
-      "when": 1794836553269,
-      "tag": "0016_calendar_ends_series",
       "breakpoints": true
     }
   ]

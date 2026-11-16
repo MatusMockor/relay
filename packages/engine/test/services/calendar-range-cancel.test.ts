@@ -219,4 +219,31 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       '2026-12-14T09:00:00.000Z': ['confirmed', undefined, undefined],
     });
   });
+
+  it('keeps the range revision of a range request whose anchor is cancelled', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    await deliver(engine, seeded, 'series', master());
+    await deliver(engine, seeded, 'range', instance('11-23', { sequence: 1, thisAndFuture: true }));
+    await deliver(
+      engine,
+      seeded,
+      'later-range',
+      instance('11-30', { sequence: 2, thisAndFuture: true }),
+    );
+    await deliver(
+      engine,
+      seeded,
+      'anchor-cancel',
+      cancelFrom(CUT, { thisAndFuture: false, sequence: 3 }),
+    );
+
+    const anchor = rows(engine).find((row) => row.recurrenceId === CUT);
+    expect(anchor).toMatchObject({
+      status: 'cancelled',
+      sequence: 3,
+      thisAndFuture: true,
+      rangeRevision: { sequence: 1, dtstamp: '2026-11-15T07:00:00.000Z' },
+    });
+  });
 });

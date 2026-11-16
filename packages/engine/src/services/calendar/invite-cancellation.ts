@@ -1,5 +1,7 @@
 import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calendar';
+import { rangeRevisionOf } from './event-precedence';
 import type { InviteContext } from './invite-context';
+import { isRangeRequest } from './series-range-rows';
 
 export type RangeFlags = 'keep' | 'cut' | 'clear';
 
@@ -13,9 +15,9 @@ const INSTANCE: CancelScope = { link: true, flags: 'keep' };
 const CUT_FLAGS = { thisAndFuture: true, endsSeries: true } as const;
 
 const withFlags = (stored: StoredCalendarEvent, flags: RangeFlags): StoredCalendarEvent => {
-  const { thisAndFuture: _range, endsSeries: _ends, ...rest } = stored;
+  const { thisAndFuture: _range, endsSeries: _ends, rangeRevision: _revision, ...rest } = stored;
   if (flags === 'keep') {
-    return stored;
+    return isRangeRequest(stored) ? { ...stored, rangeRevision: rangeRevisionOf(stored) } : stored;
   }
   return flags === 'cut' ? { ...rest, ...CUT_FLAGS } : rest;
 };
