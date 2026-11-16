@@ -52,6 +52,9 @@ Design: a series cut-off honoured by the expander, not a rewrite of the organize
   - `SeriesRangeKeeper` recomputes the master's `rangeEndsAt` through `seriesRangeEnd` after every invite write that touches a series with THISANDFUTURE rows (cut added, master replaced after the cut, range override added) and saves it with `saveIfCurrent`, inside the same retried unit of work (also on replays, so a retried write cannot skip it). THISANDFUTURE REQUEST rows get the same range end (`series-range-rows.ts`): their start is at or before every shifted occurrence, so window queries also find occurrences moved before the series start. `listForRange` therefore stops returning a cut series after the cut. Feed refreshes do the same per feed (`feed-series-ranges.ts`).
 - Google Calendar API path: unchanged. Google events carry no RANGE (RECURRENCE-ID comes from `originalStartTime`), Google sends a new REQUEST with a shortened RRULE for "this and following", which is a normal master update. The SQLite Google upsert copies the new column.
 
+- Arrival order: `InviteQueue` gives queued `calendar-invite` work strictly increasing `createdAt` values, so messages synced in the same millisecond are applied in arrival order. Before, ties fell back to the message id, whose random suffix shuffled them; a plain instance CANCEL could then be applied before its REQUEST and get lost.
+- E2E tests wait until every message is synced (one thread per message) and the `calendar-invite` queue is empty before asserting (`apps/server/test/calendar/support/invite-settle.ts`); the desktop test checks that every SMTP delivery is in INBOX first and that the queue is empty after `local.sync.now`.
+
 Remaining gaps:
 
 - A newer instance REQUEST exactly at the cut replaces the tombstone row (same series + recurrence key), so the cut disappears and later instances return. Needs a separate row kind for cuts.

@@ -1,6 +1,11 @@
 import type { AccountId } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createGreenMailAccount, deliverMail, type GreenMailAccount } from './support/greenmail';
+import {
+  createGreenMailAccount,
+  deliverMail,
+  type GreenMailAccount,
+  subjectsIn,
+} from './support/greenmail';
 import { type LocalRuntimeHarness, startLocalRuntime } from './support/local-runtime-harness';
 import { imapAccountBody } from './support/seed-account';
 import { createTempDir, type TempDir } from './support/temp-dir';
@@ -86,6 +91,22 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       ],
     });
 
+  const connectAndSync = async (messages: number) => {
+    await expect
+      .poll(async () => (await subjectsIn(me, 'INBOX')).length, { timeout: 10_000 })
+      .toBe(messages);
+    const account = expectOk(
+      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
+    );
+    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+    const queued = await harness.runtime.engine.repositories.pendingWork.list(
+      account.id,
+      'calendar-invite',
+    );
+    expect(queued).toEqual([]);
+    return account;
+  };
+
   const seriesOf = (accountId: AccountId, uid: string) =>
     harness.runtime.engine.repositories.calendarEvents.findSeries(
       { kind: 'invite', accountId },
@@ -132,10 +153,7 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       ]);
     }
 
-    const account = expectOk(
-      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
-    );
-    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+    const account = await connectAndSync(6);
 
     const { items } = expectOk(await harness.bridge.invoke('local.calendar.occurrences', AUTUMN));
     expect(items.map((item) => [item.start, item.title, item.allDay])).toEqual([
@@ -198,10 +216,7 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
     );
     await send('Report B znova od 5.11.', 'REQUEST', restore, at11('05', 2));
 
-    const account = expectOk(
-      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
-    );
-    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+    const account = await connectAndSync(6);
 
     const starts = async (from: string, to: string) =>
       expectOk(
@@ -254,10 +269,7 @@ describe('local mode THISANDFUTURE invitations (SQLite + GreenMail)', () => {
       'SEQUENCE:3',
     ]);
 
-    const account = expectOk(
-      await harness.bridge.invoke('local.accounts.create', imapAccountBody(me)),
-    );
-    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+    const account = await connectAndSync(4);
 
     const { items } = expectOk(
       await harness.bridge.invoke('local.calendar.occurrences', {

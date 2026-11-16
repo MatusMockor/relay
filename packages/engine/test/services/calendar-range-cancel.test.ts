@@ -299,4 +299,28 @@ describe('THISANDFUTURE cancellations of invitations', () => {
       myPartstat: hidden?.myPartstat,
     });
   });
+
+  it('applies invitations synced together in their arrival order', async () => {
+    const engine = createTestEngine();
+    const seeded = await seedAccount(engine);
+    const uids = Array.from({ length: 30 }, (_, index) => `pair-${String(index)}@partner.test`);
+    for (const uid of uids) {
+      const request = `${uid}-range`;
+      const cancel = `${uid}-cancel`;
+      engine.calendar.parser.register(
+        request,
+        instance('11-23', { uid, sequence: 1, thisAndFuture: true }),
+      );
+      engine.calendar.parser.register(
+        cancel,
+        cancelFrom(CUT, { uid, thisAndFuture: false, sequence: 2 }),
+      );
+      deliverMail(seeded.server, 'INBOX', { id: request, headers: { 'X-Test-Calendar': request } });
+      deliverMail(seeded.server, 'INBOX', { id: cancel, headers: { 'X-Test-Calendar': cancel } });
+    }
+    await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
+
+    expect(rows(engine)).toHaveLength(uids.length);
+    expect(rows(engine).filter((row) => row.status !== 'cancelled')).toEqual([]);
+  });
 });

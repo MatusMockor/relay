@@ -18,6 +18,7 @@ import {
 import { addImapAccount } from '../support/mail-flow';
 import { ManualClock } from '../support/manual-clock';
 import { startTestApp, type TestApp } from '../support/test-app';
+import { waitForInvites } from './support/invite-settle';
 import { type SeriesMessage, seriesMail } from './support/series-mail';
 
 const ZONE = 'Europe/Bratislava';
@@ -94,18 +95,10 @@ const seedSeries = async (
   }
   await inbox.logout();
   const account = await addImapAccount(app.api, token, mail.owner);
+  await waitForInvites(app, token, account.id, 3);
   const events = app.app.get<symbol, CalendarEventRepository>(PORT_TOKENS.CalendarEventRepository);
-  const source = { kind: 'invite' as const, accountId: account.id };
-  let series: StoredCalendarEvent[] = [];
-  await expect
-    .poll(
-      async () => {
-        series = await events.findSeries(source, uid);
-        return series.length;
-      },
-      { timeout: 20_000, interval: 250 },
-    )
-    .toBe(3);
+  const series = await events.findSeries({ kind: 'invite', accountId: account.id }, uid);
+  expect(series.map((row) => row.recurrenceId)).toEqual([null, '2026-11-23T09:00:00.000Z', HIDDEN]);
   const master = series.find((row) => row.recurrenceId === null);
   const hidden = series.find((row) => row.recurrenceId === HIDDEN);
   expect(hidden).toMatchObject({ status: 'confirmed', method: 'REQUEST' });

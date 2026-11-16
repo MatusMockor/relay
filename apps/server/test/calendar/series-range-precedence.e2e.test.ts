@@ -7,6 +7,7 @@ import { registerUser } from '../support/auth-flow';
 import { createGreenMailUser, deleteGreenMailUser, openImap } from '../support/greenmail';
 import { addImapAccount } from '../support/mail-flow';
 import { startTestApp, type TestApp } from '../support/test-app';
+import { waitForInvites } from './support/invite-settle';
 import { type SeriesMessage, seriesMail } from './support/series-mail';
 
 describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
@@ -91,6 +92,7 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
       await client.append('INBOX', await seriesMail(series, message));
     }
     const account = await addImapAccount(app.api, session.accessToken, mailbox);
+    await waitForInvites(app, session.accessToken, account.id, 6);
     const week = { from: '2026-11-01T00:00:00Z', to: '2026-11-07T00:00:00Z', timeZone: 'UTC' };
     const later = { from: '2026-12-20T00:00:00Z', to: '2026-12-21T00:00:00Z', timeZone: 'UTC' };
     const sorted = async (window: typeof week) =>
@@ -98,19 +100,17 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
         `${a[1] ?? ''}${a[0] ?? ''}`.localeCompare(`${b[1] ?? ''}${b[0] ?? ''}`),
       );
 
-    await expect
-      .poll(() => sorted(week), { timeout: 20_000, interval: 250 })
-      .toEqual([
-        ['anchor', '2026-11-01T09:00:00.000Z', 'Report'],
-        ['restore', '2026-11-01T09:00:00.000Z', 'Report'],
-        ['anchor', '2026-11-02T09:00:00.000Z', 'Report'],
-        ['restore', '2026-11-02T09:00:00.000Z', 'Report'],
-        ['anchor', '2026-11-04T11:00:00.000Z', 'Report o 11:00'],
-        ['anchor', '2026-11-05T11:00:00.000Z', 'Report o 11:00'],
-        ['restore', '2026-11-05T11:00:00.000Z', 'Report o 11:00'],
-        ['anchor', '2026-11-06T11:00:00.000Z', 'Report o 11:00'],
-        ['restore', '2026-11-06T11:00:00.000Z', 'Report o 11:00'],
-      ]);
+    expect(await sorted(week)).toEqual([
+      ['anchor', '2026-11-01T09:00:00.000Z', 'Report'],
+      ['restore', '2026-11-01T09:00:00.000Z', 'Report'],
+      ['anchor', '2026-11-02T09:00:00.000Z', 'Report'],
+      ['restore', '2026-11-02T09:00:00.000Z', 'Report'],
+      ['anchor', '2026-11-04T11:00:00.000Z', 'Report o 11:00'],
+      ['anchor', '2026-11-05T11:00:00.000Z', 'Report o 11:00'],
+      ['restore', '2026-11-05T11:00:00.000Z', 'Report o 11:00'],
+      ['anchor', '2026-11-06T11:00:00.000Z', 'Report o 11:00'],
+      ['restore', '2026-11-06T11:00:00.000Z', 'Report o 11:00'],
+    ]);
     expect(await sorted(later)).toEqual([
       ['anchor', '2026-12-20T11:00:00.000Z', 'Report o 11:00'],
       ['restore', '2026-12-20T11:00:00.000Z', 'Report o 11:00'],
@@ -165,19 +165,18 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
     for (const message of messages) {
       await client.append('INBOX', await seriesMail(series, message));
     }
-    await addImapAccount(app.api, session.accessToken, mailbox);
+    const account = await addImapAccount(app.api, session.accessToken, mailbox);
+    await waitForInvites(app, session.accessToken, account.id, messages.length);
     const week = { from: '2026-11-01T00:00:00Z', to: '2026-11-08T00:00:00Z', timeZone: 'UTC' };
 
-    await expect
-      .poll(() => occurrences(session.accessToken, week), { timeout: 20_000, interval: 250 })
-      .toEqual([
-        ['precedence', '2026-11-01T09:00:00.000Z', 'Report'],
-        ['precedence', '2026-11-02T09:00:00.000Z', 'Report'],
-        ['precedence', '2026-11-04T11:00:00.000Z', 'Report o 11:00'],
-        ['precedence', '2026-11-05T13:00:00.000Z', 'Report o 13:00'],
-        ['precedence', '2026-11-06T13:00:00.000Z', 'Report o 13:00'],
-        ['precedence', '2026-11-07T13:00:00.000Z', 'Report o 13:00'],
-      ]);
+    expect(await occurrences(session.accessToken, week)).toEqual([
+      ['precedence', '2026-11-01T09:00:00.000Z', 'Report'],
+      ['precedence', '2026-11-02T09:00:00.000Z', 'Report'],
+      ['precedence', '2026-11-04T11:00:00.000Z', 'Report o 11:00'],
+      ['precedence', '2026-11-05T13:00:00.000Z', 'Report o 13:00'],
+      ['precedence', '2026-11-06T13:00:00.000Z', 'Report o 13:00'],
+      ['precedence', '2026-11-07T13:00:00.000Z', 'Report o 13:00'],
+    ]);
     await client.logout();
     await deleteGreenMailUser(mailbox);
   });
@@ -252,28 +251,25 @@ describe('THISANDFUTURE range precedence over the server (Postgres)', () => {
       await client.append('INBOX', await seriesMail(series, message));
     }
     const account = await addImapAccount(app.api, session.accessToken, mailbox);
+    await waitForInvites(app, session.accessToken, account.id, 9);
     const window = { from: '2026-11-01T00:00:00Z', to: '2026-11-11T00:00:00Z', timeZone: 'UTC' };
 
-    await expect
-      .poll(
-        async () =>
-          (await occurrences(session.accessToken, window)).sort((a, b) =>
-            `${a[1] ?? ''}${a[0] ?? ''}`.localeCompare(`${b[1] ?? ''}${b[0] ?? ''}`),
-          ),
-        { timeout: 20_000, interval: 250 },
-      )
-      .toEqual([
-        ['lifted', '2026-11-01T09:00:00.000Z', 'Report'],
-        ['twice', '2026-11-01T09:00:00.000Z', 'Report'],
-        ['lifted', '2026-11-02T09:00:00.000Z', 'Report'],
-        ['twice', '2026-11-02T09:00:00.000Z', 'Report'],
-        ['lifted', '2026-11-05T11:00:00.000Z', 'Report znova'],
-        ['lifted', '2026-11-06T11:00:00.000Z', 'Report znova'],
-        ['lifted', '2026-11-07T11:00:00.000Z', 'Report znova'],
-        ['lifted', '2026-11-08T11:00:00.000Z', 'Report znova'],
-        ['lifted', '2026-11-09T11:00:00.000Z', 'Report znova'],
-        ['lifted', '2026-11-10T11:00:00.000Z', 'Report znova'],
-      ]);
+    expect(
+      (await occurrences(session.accessToken, window)).sort((a, b) =>
+        `${a[1] ?? ''}${a[0] ?? ''}`.localeCompare(`${b[1] ?? ''}${b[0] ?? ''}`),
+      ),
+    ).toEqual([
+      ['lifted', '2026-11-01T09:00:00.000Z', 'Report'],
+      ['twice', '2026-11-01T09:00:00.000Z', 'Report'],
+      ['lifted', '2026-11-02T09:00:00.000Z', 'Report'],
+      ['twice', '2026-11-02T09:00:00.000Z', 'Report'],
+      ['lifted', '2026-11-05T11:00:00.000Z', 'Report znova'],
+      ['lifted', '2026-11-06T11:00:00.000Z', 'Report znova'],
+      ['lifted', '2026-11-07T11:00:00.000Z', 'Report znova'],
+      ['lifted', '2026-11-08T11:00:00.000Z', 'Report znova'],
+      ['lifted', '2026-11-09T11:00:00.000Z', 'Report znova'],
+      ['lifted', '2026-11-10T11:00:00.000Z', 'Report znova'],
+    ]);
     const events = app.app.get<symbol, CalendarEventRepository>(
       PORT_TOKENS.CalendarEventRepository,
     );

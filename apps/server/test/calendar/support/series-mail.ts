@@ -40,7 +40,7 @@ export const seriesMail = async (
     to: [{ name: null, email: parties.attendee }],
     cc: [],
     bcc: [],
-    subject: message.subject,
+    subject: `${message.subject} [${parties.uid.split('@')[0] ?? ''}]`,
     text: 'Zmena v sérii stretnutí.',
     html: null,
     inReplyTo: null,

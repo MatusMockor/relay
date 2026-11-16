@@ -7,7 +7,8 @@ import type { ImapFlow } from 'imapflow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { registerUser } from '../support/auth-flow';
 import { createGreenMailUser, deleteGreenMailUser, openImap } from '../support/greenmail';
-import { addImapAccount, waitForInbox } from '../support/mail-flow';
+import { addImapAccount } from '../support/mail-flow';
+import { waitForInvites } from './support/invite-settle';
 import { startTestApp, type TestApp } from '../support/test-app';
 import { type SeriesMessage, type SeriesParties, seriesMail } from './support/series-mail';
 
@@ -134,19 +135,17 @@ describe('THISANDFUTURE invitations over the server (Postgres)', () => {
       moved('1111', 0, 'Retro (presunuté)'),
     ]);
     const account = await addImapAccount(app.api, token, owner);
-    await waitForInbox(app.api, token, (threads) => threads.length >= 8);
+    await waitForInvites(app, token, account.id, 8);
 
-    await expect
-      .poll(() => occurrences(token, AUTUMN), { timeout: 20_000, interval: 250 })
-      .toEqual([
-        ['monday', '2026-11-02T09:00:00.000Z', 'Porada'],
-        ['wednesday', '2026-11-04T09:00:00.000Z', 'Retro'],
-        ['monday', '2026-11-09T09:00:00.000Z', 'Porada'],
-        ['wednesday', '2026-11-11T15:00:00.000Z', 'Retro (presunuté)'],
-        ['monday', '2026-11-16T10:00:00.000Z', 'Porada o 11:00'],
-        ['monday', '2026-11-23T10:00:00.000Z', 'Porada o 11:00'],
-        ['monday', '2026-11-30T10:00:00.000Z', 'Porada o 11:00'],
-      ]);
+    expect(await occurrences(token, AUTUMN)).toEqual([
+      ['monday', '2026-11-02T09:00:00.000Z', 'Porada'],
+      ['wednesday', '2026-11-04T09:00:00.000Z', 'Retro'],
+      ['monday', '2026-11-09T09:00:00.000Z', 'Porada'],
+      ['wednesday', '2026-11-11T15:00:00.000Z', 'Retro (presunuté)'],
+      ['monday', '2026-11-16T10:00:00.000Z', 'Porada o 11:00'],
+      ['monday', '2026-11-23T10:00:00.000Z', 'Porada o 11:00'],
+      ['monday', '2026-11-30T10:00:00.000Z', 'Porada o 11:00'],
+    ]);
     expect(await occurrences(token, WINTER)).toEqual([]);
     expect(await masterRange(account.id, monday.uid)).toBe('2026-12-08T11:00:00.000Z');
     expect(await masterRange(account.id, wednesday.uid)).toBe('2026-11-19T10:00:00.000Z');
@@ -179,16 +178,17 @@ describe('THISANDFUTURE invitations over the server (Postgres)', () => {
     for (const message of messages) {
       await client.append('INBOX', await seriesMail(daily, message));
     }
-    await addImapAccount(app.api, session.accessToken, mailbox);
+    const account = await addImapAccount(app.api, session.accessToken, mailbox);
+    await waitForInvites(app, session.accessToken, account.id, messages.length);
     const fifth = {
       from: '2026-12-05T00:00:00+01:00',
       to: '2026-12-06T00:00:00+01:00',
       timeZone: ZONE,
     };
 
-    await expect
-      .poll(() => occurrences(session.accessToken, fifth), { timeout: 20_000, interval: 250 })
-      .toEqual([['daily', '2026-12-05T09:00:00.000Z', 'Report skôr']]);
+    expect(await occurrences(session.accessToken, fifth)).toEqual([
+      ['daily', '2026-12-05T09:00:00.000Z', 'Report skôr'],
+    ]);
     await client.logout();
     await deleteGreenMailUser(mailbox);
   });
