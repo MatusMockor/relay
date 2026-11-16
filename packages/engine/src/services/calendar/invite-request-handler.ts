@@ -1,4 +1,4 @@
-import type { ParsedCalendarEvent } from '../../model/calendar';
+import type { ParsedCalendarEvent, StoredCalendarEvent } from '../../model/calendar';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import { withStoredAnswers } from './attendee-answers';
@@ -25,6 +25,7 @@ export class InviteRequestHandler implements InviteHandler {
     const stored = series.find((member) => member.recurrenceId === event.recurrenceId);
     if (stored !== undefined && sameRevision(event, stored)) {
       await this.parked.release(repositories, context, stored);
+      await this.refreshRange(repositories, context, series, event);
       return false;
     }
     if (!event.timed || !supersedes(event, stored) || cutOffByRange(series, event)) {
@@ -40,9 +41,19 @@ export class InviteRequestHandler implements InviteHandler {
       }),
     );
     await this.parked.release(repositories, context, saved);
-    if (involvesRange(series, event)) {
-      await this.ranges.refresh(repositories, context, event.uid);
-    }
+    await this.refreshRange(repositories, context, series, event);
     return true;
+  }
+
+  private async refreshRange(
+    repositories: Repositories,
+    context: InviteContext,
+    series: readonly StoredCalendarEvent[],
+    event: ParsedCalendarEvent,
+  ): Promise<void> {
+    if (!involvesRange(series, event)) {
+      return;
+    }
+    await this.ranges.refresh(repositories, context, event.uid);
   }
 }

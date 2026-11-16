@@ -50,11 +50,8 @@ export class InviteRangeCancelHandler {
     }
     const created =
       atCut === undefined && (await this.tombstone(repositories, context, event, master));
-    if (targets.length === 0 && !created) {
-      return false;
-    }
     await this.ranges.refresh(repositories, context, event.uid);
-    return true;
+    return targets.length > 0 || created;
   }
 
   private async tombstone(
