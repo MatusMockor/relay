@@ -112,6 +112,23 @@ describe('preparing thread AI on open', () => {
     expect(jobsOf(engine, 'summary')).toHaveLength(1);
   });
 
+  it('carries the device time zone into the prepared jobs', async () => {
+    const engine = createTestEngine({ ai: { oneLinersPerSync: 0 } });
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'z1', subject: 'Zóna' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const threadId = await inboxThread(engine, 'Zóna');
+
+    await engine.services.threadAi.prepare(USER_ID, threadId, 'Europe/Bratislava');
+
+    expect(present(jobsOf(engine, 'summary')[0]).input).toMatchObject({
+      timeZone: 'Europe/Bratislava',
+    });
+    expect(present(jobsOf(engine, 'replySuggestions')[0]).input).toMatchObject({
+      timeZone: 'Europe/Bratislava',
+    });
+  });
+
   it('queues one job per kind when the thread is opened twice at the same time', async () => {
     const engine = createTestEngine({ ai: { oneLinersPerSync: 0 } });
     const { account, server } = await seedAccount(engine);

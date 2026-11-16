@@ -21,6 +21,7 @@ export interface MailProvider {
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange>;
   listUids(mailboxPath: string): Promise<number[]>;
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null>;
+  fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null>;
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void>;
   setKeywords(
     mailboxPath: string,

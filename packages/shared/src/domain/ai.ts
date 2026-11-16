@@ -34,29 +34,33 @@ export const ChatTurnSchema = z.object({
 export type ChatTurn = z.infer<typeof ChatTurnSchema>;
 
 const SourceMessageIdSchema = MessageIdSchema.nullable().optional();
+const JobTimeZoneSchema = TimeZoneSchema.nullable().optional();
 
 export const AiJobInputSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('oneLiner'),
     threadId: ThreadIdSchema,
     sourceMessageId: SourceMessageIdSchema,
+    timeZone: JobTimeZoneSchema,
   }),
   z.object({
     kind: z.literal('summary'),
     threadId: ThreadIdSchema,
     sourceMessageId: SourceMessageIdSchema,
+    timeZone: JobTimeZoneSchema,
   }),
   z.object({
     kind: z.literal('replySuggestions'),
     threadId: ThreadIdSchema,
     sourceMessageId: SourceMessageIdSchema,
+    timeZone: JobTimeZoneSchema,
   }),
   z.object({
     kind: z.literal('chatAnswer'),
     question: z.string().min(1).max(10_000),
     threadId: ThreadIdSchema.nullable(),
     history: z.array(ChatTurnSchema),
-    timeZone: TimeZoneSchema.nullable().optional(),
+    timeZone: JobTimeZoneSchema,
   }),
   z.object({
     kind: z.literal('rewrite'),
@@ -68,6 +72,7 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     kind: z.literal('createTask'),
     threadId: ThreadIdSchema,
     hint: z.string().min(1).max(2_000).nullable(),
+    timeZone: JobTimeZoneSchema,
   }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;

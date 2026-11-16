@@ -25,7 +25,7 @@ import {
 import { type CalendarFakes, createCalendarFakes } from './fakes/calendar-adapters';
 import { createGoogleCalendarFakes, type GoogleCalendarFakes } from './fakes/fake-google-calendar';
 import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
-import { FakeMailProviderFactory } from './mail/fake-mail-provider';
+import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
 import { FakeMailSender } from './mail/fake-mail-sender';
 import { HeaderThreadResolver } from './mail/header-thread-resolver';
 import { RuleSplitMatcher } from './mail/rule-split-matcher';

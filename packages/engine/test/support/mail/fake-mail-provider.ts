@@ -1,9 +1,4 @@
-import type {
-  AccountCredentials,
-  MailAccount,
-  MailboxRole,
-  MessageFlags,
-} from '@relay/shared/domain';
+import type { AccountCredentials, MessageFlags } from '@relay/shared/domain';
 import {
   PartialMoveError,
   UidValidityChangedError,
@@ -12,7 +7,6 @@ import {
   type FlagMutation,
   type MailboxChange,
   type MailProvider,
-  type MailProviderFactory,
   type MoveResult,
   type RawMessage,
   type RemoteFlagChange,
@@ -21,36 +15,8 @@ import {
   type RemoteSyncCursor,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
+import { calendarHeaders, CREATED_ROLES, missing, toRaw, toRemote } from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
-
-const toRaw = (path: string, record: RemoteMessageRecord): RawMessage => ({
-  mailboxPath: path,
-  uid: record.uid,
-  flags: { ...record.flags },
-  keywords: [...record.keywords],
-  internalDate: record.internalDate,
-  size: record.source.byteLength,
-  modseq: record.modseq.toString(),
-  source: new Uint8Array(record.source),
-});
-
-const CREATED_ROLES: ReadonlyMap<string, MailboxRole> = new Map([
-  ['Archive', 'archive'],
-  ['Sent', 'sent'],
-  ['Trash', 'trash'],
-  ['Drafts', 'drafts'],
-]);
-
-const toRemote = (mailbox: FakeMailbox): RemoteMailbox => ({
-  path: mailbox.path,
-  name: mailbox.name,
-  delimiter: '/',
-  role: mailbox.role,
-  subscribed: true,
-});
-
-const missing = (what: string): Promise<never> =>
-  Promise.reject(new Error(`${what} does not exist`));
 
 type ChangeListener = (change: MailboxChange) => void;
 
@@ -164,14 +130,28 @@ export class FakeMailProvider implements MailProvider {
     );
   }
 
-  fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {
-    return this.withMailbox(mailboxPath, (mailbox, server) => {
-      server.fetchedMessages.push({ path: mailboxPath, uid });
+  async fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {
+    const record = await this.fetchRecord(mailboxPath, uid, (server) => server.fetchedMessages);
+    return record === null ? null : toRaw(mailboxPath, record);
+  }
+
+  async fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null> {
+    const log = (server: FakeMailServer) => server.fetchedCalendarParts;
+    const record = await this.fetchRecord(mailboxPath, uid, log);
+    return record === null ? null : calendarHeaders(record.source);
+  }
+
+  private fetchRecord(
+    path: string,
+    uid: number,
+    log: (server: FakeMailServer) => { path: string; uid: number }[],
+  ): Promise<RemoteMessageRecord | null> {
+    return this.withMailbox(path, (mailbox, server) => {
+      log(server).push({ path, uid });
       if (server.failFetchUid === uid) {
         return Promise.reject(new Error('Connection reset'));
       }
-      const record = mailbox.messages.get(uid);
-      return Promise.resolve(record === undefined ? null : toRaw(mailboxPath, record));
+      return Promise.resolve(mailbox.messages.get(uid) ?? null);
     });
   }
 
@@ -301,18 +281,5 @@ export class FakeMailProvider implements MailProvider {
       return Promise.reject(new Error(this.server.failOperations));
     }
     return operation(this.server);
-  }
-}
-
-export class FakeMailProviderFactory implements MailProviderFactory {
-  readonly servers = new Map<string, FakeMailServer>();
-
-  register(email: string, server: FakeMailServer): FakeMailServer {
-    this.servers.set(email.toLowerCase(), server);
-    return server;
-  }
-
-  create(account: MailAccount, credentials: AccountCredentials): MailProvider {
-    return new FakeMailProvider(this.servers.get(account.email.toLowerCase()) ?? null, credentials);
   }
 }

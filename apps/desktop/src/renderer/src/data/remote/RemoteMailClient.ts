@@ -37,7 +37,8 @@ type RemoteMailMethods = Omit<
 const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   listThreads: (query) => http.call(api.threads.list, { query }),
   getThread: (id: ThreadId) => http.call(api.threads.get, { params: { id } }),
-  prepareThreadAi: (id) => http.call(api.threads.prepareAi, { params: { id } }),
+  prepareThreadAi: (id, timeZone) =>
+    http.call(api.threads.prepareAi, { params: { id }, query: { timeZone } }),
   applyThreadAction: (id, body) => http.call(api.threads.action, { params: { id }, body }),
   listLabels: (accountId) => http.call(api.labels.list, { query: { accountId } }),
   downloadAttachment: (id) => http.download(api.attachments.content, { params: { id } }),

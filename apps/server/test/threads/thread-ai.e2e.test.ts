@@ -80,11 +80,12 @@ describe('POST /threads/:id/ai/prepare', () => {
     }
     const socket = await authenticateRealtime(app.baseUrl, token);
     const params = { params: { id: contract.id } };
+    const prepare = { ...params, query: {} };
 
-    expect(await app.api.ok(api.threads.prepareAi, params, token)).toMatchObject({
+    expect(await app.api.ok(api.threads.prepareAi, prepare, token)).toMatchObject({
       pending: ['summary', 'replySuggestions'],
     });
-    await app.api.ok(api.threads.prepareAi, params, token);
+    await app.api.ok(api.threads.prepareAi, prepare, token);
 
     await expect
       .poll(async () => (await app.api.ok(api.threads.get, params, token)).replySuggestions, {
@@ -116,7 +117,7 @@ describe('POST /threads/:id/ai/prepare', () => {
         message.event.data.job.status === 'done',
     );
 
-    expect(await app.api.ok(api.threads.prepareAi, params, token)).toMatchObject({ pending: [] });
+    expect(await app.api.ok(api.threads.prepareAi, prepare, token)).toMatchObject({ pending: [] });
     expect(await claude.prompts()).toHaveLength(2);
     socket.close();
   });
@@ -136,7 +137,7 @@ describe('POST /threads/:id/ai/prepare', () => {
     if (contract === undefined) {
       return;
     }
-    const params = { params: { id: contract.id } };
+    const params = { params: { id: contract.id }, query: { timeZone: 'Europe/Bratislava' } };
 
     const states = await Promise.all(
       Array.from({ length: 4 }, () => app.api.ok(api.threads.prepareAi, params, token)),
@@ -157,7 +158,11 @@ describe('POST /threads/:id/ai/prepare', () => {
     const [message] = claimed.jobs[0]?.thread?.messages ?? [];
     expect(claimed.jobs.map((claim) => claim.job.input)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: 'summary', sourceMessageId: message?.id }),
+        expect.objectContaining({
+          kind: 'summary',
+          sourceMessageId: message?.id,
+          timeZone: 'Europe/Bratislava',
+        }),
       ]),
     );
   });
@@ -166,9 +171,19 @@ describe('POST /threads/:id/ai/prepare', () => {
     const session = await registerUser(app.api, `ai-open-${randomUUID().slice(0, 8)}@relay.test`);
     const failure = await app.api.fail(
       api.threads.prepareAi,
-      { params: { id: 'thr_missing' } },
+      { params: { id: 'thr_missing' }, query: {} },
       session.accessToken,
     );
     expect(failure.status).toBe(404);
+  });
+
+  it('rejects an unknown time zone', async () => {
+    const session = await registerUser(app.api, `ai-zone-${randomUUID().slice(0, 8)}@relay.test`);
+    const failure = await app.api.fail(
+      api.threads.prepareAi,
+      { params: { id: 'thr_missing' }, query: { timeZone: 'Mars/Olympus' } },
+      session.accessToken,
+    );
+    expect(failure.status).toBe(400);
   });
 });

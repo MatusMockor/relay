@@ -12,6 +12,7 @@ import {
   type AiJob,
   type AiJobInput,
   CalendarEventIdSchema,
+  type ThreadId,
   ThreadIdSchema,
   type UserId,
 } from '@relay/shared/domain';
@@ -24,6 +25,7 @@ import { startTestApp, type TestApp } from '../support/test-app';
 
 const THREAD_ID = ThreadIdSchema.parse('thr_calendar_mcp');
 const STRANGER_THREAD_ID = ThreadIdSchema.parse('thr_calendar_stranger');
+const ZONED_THREAD_ID = ThreadIdSchema.parse('thr_calendar_zoned');
 
 describe('calendar tools on the server MCP endpoint', () => {
   let app: TestApp;
@@ -88,13 +90,13 @@ describe('calendar tools on the server MCP endpoint', () => {
       .upsert(event);
   };
 
-  const seedThread = async (userId: UserId): Promise<void> => {
+  const seedThread = async (userId: UserId, id: ThreadId = STRANGER_THREAD_ID): Promise<void> => {
     const account = await app.app
       .get<symbol, AccountRepository>(PORT_TOKENS.AccountRepository)
       .create(buildAccount(userId));
     await app.app
       .get<symbol, ThreadRepository>(PORT_TOKENS.ThreadRepository)
-      .upsert(buildThread(account.id, { id: STRANGER_THREAD_ID }));
+      .upsert(buildThread(account.id, { id }));
   };
 
   const runningJob = async (input: AiJobInput, before?: (userId: UserId) => Promise<void>) => {
@@ -148,6 +150,31 @@ describe('calendar tools on the server MCP endpoint', () => {
     expect(linked).toMatchObject({
       timeZone: 'America/New_York',
       events: [{ title: 'Plánovanie', myStatus: 'needs-action', end: '2026-11-16T10:30:00-05:00' }],
+    });
+  });
+
+  it('answers in the device time zone sent with a thread job', async () => {
+    const run = await runningJob(
+      {
+        kind: 'summary',
+        threadId: ZONED_THREAD_ID,
+        sourceMessageId: null,
+        timeZone: 'Europe/Bratislava',
+      },
+      async (userId) => {
+        await seedThread(userId, ZONED_THREAD_ID);
+        await seedEvent(userId);
+      },
+    );
+
+    const upcoming = await callTool(run.token, 'list_events', {
+      from: '2026-11-16T00:00:00.000Z',
+      days: 1,
+    });
+
+    expect(upcoming).toMatchObject({
+      timeZone: 'Europe/Bratislava',
+      events: [{ title: 'Plánovanie', start: '2026-11-16T16:00:00+01:00' }],
     });
   });
 

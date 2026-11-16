@@ -17,6 +17,7 @@ import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
   ChecklistResponseSchema,
+  PrepareThreadAiQuerySchema,
   ThreadListQuerySchema,
   ThreadPageSchema,
   UpdateChecklistItemBodySchema,
@@ -57,7 +58,7 @@ export const localInvokeChannels = {
   'local.threads.list': invokeChannel(ThreadListQuerySchema, ThreadPageSchema),
   'local.threads.get': invokeChannel(z.object({ threadId: ThreadIdSchema }), ThreadDetailSchema),
   'local.threads.prepareAi': invokeChannel(
-    z.object({ threadId: ThreadIdSchema }),
+    PrepareThreadAiQuerySchema.extend({ threadId: ThreadIdSchema }),
     ThreadAiStateSchema,
   ),
   'local.threads.action': invokeChannel(

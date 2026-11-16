@@ -65,6 +65,11 @@ Remaining gaps:
 - Invitations ingested before the migration are not re-evaluated (a THISANDFUTURE CANCEL ingested earlier stays single-instance until it is ingested again).
 - Pre-existing: overrides beyond a shortened RRULE (Google "this and following") stay visible as standalone instances.
 
+## 7. Back-fill by section and device zone for every AI job
+
+- `MailProvider.fetchCalendarParts(path, uid)`: IMAP reads BODYSTRUCTURE, picks calendar leaves (same rules as the parser, `parser/calendar-part-rules.ts`; encoded size cap, `message/rfc822` skipped, at most 10 sections), fetches only those body parts and decodes transfer encoding and charset (`imap/calendar-part-reads.ts`, `calendar-sections.ts`, `section-decoding.ts`). `InviteBackfill` uses it instead of `fetchMessage` + parser. Fake provider: calendar parts come from `X-Test-Calendar` headers, calls are logged in `fetchedCalendarParts`.
+- `oneLiner`, `summary`, `replySuggestions` and `createTask` inputs accept an optional `timeZone`. `prepareAi` takes `timeZone` (HTTP query, IPC field), the renderer sends `systemTimeZone()` there and with `createTask`. Server MCP `jobTimeZone` reads it for every kind; jobs without it (automatic one-liners, old clients) fall back to UTC.
+
 ## Tests
 
 Verified in a clean export of HEAD minus the uncommitted google-calendar layers (the live checkout had google WIP that broke `occurrences` at the time):
@@ -76,8 +81,6 @@ Verified in a clean export of HEAD minus the uncommitted google-calendar layers 
 ## Known gaps
 
 - Failed (`failedAt`) invitation rows are kept for diagnostics and only disappear with the account; there is no UI or manual retry for them.
-- Back-fill re-fetches whole candidate messages (IMAP part fetch by section is not in the `MailProvider` port).
-- Non-chat AI jobs (summary, reply suggestions, create task) get calendar times in UTC because only `chatAnswer` carries the device zone.
 
 ## gpt-6.1-sol review (4 findings, all fixed)
 

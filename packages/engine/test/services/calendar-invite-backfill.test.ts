@@ -20,6 +20,7 @@ const seedLegacyMailbox = async (engine: TestEngine, seeded: SeededAccount) => {
     createdAt: '2026-11-15T09:00:00.000Z',
   });
   seeded.server.fetchedMessages.length = 0;
+  seeded.server.fetchedCalendarParts.length = 0;
   return inbox;
 };
 
@@ -51,17 +52,19 @@ describe('Calendar invitation back-fill', () => {
     await sync(engine, seeded);
 
     expect(await titles(engine)).toEqual(['inv-1', 'inv-2']);
-    expect(seeded.server.fetchedMessages).toEqual([
+    expect(seeded.server.fetchedCalendarParts).toEqual([
       { path: 'INBOX', uid: 1 },
       { path: 'INBOX', uid: 2 },
     ]);
+    expect(seeded.server.fetchedMessages).toEqual([]);
     const [cursor] = [...engine.db.tables.pendingWork.values()];
     expect(cursor?.payload).toMatchObject({ afterUid: 2 });
 
     await sync(engine, seeded);
 
     expect(await titles(engine)).toEqual(['inv-1', 'inv-2', 'inv-3']);
-    expect(seeded.server.fetchedMessages.map((fetched) => fetched.uid)).toEqual([1, 2, 3]);
+    expect(seeded.server.fetchedCalendarParts.map((fetched) => fetched.uid)).toEqual([1, 2, 3]);
+    expect(seeded.server.fetchedMessages).toEqual([]);
     expect(engine.db.tables.pendingWork.size).toBe(0);
   });
 

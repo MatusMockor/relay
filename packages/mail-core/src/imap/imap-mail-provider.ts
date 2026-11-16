@@ -20,6 +20,7 @@ import type { ImapClientFactory } from './imap-client-factory';
 import { ImapConnection } from './imap-connection';
 import { listMailboxes } from './list-mailboxes';
 import { mailboxStatus } from './mailbox-status';
+import { fetchCalendarParts } from './calendar-part-reads';
 import { fetchMessage, listUids } from './message-reads';
 import { appendMessage, moveMessages, setFlags, storeFlags } from './message-writes';
 import { requireBatchSize } from './uid-batches';
@@ -79,6 +80,10 @@ export class ImapMailProvider implements MailProvider {
 
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {
     return fetchMessage(this.connection, mailboxPath, uid);
+  }
+
+  fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null> {
+    return fetchCalendarParts(this.connection, mailboxPath, uid);
   }
 
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void> {

@@ -52,7 +52,7 @@ export class ThreadsController {
     @CurrentPrincipal() principal: Principal,
     @ApiRequest(api.threads.prepareAi) request: RequestOf<typeof api.threads.prepareAi>,
   ): Promise<ThreadAiState> {
-    return this.threadAi.prepare(principal.userId, request.params.id);
+    return this.threadAi.prepare(principal.userId, request.params.id, request.query.timeZone);
   }
 
   @ApiRoute(api.threads.updateChecklist)

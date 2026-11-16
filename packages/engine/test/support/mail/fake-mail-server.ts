@@ -43,6 +43,7 @@ export class FakeMailServer {
   readonly mailboxes = new Map<string, FakeMailbox>();
   readonly createdMailboxes: string[] = [];
   readonly fetchedMessages: { path: string; uid: number }[] = [];
+  readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   failFetchUid: number | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();

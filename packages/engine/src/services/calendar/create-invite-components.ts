@@ -13,14 +13,7 @@ export interface InviteComponents {
 
 export type InviteEngineDeps = Pick<
   EngineDeps,
-  | 'repositories'
-  | 'unitOfWork'
-  | 'calendar'
-  | 'messageParser'
-  | 'clock'
-  | 'idGenerator'
-  | 'logger'
-  | 'options'
+  'repositories' | 'unitOfWork' | 'calendar' | 'clock' | 'idGenerator' | 'logger' | 'options'
 >;
 
 export const createInviteComponents = (
@@ -48,7 +41,6 @@ export const createInviteComponents = (
     backfill: new InviteBackfill({
       repositories,
       unitOfWork,
-      parser: deps.messageParser,
       queue,
       logger,
       batchSize: deps.options.calendar?.inviteBackfillBatch ?? DEFAULT_INVITE_BACKFILL_BATCH,
