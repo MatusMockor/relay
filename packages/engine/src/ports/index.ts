@@ -45,3 +45,4 @@ export type * from './task-repository';
 export type * from './thread-repository';
 export type * from './thread-resolver';
 export type * from './unit-of-work';
+export type * from './unsubscribe-sender';

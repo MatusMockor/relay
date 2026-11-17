@@ -4,6 +4,7 @@ import type { AiResultRepository } from './ports/ai-result-repository';
 import type { AiRunnerRegistry } from './ports/ai-runner-registry';
 import type { AttachmentBlobCatalog } from './ports/attachment-blob-catalog';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
+import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentStore } from './ports/attachment-store';
 import type { AutomationMatcher } from './ports/automation-matcher';
 import type { AutomationRepository } from './ports/automation-repository';
@@ -78,6 +79,7 @@ export const PORT_TOKENS = {
   CredentialVault: Symbol.for('relay.engine.CredentialVault'),
   AttachmentStore: Symbol.for('relay.engine.AttachmentStore'),
   AttachmentExtractor: Symbol.for('relay.engine.AttachmentExtractor'),
+  UnsubscribeSender: Symbol.for('relay.engine.UnsubscribeSender'),
   AttachmentBlobCatalog: Symbol.for('relay.engine.AttachmentBlobCatalog'),
   MessageParser: Symbol.for('relay.engine.MessageParser'),
   ThreadResolver: Symbol.for('relay.engine.ThreadResolver'),
@@ -125,6 +127,7 @@ export interface PortRegistry {
   CredentialVault: CredentialVault;
   AttachmentStore: AttachmentStore;
   AttachmentExtractor: AttachmentExtractor;
+  UnsubscribeSender: UnsubscribeSender;
   AttachmentBlobCatalog: AttachmentBlobCatalog;
   MessageParser: MessageParser;
   ThreadResolver: ThreadResolver;

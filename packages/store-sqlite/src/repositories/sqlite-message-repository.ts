@@ -21,7 +21,7 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toMessage, toMessageRow } from '../mappers/message-mapper';
+import { toMessage, toMessageHeaders, toMessageRow } from '../mappers/message-mapper';
 import { type MessageRow, messageLabels, messages } from '../schema';
 import { accountOwnerOf } from './account-owner';
 import { chunked } from './chunked';
@@ -42,6 +42,17 @@ export class SqliteMessageRepository implements MessageRepository {
           .all(),
       ),
     );
+  }
+
+  findHeaders(userId: UserId, messageId: MessageId): Promise<MessageHeaders | null> {
+    return this.executor.execute((db) => {
+      const row = db
+        .select({ headers: messages.headers })
+        .from(messages)
+        .where(and(eq(messages.userId, userId), eq(messages.id, messageId)))
+        .get();
+      return row === undefined ? null : toMessageHeaders(row.headers);
+    });
   }
 
   listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]> {

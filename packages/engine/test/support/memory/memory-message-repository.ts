@@ -31,6 +31,13 @@ export class MemoryMessageRepository implements MessageRepository {
     return Promise.resolve(message);
   }
 
+  async findHeaders(userId: UserId, messageId: MessageId): Promise<MessageHeaders | null> {
+    if ((await this.findById(userId, messageId)) === null) {
+      return null;
+    }
+    return this.db.tables.messageHeaders.get(messageId) ?? new Map<string, string[]>();
+  }
+
   listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]> {
     return Promise.resolve(
       this.all().filter(

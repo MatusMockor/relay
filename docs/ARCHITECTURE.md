@@ -62,13 +62,13 @@ shared  ◄── engine ◄── store-sqlite
 - **Ports** (interfaces, one per file) in `engine/src/ports/`:
   - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `AutomationRepository`, `AutomationRunRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ / frozen initial-sync window per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
   - `UnitOfWork.run(work)` passes transaction-bound `Repositories` to `work`.
-  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`, `AutomationMatcher`.
+  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `UnsubscribeSender` (RFC 8058 one-click POST), `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`, `AutomationMatcher`.
   - AI: `AiRunner` (`run(request): AsyncIterable<AiEvent>`), `AiRunnerRegistry`.
   - infrastructure: `EventPublisher`, `Clock`, `IdGenerator`, `Logger`.
 - Engine-internal types (raw/parsed messages, sync cursors, pages, AI requests) live in `engine/src/model/`. They never cross the wire.
 - `PORT_TOKENS` (`engine/src/tokens.ts`) gives every port a `Symbol.for('relay.engine.<Port>')` token, used by Nest providers and the desktop composition root.
 - `EngineError` subclasses (`NotFoundError`, `ValidationError`, `ConflictError`, `ForbiddenError`, `ProviderError`, `NotImplementedError`) carry an `ApiErrorCode`; HTTP and IPC adapters map them to the shared error shape.
-- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label, pin), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AutomationService`, `AiService`.
+- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label, pin), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AutomationService`, `AiService`, `UnsubscribeService` (parses the stored `List-Unsubscribe` / `List-Unsubscribe-Post` headers into https or mailto options and sends one-click unsubscribes).
 - All database access goes through repository ports. No service, controller or IPC handler talks to Drizzle directly.
 - Server implements the ports with Postgres + Drizzle; local mode implements them with SQLite + Drizzle (`store-sqlite`). The same services run in both places.
 
@@ -118,7 +118,8 @@ shared  ◄── engine ◄── store-sqlite
 - `ImapMailProvider` (imapflow): folders, incremental fetch by UID/MODSEQ, IDLE, flags, move, append.
 - Gmail: OAuth 2 (desktop loopback + PKCE in local mode, server web flow in synced mode) then XOAUTH2 over IMAP/SMTP. Needs a Google Cloud OAuth client ID configured via env/settings.
 - Outlook / Microsoft 365: same pattern, later.
-- `SmtpMailSender` (nodemailer). `MimeParser` (mailparser). `ThreadBuilder` (Message-ID / References / In-Reply-To). `JiraClassifier` (sender + headers + subject patterns, outputs split + task events).
+- `SmtpMailSender` (nodemailer). `FetchUnsubscribeSender` posts RFC 8058 one-click unsubscribes to public https URLs only (no redirects, no credentials), from the desktop main process in local mode and from the server in synced mode, never from the renderer.
+- `MimeParser` (mailparser). `ThreadBuilder` (Message-ID / References / In-Reply-To). `JiraClassifier` (sender + headers + subject patterns, outputs split + task events).
 
 ## Tooling
 

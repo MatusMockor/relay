@@ -23,6 +23,7 @@ import type { SplitMatcher } from './ports/split-matcher';
 import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
+import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentSweepOptions } from './services/attachments/attachment-sweep-options';
 import type { SyncOptions } from './services/sync/sync-options';
 
@@ -68,6 +69,7 @@ export interface EngineDeps {
   readonly attachmentBlobs: AttachmentBlobCatalog;
   readonly messageAttachmentLookup?: MessageAttachmentLookup;
   readonly attachmentExtractor?: AttachmentExtractor;
+  readonly unsubscribeSender?: UnsubscribeSender;
   readonly messageParser: MessageParser;
   readonly threadResolver: ThreadResolver;
   readonly jiraClassifier: JiraClassifier;

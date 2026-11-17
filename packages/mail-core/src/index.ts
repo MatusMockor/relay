@@ -61,6 +61,11 @@ export { composeMime, type ComposedMime } from './smtp/compose-mime';
 export { extractAttachment, type ExtractedAttachment } from './parser/extract-attachment';
 export { MailparserAttachmentExtractor } from './parser/mailparser-attachment-extractor';
 export { MailparserMessageParser } from './parser/mailparser-message-parser';
+export {
+  FetchUnsubscribeSender,
+  type FetchUnsubscribeSenderOptions,
+  type UnsubscribeFetch,
+} from './unsubscribe/fetch-unsubscribe-sender';
 export { buildSnippet, htmlToText, SNIPPET_LENGTH } from './parser/snippet';
 
 export { normalizeSubject, type NormalizedSubject } from './threading/normalize-subject';

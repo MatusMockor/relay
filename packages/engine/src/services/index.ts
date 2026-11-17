@@ -41,6 +41,8 @@ export * from './threads/checklist-item';
 export * from './threads/thread-ai-preparer';
 export * from './threads/thread-checklist-service';
 export * from './threads/thread-query-service';
+export * from './unsubscribe/list-unsubscribe';
+export * from './unsubscribe/unsubscribe-service';
 export * from './ai/ai-job-completer';
 export * from './ai/ai-result-applier';
 export * from './shared/engine-events';

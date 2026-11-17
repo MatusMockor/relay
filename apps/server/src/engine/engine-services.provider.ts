@@ -24,6 +24,7 @@ import {
   type AutomationMatcher,
   type ThreadResolver,
   type UnitOfWork,
+  type UnsubscribeSender,
 } from '@relay/engine';
 import { isUnsafeRegex } from '@relay/mail-core';
 import { ServerMailToolsResolver } from '../ai/mcp/server-mail-tools-resolver';
@@ -44,6 +45,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     PORT_TOKENS.AttachmentBlobCatalog,
     PORT_TOKENS.MessageAttachmentLookup,
     PORT_TOKENS.AttachmentExtractor,
+    PORT_TOKENS.UnsubscribeSender,
     PORT_TOKENS.MessageParser,
     PORT_TOKENS.ThreadResolver,
     PORT_TOKENS.JiraClassifier,
@@ -69,6 +71,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
     attachmentBlobs: AttachmentBlobCatalog,
     messageAttachmentLookup: MessageAttachmentLookup,
     attachmentExtractor: AttachmentExtractor,
+    unsubscribeSender: UnsubscribeSender,
     messageParser: MessageParser,
     threadResolver: ThreadResolver,
     jiraClassifier: JiraClassifier,
@@ -94,6 +97,7 @@ export const engineServicesProvider: FactoryProvider<EngineServices> = {
       attachmentBlobs,
       messageAttachmentLookup,
       attachmentExtractor,
+      unsubscribeSender,
       messageParser,
       threadResolver,
       jiraClassifier,

@@ -42,6 +42,7 @@ import { TaskService } from './services/tasks/task-service';
 import { ThreadAiPreparer } from './services/threads/thread-ai-preparer';
 import { ThreadChecklistService } from './services/threads/thread-checklist-service';
 import { ThreadQueryService } from './services/threads/thread-query-service';
+import { UnsubscribeService } from './services/unsubscribe/unsubscribe-service';
 
 export interface EngineServices {
   readonly accounts: AccountService;
@@ -51,6 +52,7 @@ export interface EngineServices {
   readonly threads: ThreadQueryService;
   readonly threadAi: ThreadAiPreparer;
   readonly checklist: ThreadChecklistService;
+  readonly unsubscribe: UnsubscribeService;
   readonly actions: MessageActionsService;
   readonly reminders: ReminderService;
   readonly tasks: TaskService;
@@ -176,6 +178,10 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     checklist: new ThreadChecklistService({
       threads: repositories.threads,
       aiResults: repositories.aiResults,
+    }),
+    unsubscribe: new UnsubscribeService({
+      messages: repositories.messages,
+      ...(deps.unsubscribeSender === undefined ? {} : { sender: deps.unsubscribeSender }),
     }),
     actions,
     reminders,

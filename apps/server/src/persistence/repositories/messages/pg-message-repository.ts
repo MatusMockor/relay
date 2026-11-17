@@ -40,6 +40,14 @@ export class PgMessageRepository implements MessageRepository {
     return row === undefined ? null : toMessage(row);
   }
 
+  async findHeaders(userId: UserId, messageId: MessageId): Promise<MessageHeaders | null> {
+    const [row] = await this.db
+      .select({ headers: messages.headers })
+      .from(messages)
+      .where(and(eq(messages.userId, userId), eq(messages.id, messageId)));
+    return row === undefined ? null : toMessageHeaders(row.headers);
+  }
+
   async listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]> {
     const rows = await this.db
       .select(messageSelection)

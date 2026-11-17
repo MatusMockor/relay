@@ -42,6 +42,10 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   requestThreadSummary: (id, timeZone) =>
     http.call(api.threads.requestSummary, { params: { id }, query: { timeZone } }),
   applyThreadAction: (id, body) => http.call(api.threads.action, { params: { id }, body }),
+  getUnsubscribeOptions: (id) => http.call(api.threads.unsubscribeOptions, { params: { id } }),
+  unsubscribe: async (id) => {
+    await http.call(api.threads.unsubscribe, { params: { id } });
+  },
   listLabels: (accountId) => http.call(api.labels.list, { query: { accountId } }),
   downloadAttachment: (id) => http.download(api.attachments.content, { params: { id } }),
   listAccounts: () => http.call(api.accounts.list, {}),
