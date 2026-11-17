@@ -9,6 +9,11 @@ const expectOk = <T>(result: { ok: true; data: T } | { ok: false; error: unknown
   return (result as { ok: true; data: T }).data;
 };
 
+const required = <T>(value: T | undefined): T => {
+  expect(value).toBeDefined();
+  return value as T;
+};
+
 describe('local automations through IPC (SQLite + GreenMail)', () => {
   let dir: TempDir;
   let mailbox: GreenMailAccount;
@@ -28,7 +33,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
 
   it('seeds the Jira rule, stores new rules and runs them on new mail only', async () => {
     const { bridge } = harness;
-    const [preset] = expectOk(await bridge.invoke('local.automations.list'));
+    const preset = required(expectOk(await bridge.invoke('local.automations.list'))[0]);
     expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: true });
     const account = expectOk(
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),

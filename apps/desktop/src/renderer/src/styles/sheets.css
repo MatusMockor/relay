@@ -377,3 +377,20 @@
   gap: 8px;
   align-items: center;
 }
+.mdlp .pi {
+  min-height: 32px;
+}
+.mdlp .pi:hover {
+  background: var(--hover);
+}
+.mdlp .pi.cur {
+  color: var(--fg);
+}
+.mdlp-trigger {
+  max-width: 100%;
+}
+.mdlp-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
