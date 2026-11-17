@@ -31,6 +31,11 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => ({
   cancelGoogleAuthorization: async () => {
     await unwrap(bridge.invoke('oauth.google.cancel'));
   },
+  subscribeToUpdates: (listener) =>
+    bridge.subscribe('app.update.events', { onEvent: listener, onError: () => undefined }),
+  installUpdate: async () => {
+    await unwrap(bridge.invoke('app.update.install'));
+  },
 });
 
 export const createPlatform = (bridge: RelayBridge | null, browser: () => Platform): Platform =>

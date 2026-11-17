@@ -39,6 +39,20 @@ describe('ipc channel map', () => {
     expect(input.safeParse({ serverUrl: 'mail.example' }).success).toBe(false);
   });
 
+  it('accepts only well-formed update statuses from the main process', () => {
+    const { event } = ipcStreamChannels['app.update.events'];
+    expect(event.safeParse({ kind: 'ready', version: '1.4.0' }).success).toBe(true);
+    expect(
+      event.safeParse({ kind: 'downloading', version: '1.4.0-beta.1', percent: 42 }).success,
+    ).toBe(true);
+    expect(event.safeParse({ kind: 'disabled', reason: 'manual-package' }).success).toBe(true);
+    expect(event.safeParse({ kind: 'ready', version: '<img src=x>' }).success).toBe(false);
+    expect(event.safeParse({ kind: 'downloading', version: '1.4.0', percent: 140 }).success).toBe(
+      false,
+    );
+    expect(ipcInvokeChannels['app.update.install'].input.safeParse(undefined).success).toBe(true);
+  });
+
   it('makes input optional only for channels without input', () => {
     expectTypeOf<IpcInvokeArgs<'app.getInfo'>>().toEqualTypeOf<[]>();
     expectTypeOf<IpcInvokeArgs<'secure.get'>>().toEqualTypeOf<[input: { key: string }]>();

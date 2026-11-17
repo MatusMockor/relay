@@ -7,6 +7,9 @@ directories:
 files:
   - out/**
   - package.json
+  - '!node_modules/better-sqlite3/{build,deps,src}/**'
+  - '!node_modules/better-sqlite3/binding.gyp'
+  - '!node_modules/better-sqlite3/prebuilds/!(${platform}-${arch}).node'
 extraResources:
   - from: ../../packages/store-sqlite/drizzle
     to: drizzle
@@ -22,7 +25,7 @@ electronFuses:
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
   onlyLoadAppFromAsar: true
-artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+artifactName: relay-${version}-${arch}-${os}.${ext}
 mac:
   category: public.app-category.productivity
   icon: resources/icon.png
@@ -33,8 +36,15 @@ mac:
       arch: [arm64, x64]
   hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  notarize: false
   darkModeSupport: true
+  extendInfo:
+    ElectronSquirrelPreventDowngrades: true
 dmg:
+  sign: true
+  writeUpdateInfo: false
   title: ${productName} ${version}
   contents:
     - x: 130
@@ -58,3 +68,8 @@ linux:
   desktop:
     entry:
       StartupWMClass: Relay
+publish:
+  provider: github
+  owner: MatusMockor
+  repo: relay
+  releaseType: release

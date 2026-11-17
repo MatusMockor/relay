@@ -28,6 +28,10 @@ import { createOAuthHandlers } from '../handlers/oauth-handlers';
 import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
 import { createSessionHandlers } from '../handlers/session-handlers';
+import {
+  createUpdateInvokeHandlers,
+  createUpdateStreamHandlers,
+} from '../handlers/update-handlers';
 import { type IpcInvokeHandlers, IpcInvokeRouter } from '../ipc/invoke-router';
 import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
@@ -37,6 +41,7 @@ import type { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
 import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
 import type { SecretStore } from '../secure/secret-store';
 import type { DeviceSettingsStore } from '../settings/device-settings-store';
+import type { UpdateService } from '../updates/update-service';
 
 export interface LocalIpcDeps {
   readonly userId: UserId;
@@ -56,6 +61,7 @@ export interface MainProcessContext {
   readonly ai?: AiHandlerDeps;
   readonly local?: LocalIpcDeps;
   readonly attachmentPicker?: AttachmentPicker;
+  readonly updates?: UpdateService;
 }
 
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
@@ -101,6 +107,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.ai, createAiInvokeHandlers),
       optional(context.local, localInvokeHandlers),
       optional(context.attachmentPicker, createAttachmentPickerHandlers),
+      optional(context.updates, createUpdateInvokeHandlers),
     ),
     errorReporter(context.logger),
   ),
@@ -108,6 +115,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
     mergeStreamHandlers(
       optional(context.ai, createAiStreamHandlers),
       optional(context.local, (local) => createEventStreamHandlers(local.hub)),
+      optional(context.updates, createUpdateStreamHandlers),
     ),
     errorReporter(context.logger),
   ),

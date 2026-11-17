@@ -16,11 +16,12 @@ import {
   type McpEntryCommand,
 } from '../ai/local-mail-tools-server';
 import { createLocalBackground, type LocalBackground } from '../background/local-background';
-import { EnvOrFileGoogleClientConfigSource } from '../oauth/google-client-config-source';
+import { createGoogleClientConfigSource } from '../oauth/create-google-client-config-source';
 import { GoogleLoopbackFlow } from '../oauth/google-loopback-flow';
 import { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
 import { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
 import { SingleFlightOAuth } from '../oauth/single-flight-oauth';
+import type { GoogleClientValues } from '../oauth/provided-google-client-config';
 import type { PowerEvents } from '../platform/power-events';
 import type { SecretCipher } from '../platform/secret-cipher';
 import type { Timers } from '../platform/timers';
@@ -47,6 +48,7 @@ export interface LocalRuntimeInput {
   readonly clock: Clock;
   readonly logger: Logger;
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly bakedGoogleClient?: GoogleClientValues;
   readonly aiRunners?: AiRunnerRegistry;
   readonly mcpEntry?: McpEntryCommand | null;
   readonly oauthTimeoutMs?: number;
@@ -69,6 +71,8 @@ export interface LocalRuntime {
   close(): Promise<void>;
 }
 
+const NO_BAKED_GOOGLE_CLIENT: GoogleClientValues = { clientId: undefined, clientSecret: undefined };
+
 export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
   const infrastructure = createMainInfrastructure(input);
   const serverSessions = new ServerSessions({
@@ -76,7 +80,11 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     clock: input.clock,
     fetch: input.serverFetch,
   });
-  const googleClient = new EnvOrFileGoogleClientConfigSource(input.env, input.paths.googleClient);
+  const googleClient = createGoogleClientConfigSource({
+    env: input.env,
+    baked: input.bakedGoogleClient ?? NO_BAKED_GOOGLE_CLIENT,
+    filePath: input.paths.googleClient,
+  });
   const aiRunners = input.aiRunners ?? createCliRunnerRegistry({ location: 'local' });
   const mailToolsBackend = new DeferredMailToolBackend();
   const mailTools =

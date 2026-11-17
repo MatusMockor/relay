@@ -1,0 +1,24 @@
+{
+  "name": "@relay/release-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@electron/fuses": "1.8.0",
+    "yaml": "2.9.1",
+    "zod": "4.1.13"
+  },
+  "devDependencies": {
+    "@relay/config": "workspace:*",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
