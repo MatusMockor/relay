@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-usage="usage: scripts/release-tools/retry.sh <network|stapler|submit> <command> [args...]"
+usage="usage: scripts/release-tools/retry.sh <network|stapler|submit|timestamp> <command> [args...]"
 kind="${1:?$usage}"
 shift
 [ "$#" -gt 0 ] || { echo "$usage" >&2; exit 2; }
@@ -14,6 +14,7 @@ case "$kind" in
   network) ;;
   stapler) transient="$STAPLER_TRANSIENT_ERRORS" ;;
   submit) definitive="$NOTARY_SUBMISSION_ID" ;;
+  timestamp) transient="$CODESIGN_TIMESTAMP_ERRORS" ;;
   *) echo "$usage" >&2; exit 2 ;;
 esac
 
@@ -47,11 +48,11 @@ while true; do
     finish "$status"
   fi
   if [ "$attempt" -ge "$attempts" ]; then
-    echo "retry: $label still failing with a transient network error after $attempt attempts, giving up" >&2
+    echo "retry: $label still failing with a transient error after $attempt attempts, giving up" >&2
     finish "$status"
   fi
   cat "$work/out" "$work/err" >&2
-  echo "retry: $label failed with a transient network error (attempt $attempt/$attempts, exit $status), retrying in ${delay}s" >&2
+  echo "retry: $label failed with a transient error (attempt $attempt/$attempts, exit $status), retrying in ${delay}s" >&2
   sleep "$delay"
   attempt=$((attempt + 1))
   delay=$((delay * 2))
