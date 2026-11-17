@@ -2,6 +2,12 @@
   "name": "@relay/desktop",
   "productName": "Relay",
   "version": "0.1.0",
+  "description": "Desktop mail and calendar client with an AI assistant",
+  "author": {
+    "name": "Matúš Močkor",
+    "email": "info@codevo.app"
+  },
+  "homepage": "https://github.com/MatusMockor/relay",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
