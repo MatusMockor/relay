@@ -7,7 +7,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     from: 'ob',
     unread: true,
     subj: 'Chata v Terchovej tento víkend',
-    ai: 'Pýta sa, či ideš v sobotu na chatu, odpoveď chce do piatka',
+    ai: 'Sobota na chate, potvrdiť účasť do piatka',
     sum: 'Ondrej organizuje v sobotu chatu v Terchovej. Chce vedieť do piatka, či ideš, aby mohol potvrdiť počet ľudí.',
     list: ['Odpovedať Ondrejovi do piatka'],
     msgs: [
@@ -30,7 +30,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['fam'],
     subj: 'Darček pre ocka',
-    ai: 'Navrhuje zložiť sa na hodinky, odpoveď chce do piatka',
+    ai: 'Spoločné hodinky pre ocka, odpoveď do piatka',
     sum: 'Ocko má o dva týždne 60. narodeniny. Katka navrhuje zložiť sa na hodinky po 90 € a objednať ich do piatka, aby prišli včas.',
     list: ['Odpovedať Katke do piatka', 'Poslať jej 90 €'],
     msgs: [
@@ -57,7 +57,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['fam'],
     subj: 'Nedeľný obed',
-    ai: 'Pozýva na nedeľný obed o 12:30, príde aj Katka',
+    ai: 'Nedeľný obed o 12:30, príde aj Katka',
     sum: 'Mama pozýva v nedeľu o 12:30 na obed. Robí sviečkovú, príde aj Katka s Tomim. Chce vedieť, či prídeš, aby navarila dosť.',
     msgs: [
       [
@@ -76,7 +76,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     acct: 'os',
     from: 'sp',
     subj: 'Odpočet vodomerov do 25. 11.',
-    ai: 'Treba nahlásiť stav vodomerov do stredy 25. 11.',
+    ai: 'Stav vodomerov nahlásiť do stredy 25. 11.',
     sum: 'Správca bytového domu zbiera stavy vodomerov. Treba nahlásiť studenú aj teplú vodu do stredy 25. 11., stačí fotka alebo odpoveď na mail.',
     list: ['Odfotiť vodomery', 'Poslať stav správcovi'],
     msgs: [
@@ -126,7 +126,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['cli'],
     subj: 'Cenová ponuka: nový web kaviarne',
-    ai: 'Chce ponuku na web s menu a rezerváciami do pondelka',
+    ai: 'Ponuka na web s menu a rezerváciami do pondelka',
     sum: 'Juraj Lukáč otvára v januári druhú pobočku Kaviarne Zrnko a chce nový web: menu, rezervácie stolov a malý e-shop so zrnkovou kávou. Ponuku potrebuje do pondelka, rozpočet má približne 3 000 €.',
     list: ['Pripraviť rozpis prác a cenu', 'Poslať ponuku do pondelka'],
     msgs: [
@@ -152,7 +152,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['cli'],
     subj: 'Stretnutie k redizajnu v utorok?',
-    ai: 'Navrhuje utorok 16:00 v ateliéri, chce potvrdenie',
+    ai: 'Stretnutie v utorok 16:00 v ateliéri, treba potvrdiť',
     sum: 'Lenka Brezinová chce prejsť druhú verziu homepage a rozpočet na ďalšiu fázu. Navrhuje utorok o 16:00 u nich v ateliéri.',
     list: ['Potvrdiť termín Lenke', 'Prejsť komentáre vo Figme'],
     msgs: [
@@ -189,7 +189,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['inv'],
     subj: 'Faktúra FA-2026-011 je 7 dní po splatnosti',
-    ai: 'Ateliér Brezina ešte nezaplatil 1 450 €',
+    ai: 'Ateliér Brezina dlží 1 450 €, 7 dní po splatnosti',
     msgs: [
       [
         'fk',
@@ -204,7 +204,7 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     from: 'mo',
     labels: ['inv'],
     subj: 'Podklady k DPH za október',
-    ai: 'Chce vydané a prijaté faktúry za október do 25. 11.',
+    ai: 'Faktúry za október pre účtovníčku do 25. 11.',
     sum: 'Účtovníčka Mária Hollá pripravuje priznanie k DPH za október. Do stredy 25. 11. potrebuje všetky vydané a prijaté faktúry a výpis z podnikateľského účtu.',
     list: ['Exportovať vydané faktúry z Faktúrky', 'Pridať prijaté faktúry a výpis z účtu'],
     msgs: [
