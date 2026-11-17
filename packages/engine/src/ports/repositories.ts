@@ -1,6 +1,8 @@
 import type { AccountRepository } from './account-repository';
 import type { AiJobRepository } from './ai-job-repository';
 import type { AiResultRepository } from './ai-result-repository';
+import type { AutomationRepository } from './automation-repository';
+import type { AutomationRunRepository } from './automation-run-repository';
 import type { CalendarEventRepository } from './calendar-event-repository';
 import type { CalendarSubscriptionRepository } from './calendar-subscription-repository';
 import type { DraftRepository } from './draft-repository';
@@ -29,6 +31,8 @@ export interface Repositories {
   readonly threads: ThreadRepository;
   readonly labels: LabelRepository;
   readonly splits: SplitRepository;
+  readonly automations: AutomationRepository;
+  readonly automationRuns: AutomationRunRepository;
   readonly tasks: TaskRepository;
   readonly reminders: ReminderRepository;
   readonly drafts: DraftRepository;

@@ -6,7 +6,7 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { TaskChanges, TaskRepository } from '../../ports/task-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { EngineEvents } from '../shared/engine-events';
-import type { JiraTaskEvent, JiraTaskSink } from '../sync/jira-task-sink';
+import type { JiraTaskEvent } from '../sync/jira-task-sink';
 import { AiTaskBuilder, type AiTaskInput } from './ai-task-builder';
 import { jiraTaskStateChange, jiraTaskTitle } from './jira-task-planner';
 
@@ -18,7 +18,7 @@ export interface TaskServiceDeps {
   readonly ids: IdGenerator;
 }
 
-export class TaskService implements JiraTaskSink {
+export class TaskService {
   private readonly aiTasks: AiTaskBuilder;
 
   constructor(private readonly deps: TaskServiceDeps) {

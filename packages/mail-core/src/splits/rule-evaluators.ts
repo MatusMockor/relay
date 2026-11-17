@@ -1,5 +1,5 @@
 import type { JiraClassification, SplitMatchSubject } from '@relay/engine';
-import type { SplitRule, SplitRuleType } from '@relay/shared/domain';
+import type { AutomationCondition, AutomationConditionType } from '@relay/shared/domain';
 import type { RegexCache } from './regex-cache';
 import { MAX_MATCH_INPUT_LENGTH } from './regex-safety';
 
@@ -9,8 +9,8 @@ export interface RuleContext {
   readonly regex: RegexCache;
 }
 
-type RuleOf<Type extends SplitRuleType> = Extract<SplitRule, { type: Type }>;
-type RuleEvaluator<Type extends SplitRuleType> = (
+type RuleOf<Type extends AutomationConditionType> = Extract<AutomationCondition, { type: Type }>;
+type RuleEvaluator<Type extends AutomationConditionType> = (
   rule: RuleOf<Type>,
   context: RuleContext,
 ) => boolean;
@@ -51,15 +51,19 @@ const matchesJira: RuleEvaluator<'jira'> = (rule, context) => {
   return rule.projectKeys.includes(project);
 };
 
-const EVALUATORS: { readonly [Type in SplitRuleType]: RuleEvaluator<Type> } = {
+const matchesJiraEvent: RuleEvaluator<'jiraEvent'> = (rule, context) =>
+  context.jira?.eventKind === rule.kind;
+
+const EVALUATORS: { readonly [Type in AutomationConditionType]: RuleEvaluator<Type> } = {
   fromDomain: matchesFromDomain,
   fromAddress: matchesFromAddress,
   subjectRegex: matchesSubjectRegex,
   header: matchesHeader,
   jira: matchesJira,
+  jiraEvent: matchesJiraEvent,
 };
 
-export const evaluateRule = (rule: SplitRule, context: RuleContext): boolean => {
+export const evaluateRule = (rule: AutomationCondition, context: RuleContext): boolean => {
   const evaluator = EVALUATORS[rule.type] as RuleEvaluator<typeof rule.type>;
   return evaluator(rule, context);
 };

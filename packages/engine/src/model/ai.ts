@@ -20,6 +20,7 @@ export interface AiRequest {
   readonly jobId: AiJobId | null;
   readonly userId: UserId;
   readonly runner: AiRunnerKind;
+  readonly model?: string | null;
   readonly input: AiJobInput;
   readonly thread: ThreadDetail | null;
   readonly mailTools: AiMailToolsEndpoint | null;

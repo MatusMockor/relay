@@ -12,12 +12,14 @@ import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import type { EngineEvents } from '../shared/engine-events';
+import type { AutomationTaskWriter } from '../automations/automation-task-writer';
 import type { AiTaskBuilder } from '../tasks/ai-task-builder';
 import { isThreadScoped, sourceMessageIdOf, threadIdOf } from './ai-input-context';
 
 export interface AiResultApplierDeps {
   readonly events: EngineEvents;
   readonly tasks: AiTaskBuilder;
+  readonly automationTasks: AutomationTaskWriter;
   readonly clock: Clock;
   readonly ids: IdGenerator;
 }
@@ -90,6 +92,9 @@ export class AiResultApplier {
     threadId: ThreadId | null,
     output: AiOutput,
   ): Promise<Task | null> {
+    if (output.kind === 'automationTask') {
+      return this.deps.automationTasks.write(repositories, job, output);
+    }
     if (output.kind !== 'createTask') {
       return null;
     }

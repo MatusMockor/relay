@@ -131,12 +131,15 @@ export class MessageIngestor {
     await journal.arrived(work, message, target.mailbox.role, splitIds, {
       publish: target.publish,
       headers: parsed.headers,
+      jira,
     });
     if (jira !== null) {
       await journal.jira(work, message.id, {
         threadId: message.threadId,
         classification: jira,
         title: parsed.subject,
+        from: parsed.from,
+        headers: [...parsed.headers.entries()],
       });
     }
   }

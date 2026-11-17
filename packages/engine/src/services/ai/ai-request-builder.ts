@@ -3,6 +3,7 @@ import type { AiOptions } from '../../engine-deps';
 import type { AiRequest } from '../../model/ai';
 import type { ThreadQueryService } from '../threads/thread-query-service';
 import { threadIdOf } from './ai-input-context';
+import { jobModelFor } from './job-model';
 
 export class AiRequestBuilder {
   constructor(
@@ -23,6 +24,7 @@ export class AiRequestBuilder {
       jobId: job.id,
       userId: job.userId,
       runner,
+      model: jobModelFor(job, runner),
       input: job.input,
       thread,
       mailTools: typeof tools === 'function' ? await tools(job, owner) : tools,

@@ -2,6 +2,7 @@ import type { EndpointDefinition } from './endpoint';
 import { accountsEndpoints, oauthEndpoints } from './endpoints/accounts';
 import { aiEndpoints } from './endpoints/ai';
 import { attachmentsEndpoints } from './endpoints/attachments';
+import { automationsEndpoints } from './endpoints/automations';
 import { authEndpoints } from './endpoints/auth';
 import { calendarEndpoints } from './endpoints/calendar';
 import { composeEndpoints } from './endpoints/compose';
@@ -29,6 +30,7 @@ export const api = {
   draftAttachments: draftAttachmentsEndpoints,
   tasks: tasksEndpoints,
   splits: splitsEndpoints,
+  automations: automationsEndpoints,
   settings: settingsEndpoints,
   sync: syncEndpoints,
   ai: aiEndpoints,

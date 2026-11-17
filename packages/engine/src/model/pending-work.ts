@@ -1,5 +1,6 @@
 import type {
   AccountId,
+  Address,
   CalendarAttendee,
   DraftId,
   JiraKey,
@@ -14,7 +15,7 @@ import type {
 import type { JiraClassification } from './jira';
 
 export type ProviderChange =
-  | { readonly kind: 'flag'; readonly flag: 'seen'; readonly value: boolean }
+  | { readonly kind: 'flag'; readonly flag: 'seen' | 'flagged'; readonly value: boolean }
   | { readonly kind: 'keyword'; readonly keyword: string; readonly value: boolean }
   | { readonly kind: 'move'; readonly role: MailboxRole };
 
@@ -37,6 +38,8 @@ export interface MessageEffectsWork {
   readonly threadId: ThreadId;
   readonly publish: boolean;
   readonly arrival: boolean;
+  readonly live?: boolean;
+  readonly jira?: JiraClassification | null;
   readonly headers: readonly (readonly [string, readonly string[]])[];
 }
 
@@ -44,6 +47,8 @@ export interface JiraEventWork {
   readonly threadId: ThreadId;
   readonly classification: JiraClassification;
   readonly title: string;
+  readonly from?: Address | null;
+  readonly headers?: readonly (readonly [string, readonly string[]])[];
 }
 
 export interface ScheduledSendSentWork {

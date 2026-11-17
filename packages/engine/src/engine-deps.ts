@@ -4,6 +4,7 @@ import type { AiRunnerRegistry } from './ports/ai-runner-registry';
 import type { AttachmentBlobCatalog } from './ports/attachment-blob-catalog';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { AttachmentStore } from './ports/attachment-store';
+import type { AutomationMatcher } from './ports/automation-matcher';
 import type { CalendarAdapters } from './ports/calendar-adapters';
 import type { Clock } from './ports/clock';
 import type { ConditionalCredentialVault } from './ports/credential-vault';
@@ -71,6 +72,7 @@ export interface EngineDeps {
   readonly threadResolver: ThreadResolver;
   readonly jiraClassifier: JiraClassifier;
   readonly splitMatcher: SplitMatcher;
+  readonly automationMatcher: AutomationMatcher;
   readonly splitPatternPolicy?: SplitPatternPolicy;
   readonly aiRunnerRegistry: AiRunnerRegistry;
   readonly calendar: CalendarAdapters;

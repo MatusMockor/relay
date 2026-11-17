@@ -5,6 +5,7 @@ import {
   AiRunnerInfoSchema,
   AiRunnerKindSchema,
 } from '../../domain/ai';
+import { AutomationModelSchema } from '../../domain/automation';
 import { AiJobIdSchema } from '../../domain/ids';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
@@ -15,6 +16,7 @@ export * from './ai-worker';
 export const CreateAiJobBodySchema = z.object({
   input: AiJobInputSchema,
   runner: AiRunnerKindSchema.optional(),
+  model: AutomationModelSchema.nullable().optional(),
 });
 export type CreateAiJobBody = z.infer<typeof CreateAiJobBodySchema>;
 

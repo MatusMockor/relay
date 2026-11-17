@@ -5,6 +5,7 @@ export * from './calendar-event';
 export * from './calendar-subscription';
 export * from './google-calendar';
 export * from './attachment-file';
+export * from './automation';
 export * from './credentials';
 export * from './device';
 export * from './draft';

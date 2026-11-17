@@ -1,0 +1,144 @@
+import type { AiOutput } from '@relay/shared/domain';
+import { describe, expect, it } from 'vitest';
+import {
+  addAutomations,
+  automationInput,
+  jobsOf,
+  sync,
+  syncedSetup,
+  threadIdOf,
+  TIBOR,
+} from '../support/automations';
+import { deliverMail } from '../support/fixtures';
+import { USER_ID } from '../support/test-engine';
+
+const verdict = (output: Omit<Extract<AiOutput, { kind: 'automationTask' }>, 'kind'>) => [
+  { type: 'completed' as const, output: { kind: 'automationTask' as const, ...output } },
+];
+
+describe('automation actions', () => {
+  it('queues the thread summary on the runner and model of the rule', async () => {
+    const setup = await syncedSetup();
+    await addAutomations(setup.engine, [
+      automationInput({
+        actions: ['summary'],
+        ai: { runner: 'codex', model: 'gpt-5.5', instructions: null },
+      }),
+    ]);
+    setup.codex.respondWith(() => [
+      {
+        type: 'completed',
+        output: { kind: 'summary', summary: 'Tibor chce ponuku.', checklist: [] },
+      },
+    ]);
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Ponuka' });
+
+    await sync(setup);
+    const [job] = jobsOf(setup.engine, 'summary');
+    expect(job).toMatchObject({ runner: 'codex', model: 'gpt-5.5', status: 'queued' });
+    await setup.engine.services.ai.processQueued();
+
+    expect(setup.codex.requests.map((request) => request.model)).toEqual(['gpt-5.5']);
+    expect(
+      setup.engine.claude.requests.filter((request) => request.input.kind === 'summary'),
+    ).toEqual([]);
+    const detail = await setup.engine.services.threads.getDetail(
+      USER_ID,
+      await threadIdOf(setup.engine, 'Ponuka'),
+    );
+    expect(detail.aiSummary).toBe('Tibor chce ponuku.');
+  });
+
+  it('creates a task written by AI when the mail is actionable', async () => {
+    const setup = await syncedSetup();
+    const saved = await addAutomations(setup.engine, [
+      automationInput({
+        actions: ['task'],
+        ai: { runner: 'claude', model: 'opus', instructions: 'Task iba ak odo mňa niečo chce.' },
+      }),
+    ]);
+    setup.engine.claude.respondWith((request) =>
+      verdict({
+        threadId: request.input.kind === 'automationTask' ? request.input.threadId : ('x' as never),
+        actionable: true,
+        title: 'Poslať Tiborovi ponuku',
+        description: 'Tibor čaká ponuku do piatku.',
+      }),
+    );
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Ponuka' });
+
+    await sync(setup);
+    const [job] = jobsOf(setup.engine, 'automationTask');
+    expect(job?.input).toMatchObject({
+      kind: 'automationTask',
+      automationId: saved.find((item) => item.name === 'Od Tibora')?.id,
+      instructions: 'Task iba ak odo mňa niečo chce.',
+      jiraKey: null,
+    });
+    await setup.engine.services.ai.processQueued();
+
+    const tasks = await setup.engine.services.tasks.list(USER_ID, { limit: 10 });
+    expect(tasks.items).toHaveLength(1);
+    expect(tasks.items[0]).toMatchObject({
+      title: 'Poslať Tiborovi ponuku',
+      aiWhat: 'Tibor čaká ponuku do piatku.',
+      threadId: await threadIdOf(setup.engine, 'Ponuka'),
+      source: 'ai',
+      state: 'open',
+    });
+    expect(
+      setup.engine.claude.requests
+        .filter((request) => request.input.kind === 'automationTask')
+        .map((request) => request.model),
+    ).toEqual(['opus']);
+  });
+
+  it('creates no task when the AI finds nothing to do', async () => {
+    const setup = await syncedSetup();
+    await addAutomations(setup.engine, [automationInput({ actions: ['task'] })]);
+    setup.engine.claude.respondWith((request) =>
+      verdict({
+        threadId: request.input.kind === 'automationTask' ? request.input.threadId : ('x' as never),
+        actionable: false,
+        title: '',
+        description: '',
+      }),
+    );
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Len info' });
+
+    await sync(setup);
+    await setup.engine.services.ai.processQueued();
+
+    expect(jobsOf(setup.engine, 'automationTask').map((job) => job.status)).toEqual(['done']);
+    expect((await setup.engine.services.tasks.list(USER_ID, { limit: 10 })).items).toEqual([]);
+  });
+
+  it('notifies, marks read, pins and archives the new mail', async () => {
+    const setup = await syncedSetup();
+    await addAutomations(setup.engine, [
+      automationInput({ actions: ['archive', 'pin', 'markRead', 'notify'] }),
+    ]);
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra' });
+
+    await sync(setup);
+
+    expect(setup.engine.events.ofType('automation.notified').map((event) => event.data)).toEqual([
+      expect.objectContaining({
+        automationName: 'Od Tibora',
+        title: 'Tibor Hrasko',
+        body: 'Faktúra',
+      }),
+    ]);
+    const threadId = await threadIdOf(setup.engine, 'Faktúra');
+    const thread = setup.engine.db.tables.threads.get(threadId);
+    expect(thread).toMatchObject({ unread: false, state: 'done' });
+    const [message] = [...setup.engine.db.tables.messages.values()].filter(
+      (item) => item.threadId === threadId,
+    );
+    expect(message?.flags).toMatchObject({ seen: true, flagged: true });
+    expect(
+      [...setup.server.mailbox('Archive').messages.values()].map((item) => item.flags),
+    ).toEqual([{ seen: true, flagged: true, answered: false }]);
+    expect(setup.server.mailbox('INBOX').messages.size).toBe(0);
+  });
+});

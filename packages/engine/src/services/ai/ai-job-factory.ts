@@ -86,6 +86,7 @@ export class AiJobFactory {
       status: claim === undefined ? 'queued' : 'running',
       runnerLocation: location ?? settings.ai.location,
       runner: body.runner ?? settings.ai.defaultRunner,
+      ...(body.model === undefined || body.model === null ? {} : { model: body.model }),
       input: await this.withSource(userId, body.input),
       output: null,
       error: null,

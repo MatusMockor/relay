@@ -3,6 +3,7 @@ import type {
   AiJob,
   AiJobId,
   AiResult,
+  Automation,
   CalendarEventId,
   CalendarConnectionId,
   CalendarSubscriptionId,
@@ -51,6 +52,8 @@ export class MemoryTables {
   readonly threads = new Map<ThreadId, ThreadSummary>();
   readonly labels = new Map<LabelId, Label>();
   readonly splits = new Map<UserId, Split[]>();
+  readonly automations = new Map<UserId, Automation[]>();
+  readonly automationRuns = new Set<string>();
   readonly tasks = new Map<TaskId, Task>();
   readonly reminders = new Map<ReminderId, Reminder>();
   readonly drafts = new Map<DraftId, StoredDraft>();

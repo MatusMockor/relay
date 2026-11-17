@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { AccountStatusSchema, MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
+import { AutomationSchema } from '../domain/automation';
 import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
-import { AccountIdSchema, DraftIdSchema, MailboxIdSchema, ThreadIdSchema } from '../domain/ids';
+import {
+  AccountIdSchema,
+  AutomationIdSchema,
+  DraftIdSchema,
+  MailboxIdSchema,
+  ThreadIdSchema,
+} from '../domain/ids';
 import { MessageSchema } from '../domain/message';
 import { IsoDateTimeSchema } from '../domain/primitives';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
@@ -87,6 +94,22 @@ export const SplitsUpdatedEventSchema = event(
   z.object({ splits: z.array(SplitSchema) }),
 );
 
+export const AutomationsUpdatedEventSchema = event(
+  'automations.updated',
+  z.object({ automations: z.array(AutomationSchema) }),
+);
+
+export const AutomationNotifiedEventSchema = event(
+  'automation.notified',
+  z.object({
+    automationId: AutomationIdSchema,
+    automationName: z.string().min(1),
+    threadId: ThreadIdSchema,
+    title: z.string().min(1),
+    body: z.string(),
+  }),
+);
+
 export const CalendarUpdatedEventSchema = event(
   'calendar.updated',
   z.object({ sourceKind: CalendarSourceKindSchema, sourceId: z.string().min(1) }),
@@ -107,6 +130,8 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   DraftRemovedEventSchema,
   ScheduledSendUpsertedEventSchema,
   SplitsUpdatedEventSchema,
+  AutomationsUpdatedEventSchema,
+  AutomationNotifiedEventSchema,
   CalendarUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;

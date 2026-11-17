@@ -2,12 +2,13 @@ import { z } from 'zod';
 import {
   AiJobIdSchema,
   AiResultIdSchema,
+  AutomationIdSchema,
   DraftIdSchema,
   MessageIdSchema,
   ThreadIdSchema,
   UserIdSchema,
 } from './ids';
-import { IsoDateTimeSchema } from './primitives';
+import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
 import { TimeZoneSchema } from './time-zone';
 
@@ -24,6 +25,7 @@ export const AiTaskKindSchema = z.enum([
   'chatAnswer',
   'rewrite',
   'createTask',
+  'automationTask',
 ]);
 export type AiTaskKind = z.infer<typeof AiTaskKindSchema>;
 
@@ -74,6 +76,15 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     hint: z.string().min(1).max(2_000).nullable(),
     timeZone: JobTimeZoneSchema,
   }),
+  z.object({
+    kind: z.literal('automationTask'),
+    threadId: ThreadIdSchema,
+    messageId: MessageIdSchema,
+    automationId: AutomationIdSchema,
+    instructions: z.string().min(1).max(2_000).nullable(),
+    jiraKey: JiraKeySchema.nullable(),
+    timeZone: JobTimeZoneSchema,
+  }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;
 
@@ -96,6 +107,13 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     threadId: ThreadIdSchema,
     title: z.string().min(1).max(500),
     aiWhat: z.string().min(1).max(2_000),
+  }),
+  z.object({
+    kind: z.literal('automationTask'),
+    threadId: ThreadIdSchema,
+    actionable: z.boolean(),
+    title: z.string().max(500),
+    description: z.string().max(2_000),
   }),
 ]);
 export type AiOutput = z.infer<typeof AiOutputSchema>;
@@ -122,6 +140,7 @@ export const AiJobSchema = z.object({
   status: AiJobStatusSchema,
   runnerLocation: AiRunnerLocationSchema,
   runner: AiRunnerKindSchema,
+  model: z.string().min(1).max(100).nullable().optional(),
   input: AiJobInputSchema,
   output: AiOutputSchema.nullable(),
   error: z.string().nullable(),

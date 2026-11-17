@@ -3,6 +3,7 @@ import type { EngineEvents } from '../shared/engine-events';
 import { LeaseHeartbeat } from '../shared/lease-heartbeat';
 import { systemIntervalTimer } from '../shared/system-interval-timer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
+import { AutomationTaskWriter } from '../automations/automation-task-writer';
 import { AiTaskBuilder } from '../tasks/ai-task-builder';
 import type { ThreadQueryService } from '../threads/thread-query-service';
 import { AiJobExecutor } from './ai-job-executor';
@@ -32,6 +33,7 @@ export interface AiComponents {
   readonly service: AiService;
   readonly oneLiners: OneLinerScheduler;
   readonly relocator: QueuedAiJobRelocator;
+  readonly factory: AiJobFactory;
 }
 
 export const createAiComponents = (
@@ -58,9 +60,11 @@ export const createAiComponents = (
   const owner = options.workerId ?? `${location}-${ids.generate('aiJob')}`;
   const lease = new AiJobLease(owner, clock, options.timeoutMs + LEASE_MARGIN_MS, location);
   const writer = new AiJobStatusWriter({ jobs: repositories.aiJobs, events: shared.events, clock });
+  const taskBuilder = new AiTaskBuilder(clock, ids);
   const results = new AiResultApplier({
     events: shared.events,
-    tasks: new AiTaskBuilder(clock, ids),
+    tasks: taskBuilder,
+    automationTasks: new AutomationTaskWriter(taskBuilder, clock, ids),
     clock,
     ids,
   });
@@ -125,5 +129,5 @@ export const createAiComponents = (
     logger,
     limitPerSync: options.oneLinersPerSync,
   });
-  return { service, oneLiners, relocator };
+  return { service, oneLiners, relocator, factory };
 };
