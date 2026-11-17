@@ -40,6 +40,7 @@ export class CodexCliDialect implements CliDialect {
       ...codexBuiltinToolOverrides(),
       ...mcp.args,
       ...modelArgs(input.model ?? this.model),
+      ...(input.effort == null ? [] : ['-c', `model_reasoning_effort="${input.effort}"`]),
       '-',
     ];
     return Promise.resolve({

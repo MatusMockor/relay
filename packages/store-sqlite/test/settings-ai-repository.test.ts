@@ -153,11 +153,11 @@ describe('SqliteAiResultRepository and SqliteAiJobRepository', () => {
 
   it('keeps the model a job was queued with', async () => {
     const { aiJobs } = store.repositories;
-    await aiJobs.create(buildJob({ model: 'gpt-5.5' }));
+    await aiJobs.create(buildJob({ model: 'gpt-6-luna', effort: 'xhigh' }));
     await aiJobs.create(buildJob({ id: AiJobIdSchema.parse('job-2') }));
 
     expect(await aiJobs.findById(LOCAL_USER_ID, buildJob().id)).toEqual(
-      buildJob({ model: 'gpt-5.5' }),
+      buildJob({ model: 'gpt-6-luna', effort: 'xhigh' }),
     );
     expect(await aiJobs.findById(LOCAL_USER_ID, AiJobIdSchema.parse('job-2'))).toEqual(
       buildJob({ id: AiJobIdSchema.parse('job-2') }),

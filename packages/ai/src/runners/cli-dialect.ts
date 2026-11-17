@@ -1,5 +1,5 @@
 import type { AiMailToolsEndpoint } from '@relay/engine';
-import type { AiFailureCode, AiRunnerKind } from '@relay/shared/domain';
+import type { AiEffort, AiFailureCode, AiRunnerKind } from '@relay/shared/domain';
 import type { MailToolName } from '../prompts/mail-tools';
 import type { CliExit } from '../process/cli-process';
 import type { CliEventMapper } from './cli-signal';
@@ -12,6 +12,7 @@ export interface DialectRunInput {
   readonly mailTools: AiMailToolsEndpoint | null;
   readonly workspace: RunWorkspace;
   readonly model?: string | null;
+  readonly effort?: AiEffort | null;
 }
 
 export interface DialectInvocation {

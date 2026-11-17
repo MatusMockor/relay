@@ -12,6 +12,7 @@ const enqueue = async (
     input,
     runner: automation.ai.runner,
     model: automation.ai.model,
+    effort: automation.ai.effort,
   });
 };
 

@@ -38,10 +38,13 @@ describe('CodexRunner', () => {
   it('passes the model of the request to codex exec', async () => {
     await bin.install('codex', { responses: [{ lines: codexToolThenAnswer(chatAnswer) }] });
 
-    await collect(runner.run(aiRequest(chatInput, { runner: 'codex', model: 'gpt-5.5' })));
+    await collect(
+      runner.run(aiRequest(chatInput, { runner: 'codex', model: 'gpt-6-astra', effort: 'high' })),
+    );
 
     const [call] = await bin.calls('codex');
-    expect(call?.args[call.args.indexOf('--model') + 1]).toBe('gpt-5.5');
+    expect(call?.args[call.args.indexOf('--model') + 1]).toBe('gpt-6-astra');
+    expect(call?.args).toEqual(expect.arrayContaining(['-c', 'model_reasoning_effort="high"']));
   });
 
   it('maps codex exec JSONL events to AI events', async () => {

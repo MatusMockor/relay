@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AiRunnerKindSchema } from './ai';
+import { AiEffortSchema, AiModelIdSchema, refineAiModelChoice } from './ai-model-catalog';
 import { AccountIdSchema, AutomationIdSchema, UserIdSchema } from './ids';
 import {
   FromAddressRuleSchema,
@@ -41,13 +42,14 @@ export type AutomationAction = z.infer<typeof AutomationActionSchema>;
 export const AutomationPresetSchema = z.enum(['jiraTasks']);
 export type AutomationPreset = z.infer<typeof AutomationPresetSchema>;
 
-export const AutomationModelSchema = z.string().trim().min(1).max(100);
-
-export const AutomationAiSchema = z.object({
-  runner: AiRunnerKindSchema,
-  model: AutomationModelSchema.nullable(),
-  instructions: z.string().trim().min(1).max(2_000).nullable(),
-});
+export const AutomationAiSchema = z
+  .object({
+    runner: AiRunnerKindSchema,
+    model: AiModelIdSchema.nullable(),
+    effort: AiEffortSchema.nullable(),
+    instructions: z.string().trim().min(1).max(2_000).nullable(),
+  })
+  .superRefine(refineAiModelChoice);
 export type AutomationAi = z.infer<typeof AutomationAiSchema>;
 
 export const AutomationActionsSchema = z

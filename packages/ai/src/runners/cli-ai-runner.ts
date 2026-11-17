@@ -128,6 +128,7 @@ export class CliAiRunner implements AiRunner {
         mailTools: request.mailTools,
         workspace,
         model: request.model ?? null,
+        effort: request.effort ?? null,
       },
       env: this.env,
       timeoutMs: Math.max(1, deadline - Date.now()),

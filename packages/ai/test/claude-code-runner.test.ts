@@ -39,12 +39,16 @@ describe('ClaudeCodeRunner', () => {
 
     await collect(
       runner.run(
-        aiRequest({ kind: 'summary', threadId }, { thread: threadFixture(), model: 'opus' }),
+        aiRequest(
+          { kind: 'summary', threadId },
+          { thread: threadFixture(), model: 'claude-opus-5-5', effort: 'max' },
+        ),
       ),
     );
 
     const [call] = await bin.calls('claude');
-    expect(call?.args[call.args.indexOf('--model') + 1]).toBe('opus');
+    expect(call?.args[call.args.indexOf('--model') + 1]).toBe('claude-opus-5-5');
+    expect(call?.args[call.args.indexOf('--effort') + 1]).toBe('max');
     expect(call?.args).not.toContain('sonnet');
   });
 

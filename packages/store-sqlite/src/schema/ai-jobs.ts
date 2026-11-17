@@ -11,6 +11,7 @@ export const aiJobs = sqliteTable(
     runnerLocation: text('runner_location').notNull(),
     runner: text('runner').notNull(),
     model: text('model'),
+    effort: text('effort'),
     input: text('input', { mode: 'json' }).notNull(),
     output: text('output', { mode: 'json' }),
     error: text('error'),

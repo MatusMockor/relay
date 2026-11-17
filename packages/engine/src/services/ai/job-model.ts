@@ -1,4 +1,11 @@
-import type { AiJob, AiRunnerKind } from '@relay/shared/domain';
+import type { AiEffort, AiJob, AiRunnerKind } from '@relay/shared/domain';
 
-export const jobModelFor = (job: AiJob, runner: AiRunnerKind): string | null =>
-  job.runner === runner ? (job.model ?? null) : null;
+export interface JobModel {
+  readonly model: string | null;
+  readonly effort: AiEffort | null;
+}
+
+export const jobModelFor = (job: AiJob, runner: AiRunnerKind): JobModel =>
+  job.runner === runner
+    ? { model: job.model ?? null, effort: job.effort ?? null }
+    : { model: null, effort: null };

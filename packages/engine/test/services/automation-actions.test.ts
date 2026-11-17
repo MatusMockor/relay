@@ -22,7 +22,7 @@ describe('automation actions', () => {
     await addAutomations(setup.engine, [
       automationInput({
         actions: ['summary'],
-        ai: { runner: 'codex', model: 'gpt-5.5', instructions: null },
+        ai: { runner: 'codex', model: 'gpt-6-astra', effort: 'high', instructions: null },
       }),
     ]);
     setup.codex.respondWith(() => [
@@ -35,10 +35,17 @@ describe('automation actions', () => {
 
     await sync(setup);
     const [job] = jobsOf(setup.engine, 'summary');
-    expect(job).toMatchObject({ runner: 'codex', model: 'gpt-5.5', status: 'queued' });
+    expect(job).toMatchObject({
+      runner: 'codex',
+      model: 'gpt-6-astra',
+      effort: 'high',
+      status: 'queued',
+    });
     await setup.engine.services.ai.processQueued();
 
-    expect(setup.codex.requests.map((request) => request.model)).toEqual(['gpt-5.5']);
+    expect(setup.codex.requests.map((request) => [request.model, request.effort])).toEqual([
+      ['gpt-6-astra', 'high'],
+    ]);
     expect(
       setup.engine.claude.requests.filter((request) => request.input.kind === 'summary'),
     ).toEqual([]);
@@ -54,7 +61,12 @@ describe('automation actions', () => {
     const saved = await addAutomations(setup.engine, [
       automationInput({
         actions: ['task'],
-        ai: { runner: 'claude', model: 'opus', instructions: 'Task iba ak odo mňa niečo chce.' },
+        ai: {
+          runner: 'claude',
+          model: 'claude-opus-5-5',
+          effort: null,
+          instructions: 'Task iba ak odo mňa niečo chce.',
+        },
       }),
     ]);
     setup.engine.claude.respondWith((request) =>
@@ -90,7 +102,7 @@ describe('automation actions', () => {
       setup.engine.claude.requests
         .filter((request) => request.input.kind === 'automationTask')
         .map((request) => request.model),
-    ).toEqual(['opus']);
+    ).toEqual(['claude-opus-5-5']);
   });
 
   it('creates no task when the AI finds nothing to do', async () => {

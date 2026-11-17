@@ -5,7 +5,7 @@ import {
   AiRunnerInfoSchema,
   AiRunnerKindSchema,
 } from '../../domain/ai';
-import { AutomationModelSchema } from '../../domain/automation';
+import { AiEffortSchema, AiModelIdSchema, aiModelChoiceIssue } from '../../domain/ai-model-catalog';
 import { AiJobIdSchema } from '../../domain/ids';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
@@ -13,11 +13,26 @@ import { aiWorkerEndpoints } from './ai-worker';
 
 export * from './ai-worker';
 
-export const CreateAiJobBodySchema = z.object({
-  input: AiJobInputSchema,
-  runner: AiRunnerKindSchema.optional(),
-  model: AutomationModelSchema.nullable().optional(),
-});
+export const CreateAiJobBodySchema = z
+  .object({
+    input: AiJobInputSchema,
+    runner: AiRunnerKindSchema.optional(),
+    model: AiModelIdSchema.nullable().optional(),
+    effort: AiEffortSchema.nullable().optional(),
+  })
+  .superRefine((body, context) => {
+    const choosesModel = (body.model ?? null) !== null || (body.effort ?? null) !== null;
+    if (!choosesModel) {
+      return;
+    }
+    const issue =
+      body.runner === undefined
+        ? 'A model or effort needs a runner'
+        : aiModelChoiceIssue({ runner: body.runner, model: body.model, effort: body.effort });
+    if (issue !== null) {
+      context.addIssue({ code: 'custom', message: issue, path: ['model'] });
+    }
+  });
 export type CreateAiJobBody = z.infer<typeof CreateAiJobBodySchema>;
 
 export const aiEndpoints = {

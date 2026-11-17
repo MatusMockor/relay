@@ -1,4 +1,5 @@
 import type {
+  AiEffort,
   AiEvent,
   AiJobId,
   AiJobInput,
@@ -21,6 +22,7 @@ export interface AiRequest {
   readonly userId: UserId;
   readonly runner: AiRunnerKind;
   readonly model?: string | null;
+  readonly effort?: AiEffort | null;
   readonly input: AiJobInput;
   readonly thread: ThreadDetail | null;
   readonly mailTools: AiMailToolsEndpoint | null;

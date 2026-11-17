@@ -1,6 +1,7 @@
 export * from './account';
 export * from './address';
 export * from './ai';
+export * from './ai-model-catalog';
 export * from './calendar-event';
 export * from './calendar-subscription';
 export * from './google-calendar';

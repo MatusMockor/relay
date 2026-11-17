@@ -19,7 +19,7 @@ export const automationInput = (overrides: Partial<AutomationInput> = {}): Autom
   enabled: true,
   order: 1,
   conditions: [{ type: 'fromAddress', address: TIBOR.email }],
-  ai: { runner: 'claude', model: null, instructions: null },
+  ai: { runner: 'claude', model: null, effort: null, instructions: null },
   actions: ['notify'],
   ...overrides,
 });

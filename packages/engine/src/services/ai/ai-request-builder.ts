@@ -24,7 +24,7 @@ export class AiRequestBuilder {
       jobId: job.id,
       userId: job.userId,
       runner,
-      model: jobModelFor(job, runner),
+      ...jobModelFor(job, runner),
       input: job.input,
       thread,
       mailTools: typeof tools === 'function' ? await tools(job, owner) : tools,

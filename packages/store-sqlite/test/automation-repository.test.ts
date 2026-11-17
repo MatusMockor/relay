@@ -24,7 +24,7 @@ const buildAutomation = (overrides: Partial<Automation> = {}): Automation => ({
     { type: 'fromAddress', address: 'tibor@efabrica.sk' },
     { type: 'jiraEvent', kind: 'mention' },
   ],
-  ai: { runner: 'codex', model: 'gpt-5.5', instructions: 'Iba ak niečo chce.' },
+  ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: 'Iba ak niečo chce.' },
   actions: ['task', 'notify'],
   ...overrides,
 });
@@ -37,7 +37,7 @@ const preset = (userId = LOCAL_USER_ID, id = 'automation-jira'): Automation =>
     order: 0,
     preset: 'jiraTasks',
     conditions: [{ type: 'jira', projectKeys: [] }],
-    ai: { runner: 'claude', model: null, instructions: null },
+    ai: { runner: 'claude', model: null, effort: null, instructions: null },
     actions: ['task'],
   });
 

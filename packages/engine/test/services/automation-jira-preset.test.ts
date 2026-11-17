@@ -37,7 +37,7 @@ describe('default Jira tasks automation', () => {
         accountId: null,
         conditions: [{ type: 'jira', projectKeys: [] }],
         actions: ['task'],
-        ai: { runner: 'claude', model: null, instructions: null },
+        ai: { runner: 'claude', model: null, effort: null, instructions: null },
       }),
     ]);
   });
@@ -92,7 +92,12 @@ describe('default Jira tasks automation', () => {
   it('lets the AI judge Jira mail once instructions are added', async () => {
     const setup = await syncedSetup();
     await updatePreset(setup.engine, {
-      ai: { runner: 'claude', model: null, instructions: 'Presun do sprintu ignoruj.' },
+      ai: {
+        runner: 'claude',
+        model: null,
+        effort: null,
+        instructions: 'Presun do sprintu ignoruj.',
+      },
     });
     setup.engine.claude.respondWith((request) => {
       if (request.input.kind !== 'automationTask') {

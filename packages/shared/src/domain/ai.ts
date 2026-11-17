@@ -8,6 +8,7 @@ import {
   ThreadIdSchema,
   UserIdSchema,
 } from './ids';
+import { AiEffortSchema, AiModelIdSchema } from './ai-model-catalog';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
 import { TimeZoneSchema } from './time-zone';
@@ -140,7 +141,8 @@ export const AiJobSchema = z.object({
   status: AiJobStatusSchema,
   runnerLocation: AiRunnerLocationSchema,
   runner: AiRunnerKindSchema,
-  model: z.string().min(1).max(100).nullable().optional(),
+  model: AiModelIdSchema.nullable().optional(),
+  effort: AiEffortSchema.nullable().optional(),
   input: AiJobInputSchema,
   output: AiOutputSchema.nullable(),
   error: z.string().nullable(),

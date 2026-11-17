@@ -35,6 +35,7 @@ export class ClaudeCliDialect implements CliDialect {
       '--disable-slash-commands',
       ...(await this.toolArgs(input)),
       ...modelArgs(input.model ?? this.model),
+      ...(input.effort == null ? [] : ['--effort', input.effort]),
     ];
     return { args, stdin: input.prompt, env: {} };
   }
