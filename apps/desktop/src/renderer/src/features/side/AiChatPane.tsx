@@ -8,12 +8,8 @@ import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
 import { setChatDraft, useChat } from './chat-store';
+import { RUNNERS, runnerLabelOf } from './runner-labels';
 import { useChatRuns } from './use-chat-runs';
-
-const RUNNERS: readonly (readonly [AiRunnerKind, string])[] = [
-  ['claude', 'Claude Code'],
-  ['codex', 'Codex'],
-];
 
 export function AiChatPane() {
   const queryClient = useQueryClient();
@@ -28,7 +24,7 @@ export function AiChatPane() {
   const threadId = openThreadId ?? thread?.id ?? null;
   const openDetail = useThreadDetail(openThreadId);
   const subject = openThreadId === null ? thread?.subject : openDetail.data?.thread.subject;
-  const runnerLabel = RUNNERS.find(([kind]) => kind === activeRunner)?.[1] ?? activeRunner;
+  const runnerLabel = runnerLabelOf(activeRunner);
   const runs = useChatRuns({ runner: activeRunner, runnerLabel, threadId });
   const submit = (text: string) => {
     if (runs.ask(text)) {
