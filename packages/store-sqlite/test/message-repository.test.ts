@@ -59,6 +59,19 @@ describe('SqliteMessageRepository', () => {
     });
   });
 
+  it('reads the stored headers of an owned message', async () => {
+    const { messages } = store.repositories;
+    const headers = new Map([
+      ['list-unsubscribe', ['<https://news.example.com/u/1>']],
+      ['list-unsubscribe-post', ['List-Unsubscribe=One-Click']],
+    ]);
+    await messages.upsert(message('msg-h', 9), headers);
+
+    expect(await messages.findHeaders(LOCAL_USER_ID, messageId('msg-h'))).toEqual(headers);
+    expect(await messages.findHeaders(userId('intruder'), messageId('msg-h'))).toBeNull();
+    expect(await messages.findHeaders(LOCAL_USER_ID, messageId('missing'))).toBeNull();
+  });
+
   it('rejects a message for an unknown label', async () => {
     await expect(
       store.repositories.messages.upsert(

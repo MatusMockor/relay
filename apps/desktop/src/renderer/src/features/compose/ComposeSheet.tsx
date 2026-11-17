@@ -27,6 +27,7 @@ import { useAttachmentPicker } from './use-attachment-picker';
 import { useComposeAi } from './use-compose-ai';
 import { useComposeDraft } from './use-compose-draft';
 import { composeShortcut } from './compose-shortcuts';
+import { usePublishRecipient } from './use-publish-recipient';
 
 function ComposeForm({ init }: { readonly init: ComposeInit }) {
   const model = useAccountsModel();
@@ -47,6 +48,7 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
     ),
   );
   const [recipients, setRecipients] = useState(start.recipients);
+  usePublishRecipient(recipients.to);
   const [visible, setVisible] = useState(start.visible);
   const [subject, setSubject] = useState(start.subject);
   const [body, setBody] = useState(start.body);

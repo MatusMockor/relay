@@ -29,6 +29,7 @@ export interface SubjectSearchWindow {
 
 export interface MessageRepository {
   findById(userId: UserId, messageId: MessageId): Promise<Message | null>;
+  findHeaders(userId: UserId, messageId: MessageId): Promise<MessageHeaders | null>;
   listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]>;
   findByLocation(location: MessageLocation): Promise<Message | null>;
   findByMessageIdHeaders(accountId: AccountId, headers: readonly string[]): Promise<Message[]>;

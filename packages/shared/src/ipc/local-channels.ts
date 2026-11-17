@@ -44,6 +44,7 @@ import { SplitSchema } from '../domain/split';
 import { TaskSchema } from '../domain/task';
 import { ThreadAiStateSchema, ThreadDetailSchema, ThreadSummarySchema } from '../domain/thread';
 import { ThreadActionSchema } from '../domain/thread-action';
+import { UnsubscribeOptionsSchema, UnsubscribeRequestSchema } from '../domain/unsubscribe';
 import { RealtimeEventSchema } from '../realtime/events';
 import { invokeChannel, streamChannel } from './define';
 
@@ -70,6 +71,14 @@ export const localInvokeChannels = {
   'local.threads.updateChecklist': invokeChannel(
     z.object({ threadId: ThreadIdSchema, item: UpdateChecklistItemBodySchema }),
     ChecklistResponseSchema,
+  ),
+  'local.threads.unsubscribeOptions': invokeChannel(
+    z.object({ threadId: ThreadIdSchema }),
+    UnsubscribeOptionsSchema,
+  ),
+  'local.threads.unsubscribe': invokeChannel(
+    UnsubscribeRequestSchema.extend({ threadId: ThreadIdSchema }),
+    OkResponseSchema,
   ),
   'local.ai.getJob': invokeChannel(z.object({ jobId: AiJobIdSchema }), AiJobSchema),
   'local.labels.list': invokeChannel(LabelListQuerySchema, z.array(LabelSchema)),

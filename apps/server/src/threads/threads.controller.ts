@@ -5,9 +5,15 @@ import {
   ThreadAiPreparer,
   ThreadChecklistService,
   ThreadQueryService,
+  UnsubscribeService,
 } from '@relay/engine';
-import { api, type ChecklistResponse, type ThreadPage } from '@relay/shared/api';
-import type { ThreadAiState, ThreadDetail, ThreadSummary } from '@relay/shared/domain';
+import { api, type ChecklistResponse, type OkResponse, type ThreadPage } from '@relay/shared/api';
+import type {
+  ThreadAiState,
+  ThreadDetail,
+  ThreadSummary,
+  UnsubscribeOptions,
+} from '@relay/shared/domain';
 import { CurrentPrincipal } from '../auth/decorators/current-principal.decorator';
 import type { Principal } from '../auth/principal';
 import { ApiRequest, type RequestOf } from '../http/api-request.decorator';
@@ -21,6 +27,7 @@ export class ThreadsController {
     private readonly actions: MessageActionsService,
     private readonly checklist: ThreadChecklistService,
     private readonly threadAi: ThreadAiPreparer,
+    private readonly unsubscribes: UnsubscribeService,
   ) {}
 
   @ApiRoute(api.threads.list)
@@ -75,5 +82,23 @@ export class ThreadsController {
     request: RequestOf<typeof api.threads.updateChecklist>,
   ): Promise<ChecklistResponse> {
     return this.checklist.update(principal.userId, request.params.id, request.body);
+  }
+
+  @ApiRoute(api.threads.unsubscribeOptions)
+  unsubscribeOptions(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.threads.unsubscribeOptions)
+    request: RequestOf<typeof api.threads.unsubscribeOptions>,
+  ): Promise<UnsubscribeOptions> {
+    return this.unsubscribes.options(principal.userId, request.params.id);
+  }
+
+  @ApiRoute(api.threads.unsubscribe)
+  async unsubscribe(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.threads.unsubscribe) request: RequestOf<typeof api.threads.unsubscribe>,
+  ): Promise<OkResponse> {
+    await this.unsubscribes.unsubscribe(principal.userId, request.params.id, request.body.url);
+    return { ok: true };
   }
 }

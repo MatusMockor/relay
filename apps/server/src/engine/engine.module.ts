@@ -21,6 +21,7 @@ import {
   ThreadAiPreparer,
   ThreadChecklistService,
   ThreadQueryService,
+  UnsubscribeService,
 } from '@relay/engine';
 import { engineRepositoriesProvider } from './engine-repositories.provider';
 import { engineServicesProvider } from './engine-services.provider';
@@ -41,6 +42,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(ThreadQueryService, 'threads'),
   service(ThreadAiPreparer, 'threadAi'),
   service(ThreadChecklistService, 'checklist'),
+  service(UnsubscribeService, 'unsubscribe'),
   service(MessageActionsService, 'actions'),
   service(ReminderService, 'reminders'),
   service(TaskService, 'tasks'),
@@ -67,6 +69,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     ThreadQueryService,
     ThreadAiPreparer,
     ThreadChecklistService,
+    UnsubscribeService,
     MessageActionsService,
     ReminderService,
     TaskService,

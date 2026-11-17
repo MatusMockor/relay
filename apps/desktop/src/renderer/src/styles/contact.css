@@ -1,0 +1,55 @@
+.a-name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+.a-name h3 {
+  overflow-wrap: anywhere;
+}
+.a-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+}
+.a-prof p.a-acct {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.a-hint {
+  display: inline-flex;
+}
+.c-rcpt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  color: var(--muted);
+  font-size: 13px;
+  min-width: 0;
+}
+.c-rcpt b {
+  color: var(--fg);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.c-rcpt span:last-child {
+  flex: none;
+}
+.app.composing > .side {
+  position: relative;
+  z-index: 51;
+}
+.app.composing .ov.mid {
+  padding-right: calc(var(--side-w, 0px) + 16px);
+}

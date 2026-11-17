@@ -26,6 +26,7 @@ import { type CalendarFakes, createCalendarFakes } from './fakes/calendar-adapte
 import { createGoogleCalendarFakes, type GoogleCalendarFakes } from './fakes/fake-google-calendar';
 import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
+import { RecordingUnsubscribeSender } from './fakes/recording-unsubscribe-sender';
 import { FakeMailSender } from './mail/fake-mail-sender';
 import { HeaderThreadResolver } from './mail/header-thread-resolver';
 import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-matcher';
@@ -62,6 +63,7 @@ export interface TestEngine {
   readonly attachmentBlobs: MemoryAttachmentBlobCatalog;
   readonly providers: FakeMailProviderFactory;
   readonly sender: FakeMailSender;
+  readonly unsubscribes: RecordingUnsubscribeSender;
   readonly runners: MemoryAiRunnerRegistry;
   readonly claude: StubAiRunner;
   readonly calendar: CalendarFakes;
@@ -85,6 +87,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
   );
   const providers = new FakeMailProviderFactory();
   const sender = new FakeMailSender();
+  const unsubscribes = new RecordingUnsubscribeSender();
   const runners = new MemoryAiRunnerRegistry();
   const claude = new StubAiRunner('claude', () => []);
   runners.register(claude);
@@ -95,6 +98,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     unitOfWork,
     mailProviderFactory: providers,
     mailSender: sender,
+    unsubscribeSender: unsubscribes,
     credentialVault: vault,
     attachmentStore: attachments,
     attachmentBlobs,
@@ -134,6 +138,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     attachmentBlobs,
     providers,
     sender,
+    unsubscribes,
     runners,
     claude,
     calendar,

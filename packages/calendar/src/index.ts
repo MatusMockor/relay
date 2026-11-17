@@ -1,5 +1,4 @@
 export * from './expand/ical-calendar-expander';
-export * from './feeds/address-policy';
 export * from './feeds/feed-errors';
 export * from './feeds/feed-options';
 export * from './feeds/https-feed-fetcher';

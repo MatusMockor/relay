@@ -4,7 +4,7 @@ import type { IpcInvokeHandlers } from '../../ipc/invoke-router';
 
 type ThreadServices = Pick<
   EngineServices,
-  'inbox' | 'threads' | 'threadAi' | 'actions' | 'labels' | 'checklist'
+  'inbox' | 'threads' | 'threadAi' | 'actions' | 'labels' | 'checklist' | 'unsubscribe'
 >;
 
 export const createThreadHandlers = (
@@ -21,5 +21,11 @@ export const createThreadHandlers = (
     services.actions.apply(userId, threadId, action),
   'local.threads.updateChecklist': ({ threadId, item }) =>
     services.checklist.update(userId, threadId, item),
+  'local.threads.unsubscribeOptions': ({ threadId }) =>
+    services.unsubscribe.options(userId, threadId),
+  'local.threads.unsubscribe': async ({ threadId, url }) => {
+    await services.unsubscribe.unsubscribe(userId, threadId, url);
+    return { ok: true } as const;
+  },
   'local.labels.list': (query) => services.labels.list(userId, query),
 });

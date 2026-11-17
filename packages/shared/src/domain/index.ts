@@ -27,3 +27,4 @@ export * from './thread';
 export * from './thread-action';
 export * from './time-zone';
 export * from './user';
+export * from './unsubscribe';

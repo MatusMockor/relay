@@ -13,6 +13,7 @@ import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
 import { queryThreads } from './demo-query';
+import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
 import type { DemoState } from './demo-state';
 import { buildDemoState } from './seed/build-state';
 import { demoIds } from './seed/ids';
@@ -100,6 +101,12 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         const found = record(threadId);
         found.summary = projectThreadAction(found.summary, action);
         return upserted(found.summary);
+      }),
+    getUnsubscribeOptions: (threadId) =>
+      run(() => demoUnsubscribeOptions(record(threadId).summary)),
+    unsubscribe: (threadId, url) =>
+      run(() => {
+        demoUnsubscribe(record(threadId).summary, url);
       }),
     downloadAttachment: () => Promise.reject(notFound('Príloha')),
     updateChecklistItem: (threadId, item) =>

@@ -42,6 +42,8 @@ import type {
   UpdateAccountBody,
   UpdateChecklistItemBody,
   UpdateDraftBody,
+  UnsubscribeOptions,
+  UnsubscribeUrl,
   UpdateTaskBody,
   UserSettings,
   UserSettingsPatch,
@@ -79,6 +81,8 @@ export interface ThreadReader {
   prepareThreadAi(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   requestThreadSummary(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   applyThreadAction(threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary>;
+  getUnsubscribeOptions(threadId: ThreadId): Promise<UnsubscribeOptions>;
+  unsubscribe(threadId: ThreadId, confirmedUrl: UnsubscribeUrl): Promise<void>;
   listLabels(accountId?: AccountId): Promise<Label[]>;
   downloadAttachment(attachmentId: AttachmentId): Promise<AttachmentFile>;
 }
