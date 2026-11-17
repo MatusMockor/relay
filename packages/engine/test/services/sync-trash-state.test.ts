@@ -164,6 +164,48 @@ describe('SyncService trash state from the mail provider', () => {
     expect(await viewIds(engine, 'sent')).toEqual([thread.id]);
   });
 
+  it('keeps a sent-only thread trashed locally in the trash view across syncs', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'Sent', { id: 's1', from: ME, date: '2026-11-14T08:00:00.000Z' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'sent', limit: 50 })).items[0],
+    );
+
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'trash' });
+    expect(copiesIn(server, ['Sent'])).toEqual([]);
+    const trashUid = present(copiesIn(server, ['Trash'])[0])[1];
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    server.updateFlags('Trash', trashUid, { seen: true });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await viewIds(engine, 'trash')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'sent')).toEqual([]);
+  });
+
+  it('restores a sent-only thread back to the sent mailbox', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'Sent', { id: 's1', from: ME, date: '2026-11-14T08:00:00.000Z' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'sent', limit: 50 })).items[0],
+    );
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'trash' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const restored = await engine.services.actions.apply(USER_ID, thread.id, { type: 'restore' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(restored.state).toBe('done');
+    expect(copiesIn(server, ['Trash', 'INBOX'])).toEqual([]);
+    expect(copiesIn(server, ['Sent'])).toHaveLength(1);
+    expect(await viewIds(engine, 'sent')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'trash')).toEqual([]);
+    expect(await viewIds(engine, 'inbox')).toEqual([]);
+  });
+
   it('keeps local trash and restore actions through the next sync', async () => {
     const engine = createTestEngine();
     const { account, thread } = await syncedGmailThread(engine);
