@@ -1,4 +1,4 @@
-import type { AiJobInput } from '@relay/shared/domain';
+import { type AiJobInput, aiModelChoiceIssue } from '@relay/shared/domain';
 import type { AiJobFactory } from '../ai/ai-job-factory';
 import type { AutomationActionContext, AutomationActionHandler } from './automation-action';
 import { runsLegacyJiraTasks } from './automation-presets';
@@ -8,11 +8,13 @@ const enqueue = async (
   { userId, automation }: AutomationActionContext,
   input: AiJobInput,
 ): Promise<void> => {
+  const { runner, model, effort } = automation.ai;
+  const known = aiModelChoiceIssue({ runner, model, effort }) === null;
   await factory.enqueue(userId, {
     input,
-    runner: automation.ai.runner,
-    model: automation.ai.model,
-    effort: automation.ai.effort,
+    runner,
+    model: known ? model : null,
+    effort: known ? effort : null,
   });
 };
 

@@ -105,6 +105,28 @@ describe('automation actions', () => {
     ).toEqual(['claude-opus-5-5']);
   });
 
+  it('falls back to the runner default for a stored model that left the catalog', async () => {
+    const setup = await syncedSetup();
+    await addAutomations(setup.engine, [automationInput({ actions: ['summary'] })]);
+    const stored = await setup.engine.repositories.automations.listByUser(USER_ID);
+    await setup.engine.repositories.automations.replaceAll(
+      USER_ID,
+      stored.map((item) =>
+        item.preset === null
+          ? { ...item, ai: { ...item.ai, model: 'claude-retired-1', effort: 'max' } }
+          : item,
+      ),
+    );
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Starý model' });
+
+    await sync(setup);
+
+    const jobs = jobsOf(setup.engine, 'summary');
+    expect(jobs.map((job) => [job.runner, job.model ?? null, job.effort ?? null])).toEqual([
+      ['claude', null, null],
+    ]);
+  });
+
   it('creates no task when the AI finds nothing to do', async () => {
     const setup = await syncedSetup();
     await addAutomations(setup.engine, [automationInput({ actions: ['task'] })]);

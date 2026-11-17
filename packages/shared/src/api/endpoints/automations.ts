@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AutomationSchema } from '../../domain/automation';
+import { AutomationAiInputSchema, AutomationSchema } from '../../domain/automation';
 import { AutomationIdSchema } from '../../domain/ids';
 import { defineEndpoint } from '../endpoint';
 
@@ -9,6 +9,7 @@ export const AutomationInputSchema = AutomationSchema.omit({
   preset: true,
 }).extend({
   id: AutomationIdSchema.optional(),
+  ai: AutomationAiInputSchema,
 });
 export type AutomationInput = z.infer<typeof AutomationInputSchema>;
 
