@@ -46,5 +46,7 @@ export const syncState = pgTable('sync_state', {
   uidValidity: bigint('uid_validity', { mode: 'number' }).notNull(),
   lastUid: bigint('last_uid', { mode: 'number' }).notNull(),
   highestModseq: text('highest_modseq'),
+  initialFloorUid: bigint('initial_floor_uid', { mode: 'number' }),
+  initialCutoff: timestampTz('initial_cutoff'),
   syncedAt: timestampTz('synced_at').notNull(),
 });

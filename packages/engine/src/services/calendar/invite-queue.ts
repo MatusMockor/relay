@@ -12,7 +12,7 @@ export class InviteQueue {
 
   constructor(private readonly clock: Clock) {}
 
-  private nextStamp(): string {
+  nextStamp(): string {
     this.last = Math.max(this.clock.now().getTime(), this.last + 1);
     return new Date(this.last).toISOString();
   }
@@ -35,6 +35,7 @@ export class InviteQueue {
         nextAttemptAt: null,
         failedAt: null,
         lastError: null,
+        ...(arrival.hold ? { held: true } : {}),
       },
       createdAt: this.nextStamp(),
     });

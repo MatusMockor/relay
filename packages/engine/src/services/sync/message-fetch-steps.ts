@@ -1,4 +1,5 @@
 import type { RawMessage } from '../../model/remote-mail';
+import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
@@ -6,44 +7,37 @@ import type { ChangeFlusher } from './change-flusher';
 import type { MessageIngestor } from './message-ingestor';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { SyncContext } from './sync-context';
-import type { SyncOptions } from './sync-options';
 import type { SyncReporter } from './sync-reporter';
-import { syncWindow } from './sync-window';
 
-export interface NewMessageFetcherDeps {
+export interface MessageFetchStepsDeps {
   readonly ingestor: MessageIngestor;
   readonly flusher: ChangeFlusher;
   readonly syncStates: SyncStateRepository;
   readonly reporter: SyncReporter;
   readonly clock: Clock;
   readonly logger: Logger;
-  readonly options: SyncOptions;
 }
 
-export class NewMessageFetcher {
-  constructor(private readonly deps: NewMessageFetcherDeps) {}
+export interface IngestMode {
+  readonly publish: boolean;
+  readonly holdCalendar: boolean;
+}
 
-  async fetch(context: SyncContext, pass: MailboxPass): Promise<void> {
-    const window = await syncWindow(context, pass, this.deps.options, this.deps.clock);
-    const knownModseq = pass.state === null ? pass.status.highestModseq : pass.state.highestModseq;
-    let lastUid = window.cursor.lastUid;
-    let processed = 0;
-    for await (const raw of context.provider.fetchSince(pass.mailbox.path, window.cursor)) {
-      lastUid = Math.max(lastUid, raw.uid);
-      processed += 1;
-      if (window.cutoff === null || Date.parse(raw.internalDate) >= window.cutoff) {
-        await this.ingest(context, pass, raw);
-      }
-      if (processed % this.deps.options.batchSize === 0) {
-        await this.checkpoint(context, pass, lastUid, pass.state?.highestModseq ?? null);
-        await this.progress(context, pass, processed, window.expected);
-      }
-    }
-    await this.checkpoint(context, pass, lastUid, knownModseq);
-    await this.progress(context, pass, processed, Math.max(window.expected, processed));
-  }
+export interface SyncMark {
+  readonly lastUid: number;
+  readonly highestModseq: string | null;
+  readonly initialWindow: InitialSyncWindow | null;
+}
 
-  private async ingest(context: SyncContext, pass: MailboxPass, raw: RawMessage): Promise<void> {
+export class MessageFetchSteps {
+  constructor(private readonly deps: MessageFetchStepsDeps) {}
+
+  async ingest(
+    context: SyncContext,
+    pass: MailboxPass,
+    raw: RawMessage,
+    mode: IngestMode,
+  ): Promise<void> {
     const outcome = await this.deps.ingestor.ingest(
       {
         userId: context.userId,
@@ -51,7 +45,8 @@ export class NewMessageFetcher {
         mailbox: pass.mailbox,
         splits: context.splits,
         journal: context.journal,
-        publish: pass.state !== null,
+        publish: mode.publish,
+        holdCalendar: mode.holdCalendar,
       },
       raw,
     );
@@ -69,24 +64,26 @@ export class NewMessageFetcher {
     }
   }
 
-  private async checkpoint(
-    context: SyncContext,
-    pass: MailboxPass,
-    lastUid: number,
-    highestModseq: string | null,
-  ): Promise<void> {
-    await this.deps.flusher.flush(context);
-    await this.deps.syncStates.save({
+  flush(context: SyncContext): Promise<void> {
+    return this.deps.flusher.flush(context);
+  }
+
+  save(context: SyncContext, pass: MailboxPass, mark: SyncMark): Promise<void> {
+    return this.deps.syncStates.save({
       accountId: context.account.id,
       mailboxId: pass.mailbox.id,
       uidValidity: pass.status.uidValidity,
-      lastUid,
-      highestModseq,
+      ...mark,
       syncedAt: this.deps.clock.now().toISOString(),
     });
   }
 
-  private progress(
+  async checkpoint(context: SyncContext, pass: MailboxPass, mark: SyncMark): Promise<void> {
+    await this.flush(context);
+    await this.save(context, pass, mark);
+  }
+
+  progress(
     context: SyncContext,
     pass: MailboxPass,
     processed: number,

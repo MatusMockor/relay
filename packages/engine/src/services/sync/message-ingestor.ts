@@ -25,6 +25,7 @@ export interface IngestTarget {
   readonly splits: readonly Split[];
   readonly journal: SyncJournal | null;
   readonly publish: boolean;
+  readonly holdCalendar: boolean;
 }
 
 export type IngestOutcome =
@@ -108,6 +109,7 @@ export class MessageIngestor {
         threadId: stored.threadId,
         parts: parsed.calendarParts ?? [],
         publish: target.publish,
+        hold: target.holdCalendar,
       });
       return stored;
     });

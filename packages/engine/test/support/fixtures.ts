@@ -59,6 +59,7 @@ export interface MailSpec {
   readonly from?: Address;
   readonly to?: readonly Address[];
   readonly date?: string;
+  readonly internalDate?: string;
   readonly body?: string;
   readonly inReplyTo?: string;
   readonly references?: readonly string[];
@@ -83,7 +84,7 @@ export const deliverMail = (server: FakeMailServer, path: string, spec: MailSpec
   return server.deliver(path, source, {
     flags: { seen: spec.seen ?? false },
     keywords: spec.keywords,
-    internalDate: date,
+    internalDate: spec.internalDate ?? date,
   });
 };
 

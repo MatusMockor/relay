@@ -1,7 +1,14 @@
-import type { MailAccount, MailboxRole, MessageId, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  MailAccount,
+  MailboxId,
+  MailboxRole,
+  MessageId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
-export interface CalendarPartsArrival {
+export interface CalendarParts {
   readonly account: MailAccount;
   readonly mailboxRole: MailboxRole;
   readonly messageId: MessageId;
@@ -10,7 +17,13 @@ export interface CalendarPartsArrival {
   readonly publish: boolean;
 }
 
+export interface CalendarPartsArrival extends CalendarParts {
+  readonly hold: boolean;
+}
+
 export interface CalendarPartsSink {
   queue(work: PendingWorkRepository, arrival: CalendarPartsArrival): Promise<void>;
+  hasHeld(account: MailAccount): Promise<boolean>;
+  release(userId: UserId, account: MailAccount, mailboxOrder: readonly MailboxId[]): Promise<void>;
   flush(userId: UserId, account: MailAccount): Promise<void>;
 }

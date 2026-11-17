@@ -4,6 +4,7 @@ import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { AccountSynchronizer } from './account-synchronizer';
 import { ChangeFlusher } from './change-flusher';
+import { createMessageFetchers } from './create-message-fetchers';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
@@ -13,7 +14,6 @@ import { MailboxReconciler } from './mailbox-reconciler';
 import { MailboxRefresher } from './mailbox-refresher';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
-import { NewMessageFetcher } from './new-message-fetcher';
 import { DEFAULT_SYNC_OPTIONS } from './sync-options';
 import { SyncReporter } from './sync-reporter';
 import { SyncService } from './sync-service';
@@ -60,9 +60,11 @@ export const createSyncComponents = (
     ids,
     calendarParts: shared.calendarParts,
   });
-  const fetcher = new NewMessageFetcher({
+  const fetchers = createMessageFetchers({
     ingestor,
     flusher,
+    messages: repositories.messages,
+    calendarParts: shared.calendarParts,
     syncStates: repositories.syncStates,
     reporter,
     clock,
@@ -79,7 +81,7 @@ export const createSyncComponents = (
     mailboxes: repositories.mailboxes,
     syncStates: repositories.syncStates,
     reconciler,
-    fetcher,
+    incremental: fetchers.incremental,
     clock,
   });
   const refresher = new MailboxRefresher({
@@ -95,6 +97,7 @@ export const createSyncComponents = (
     sessions: shared.sessions,
     refresher,
     mailboxSync,
+    initialSync: fetchers.initialSync,
     flusher,
     backfill: shared.backfill,
     replayer: shared.replayer,

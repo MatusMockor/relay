@@ -34,6 +34,16 @@ export interface RawMessage {
   readonly source: Uint8Array;
 }
 
+export interface RemoteThreadHeaders {
+  readonly uid: number;
+  readonly internalDate: string;
+  readonly date: string;
+  readonly subject: string;
+  readonly messageId: string | null;
+  readonly inReplyTo: readonly string[];
+  readonly references: readonly string[];
+}
+
 export interface RemoteFlagChange {
   readonly uid: number;
   readonly flags: MessageFlags;

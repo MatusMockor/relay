@@ -1,10 +1,11 @@
-import type { AccountId } from '@relay/shared/domain';
-import type {
-  IdGenerator,
-  MessageRepository,
-  ParsedMessage,
-  ThreadResolution,
-  ThreadResolver,
+import type { AccountId, ThreadId } from '@relay/shared/domain';
+import {
+  type IdGenerator,
+  type MessageRepository,
+  type ParsedMessage,
+  subjectFallbackWindow,
+  type ThreadResolution,
+  type ThreadResolver,
 } from '../../../src';
 
 export class HeaderThreadResolver implements ThreadResolver {
@@ -21,10 +22,22 @@ export class HeaderThreadResolver implements ThreadResolver {
     ];
     const known =
       related.length === 0 ? [] : await this.messages.findByMessageIdHeaders(accountId, related);
-    const match = known[0];
-    if (match !== undefined) {
-      return { threadId: match.threadId, isNew: false };
+    const match = known[0]?.threadId ?? (await this.bySubject(accountId, message));
+    if (match !== null) {
+      return { threadId: match, isNew: false };
     }
     return { threadId: this.ids.generate('thread'), isNew: true };
+  }
+
+  private bySubject(accountId: AccountId, message: ParsedMessage): Promise<ThreadId | null> {
+    const window = subjectFallbackWindow({
+      subject: message.subject,
+      date: message.date,
+      hasReplyHeaders: message.inReplyTo !== null || message.references.length > 0,
+    });
+    if (window === null) {
+      return Promise.resolve(null);
+    }
+    return this.messages.findThreadIdBySubject(accountId, window.normalizedSubject, window);
   }
 }

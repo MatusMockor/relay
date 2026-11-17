@@ -141,6 +141,13 @@
       "when": 1794852389950,
       "tag": "0019_calendar_invite_rebuild",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1794946540289,
+      "tag": "0020_sync_state_initial_window",
+      "breakpoints": true
     }
   ]
 }

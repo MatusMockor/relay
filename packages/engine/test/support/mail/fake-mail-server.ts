@@ -44,7 +44,9 @@ export class FakeMailServer {
   readonly createdMailboxes: string[] = [];
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
+  readonly streamedMessages: { path: string; uid: number }[] = [];
   failFetchUid: number | null = null;
+  interruptStreamAfter: number | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();
   connections = 0;

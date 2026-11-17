@@ -65,6 +65,7 @@ export interface CalendarInviteWork {
   readonly nextAttemptAt: string | null;
   readonly failedAt: string | null;
   readonly lastError: string | null;
+  readonly held?: boolean;
 }
 
 export interface CalendarReplyWork {
