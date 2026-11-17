@@ -13,6 +13,8 @@ export interface ThreadAiSubject {
   readonly latest: Message;
 }
 
+export type ThreadAiKindPicker = (subject: ThreadAiSubject) => ThreadAiKind[];
+
 const isFromAccount = (message: Message, account: MailAccount | null): boolean =>
   account !== null && message.from?.email.toLowerCase() === account.email.toLowerCase();
 
@@ -22,7 +24,8 @@ const wantsReplySuggestions = ({ settings, thread, account, latest }: ThreadAiSu
   latest.from !== null &&
   !isFromAccount(latest, account);
 
-export const threadAiKinds = (subject: ThreadAiSubject): ThreadAiKind[] => [
-  ...(subject.settings.ai.features.summaries ? (['summary'] as const) : []),
-  ...(wantsReplySuggestions(subject) ? (['replySuggestions'] as const) : []),
-];
+export const openedThreadAiKinds: ThreadAiKindPicker = (subject) =>
+  wantsReplySuggestions(subject) ? ['replySuggestions'] : [];
+
+export const requestedSummaryKinds: ThreadAiKindPicker = ({ settings }) =>
+  settings.ai.features.summaries ? ['summary'] : [];

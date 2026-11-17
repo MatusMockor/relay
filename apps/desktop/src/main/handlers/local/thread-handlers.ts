@@ -15,6 +15,8 @@ export const createThreadHandlers = (
   'local.threads.get': ({ threadId }) => services.threads.getDetail(userId, threadId),
   'local.threads.prepareAi': ({ threadId, timeZone }) =>
     services.threadAi.prepare(userId, threadId, timeZone),
+  'local.threads.requestSummary': ({ threadId, timeZone }) =>
+    services.threadAi.requestSummary(userId, threadId, timeZone),
   'local.threads.action': ({ threadId, action }) =>
     services.actions.apply(userId, threadId, action),
   'local.threads.updateChecklist': ({ threadId, item }) =>

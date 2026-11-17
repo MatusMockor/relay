@@ -54,13 +54,13 @@ export const LocalAttachmentContentSchema = z.object({
 });
 export type LocalAttachmentContent = z.infer<typeof LocalAttachmentContentSchema>;
 
+const threadAiRequest = PrepareThreadAiQuerySchema.extend({ threadId: ThreadIdSchema });
+
 export const localInvokeChannels = {
   'local.threads.list': invokeChannel(ThreadListQuerySchema, ThreadPageSchema),
   'local.threads.get': invokeChannel(z.object({ threadId: ThreadIdSchema }), ThreadDetailSchema),
-  'local.threads.prepareAi': invokeChannel(
-    PrepareThreadAiQuerySchema.extend({ threadId: ThreadIdSchema }),
-    ThreadAiStateSchema,
-  ),
+  'local.threads.prepareAi': invokeChannel(threadAiRequest, ThreadAiStateSchema),
+  'local.threads.requestSummary': invokeChannel(threadAiRequest, ThreadAiStateSchema),
   'local.threads.action': invokeChannel(
     z.object({ threadId: ThreadIdSchema, action: ThreadActionSchema }),
     ThreadSummarySchema,

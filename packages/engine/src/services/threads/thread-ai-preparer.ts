@@ -18,7 +18,11 @@ import type { ThreadRepository } from '../../ports/thread-repository';
 import { latestThreadMessage } from '../shared/latest-thread-message';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
-import { threadAiKinds } from './thread-ai-kinds';
+import {
+  openedThreadAiKinds,
+  requestedSummaryKinds,
+  type ThreadAiKindPicker,
+} from './thread-ai-kinds';
 
 export interface AiJobEnqueuer {
   enqueueJob(userId: UserId, body: CreateAiJobBody): Promise<AiJobEnqueueResult>;
@@ -46,7 +50,19 @@ const withZone = ({ kind, threadId, timeZone }: ThreadAiInput) =>
 export class ThreadAiPreparer {
   constructor(private readonly deps: ThreadAiPreparerDeps) {}
 
-  async prepare(userId: UserId, threadId: ThreadId, timeZone?: string): Promise<ThreadAiState> {
+  prepare(userId: UserId, threadId: ThreadId, timeZone?: string): Promise<ThreadAiState> {
+    return this.ensureKinds(userId, { threadId, timeZone }, openedThreadAiKinds);
+  }
+
+  requestSummary(userId: UserId, threadId: ThreadId, timeZone?: string): Promise<ThreadAiState> {
+    return this.ensureKinds(userId, { threadId, timeZone }, requestedSummaryKinds);
+  }
+
+  private async ensureKinds(
+    userId: UserId,
+    { threadId, timeZone }: Omit<ThreadAiInput, 'kind'>,
+    pick: ThreadAiKindPicker,
+  ): Promise<ThreadAiState> {
     const thread = await this.deps.threads.findById(userId, threadId);
     if (thread === null) {
       throw new NotFoundError('Thread', threadId);
@@ -55,7 +71,7 @@ export class ThreadAiPreparer {
     if (latest === null) {
       return { pending: [], jobs: [] };
     }
-    const kinds = threadAiKinds({
+    const kinds = pick({
       settings: await this.deps.settings.read(userId),
       thread,
       account: await this.deps.accounts.findById(userId, thread.accountId),

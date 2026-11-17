@@ -55,6 +55,19 @@ export class ThreadsController {
     return this.threadAi.prepare(principal.userId, request.params.id, request.query.timeZone);
   }
 
+  @ApiRoute(api.threads.requestSummary)
+  requestSummary(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.threads.requestSummary)
+    request: RequestOf<typeof api.threads.requestSummary>,
+  ): Promise<ThreadAiState> {
+    return this.threadAi.requestSummary(
+      principal.userId,
+      request.params.id,
+      request.query.timeZone,
+    );
+  }
+
   @ApiRoute(api.threads.updateChecklist)
   updateChecklist(
     @CurrentPrincipal() principal: Principal,

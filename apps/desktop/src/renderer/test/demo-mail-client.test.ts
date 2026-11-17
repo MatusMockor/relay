@@ -146,6 +146,26 @@ describe('demo mail client', () => {
     expect(outputs()[0]?.title.length).toBe(500);
   });
 
+  it('summarizes a demo thread only when asked', async () => {
+    const client = demoClient();
+    const { items } = await client.listThreads({ view: 'inbox', limit: 100 });
+    const details = await Promise.all(items.map((thread) => client.getThread(thread.id)));
+    const unsummarized = details.find((detail) => detail.aiSummary === null);
+    expect(unsummarized).toBeDefined();
+    const threadId = unsummarized?.thread.id ?? LUNCH;
+
+    expect(await client.prepareThreadAi(threadId, 'Europe/Bratislava')).toEqual({
+      pending: [],
+      jobs: [],
+    });
+    expect((await client.getThread(threadId)).aiSummary).toBeNull();
+    expect(await client.requestThreadSummary(threadId, 'Europe/Bratislava')).toEqual({
+      pending: [],
+      jobs: [],
+    });
+    expect((await client.getThread(threadId)).aiSummary).not.toBeNull();
+  });
+
   it('stops running AI work when it is disposed', async () => {
     const client = demoClient(10);
     const events: AiEvent[] = [];
