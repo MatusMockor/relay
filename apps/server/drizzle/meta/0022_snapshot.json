@@ -1,5 +1,5 @@
 {
-  "id": "6a2d1ada-3001-429f-a4ed-98b28d6b9ddd",
+  "id": "2cc51b83-71d3-4cc9-8bed-7ed740b5fa2e",
   "prevId": "2a61d921-8c75-4ba1-8f5f-7318e88491f4",
   "version": "7",
   "dialect": "postgresql",
@@ -2048,12 +2048,17 @@
           "primaryKey": false,
           "notNull": false
         },
-        "initial_sync_pending": {
-          "name": "initial_sync_pending",
-          "type": "boolean",
+        "initial_floor_uid": {
+          "name": "initial_floor_uid",
+          "type": "bigint",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
+          "notNull": false
+        },
+        "initial_cutoff": {
+          "name": "initial_cutoff",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "synced_at": {
           "name": "synced_at",

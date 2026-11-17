@@ -1,10 +1,13 @@
 import type { MailboxId } from '@relay/shared/domain';
+import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { conversationOrder } from './conversation-order';
 import { entryKey, fetchChunk } from './initial-chunk';
 import { InitialProgress } from './initial-progress';
 import { type InitialWindowDeps, type MailboxWindow, mailboxWindow } from './initial-window';
+import { mailboxOrder } from './mailbox-order';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { MessageFetchSteps, SyncMark } from './message-fetch-steps';
 import type { SyncContext } from './sync-context';
@@ -12,6 +15,7 @@ import { skipOnUidValidityChange } from './uid-validity-guard';
 
 export interface InitialSyncDeps extends InitialWindowDeps {
   readonly steps: MessageFetchSteps;
+  readonly syncStates: SyncStateRepository;
   readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
 }
@@ -21,12 +25,12 @@ const chunked = <Item>(items: readonly Item[], size: number): Item[][] =>
     items.slice(index * size, (index + 1) * size),
   );
 
-const mark = (window: MailboxWindow, initialSyncPending: boolean): SyncMark => {
+const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): SyncMark => {
   const { state, status } = window.pass;
   return {
     lastUid: window.topUid,
     highestModseq: state === null ? status.highestModseq : state.highestModseq,
-    initialSyncPending,
+    initialWindow,
   };
 };
 
@@ -34,27 +38,37 @@ export class InitialSync {
   constructor(private readonly deps: InitialSyncDeps) {}
 
   async run(context: SyncContext, passes: readonly MailboxPass[]): Promise<void> {
-    const { steps, calendarParts } = this.deps;
-    const order = passes.map((pass) => pass.mailbox.id);
+    const { steps } = this.deps;
     if (passes.length === 0) {
-      await calendarParts.release(context.userId, context.account, order);
+      await this.releaseWhenSettled(context);
       return;
     }
     const windows = await this.windows(context, passes);
     for (const window of windows) {
-      await steps.save(context, window.pass, mark(window, true));
+      await steps.save(context, window.pass, mark(window, window.frozen));
     }
     const progress = new InitialProgress(windows);
     const failed = await this.ingest(context, windows, progress);
-    await calendarParts.release(context.userId, context.account, order);
     await steps.flush(context);
-    for (const { window, processed } of progress.all()) {
-      if (failed.has(window.pass.mailbox.id)) {
-        continue;
-      }
-      await steps.save(context, window.pass, mark(window, false));
+    const completed = progress.all().filter(({ window }) => !failed.has(window.pass.mailbox.id));
+    for (const { window, processed } of completed) {
+      await steps.save(context, window.pass, mark(window, null));
       await steps.progress(context, window.pass, processed, Math.max(window.total, processed));
     }
+    if (completed.length < passes.length) {
+      return;
+    }
+    await this.releaseWhenSettled(context);
+    await steps.flush(context);
+  }
+
+  private async releaseWhenSettled(context: SyncContext): Promise<void> {
+    const states = await this.deps.syncStates.listByAccount(context.account.id);
+    if (states.some((state) => state.initialWindow !== null)) {
+      return;
+    }
+    const order = mailboxOrder(context, this.deps.options.mailboxRoles);
+    await this.deps.calendarParts.release(context.userId, context.account, order);
   }
 
   private async windows(

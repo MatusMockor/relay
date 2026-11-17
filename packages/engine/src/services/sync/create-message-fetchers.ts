@@ -23,6 +23,7 @@ export const createMessageFetchers = (deps: MessageFetchersDeps): MessageFetcher
     initialSync: new InitialSync({
       steps,
       messages: deps.messages,
+      syncStates: deps.syncStates,
       calendarParts: deps.calendarParts,
       clock: deps.clock,
       logger: deps.logger,

@@ -43,7 +43,12 @@ export class HeldInviteRelease {
     for (const item of work.filter((entry) => entry.payload.held === true)) {
       held.push({ work: item, message: await messages.findById(userId, item.payload.messageId) });
     }
-    for (const { work: item } of held.sort(arrivalOrder(mailboxOrder))) {
+    const orphaned = held.filter((invite) => invite.message === null).map(({ work }) => work);
+    if (orphaned.length > 0) {
+      await pendingWork.remove(orphaned);
+    }
+    const located = held.filter((invite) => invite.message !== null);
+    for (const { work: item } of located.sort(arrivalOrder(mailboxOrder))) {
       const { revision: _revision, ...key } = item;
       const { held: _held, ...payload } = item.payload;
       await pendingWork.put({ ...key, payload, createdAt: queue.nextStamp() });

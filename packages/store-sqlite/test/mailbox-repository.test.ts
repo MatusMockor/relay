@@ -67,18 +67,18 @@ describe('SqliteMailboxRepository and SqliteSyncStateRepository', () => {
       uidValidity: 42,
       lastUid: 100,
       highestModseq: '9001',
-      initialSyncPending: true,
+      initialWindow: { floorUid: 37, cutoff: '2026-10-11T10:00:00.000Z' },
       syncedAt: '2026-11-10T10:00:00.000Z',
     };
 
     await syncStates.save(state);
     expect(await syncStates.find(state.mailboxId)).toEqual(state);
-    await syncStates.save({ ...state, lastUid: 120, initialSyncPending: false });
+    await syncStates.save({ ...state, lastUid: 120, initialWindow: null });
 
     expect(await syncStates.find(state.mailboxId)).toEqual({
       ...state,
       lastUid: 120,
-      initialSyncPending: false,
+      initialWindow: null,
     });
     expect(await syncStates.listByAccount(account)).toHaveLength(1);
     await syncStates.delete(state.mailboxId);

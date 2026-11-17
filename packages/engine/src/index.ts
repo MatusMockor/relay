@@ -6,3 +6,4 @@ export type * from './ports';
 export * from './services';
 export * from './tokens';
 export * from './subjects/normalize-subject';
+export * from './subjects/subject-fallback';

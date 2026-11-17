@@ -1,1 +1,0 @@
-ALTER TABLE "sync_state" ADD COLUMN "initial_sync_pending" boolean DEFAULT false NOT NULL;

@@ -20,7 +20,7 @@ export class IncrementalMessageFetcher {
       highestModseq: state.highestModseq,
     };
     const expected = Math.max(0, pass.status.uidNext - 1 - state.lastUid);
-    const mark = { highestModseq: state.highestModseq, initialSyncPending: false };
+    const mark = { highestModseq: state.highestModseq, initialWindow: null };
     let lastUid = state.lastUid;
     let processed = 0;
     for await (const raw of context.provider.fetchSince(pass.mailbox.path, cursor)) {

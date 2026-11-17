@@ -1,3 +1,4 @@
+import { conversationLinks } from './conversation-links';
 import type { MailboxWindow, WindowEntry } from './initial-window';
 
 interface Positioned {
@@ -5,73 +6,74 @@ interface Positioned {
   readonly mailbox: number;
 }
 
-const ascending = (left: Positioned, right: Positioned): number =>
-  left.entry.date - right.entry.date ||
-  left.mailbox - right.mailbox ||
-  left.entry.uid - right.entry.uid;
+type Compare = (left: number, right: number) => number;
 
-const newestFirst = (left: Positioned[], right: Positioned[]): number => {
-  const leftNewest = left.at(-1);
-  const rightNewest = right.at(-1);
-  if (leftNewest === undefined || rightNewest === undefined) {
-    return 0;
+const byPosition =
+  (items: readonly Positioned[]): Compare =>
+  (left, right) => {
+    const a = items[left];
+    const b = items[right];
+    if (a === undefined || b === undefined) {
+      return left - right;
+    }
+    return (
+      a.entry.arrivedAt - b.entry.arrivedAt ||
+      a.mailbox - b.mailbox ||
+      a.entry.uid - b.entry.uid ||
+      left - right
+    );
+  };
+
+const parentsFirst = (
+  members: readonly number[],
+  parents: readonly (readonly number[])[],
+  compare: Compare,
+): number[] => {
+  const remaining = new Set(members);
+  const ordered: number[] = [];
+  while (remaining.size > 0) {
+    const pending = [...remaining];
+    const ready = pending.filter((member) =>
+      (parents[member] ?? []).every((parent) => !remaining.has(parent)),
+    );
+    const next = (ready.length > 0 ? ready : pending).sort(compare)[0];
+    if (next === undefined) {
+      return ordered;
+    }
+    remaining.delete(next);
+    ordered.push(next);
   }
-  return ascending(rightNewest, leftNewest);
+  return ordered;
 };
 
-class DisjointSet {
-  private readonly parents: number[];
-
-  constructor(size: number) {
-    this.parents = Array.from({ length: size }, (_, index) => index);
-  }
-
-  root(index: number): number {
-    let current = index;
-    while (this.parents[current] !== current) {
-      const parent = this.parents[current] ?? current;
-      this.parents[current] = this.parents[parent] ?? parent;
-      current = parent;
-    }
-    return current;
-  }
-
-  join(left: number, right: number): void {
-    this.parents[this.root(left)] = this.root(right);
-  }
-}
-
-const groupsOf = (positioned: readonly Positioned[]): Positioned[][] => {
-  const set = new DisjointSet(positioned.length);
-  const owners = new Map<string, number>();
-  positioned.forEach((item, index) => {
-    item.entry.ids.forEach((id) => {
-      const owner = owners.get(id);
-      if (owner === undefined) {
-        owners.set(id, index);
-        return;
-      }
-      set.join(index, owner);
-    });
-  });
-  const groups = new Map<number, Positioned[]>();
-  positioned.forEach((item, index) => {
+const groupsOf = (items: readonly Positioned[]): number[][] => {
+  const { set, parents } = conversationLinks(items.map((item) => item.entry));
+  const members = new Map<number, number[]>();
+  items.forEach((_, index) => {
     const root = set.root(index);
-    const group = groups.get(root);
+    const group = members.get(root);
     if (group === undefined) {
-      groups.set(root, [item]);
+      members.set(root, [index]);
       return;
     }
-    group.push(item);
+    group.push(index);
   });
-  return [...groups.values()].map((group) => group.sort(ascending));
+  const compare = byPosition(items);
+  const newest = (group: readonly number[]): number =>
+    group.reduce((best, index) => (compare(index, best) > 0 ? index : best));
+  return [...members.values()]
+    .sort((left, right) => compare(newest(right), newest(left)))
+    .map((group) => parentsFirst(group, parents, compare));
 };
 
 export const conversationOrder = (windows: readonly MailboxWindow[]): WindowEntry[] => {
-  const positioned = windows.flatMap((window, mailbox) =>
+  const items = windows.flatMap((window, mailbox) =>
     window.entries.map((entry) => ({ entry, mailbox })),
   );
-  return groupsOf(positioned)
-    .sort(newestFirst)
-    .flatMap((group) => group.map((item) => item.entry));
+  return groupsOf(items).flatMap((group) =>
+    group.flatMap((index) => {
+      const item = items[index];
+      return item === undefined ? [] : [item.entry];
+    }),
+  );
 };

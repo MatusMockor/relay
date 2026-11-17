@@ -8,25 +8,35 @@ import { chunk } from './uid-batches';
 const THREAD_HEADERS_QUERY: FetchQueryObject = {
   uid: true,
   internalDate: true,
-  headers: ['message-id', 'in-reply-to', 'references'],
+  envelope: true,
+  headers: ['references'],
 };
 
 const MESSAGE_ID = /<[^<>\s]+>/g;
 
-const headerIds = (lines: readonly string[], name: string): string[] =>
-  lines
-    .filter((line) => line.toLowerCase().startsWith(`${name}:`))
-    .flatMap((line) => line.slice(name.length + 1).match(MESSAGE_ID) ?? []);
+const messageIds = (value: string | undefined): string[] => value?.match(MESSAGE_ID) ?? [];
+
+const references = (fetched: FetchMessageObject): string[] => {
+  const text = fetched.headers?.toString('utf8') ?? '';
+  return text
+    .replace(/\r?\n[ \t]+/g, ' ')
+    .split(/\r?\n/)
+    .filter((line) => line.toLowerCase().startsWith('references:'))
+    .flatMap((line) => messageIds(line.slice('references:'.length)));
+};
 
 const toThreadHeaders = (fetched: FetchMessageObject): RemoteThreadHeaders => {
-  const text = fetched.headers?.toString('utf8') ?? '';
-  const lines = text.replace(/\r?\n[ \t]+/g, ' ').split(/\r?\n/);
+  const internalDate = toIsoDate(fetched.internalDate);
+  const envelope = fetched.envelope;
+  const sent = envelope?.date;
   return {
     uid: fetched.uid,
-    internalDate: toIsoDate(fetched.internalDate),
-    messageId: headerIds(lines, 'message-id')[0] ?? null,
-    inReplyTo: headerIds(lines, 'in-reply-to'),
-    references: headerIds(lines, 'references'),
+    internalDate,
+    date: sent === undefined || Number.isNaN(sent.getTime()) ? internalDate : sent.toISOString(),
+    subject: envelope?.subject ?? '',
+    messageId: messageIds(envelope?.messageId)[0] ?? null,
+    inReplyTo: messageIds(envelope?.inReplyTo),
+    references: references(fetched),
   };
 };
 

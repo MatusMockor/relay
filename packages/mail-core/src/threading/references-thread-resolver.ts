@@ -1,14 +1,17 @@
-import type { IdGenerator, ParsedMessage, ThreadResolution, ThreadResolver } from '@relay/engine';
+import {
+  DEFAULT_SUBJECT_WINDOW_DAYS,
+  type IdGenerator,
+  type ParsedMessage,
+  subjectFallbackWindow,
+  type ThreadResolution,
+  type ThreadResolver,
+} from '@relay/engine';
 import type { AccountId } from '@relay/shared/domain';
-import { normalizeSubject } from './normalize-subject';
 import type { ThreadLookup } from './thread-lookup';
 
 export interface ReferencesThreadResolverOptions {
   readonly subjectWindowDays?: number;
 }
-
-const DEFAULT_SUBJECT_WINDOW_DAYS = 14;
-const DAY_MS = 86_400_000;
 
 export const relatedMessageIds = (message: ParsedMessage): string[] => {
   const ids = [
@@ -18,9 +21,6 @@ export const relatedMessageIds = (message: ParsedMessage): string[] => {
   ];
   return [...new Set(ids)];
 };
-
-const looksLikeReply = (message: ParsedMessage, hadReplyPrefix: boolean): boolean =>
-  hadReplyPrefix || message.inReplyTo !== null || message.references.length > 0;
 
 export class ReferencesThreadResolver implements ThreadResolver {
   constructor(
@@ -42,16 +42,17 @@ export class ReferencesThreadResolver implements ThreadResolver {
   }
 
   private async findBySubject(accountId: AccountId, message: ParsedMessage) {
-    const subject = normalizeSubject(message.subject);
-    if (subject.value === '' || !looksLikeReply(message, subject.hadReplyPrefix)) {
+    const window = subjectFallbackWindow(
+      {
+        subject: message.subject,
+        date: message.date,
+        hasReplyHeaders: message.inReplyTo !== null || message.references.length > 0,
+      },
+      this.options.subjectWindowDays ?? DEFAULT_SUBJECT_WINDOW_DAYS,
+    );
+    if (window === null) {
       return null;
     }
-    const windowMs = (this.options.subjectWindowDays ?? DEFAULT_SUBJECT_WINDOW_DAYS) * DAY_MS;
-    const until = new Date(message.date);
-    return this.lookup.findBySubject(accountId, {
-      normalizedSubject: subject.value,
-      since: new Date(until.getTime() - windowMs),
-      until,
-    });
+    return this.lookup.findBySubject(accountId, window);
   }
 }

@@ -40,4 +40,39 @@ describe('SyncService initial sync calendar invitations', () => {
     });
     expect(inviteWork(engine)).toEqual([]);
   });
+
+  it('keeps a held cancellation until a mailbox skipped for a UIDVALIDITY change is synced', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 1 } });
+    const seeded = await seedAccount(engine);
+    const { server } = seeded;
+    deliverAt(engine, seeded, 'series', master({ dtstamp: at(10) }), day(3));
+    deliverAt(
+      engine,
+      seeded,
+      'all',
+      cancelOne(LATER, { recurrenceId: null, sequence: 1, dtstamp: at(11) }),
+      day(4),
+      'Sent',
+    );
+    server.interruptStreamAfter = 1;
+    expect((await sync(engine, seeded)).ok).toBe(false);
+    server.beforeNextFetch = (path) => {
+      server.resetUidValidity(path);
+    };
+
+    const skipped = await sync(engine, seeded);
+
+    expect(skipped.ok).toBe(true);
+    expect(rows(engine)).toEqual([]);
+    expect(inviteWork(engine).map((work) => work.payload)).toMatchObject([{ held: true }]);
+
+    const synced = await sync(engine, seeded);
+
+    expect(synced.ok).toBe(true);
+    expect(rows(engine).find((row) => row.recurrenceId === null)).toMatchObject({
+      status: 'cancelled',
+      sequence: 1,
+    });
+    expect(inviteWork(engine)).toEqual([]);
+  });
 });

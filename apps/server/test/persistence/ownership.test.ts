@@ -181,7 +181,7 @@ describe('references to rows of another user', () => {
       uidValidity: 1,
       lastUid: 500,
       highestModseq: '9',
-      initialSyncPending: false,
+      initialWindow: null,
       syncedAt: at(1),
     };
     await context.repositories.syncStates.save(ownerState);

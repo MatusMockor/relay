@@ -33,9 +33,9 @@ describe('ImapMailProvider initial sync reads against GreenMail', () => {
     expect(await collect(harness.provider.fetchUids('INBOX', uidValidity, []))).toEqual([]);
   });
 
-  it('reads the threading headers and internal dates of the requested uids', async () => {
+  it('reads the threading headers, subjects and dates of the requested uids', async () => {
     await appendMail('Kickoff', { messageId: '<root@relay.test>' });
-    await appendMail('Re: Kickoff', {
+    await appendMail('=?UTF-8?B?UmU6IFBvcmFkYSB2IHPDoWxl?=', {
       messageId: '<reply@relay.test>',
       inReplyTo: '<root@relay.test>',
     });
@@ -44,15 +44,32 @@ describe('ImapMailProvider initial sync reads against GreenMail', () => {
 
     const headers = await harness.provider.fetchThreadHeaders('INBOX', uidValidity, [3, 1, 2]);
 
+    const sent = '2026-11-15T09:00:00.000Z';
     expect(headers.map(({ internalDate: _date, ...rest }) => rest)).toEqual([
-      { uid: 1, messageId: '<root@relay.test>', inReplyTo: [], references: [] },
+      {
+        uid: 1,
+        date: sent,
+        subject: 'Kickoff',
+        messageId: '<root@relay.test>',
+        inReplyTo: [],
+        references: [],
+      },
       {
         uid: 2,
+        date: sent,
+        subject: 'Re: Porada v sále',
         messageId: '<reply@relay.test>',
         inReplyTo: ['<root@relay.test>'],
         references: ['<root@relay.test>'],
       },
-      { uid: 3, messageId: '<lunch@relay.test>', inReplyTo: [], references: [] },
+      {
+        uid: 3,
+        date: sent,
+        subject: 'Lunch',
+        messageId: '<lunch@relay.test>',
+        inReplyTo: [],
+        references: [],
+      },
     ]);
     headers.forEach((header) => {
       expect(Number.isNaN(Date.parse(header.internalDate))).toBe(false);

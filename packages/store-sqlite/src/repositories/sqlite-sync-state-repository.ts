@@ -34,7 +34,8 @@ export class SqliteSyncStateRepository implements SyncStateRepository {
         uidValidity: state.uidValidity,
         lastUid: state.lastUid,
         highestModseq: state.highestModseq,
-        initialSyncPending: state.initialSyncPending,
+        initialFloorUid: state.initialWindow?.floorUid ?? null,
+        initialCutoff: state.initialWindow?.cutoff ?? null,
         syncedAt: state.syncedAt,
       };
       db.insert(syncState)

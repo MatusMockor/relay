@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "55ce0bcd-2788-4001-b28c-ce3da57e8357",
+  "id": "53ce0bb3-81da-45a7-9e03-1d8e087456f5",
   "prevId": "a7b2770c-d2d9-4a52-988e-7ba9d075ef2c",
   "tables": {
     "accounts": {
@@ -2111,13 +2111,19 @@
           "notNull": false,
           "autoincrement": false
         },
-        "initial_sync_pending": {
-          "name": "initial_sync_pending",
+        "initial_floor_uid": {
+          "name": "initial_floor_uid",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "notNull": false,
+          "autoincrement": false
+        },
+        "initial_cutoff": {
+          "name": "initial_cutoff",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "synced_at": {
           "name": "synced_at",

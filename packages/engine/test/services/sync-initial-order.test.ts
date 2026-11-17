@@ -35,7 +35,7 @@ describe('SyncService initial sync ordering', () => {
     expect(subjects.slice(4)).toEqual(['Subject m1']);
     expect(await inboxState(engine, account.id)).toMatchObject({
       lastUid: 5,
-      initialSyncPending: false,
+      initialWindow: null,
     });
   });
 
@@ -114,7 +114,9 @@ describe('SyncService initial sync ordering', () => {
     expect([...engine.db.tables.messages.values()].map((message) => message.uid).sort()).toEqual([
       4, 5,
     ]);
-    expect(await inboxState(engine, account.id)).toMatchObject({ initialSyncPending: true });
+    expect(await inboxState(engine, account.id)).toMatchObject({
+      initialWindow: { floorUid: 1, cutoff: '2026-10-16T10:00:00.000Z' },
+    });
     server.streamedMessages.length = 0;
     engine.events.clear();
 
@@ -138,7 +140,7 @@ describe('SyncService initial sync ordering', () => {
     ]);
     expect(await inboxState(engine, account.id)).toMatchObject({
       lastUid: 5,
-      initialSyncPending: false,
+      initialWindow: null,
     });
   });
 
@@ -168,7 +170,7 @@ describe('SyncService initial sync ordering', () => {
     ]);
     expect(await inboxState(engine, account.id)).toMatchObject({
       lastUid: 4,
-      initialSyncPending: false,
+      initialWindow: null,
     });
   });
 });

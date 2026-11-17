@@ -8,6 +8,9 @@ export const toMailboxSyncState = (row: SyncStateRow): MailboxSyncState => ({
   uidValidity: row.uidValidity,
   lastUid: row.lastUid,
   highestModseq: row.highestModseq,
-  initialSyncPending: row.initialSyncPending,
+  initialWindow:
+    row.initialFloorUid === null || row.initialCutoff === null
+      ? null
+      : { floorUid: row.initialFloorUid, cutoff: row.initialCutoff },
   syncedAt: row.syncedAt,
 });

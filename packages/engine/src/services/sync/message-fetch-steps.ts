@@ -1,4 +1,5 @@
 import type { RawMessage } from '../../model/remote-mail';
+import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
@@ -20,7 +21,7 @@ export interface MessageFetchStepsDeps {
 export interface SyncMark {
   readonly lastUid: number;
   readonly highestModseq: string | null;
-  readonly initialSyncPending: boolean;
+  readonly initialWindow: InitialSyncWindow | null;
 }
 
 export class MessageFetchSteps {
