@@ -12,7 +12,11 @@ export type ProviderPresetId =
   | 'azet'
   | 'pobox'
   | 'centrum'
-  | 'atlas';
+  | 'atlas'
+  | 'aol'
+  | 'gmx'
+  | 'zoho'
+  | 'volny';
 
 export interface ProviderPreset {
   readonly id: ProviderPresetId;
@@ -73,7 +77,7 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
     id: 'yahoo',
     label: 'Yahoo Mail',
     provider: 'imap',
-    domains: ['yahoo.com', 'ymail.com', 'rocketmail.com'],
+    domains: ['yahoo.com', 'ymail.com', 'rocketmail.com', 'yahoo.co.uk', 'yahoo.de'],
     imap: tls('imap.mail.yahoo.com'),
     smtp: tls('smtp.mail.yahoo.com', 465),
     supportsOAuth: false,
@@ -146,6 +150,46 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
     domains: ['atlas.sk'],
     imap: tls('imap.atlas.sk'),
     smtp: tls('smtp.centrum.sk', 465),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  aol: {
+    id: 'aol',
+    label: 'AOL Mail',
+    provider: 'imap',
+    domains: ['aol.com', 'aim.com'],
+    imap: tls('imap.aol.com'),
+    smtp: tls('smtp.aol.com', 465),
+    supportsOAuth: false,
+    requiresAppPassword: true,
+  },
+  gmx: {
+    id: 'gmx',
+    label: 'GMX',
+    provider: 'imap',
+    domains: ['gmx.net', 'gmx.de', 'gmx.at', 'gmx.ch'],
+    imap: tls('imap.gmx.net'),
+    smtp: starttls('mail.gmx.net'),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  zoho: {
+    id: 'zoho',
+    label: 'Zoho Mail',
+    provider: 'imap',
+    domains: ['zoho.com', 'zohomail.com'],
+    imap: tls('imap.zoho.com'),
+    smtp: tls('smtp.zoho.com', 465),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  volny: {
+    id: 'volny',
+    label: 'Volný.cz',
+    provider: 'imap',
+    domains: ['volny.cz'],
+    imap: tls('imap.volny.cz'),
+    smtp: tls('smtp.volny.cz', 465),
     supportsOAuth: false,
     requiresAppPassword: false,
   },

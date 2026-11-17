@@ -93,6 +93,7 @@ describe('onboarding', () => {
       savedServers: [{ url: server.url }],
     });
     type(field('E-mail'), 'ja@firma.sk');
+    click(/Rozšírené nastavenia servera/);
     expect((field('IMAP server') as HTMLInputElement).value).toBe('imap.firma.sk');
     expect((field('Meno odosielateľa') as HTMLInputElement).value).toBe('Ján Novák');
     type(field('Názov účtu (nepovinné)'), 'Firma');
@@ -140,6 +141,7 @@ describe('onboarding', () => {
     click(/Pridať účet/);
     expect(screen.getByRole('alert').textContent).toBe('Doplň heslo k schránke.');
     type(password(), 'tajne-heslo');
+    click(/Rozšírené nastavenia servera/);
     type(field('IMAP server'), '127.0.0.1');
     type(field('SMTP server'), '127.0.0.1');
     click(/Pridať účet/);

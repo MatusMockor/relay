@@ -1,4 +1,5 @@
-import { Button, Icon } from '@relay/ui';
+import { Button } from '@relay/ui';
+import { GoogleMark } from './GoogleMark';
 import { useGoogleOAuth } from './use-google-oauth';
 
 export interface GoogleSignInButtonProps {
@@ -18,7 +19,7 @@ export function GoogleSignInButton({ email, onDone }: GoogleSignInButtonProps) {
         }}
         disabled={waiting}
       >
-        <Icon name="shield" />
+        <GoogleMark />
         {waiting ? 'Čakám na prihlásenie v prehliadači…' : 'Prihlásiť cez Google'}
       </Button>
       {waiting ? (

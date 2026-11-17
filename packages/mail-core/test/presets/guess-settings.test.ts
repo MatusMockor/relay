@@ -17,6 +17,10 @@ describe('provider presets', () => {
       'pobox',
       'centrum',
       'atlas',
+      'aol',
+      'gmx',
+      'zoho',
+      'volny',
     ]);
     for (const preset of listProviderPresets()) {
       expect(
@@ -55,6 +59,11 @@ describe('provider presets', () => {
     ['jan@me.com', 'icloud', 'imap', 'imap.mail.me.com'],
     ['jan@ymail.com', 'yahoo', 'imap', 'imap.mail.yahoo.com'],
     ['jan@email.cz', 'seznam', 'imap', 'imap.seznam.cz'],
+    ['jan@yahoo.co.uk', 'yahoo', 'imap', 'imap.mail.yahoo.com'],
+    ['jan@aol.com', 'aol', 'imap', 'imap.aol.com'],
+    ['jan@gmx.de', 'gmx', 'imap', 'imap.gmx.net'],
+    ['jan@zohomail.com', 'zoho', 'imap', 'imap.zoho.com'],
+    ['jan@volny.cz', 'volny', 'imap', 'imap.volny.cz'],
   ])('uses the preset for %s', (email, presetId, provider, imapHost) => {
     const guess = guessSettings(email);
 

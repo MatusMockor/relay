@@ -25,7 +25,9 @@ export const presetFor = (email: string): PresetHint | null => {
   if (preset === null) {
     return null;
   }
-  const note = NOTES[preset.id];
+  const note =
+    NOTES[preset.id] ??
+    (preset.requiresAppPassword ? `${preset.label} vyžaduje heslo pre aplikáciu.` : undefined);
   return note === undefined ? { preset } : { preset, note };
 };
 

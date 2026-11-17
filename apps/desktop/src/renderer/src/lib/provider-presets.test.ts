@@ -11,6 +11,12 @@ describe('provider presets', () => {
     expect(presetFor('ja@firma.sk')).toBeNull();
   });
 
+  it('asks for an app password for providers that require one', () => {
+    expect(presetFor('ja@yahoo.com')?.note).toBe('Yahoo Mail vyžaduje heslo pre aplikáciu.');
+    expect(presetFor('ja@aol.com')?.note).toBe('AOL Mail vyžaduje heslo pre aplikáciu.');
+    expect(presetFor('ja@seznam.cz')?.note).toBeUndefined();
+  });
+
   it('guesses settings only for complete domains', () => {
     expect(guessSettings('ja@azet.sk')?.imap.host).toBe('imap.azet.sk');
     expect(guessSettings('ja@firma.sk')).toEqual({
