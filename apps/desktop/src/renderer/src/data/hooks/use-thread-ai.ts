@@ -2,7 +2,8 @@ import type { ThreadAiKind, ThreadSummary } from '@relay/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { systemTimeZone } from '../../features/calendar/calendar-time';
-import { reconcileAiJobs, withoutSettledJobs } from './ai-job-cache';
+import { reconcileAiJobs } from './ai-job-cache';
+import { withOnDemandJobs } from './on-demand-ai-jobs';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
 
@@ -19,8 +20,9 @@ export const useThreadAiPending = (thread: ThreadSummary | null): readonly Threa
     queryFn: async () =>
       thread === null
         ? { pending: [], jobs: [] }
-        : withoutSettledJobs(
+        : withOnDemandJobs(
             queryClient,
+            thread.id,
             await client.prepareThreadAi(thread.id, systemTimeZone()),
           ),
     enabled: thread !== null,

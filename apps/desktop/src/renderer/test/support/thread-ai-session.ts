@@ -1,4 +1,5 @@
 import { type AiJob, AiJobSchema, type ThreadSummary } from '@relay/shared';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expect } from 'vitest';
 import { createBrowserPlatform } from '../../src/platform/BrowserPlatform';
@@ -59,13 +60,14 @@ export const settle = async (server: ContractServer): Promise<void> => {
 export const openFirstThread = async (
   server: ContractServer,
   threads: readonly ThreadSummary[],
+  queryClient?: QueryClient,
 ): Promise<HTMLElement> => {
   server.handle('threads.list', () => ({ body: { items: threads, nextCursor: null } }));
   const platform = createBrowserPlatform(
     storageWith({ mode: 'synced', activeServerUrl: server.url, savedServers: [] }),
   );
   await platform.tokenStore(server.url).save(tokens('access-1'));
-  renderApp({ platform });
+  renderApp({ platform, queryClient });
   const list = await screen.findByRole('listbox', { name: 'Konverzácie' });
   await waitFor(() => {
     expect(server.sockets[0]?.messages.length).toBeGreaterThan(0);

@@ -42,6 +42,9 @@ export const resetStores = (): void => {
   resetToasts();
 };
 
+export const testQueryClient = (): QueryClient =>
+  new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+
 export interface RenderedApp {
   readonly platform: Platform;
   readonly session: SessionController;
@@ -52,6 +55,7 @@ export const renderApp = (
     readonly storage?: KeyValueStorage;
     readonly demo?: () => MailClient;
     readonly platform?: Platform;
+    readonly queryClient?: QueryClient;
   } = {},
 ): RenderedApp => {
   const platform =
@@ -64,9 +68,7 @@ export const renderApp = (
       platform={platform}
       session={session}
       undoSendMs={40}
-      createQueryClient={() =>
-        new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
-      }
+      createQueryClient={() => options.queryClient ?? testQueryClient()}
     />,
   );
   return { platform, session };
