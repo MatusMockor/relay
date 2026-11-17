@@ -58,14 +58,19 @@ const freeze = (
   );
 };
 
-const toEntry = (
+const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
+  if (pass.role === 'trash') {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return Date.parse(frozen.cutoff);
+};
+
+export const windowEntry = (
   pass: MailboxPass,
   header: RemoteThreadHeaders,
-  cutoff: number,
-  stored: ReadonlySet<number>,
-): RankedEntry => {
+  wanted: boolean,
+): WindowEntry => {
   const arrivedAt = Date.parse(header.internalDate);
-  const recent = arrivedAt >= cutoff;
   return {
     pass,
     uid: header.uid,
@@ -74,9 +79,18 @@ const toEntry = (
     parentIds: [...header.inReplyTo, ...header.references],
     subject: header.subject,
     sentAt: header.date,
-    recent,
-    wanted: recent && !stored.has(header.uid),
+    wanted,
   };
+};
+
+const toEntry = (
+  pass: MailboxPass,
+  header: RemoteThreadHeaders,
+  cutoff: number,
+  stored: ReadonlySet<number>,
+): RankedEntry => {
+  const recent = Date.parse(header.internalDate) >= cutoff;
+  return { ...windowEntry(pass, header, recent && !stored.has(header.uid)), recent };
 };
 
 export const mailboxWindow = async (
@@ -94,7 +108,7 @@ export const mailboxWindow = async (
     selected,
   );
   const stored = new Set(await deps.messages.listUids(pass.mailbox.id));
-  const cutoff = Date.parse(frozen.cutoff);
+  const cutoff = cutoffOf(pass, frozen);
   const entries = headers.map((header) => toEntry(pass, header, cutoff, stored));
   const recent = entries.filter((entry) => entry.recent);
   return {

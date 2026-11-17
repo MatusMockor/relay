@@ -1,12 +1,7 @@
-import type {
-  MailboxId,
-  Message,
-  ThreadId,
-  ThreadState,
-  ThreadSummary,
-} from '@relay/shared/domain';
+import type { ThreadId } from '@relay/shared/domain';
 import type { ThreadRefreshWork } from '../../model/pending-work';
 import type { ThreadRefreshHint } from '../shared/thread-refresh';
+import { type MessageRoleOf, syncedThreadState } from './synced-thread-state';
 
 export const emptyThreadWork = (threadId: ThreadId): ThreadRefreshWork => ({
   threadId,
@@ -31,31 +26,10 @@ export const mergeThreadWork = (
 
 export const threadWorkHint = (
   work: ThreadRefreshWork,
-  inboxIds: ReadonlySet<MailboxId>,
+  roleOf: MessageRoleOf,
 ): ThreadRefreshHint => ({
   addSplitIds: [...work.addSplitIds],
   ...(work.jiraKey === null ? {} : { jiraKey: work.jiraKey }),
   ...(work.jiraActor === null ? {} : { jiraActor: work.jiraActor }),
-  resolveState: (existing, messages) => resolveState(work, existing, messages, inboxIds),
+  resolveState: (existing, messages) => syncedThreadState(work, existing, messages, roleOf),
 });
-
-const resolveState = (
-  work: ThreadRefreshWork,
-  existing: ThreadSummary | null,
-  messages: readonly Message[],
-  inboxIds: ReadonlySet<MailboxId>,
-): ThreadState => {
-  const stillInInbox = messages.some((message) => inboxIds.has(message.mailboxId));
-  if (work.arrivedIn.includes('inbox') && stillInInbox) {
-    return 'inbox';
-  }
-  if (existing === null) {
-    return work.arrivedIn.length > 0 && work.arrivedIn.every((role) => role === 'trash')
-      ? 'trash'
-      : 'done';
-  }
-  if (work.expungedFromInbox && existing.state === 'inbox' && !stillInInbox) {
-    return 'done';
-  }
-  return existing.state;
-};
