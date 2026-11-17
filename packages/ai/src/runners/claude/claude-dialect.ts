@@ -5,6 +5,7 @@ import type { CliEventMapper } from '../cli-signal';
 import { classifyCliFailure } from '../failure-classifier';
 import { claudeMcpConfig } from './claude-mcp-config';
 import { ClaudeStreamMapper } from './claude-stream-mapper';
+import { modelArgs } from '../model-args';
 
 const AUTH_PATTERN =
   /not logged in|invalid api key|please run \/login|authentication_error|oauth token|unauthorized|\b401\b/i;
@@ -33,7 +34,7 @@ export class ClaudeCliDialect implements CliDialect {
       '--no-session-persistence',
       '--disable-slash-commands',
       ...(await this.toolArgs(input)),
-      ...(this.model === null ? [] : ['--model', this.model]),
+      ...modelArgs(input.model ?? this.model),
     ];
     return { args, stdin: input.prompt, env: {} };
   }

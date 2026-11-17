@@ -11,6 +11,7 @@ export interface DialectRunInput {
   readonly tools: readonly MailToolName[];
   readonly mailTools: AiMailToolsEndpoint | null;
   readonly workspace: RunWorkspace;
+  readonly model?: string | null;
 }
 
 export interface DialectInvocation {
