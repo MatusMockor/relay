@@ -60,24 +60,25 @@ shared  ◄── engine ◄── store-sqlite
 ## Hexagonal core (`@relay/engine`)
 
 - **Ports** (interfaces, one per file) in `engine/src/ports/`:
-  - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ / frozen initial-sync window per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
+  - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `AutomationRepository`, `AutomationRunRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ / frozen initial-sync window per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
   - `UnitOfWork.run(work)` passes transaction-bound `Repositories` to `work`.
-  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`.
+  - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`, `AutomationMatcher`.
   - AI: `AiRunner` (`run(request): AsyncIterable<AiEvent>`), `AiRunnerRegistry`.
   - infrastructure: `EventPublisher`, `Clock`, `IdGenerator`, `Logger`.
 - Engine-internal types (raw/parsed messages, sync cursors, pages, AI requests) live in `engine/src/model/`. They never cross the wire.
 - `PORT_TOKENS` (`engine/src/tokens.ts`) gives every port a `Symbol.for('relay.engine.<Port>')` token, used by Nest providers and the desktop composition root.
 - `EngineError` subclasses (`NotFoundError`, `ValidationError`, `ConflictError`, `ForbiddenError`, `ProviderError`, `NotImplementedError`) carry an `ApiErrorCode`; HTTP and IPC adapters map them to the shared error shape.
-- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AiService`.
+- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label, pin), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AutomationService`, `AiService`.
 - All database access goes through repository ports. No service, controller or IPC handler talks to Drizzle directly.
 - Server implements the ports with Postgres + Drizzle; local mode implements them with SQLite + Drizzle (`store-sqlite`). The same services run in both places.
 
 ## Domain model (see `packages/shared/src/domain`)
 
-`User`, `Device`, `MailAccount` (provider: `imap` | `gmail` | `outlook`, color, isPrimary, sync interval, status), `ImapSmtpSettings`, `AccountCredentials` (password or OAuth tokens, never sent to clients), `Mailbox` (role: inbox, sent, drafts, trash, archive, spam, custom), `Message`, `ThreadSummary` / `ThreadDetail`, `ThreadAction`, `Label`, `Split` (rule-based view of the inbox), `Task` (one per Jira issue or created by AI), `Reminder`, `Draft`, `ScheduledSend`, `AiJob` / `AiResult` / `AiEvent`, `UserSettings` (synced), `DeviceSettings` (device-only), `FolderView`.
+`User`, `Device`, `MailAccount` (provider: `imap` | `gmail` | `outlook`, color, isPrimary, sync interval, status), `ImapSmtpSettings`, `AccountCredentials` (password or OAuth tokens, never sent to clients), `Mailbox` (role: inbox, sent, drafts, trash, archive, spam, custom), `Message`, `ThreadSummary` / `ThreadDetail`, `ThreadAction`, `Label`, `Split` (rule-based view of the inbox), `Automation` (rule that runs actions on new mail), `Task` (one per Jira issue or created by AI), `Reminder`, `Draft`, `ScheduledSend`, `AiJob` / `AiResult` / `AiEvent`, `UserSettings` (synced), `DeviceSettings` (device-only), `FolderView`.
 
 - Ids are branded strings (`UserId`, `ThreadId`, ...) and timestamps are ISO 8601 strings with offset, so the same types work over HTTP, WebSocket and IPC.
 - A `Split` matches a message when any of its rules matches. `accountId: null` means the split applies to the unified inbox. An `exclusive` split removes matching threads from the main inbox.
+- An `Automation` runs when all of its conditions match a new inbox message (split rule conditions plus the Jira event kind). Actions: AI summary, AI-judged task, notification, mark read, pin (IMAP `\Flagged`), archive. Each rule picks its AI runner, a model and effort from the static catalog in `shared/src/domain/ai-model-catalog.ts`, and optional instructions. Rules never run on the initial sync backlog, and `AutomationRunRepository` records each automation and message pair so a rule fires at most once per message. The seeded `Jira tasky` preset keeps the classic Jira task behavior (create or reopen by Jira key without AI) until the user adds instructions or turns it off.
 
 "Done" = archive (IMAP move to archive mailbox / Gmail remove INBOX label). Read state, done, trash and labels are mirrored back to the mail provider so other clients see them too.
 
@@ -88,7 +89,7 @@ shared  ◄── engine ◄── store-sqlite
 - Jobs: pg-boss (sync per account, reminders, scheduled sends, AI jobs). No Redis.
 - Auth: email + password (argon2id), optional TOTP later. Access JWT (15 min) + rotating refresh token bound to a `Device`. Devices can be listed and revoked.
 - Mail credentials encrypted at rest (AES-256-GCM, key from `CREDENTIALS_ENCRYPTION_KEY`).
-- Realtime: WebSocket gateway on `/realtime`. The client sends `hello` (`apiVersion`, access token) first; the server answers `welcome` and then pushes `event` messages carrying a `RealtimeEvent`: `thread.upserted`, `thread.removed`, `message.upserted`, `task.upserted`, `account.status`, `account.upserted`, `account.removed`, `draft.upserted`, `draft.removed`, `scheduledSend.upserted`, `splits.updated`, `ai.job.updated`, `settings.updated`, `sync.progress` (`shared/src/realtime`).
+- Realtime: WebSocket gateway on `/realtime`. The client sends `hello` (`apiVersion`, access token) first; the server answers `welcome` and then pushes `event` messages carrying a `RealtimeEvent`: `thread.upserted`, `thread.removed`, `message.upserted`, `task.upserted`, `account.status`, `account.upserted`, `account.removed`, `draft.upserted`, `draft.removed`, `scheduledSend.upserted`, `splits.updated`, `automations.updated`, `automation.notified`, `ai.job.updated`, `settings.updated`, `sync.progress` (`shared/src/realtime`).
 - API contract lives in `shared/src/api`: every endpoint is `{ method, path, auth, params?, query?, body?, response }` built from zod schemas and grouped by area in `api`. The server validates requests with `parseEndpointRequest`; clients build URLs with `buildUrl` and are typed by `EndpointRequest` / `EndpointResponse`. Errors use `{ error: { code, message, issues? } }` (`ApiErrorCode` -> HTTP status in `API_ERROR_HTTP_STATUS`), lists use cursor pagination (`{ items, nextCursor }`).
 - Dev runtime: `vite-node` with SWC (decorator metadata) runs `src/main.ts` directly from TypeScript, the same pipeline Vitest uses. A production bundle is still to be decided.
 - Deploy: `docker compose up` (server + postgres). Optional Cloudflare Tunnel for remote HTTPS access without open ports. Cloudflare Access is not used because the app has its own login.
@@ -109,7 +110,7 @@ shared  ◄── engine ◄── store-sqlite
 - `AiRunner` port: `run(request: AiRequest): AsyncIterable<AiEvent>` (`AiEvent` is defined in `shared` so it can be streamed over IPC unchanged). Implementations: `ClaudeCodeRunner` (`claude -p --output-format stream-json`) and `CodexRunner` (`codex exec --json`), each spawning the CLI with a mail MCP server attached.
 - Runner location is a user setting: `server` (server AI worker uses the CLIs installed on the server) or `local` (the desktop main process uses the CLIs installed on this machine). Like T3 Code environments.
 - `CliDetector` reports which CLIs are installed and logged in on the current machine, shown in Settings → AI.
-- Tasks: one-line summary, thread summary + checklist, reply suggestions, rewrite draft, free-form chat over mail, create task from mail.
+- Tasks: one-line summary, thread summary + checklist, reply suggestions, rewrite draft, free-form chat over mail, create task from mail, automation task verdict (`automationTask`). Jobs can carry a per-job model and effort that the CLI dialects pass on (`--model`, Claude `--effort`, Codex `-c model_reasoning_effort`).
 - Safety: the agent gets read-only mail tools plus `create_task`/`create_draft`. Sending always needs explicit user confirmation in the UI. Email content is untrusted input (prompt injection).
 
 ## Mail providers (`@relay/mail-core`)
