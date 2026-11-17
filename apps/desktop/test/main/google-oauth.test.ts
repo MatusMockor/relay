@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { connect } from 'node:net';
 import { createPkceChallenge, exchangeGoogleCode } from '@relay/mail-core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { EnvOrFileGoogleClientConfigSource } from '../../src/main/oauth/google-client-config-source';
+import { createGoogleClientConfigSource } from '../../src/main/oauth/create-google-client-config-source';
 import { GoogleLoopbackFlow } from '../../src/main/oauth/google-loopback-flow';
 import { GoogleOAuthCoordinator } from '../../src/main/oauth/google-oauth-coordinator';
 import { startStubGoogleTokenEndpoint, StubBrowser, type StubGoogle } from './support/stub-google';
@@ -39,10 +39,11 @@ describe('Google OAuth loopback flow', () => {
   });
 
   const configSource = () =>
-    new EnvOrFileGoogleClientConfigSource(
-      { RELAY_GOOGLE_CLIENT_ID: 'client-123.apps.googleusercontent.com' },
-      dir.file('google-oauth.json'),
-    );
+    createGoogleClientConfigSource({
+      env: { RELAY_GOOGLE_CLIENT_ID: 'client-123.apps.googleusercontent.com' },
+      baked: { clientId: undefined, clientSecret: undefined },
+      filePath: dir.file('google-oauth.json'),
+    });
 
   it('receives the code on 127.0.0.1 with PKCE and exchanges it at the token endpoint', async () => {
     const browser = new StubBrowser('approve');
@@ -159,7 +160,11 @@ describe('Google OAuth loopback flow', () => {
   });
 
   it('explains how to configure the client id when it is missing', async () => {
-    const missing = new EnvOrFileGoogleClientConfigSource({}, dir.file('google-oauth.json'));
+    const missing = createGoogleClientConfigSource({
+      env: {},
+      baked: { clientId: undefined, clientSecret: undefined },
+      filePath: dir.file('google-oauth.json'),
+    });
     const file = dir.file('google-oauth.json');
     await expect(missing.load()).rejects.toMatchObject({
       code: 'validation_failed',

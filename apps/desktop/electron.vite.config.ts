@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { bakedMainDefines } from './build-time-env';
 import { rendererCspPlugin } from './renderer-csp';
 import { workspaceDependencies } from './workspace-packages';
 
@@ -16,6 +17,7 @@ const workspacePackages = workspaceDependencies(resolve(import.meta.dirname, 'pa
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({ exclude: workspacePackages })],
+    define: bakedMainDefines(process.env),
     build: {
       rollupOptions: {
         input: {

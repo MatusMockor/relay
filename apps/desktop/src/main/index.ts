@@ -12,6 +12,7 @@ import { createQuitGuard } from './bootstrap/quit-guard';
 import { reportFatalError } from './bootstrap/report-fatal-error';
 import { composeIpc } from './composition/compose-ipc';
 import { createLocalRuntime } from './composition/local-runtime';
+import { bakedGoogleClient } from './oauth/baked-google-client';
 import { AttachmentPicker } from './files/attachment-picker';
 import { ElectronFileDialog } from './files/electron-file-dialog';
 import { PickedFileReader } from './files/picked-file-reader';
@@ -54,6 +55,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     clock: systemClock,
     logger,
     env: process.env,
+    bakedGoogleClient,
     mcpEntry: electronMcpEntry(),
     allowPlaintextMail: !app.isPackaged && process.env.RELAY_DEV_ALLOW_PLAINTEXT_MAIL === '1',
   });

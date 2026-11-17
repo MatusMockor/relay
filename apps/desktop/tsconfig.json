@@ -6,6 +6,7 @@
     "test/main",
     "*.config.ts",
     "renderer-csp.ts",
+    "build-time-env.ts",
     "workspace-packages.ts"
   ]
 }
