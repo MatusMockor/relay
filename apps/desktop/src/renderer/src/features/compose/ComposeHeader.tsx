@@ -15,7 +15,7 @@ export function ComposeHeader({ title, account, onClose, onPickAccount }: Compos
       <div className="nm-h">
         <b>{title}</b>
         <span className="sp" />
-        <span className="mono">Esc uloží do Konceptov</span>
+        <span className="mono">Esc zahodí</span>
         <IconButton label="Zavrieť a uložiť" onClick={onClose}>
           <Icon name="x" />
         </IconButton>

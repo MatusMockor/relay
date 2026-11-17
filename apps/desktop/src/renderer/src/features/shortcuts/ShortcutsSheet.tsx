@@ -47,7 +47,7 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Napísať alebo upraviť s AI', [`${MOD}J`]],
       ['Kópia / Skrytá kópia', [`${MOD}⇧C`, `${MOD}⇧B`]],
       ['Priložiť súbory', [`${MOD}⇧A`]],
-      ['Uložiť do Konceptov', ['Esc']],
+      ['Zahodiť rozpísanú správu', ['Esc']],
     ],
   ],
   [

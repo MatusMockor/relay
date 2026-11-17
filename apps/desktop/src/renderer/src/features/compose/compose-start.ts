@@ -20,9 +20,9 @@ const initialTo = (init: ComposeInit): readonly Address[] => {
 
 export const composeStart = (init: ComposeInit, draft: Draft | undefined): ComposeStart => {
   const recipients: ComposeRecipients = {
-    to: entriesOf(draft?.to ?? initialTo(init)),
-    cc: entriesOf(draft?.cc ?? init.cc ?? []),
-    bcc: entriesOf(draft?.bcc ?? init.bcc ?? []),
+    to: entriesOf(init.to ?? draft?.to ?? initialTo(init)),
+    cc: entriesOf(init.cc ?? draft?.cc ?? []),
+    bcc: entriesOf(init.bcc ?? draft?.bcc ?? []),
   };
   const visible = new Set<RecipientKind>(
     (['cc', 'bcc'] as const).filter((kind) => recipients[kind].length > 0),

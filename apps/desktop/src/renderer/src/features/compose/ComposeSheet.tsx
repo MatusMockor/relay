@@ -19,6 +19,7 @@ import { useFileDrop } from './attachments/use-file-drop';
 import { ComposeFooter } from './ComposeFooter';
 import { ComposeHeader } from './ComposeHeader';
 import { ComposePopups, type Popup } from './ComposePopups';
+import { discardCompose } from './compose-discard';
 import { composeContent, composeStart } from './compose-start';
 import { composeProblem } from './compose-validation';
 import { RECIPIENT_INPUT_IDS, type RecipientKind } from './recipients/compose-recipients';
@@ -164,6 +165,22 @@ function ComposeForm({ init }: { readonly init: ComposeInit }) {
     },
     reveal,
     attach: picker.pick,
+    discard: () => {
+      if (!saving) {
+        discardCompose({
+          init,
+          draft,
+          snapshot: {
+            accountId,
+            recipients,
+            subject,
+            body,
+            hasAttachments: attachments.items.length > 0,
+          },
+          close,
+        });
+      }
+    },
     ai,
   });
   const first = recipients.to[0]?.address;

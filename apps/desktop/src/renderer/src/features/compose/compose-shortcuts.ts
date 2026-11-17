@@ -6,6 +6,7 @@ export interface ComposeShortcutActions {
   readonly schedule: () => void;
   readonly reveal: (kind: RecipientKind) => void;
   readonly attach: () => void;
+  readonly discard: () => void;
   readonly ai: ComposeAi;
 }
 
@@ -46,10 +47,14 @@ export const composeShortcut =
       actions.ai.toggle();
       return true;
     }
-    if (event.key === 'Escape' && actions.ai.open) {
-      event.preventDefault();
+    if (event.key !== 'Escape') {
+      return false;
+    }
+    event.preventDefault();
+    if (actions.ai.open) {
       actions.ai.close();
       return true;
     }
-    return false;
+    actions.discard();
+    return true;
   };

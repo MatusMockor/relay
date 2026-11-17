@@ -111,7 +111,7 @@ describe('compose recipients', () => {
         target: { value: 'Porada' },
       });
     });
-    press('Escape', {}, within(dialog).getByRole('textbox', { name: 'Predmet' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Zavrieť a uložiť' }));
     await settle();
 
     const saved = (await client.listDrafts()).find((draft) => draft.subject === 'Porada');
