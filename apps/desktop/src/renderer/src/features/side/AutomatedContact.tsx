@@ -22,7 +22,7 @@ const subtitleOf = (threads: readonly ThreadSummary[]): string => {
 
 export function AutomatedContact({ thread, sender }: AutomatedContactProps) {
   const key = { email: sender.email, actor: null };
-  const { own, threads } = useContactThreads(key);
+  const { own, threads } = useContactThreads((item, mine) => matchesContact(item, key, mine));
   const all = threads.some((item) => item.id === thread.id)
     ? threads
     : [thread, ...threads].sort(newestFirst);

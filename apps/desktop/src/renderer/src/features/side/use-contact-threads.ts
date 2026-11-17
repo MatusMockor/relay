@@ -1,10 +1,10 @@
 import type { ThreadSummary } from '@relay/shared';
-import { useQueries } from '@tanstack/react-query';
-import { queryKeys } from '../../data/hooks/query-keys';
-import { useClient } from '../../data/hooks/services-context';
-import { LIST_LIMIT, useSplits, useThreadList } from '../../data/hooks/use-mail-queries';
+import { useThreadScan, useThreadScans } from '../../data/hooks/thread-scan';
+import { useSplits } from '../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../mail/use-accounts-model';
-import { type ContactKey, matchesContact, newestFirst } from './contact-model';
+import { newestFirst } from './contact-model';
+
+export type ContactMatcher = (item: ThreadSummary, own: ReadonlySet<string>) => boolean;
 
 export interface ContactThreads {
   readonly own: ReadonlySet<string>;
@@ -17,17 +17,10 @@ export const useOwnAddresses = (): ReadonlySet<string> => {
 };
 
 const useExclusiveSplitInboxes = (): ThreadSummary[] => {
-  const client = useClient();
   const splits = (useSplits().data ?? []).filter((split) => split.exclusive);
-  const results = useQueries({
-    queries: splits.map((split) => {
-      const params = { limit: LIST_LIMIT, view: 'inbox' as const, splitId: split.id };
-      return {
-        queryKey: queryKeys.threadList(params),
-        queryFn: () => client.listThreads(params),
-      };
-    }),
-  });
+  const results = useThreadScans(
+    splits.map((split) => ({ view: 'inbox' as const, splitId: split.id })),
+  );
   return results.flatMap((result) => result.data?.items ?? []);
 };
 
@@ -35,17 +28,17 @@ const unique = (threads: readonly ThreadSummary[]): ThreadSummary[] => [
   ...new Map(threads.map((thread) => [thread.id, thread])).values(),
 ];
 
-export const useContactThreads = (key: ContactKey): ContactThreads => {
+export const useContactThreads = (matches: ContactMatcher): ContactThreads => {
   const own = useOwnAddresses();
-  const inbox = useThreadList({ view: 'inbox' });
-  const done = useThreadList({ view: 'done' });
+  const inbox = useThreadScan({ view: 'inbox' });
+  const done = useThreadScan({ view: 'done' });
   const splitInboxes = useExclusiveSplitInboxes();
   const threads = unique([
     ...(inbox.data?.items ?? []),
     ...splitInboxes,
     ...(done.data?.items ?? []),
   ])
-    .filter((item) => matchesContact(item, key, own))
+    .filter((item) => matches(item, own))
     .sort(newestFirst);
   return { own, threads };
 };

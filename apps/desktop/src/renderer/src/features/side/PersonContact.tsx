@@ -7,7 +7,7 @@ import { setUi } from '../../state/ui-store';
 import { jiraActorOf } from '../mail/jira-display';
 import { openRight, openThread } from '../mail/navigation';
 import { useChat } from './chat-store';
-import { jiraTasksFor, openTasksFor, RECENT_LIMIT } from './contact-model';
+import { jiraTasksFor, matchesContact, openTasksFor, RECENT_LIMIT } from './contact-model';
 import { ContactHeader } from './ContactHeader';
 import { MiniSection } from './Mini';
 import { useContactThreads } from './use-contact-threads';
@@ -60,7 +60,9 @@ const conversations = (count: number): string =>
 
 export function PersonContact({ thread, person, actions }: PersonContactProps) {
   const actor = jiraActorOf(thread);
-  const { threads } = useContactThreads({ email: person.email, actor });
+  const { threads } = useContactThreads((item, own) =>
+    matchesContact(item, { email: person.email, actor }, own),
+  );
   const tasks = useTasks().data?.items ?? [];
   const openTasks = useTasks({ state: 'open' }).data?.items ?? [];
   const name = actor ?? person.name ?? person.email;

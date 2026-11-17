@@ -3,13 +3,13 @@ import { Avatar, Button, Spark } from '@relay/ui';
 import { listTimeLabel } from '../../lib/dates';
 import { openThread } from '../mail/navigation';
 import { ChatAnswer } from './ChatAnswer';
-import { RECENT_LIMIT } from './contact-model';
+import { involvesContact, RECENT_LIMIT } from './contact-model';
 import { MiniSection } from './Mini';
 import { useContactContext } from './use-contact-context';
 import { useContactThreads } from './use-contact-threads';
 
 export function ComposeContact({ recipient }: { readonly recipient: Address }) {
-  const { threads } = useContactThreads({ email: recipient.email, actor: null });
+  const { threads } = useContactThreads((item) => involvesContact(item, recipient.email));
   const context = useContactContext(recipient);
   const name = recipient.name ?? recipient.email;
   const { turn } = context;

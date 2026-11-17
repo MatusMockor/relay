@@ -2,9 +2,10 @@ import {
   NO_UNSUBSCRIBE,
   type ThreadId,
   type UnsubscribeOptions,
+  type UnsubscribeUrl,
   type UserId,
 } from '@relay/shared/domain';
-import { NotFoundError, NotImplementedError, ValidationError } from '../../errors';
+import { ConflictError, NotFoundError, NotImplementedError, ValidationError } from '../../errors';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { UnsubscribeSender } from '../../ports/unsubscribe-sender';
 import { byDateAscending } from '../shared/dates';
@@ -36,10 +37,13 @@ export class UnsubscribeService {
     return NO_UNSUBSCRIBE;
   }
 
-  async unsubscribe(userId: UserId, threadId: ThreadId): Promise<void> {
+  async unsubscribe(userId: UserId, threadId: ThreadId, confirmed: UnsubscribeUrl): Promise<void> {
     const options = await this.options(userId, threadId);
     if (!options.oneClick || options.url === null) {
       throw new ValidationError('The sender does not support one-click unsubscribe');
+    }
+    if (options.url !== confirmed) {
+      throw new ConflictError('The unsubscribe target changed, confirm it again');
     }
     if (this.deps.sender === undefined) {
       throw new NotImplementedError('One-click unsubscribe');

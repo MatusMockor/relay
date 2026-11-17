@@ -37,6 +37,16 @@ describe('parseListUnsubscribe', () => {
     });
   });
 
+  it('percent-decodes mailto values without turning a literal plus into a space', () => {
+    expect(
+      parseListUnsubscribe(
+        headersOf({
+          'list-unsubscribe': '<mailto:leave+news@letter.test?Subject=a+b%2Bc%20d&body=x%26y=z+1>',
+        }),
+      ).mailto,
+    ).toEqual({ to: 'leave+news@letter.test', subject: 'a+b+c d', body: 'x&y=z+1' });
+  });
+
   it('rejects anything that is not https or mailto', () => {
     expect(
       parseListUnsubscribe(
@@ -71,9 +81,21 @@ describe('UnsubscribeService', () => {
       url: 'https://letter.test/u/1',
       mailto: null,
     });
-    await engine.services.unsubscribe.unsubscribe(USER_ID, thread.id);
+    await engine.services.unsubscribe.unsubscribe(USER_ID, thread.id, 'https://letter.test/u/1');
 
     expect(engine.unsubscribes.sent).toEqual(['https://letter.test/u/1']);
+  });
+
+  it('rejects a one-click target that differs from the one the user confirmed', async () => {
+    const { engine, thread } = await engineWithMail({
+      'List-Unsubscribe': '<https://letter.test/u/new>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    });
+
+    await expect(
+      engine.services.unsubscribe.unsubscribe(USER_ID, thread.id, 'https://letter.test/u/old'),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(engine.unsubscribes.sent).toEqual([]);
   });
 
   it('refuses one-click when the sender only offers a link or a mailto', async () => {
@@ -86,9 +108,9 @@ describe('UnsubscribeService', () => {
       url: 'https://letter.test/u/2',
       mailto: { to: 'leave@letter.test', subject: null, body: null },
     });
-    await expect(engine.services.unsubscribe.unsubscribe(USER_ID, thread.id)).rejects.toMatchObject(
-      { code: 'validation_failed' },
-    );
+    await expect(
+      engine.services.unsubscribe.unsubscribe(USER_ID, thread.id, 'https://letter.test/u/2'),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
     expect(engine.unsubscribes.sent).toEqual([]);
   });
 

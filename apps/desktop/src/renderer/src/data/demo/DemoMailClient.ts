@@ -104,9 +104,9 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     getUnsubscribeOptions: (threadId) =>
       run(() => demoUnsubscribeOptions(record(threadId).summary)),
-    unsubscribe: (threadId) =>
+    unsubscribe: (threadId, url) =>
       run(() => {
-        demoUnsubscribe(record(threadId).summary);
+        demoUnsubscribe(record(threadId).summary, url);
       }),
     downloadAttachment: () => Promise.reject(notFound('Príloha')),
     updateChecklistItem: (threadId, item) =>

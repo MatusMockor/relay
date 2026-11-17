@@ -55,7 +55,7 @@ describe('PgMessageRepository headers', () => {
       url: 'https://news.example.com/u/42',
       mailto: { to: 'off@news.example.com', subject: null, body: null },
     });
-    await service.unsubscribe(seeded.user.id, thread.id);
+    await service.unsubscribe(seeded.user.id, thread.id, 'https://news.example.com/u/42');
 
     expect(sender.sent).toEqual(['https://news.example.com/u/42']);
   });

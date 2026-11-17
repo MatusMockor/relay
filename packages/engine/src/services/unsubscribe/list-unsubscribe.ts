@@ -22,6 +22,15 @@ const safeDecode = (value: string): string | null => {
   }
 };
 
+const queryValue = (search: string, name: string): string | null => {
+  const pair = search
+    .replace(/^\?/, '')
+    .split('&')
+    .map((part) => part.split('='))
+    .find(([key = '']) => key.toLowerCase() === name);
+  return pair === undefined ? null : safeDecode(pair.slice(1).join('='));
+};
+
 const mailtoOf = (target: string): UnsubscribeMailto | null => {
   if (!/^mailto:/i.test(target) || !URL.canParse(target)) {
     return null;
@@ -33,8 +42,8 @@ const mailtoOf = (target: string): UnsubscribeMailto | null => {
   }
   const parsed = UnsubscribeMailtoSchema.safeParse({
     to,
-    subject: url.searchParams.get('subject'),
-    body: url.searchParams.get('body'),
+    subject: queryValue(url.search, 'subject'),
+    body: queryValue(url.search, 'body'),
   });
   return parsed.success ? parsed.data : null;
 };

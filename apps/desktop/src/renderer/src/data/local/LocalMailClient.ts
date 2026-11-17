@@ -39,7 +39,8 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
       unwrap(bridge.invoke('local.threads.action', { threadId, action })),
     getUnsubscribeOptions: (threadId) =>
       unwrap(bridge.invoke('local.threads.unsubscribeOptions', { threadId })),
-    unsubscribe: (threadId) => ignore(bridge.invoke('local.threads.unsubscribe', { threadId })),
+    unsubscribe: (threadId, url) =>
+      ignore(bridge.invoke('local.threads.unsubscribe', { threadId, url })),
     listLabels: (accountId) => unwrap(bridge.invoke('local.labels.list', { accountId })),
     downloadAttachment: async (attachmentId) =>
       attachmentFileOf(await unwrap(bridge.invoke('local.attachments.content', { attachmentId }))),

@@ -1,4 +1,4 @@
-import type { Task, TaskState, ThreadId } from '@relay/shared';
+import type { Task, TaskState, ThreadId, ThreadSummary } from '@relay/shared';
 import { act, screen, within } from '@testing-library/react';
 import { expect } from 'vitest';
 import { createDemoMailClient } from '../../src/data/demo/DemoMailClient';
@@ -55,4 +55,22 @@ export const sectionRows = (title: string): string[] => {
   return [...(section?.querySelectorAll('.mini > *') ?? [])].map(
     (row) => row.querySelector('span')?.textContent ?? '',
   );
+};
+
+export const cloneThread = (
+  state: DemoState,
+  subject: string,
+  key: string,
+  patch: Partial<ThreadSummary>,
+): ThreadId => {
+  const original = state.threads.get(threadIdOf(state, subject));
+  expect(original).toBeDefined();
+  const id = demoIds.thread(`clone-${key}`);
+  if (original !== undefined) {
+    state.threads.set(id, {
+      ...original,
+      summary: { ...original.summary, id, subject: `Kópia ${key}`, ...patch },
+    });
+  }
+  return id;
 };

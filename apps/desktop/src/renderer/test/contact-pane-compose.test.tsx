@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { press } from './features-support';
 import {
+  cloneThread,
   sectionRows,
   seededClient,
   showContactOf,
@@ -81,6 +82,32 @@ describe('contact pane while composing', () => {
       expect(contactHeading()?.textContent).toBe('Tomáš Baláž');
     });
     expect(within(sidePane()).queryByText('· adresát')).toBeNull();
+  });
+
+  it('lists threads where the recipient is any participant, not only the first contact', async () => {
+    const { state, client } = seededClient();
+    cloneThread(state, 'Obed v piatok?', 'shared', {
+      subject: 'Spoločná porada',
+      participants: [
+        { name: 'Tomáš Baláž', email: 'tomas.balaz@firma.sk' },
+        { name: 'Lucia Hrubá', email: 'Lucia.Hruba@firma.sk' },
+        { name: 'Ty', email: 'meno@efabrica.sk' },
+      ],
+    });
+    renderApp({ demo: () => client });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    press('c', {}, document.body);
+    const dialog = screen.getByRole('dialog', { name: 'Nová správa' });
+    act(() => {
+      fireEvent.change(within(dialog).getByRole('textbox', { name: 'Komu' }), {
+        target: { value: 'lucia.hruba@firma.sk, ' },
+      });
+    });
+
+    await waitFor(() => {
+      expect(sectionRows('Posledné konverzácie')).toContain('Spoločná porada');
+    });
   });
 
   it('keeps the thread contact while the composer has no recipient', async () => {

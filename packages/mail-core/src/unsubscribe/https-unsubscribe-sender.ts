@@ -19,6 +19,23 @@ const ONE_CLICK_BODY = 'List-Unsubscribe=One-Click';
 
 const accepted = (status: number): boolean => status >= 200 && status < 300;
 
+const timedOut = (): ProviderError => new ProviderError('Unsubscribe request timed out');
+
+const beforeDeadline = <T>(work: Promise<T>, deadline: number): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => {
+        reject(timedOut());
+      },
+      Math.max(0, deadline - Date.now()),
+    );
+  });
+  return Promise.race([work, expired]).finally(() => {
+    clearTimeout(timer);
+  });
+};
+
 export class HttpsUnsubscribeSender implements UnsubscribeSender {
   private readonly transport: UnsubscribeTransport;
   private readonly resolver: HostResolver;
@@ -35,8 +52,13 @@ export class HttpsUnsubscribeSender implements UnsubscribeSender {
       throw new ValidationError('Unsubscribe URL must be a public https URL');
     }
     const parsed = new URL(url);
-    const target = await this.publicTarget(parsed.hostname);
-    const status = await this.post(parsed, target);
+    const deadline = Date.now() + this.timeoutMs;
+    const target = await beforeDeadline(this.publicTarget(parsed.hostname), deadline);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      throw timedOut();
+    }
+    const status = await this.post(parsed, target, remaining);
     if (!accepted(status)) {
       throw new ProviderError(`Unsubscribe request failed with HTTP ${String(status)}`);
     }
@@ -52,14 +74,14 @@ export class HttpsUnsubscribeSender implements UnsubscribeSender {
     return target;
   }
 
-  private async post(url: URL, target: ResolvedAddress): Promise<number> {
+  private async post(url: URL, target: ResolvedAddress, timeoutMs: number): Promise<number> {
     try {
       return await this.transport({
         url,
         target,
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
         body: ONE_CLICK_BODY,
-        timeoutMs: this.timeoutMs,
+        timeoutMs,
       });
     } catch (error) {
       throw new ProviderError('Unsubscribe request could not be sent', { cause: error });

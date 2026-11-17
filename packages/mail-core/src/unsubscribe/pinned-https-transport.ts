@@ -42,6 +42,7 @@ export const createPinnedHttpsTransport =
         },
         (response) => {
           clearTimeout(deadline);
+          response.on('error', () => undefined);
           response.resume();
           resolve(response.statusCode ?? 0);
         },

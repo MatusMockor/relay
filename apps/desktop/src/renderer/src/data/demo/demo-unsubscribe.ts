@@ -19,11 +19,15 @@ export const demoUnsubscribeOptions = (thread: ThreadSummary): UnsubscribeOption
     .map((address) => DEMO_UNSUBSCRIBE[address.email.toLowerCase()])
     .find((options) => options !== undefined) ?? NO_UNSUBSCRIBE;
 
-export const demoUnsubscribe = (thread: ThreadSummary): void => {
-  if (!demoUnsubscribeOptions(thread).oneClick) {
+export const demoUnsubscribe = (thread: ThreadSummary, confirmed: string): void => {
+  const options = demoUnsubscribeOptions(thread);
+  if (!options.oneClick) {
     throw new MailClientError({
       code: 'validation_failed',
       message: 'Odosielateľ nepodporuje odhlásenie jedným klikom',
     });
+  }
+  if (options.url !== confirmed) {
+    throw new MailClientError({ code: 'conflict', message: 'Odkaz na odhlásenie sa zmenil' });
   }
 };

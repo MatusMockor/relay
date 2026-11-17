@@ -1,7 +1,7 @@
-import { NO_UNSUBSCRIBE, type ThreadId } from '@relay/shared';
-import { useQuery } from '@tanstack/react-query';
+import { NO_UNSUBSCRIBE, type ThreadId, type UnsubscribeUrl } from '@relay/shared';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { describeError } from '../../data/errors';
+import { describeError, MailClientError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useAppContext, useClient } from '../../data/hooks/services-context';
 import { showToast } from '../../state/toast-store';
@@ -12,6 +12,7 @@ export type ConfirmablePlan = Extract<UnsubscribePlan, { kind: 'oneClick' | 'lin
 
 export const useUnsubscribe = (threadId: ThreadId, sender: string) => {
   const client = useClient();
+  const queryClient = useQueryClient();
   const { platform } = useAppContext();
   const [pending, setPending] = useState<ConfirmablePlan | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,12 +40,17 @@ export const useUnsubscribe = (threadId: ThreadId, sender: string) => {
       },
     });
   };
-  const sendOneClick = async () => {
+  const sendOneClick = async (url: UnsubscribeUrl) => {
     setBusy(true);
     try {
-      await client.unsubscribe(threadId);
+      await client.unsubscribe(threadId, url);
       showToast(`Odhlásené z odberu od ${sender}`);
     } catch (error) {
+      if (error instanceof MailClientError && error.code === 'conflict') {
+        showToast('Odkaz na odhlásenie sa medzitým zmenil. Skontroluj ho a skús znova.');
+        void queryClient.invalidateQueries({ queryKey: queryKeys.unsubscribe(threadId) });
+        return;
+      }
       showToast(`Odhlásenie zlyhalo: ${describeError(error)}`);
     } finally {
       setBusy(false);
@@ -58,7 +64,7 @@ export const useUnsubscribe = (threadId: ThreadId, sender: string) => {
       return;
     }
     if (chosen?.kind === 'oneClick') {
-      void sendOneClick();
+      void sendOneClick(chosen.url);
     }
   };
   const cancel = () => {

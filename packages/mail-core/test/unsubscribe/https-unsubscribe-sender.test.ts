@@ -45,8 +45,9 @@ describe('HttpsUnsubscribeSender', () => {
       target: { address: PUBLIC_IP, family: 4 },
       body: 'List-Unsubscribe=One-Click',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      timeoutMs: 10_000,
     });
+    expect(stub.requests[0]?.timeoutMs).toBeGreaterThan(9_000);
+    expect(stub.requests[0]?.timeoutMs).toBeLessThanOrEqual(10_000);
   });
 
   it('resolves once and pins the connection to that address despite DNS rebinding', async () => {
@@ -128,6 +129,34 @@ describe('HttpsUnsubscribeSender', () => {
     await sender(stub.transport, resolver).sendOneClick('https://news.example.com/u');
 
     expect(stub.requests[0]?.target).toEqual({ address: '2606:4700::6810:84e5', family: 6 });
+  });
+
+  it('counts DNS resolution against the deadline and never starts a late request', async () => {
+    const stub = stubTransport(200);
+    const hanging: HostResolver = () => new Promise<readonly string[]>(() => undefined);
+    let answer: (addresses: readonly string[]) => void = () => undefined;
+    const slow: HostResolver = () =>
+      new Promise<readonly string[]>((resolve) => {
+        answer = resolve;
+      });
+
+    await expect(
+      new HttpsUnsubscribeSender({
+        transport: stub.transport,
+        resolver: hanging,
+        timeoutMs: 20,
+      }).sendOneClick('https://news.example.com/u'),
+    ).rejects.toThrow('timed out');
+    const late = new HttpsUnsubscribeSender({
+      transport: stub.transport,
+      resolver: slow,
+      timeoutMs: 20,
+    }).sendOneClick('https://news.example.com/u');
+    await expect(late).rejects.toBeInstanceOf(ProviderError);
+    answer([PUBLIC_IP]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(stub.requests).toEqual([]);
   });
 
   it('treats redirects, error statuses and transport failures as provider errors', async () => {

@@ -2,6 +2,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  cloneThread,
   demoTask,
   sectionRows,
   seededClient,
@@ -77,5 +78,27 @@ describe('contact pane for a person', () => {
       expect(sectionRows('Posledné konverzácie')).toEqual([ONBOARDING]);
     });
     expect(within(sidePane()).queryByRole('heading', { name: 'Otvorené tasky' })).toBeNull();
+  });
+
+  it('follows the thread list cursor to find older conversations with the contact', async () => {
+    const { state, client } = seededClient();
+    const now = Date.now();
+    for (let index = 0; index < 210; index += 1) {
+      cloneThread(state, 'Obed v piatok?', `filler-${String(index)}`, {
+        lastMessageAt: new Date(now - index * 60_000).toISOString(),
+      });
+    }
+    cloneThread(state, STAGE, 'old-lucia', {
+      subject: 'Starý návrh pre Luciu',
+      lastMessageAt: new Date(now - 40 * 86_400_000).toISOString(),
+    });
+    renderApp({ demo: () => client });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    showContactOf(threadIdOf(state, STAGE));
+
+    await waitFor(() => {
+      expect(sectionRows('Posledné konverzácie')).toEqual([ONBOARDING, 'Starý návrh pre Luciu']);
+    });
   });
 });

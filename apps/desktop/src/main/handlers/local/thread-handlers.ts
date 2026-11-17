@@ -23,8 +23,8 @@ export const createThreadHandlers = (
     services.checklist.update(userId, threadId, item),
   'local.threads.unsubscribeOptions': ({ threadId }) =>
     services.unsubscribe.options(userId, threadId),
-  'local.threads.unsubscribe': async ({ threadId }) => {
-    await services.unsubscribe.unsubscribe(userId, threadId);
+  'local.threads.unsubscribe': async ({ threadId, url }) => {
+    await services.unsubscribe.unsubscribe(userId, threadId, url);
     return { ok: true } as const;
   },
   'local.labels.list': (query) => services.labels.list(userId, query),

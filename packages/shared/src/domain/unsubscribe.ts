@@ -29,4 +29,7 @@ export const UnsubscribeOptionsSchema = z.object({
 });
 export type UnsubscribeOptions = z.infer<typeof UnsubscribeOptionsSchema>;
 
+export const UnsubscribeRequestSchema = z.object({ url: UnsubscribeUrlSchema });
+export type UnsubscribeRequest = z.infer<typeof UnsubscribeRequestSchema>;
+
 export const NO_UNSUBSCRIBE: UnsubscribeOptions = { oneClick: false, url: null, mailto: null };

@@ -22,6 +22,9 @@ export const matchesContact = (
     ? contactOf(item, own)?.email.toLowerCase() === key.email.toLowerCase()
     : jiraActorOf(item) === key.actor;
 
+export const involvesContact = (item: ThreadSummary, email: string): boolean =>
+  item.participants.some((address) => address.email.toLowerCase() === email.toLowerCase());
+
 const later = (a: string, b: string): number => Date.parse(b) - Date.parse(a);
 
 export const newestFirst = (a: ThreadSummary, b: ThreadSummary): number =>

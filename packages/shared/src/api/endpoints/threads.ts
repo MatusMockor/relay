@@ -10,7 +10,7 @@ import {
 } from '../../domain/thread';
 import { ThreadActionSchema } from '../../domain/thread-action';
 import { TimeZoneSchema } from '../../domain/time-zone';
-import { UnsubscribeOptionsSchema } from '../../domain/unsubscribe';
+import { UnsubscribeOptionsSchema, UnsubscribeRequestSchema } from '../../domain/unsubscribe';
 import { idParamsOf, OkResponseSchema } from '../common';
 import { defineEndpoint } from '../endpoint';
 import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
@@ -102,6 +102,7 @@ export const threadsEndpoints = {
     path: '/threads/:id/unsubscribe',
     auth: 'user',
     params: threadIdParams,
+    body: UnsubscribeRequestSchema,
     response: OkResponseSchema,
   }),
 };

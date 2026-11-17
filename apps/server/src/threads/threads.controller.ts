@@ -98,7 +98,7 @@ export class ThreadsController {
     @CurrentPrincipal() principal: Principal,
     @ApiRequest(api.threads.unsubscribe) request: RequestOf<typeof api.threads.unsubscribe>,
   ): Promise<OkResponse> {
-    await this.unsubscribes.unsubscribe(principal.userId, request.params.id);
+    await this.unsubscribes.unsubscribe(principal.userId, request.params.id, request.body.url);
     return { ok: true };
   }
 }

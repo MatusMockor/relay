@@ -114,9 +114,9 @@ describe('contact pane for an automated sender', () => {
     const calls: ThreadId[] = [];
     const client: MailClient = {
       ...base,
-      unsubscribe: (threadId) => {
+      unsubscribe: (threadId, url) => {
         calls.push(threadId);
-        return base.unsubscribe(threadId);
+        return base.unsubscribe(threadId, url);
       },
     };
     await showNewsletter(client, state);
@@ -137,6 +137,45 @@ describe('contact pane for an automated sender', () => {
       expect(screen.getByRole('status').textContent).toContain(`Odhlásené z odberu od ${SENDER}`);
     });
     expect(calls).toEqual([threadIdOf(state, NEWSLETTER)]);
+  });
+
+  it('asks again when the one-click target changed after the user confirmed it', async () => {
+    const { state, client: base } = seededClient();
+    const shown: string[] = [];
+    const client: MailClient = {
+      ...base,
+      getUnsubscribeOptions: async (threadId) => {
+        const current = await base.getUnsubscribeOptions(threadId);
+        const options =
+          shown.length === 0 ? { ...current, url: 'https://frontend-tyzdennik.sk/stary' } : current;
+        shown.push(options.url ?? '');
+        return options;
+      },
+    };
+    await showNewsletter(client, state);
+
+    await waitFor(() => {
+      expect(unsubscribeButton()).toHaveProperty('disabled', false);
+    });
+    act(() => {
+      fireEvent.click(unsubscribeButton());
+    });
+    const dialog = await screen.findByRole('alertdialog');
+    act(() => {
+      fireEvent.click(within(dialog).getByRole('button', { name: /^Odhlásiť sa/ }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toContain(
+        'Odkaz na odhlásenie sa medzitým zmenil',
+      );
+    });
+    await waitFor(() => {
+      expect(shown).toEqual([
+        'https://frontend-tyzdennik.sk/stary',
+        'https://frontend-tyzdennik.sk/odhlasit',
+      ]);
+    });
   });
 
   it('opens an https unsubscribe page in the browser after confirmation', async () => {

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { describeError } from '../../data/errors';
 import type { MailClient } from '../../data/MailClient';
 import { useClient } from '../../data/hooks/services-context';
-import { LIST_LIMIT } from '../../data/hooks/use-mail-queries';
+import { scanThreads } from '../../data/hooks/thread-scan';
 import { useThreadAction } from '../../data/hooks/use-thread-action';
 import { plural } from '../../lib/text';
 import { showToast } from '../../state/toast-store';
@@ -19,16 +19,8 @@ const collectView = async (
   client: MailClient,
   splitId: SplitId | undefined,
   matches: (thread: ThreadSummary) => boolean,
-): Promise<ThreadSummary[]> => {
-  const found: ThreadSummary[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await client.listThreads({ view: 'inbox', limit: LIST_LIMIT, splitId, cursor });
-    found.push(...page.items.filter(matches));
-    cursor = page.nextCursor ?? undefined;
-  } while (cursor !== undefined);
-  return found;
-};
+): Promise<ThreadSummary[]> =>
+  (await scanThreads(client, { view: 'inbox', splitId })).items.filter(matches);
 
 const collectInbox = async (
   client: MailClient,
