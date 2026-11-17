@@ -1,10 +1,10 @@
 import type { ThreadState, ThreadSummary } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { deliverMail, type MailSpec, present, seedAccount } from '../support/fixtures';
+import { deliverMail, type MailSpec, ME, present, seedAccount } from '../support/fixtures';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-type View = 'inbox' | 'done' | 'trash';
+type View = 'inbox' | 'done' | 'trash' | 'sent';
 
 const viewIds = async (engine: TestEngine, view: View) =>
   (await engine.services.inbox.list(USER_ID, { view, limit: 50 })).items.map((item) => item.id);
@@ -117,6 +117,51 @@ describe('SyncService trash state from the mail provider', () => {
     expect(await viewIds(engine, 'trash')).toEqual([]);
     const current = await engine.repositories.threads.findById(USER_ID, thread.id);
     expect(current?.messageCount).toBe(2);
+  });
+
+  it('takes a sent thread restored from the trash out of the trash view', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    const spec: MailSpec = { id: 's1', from: ME, date: '2026-11-14T08:00:00.000Z' };
+    const sentUid = deliverMail(server, 'Sent', spec);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'sent', limit: 50 })).items[0],
+    );
+
+    const trashUid = gmailDelete(server, [['Sent', sentUid]], spec);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(await viewIds(engine, 'trash')).toEqual([thread.id]);
+
+    deliverMail(server, 'Sent', spec);
+    server.expunge('Trash', trashUid);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await viewIds(engine, 'trash')).toEqual([]);
+    expect(await viewIds(engine, 'sent')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'done')).toEqual([thread.id]);
+  });
+
+  it('takes a sent thread restored from the Gmail trash out of the trash view', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    const spec: MailSpec = { id: 's1', from: ME, date: '2026-11-14T08:00:00.000Z' };
+    const copies = allMail(server, ['Sent', 'Archive'], spec);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = present(
+      (await engine.services.inbox.list(USER_ID, { view: 'sent', limit: 50 })).items[0],
+    );
+
+    const trashUid = gmailDelete(server, copies, spec);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(await viewIds(engine, 'trash')).toEqual([thread.id]);
+
+    allMail(server, ['Sent', 'Archive'], spec);
+    server.expunge('Trash', trashUid);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await viewIds(engine, 'trash')).toEqual([]);
+    expect(await viewIds(engine, 'sent')).toEqual([thread.id]);
   });
 
   it('keeps local trash and restore actions through the next sync', async () => {

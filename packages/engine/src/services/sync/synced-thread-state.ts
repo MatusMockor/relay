@@ -30,6 +30,9 @@ const reappeared = (
   work.arrivedIn.some((role) => RESTORE_ROLES.includes(role)) &&
   roles.some((role) => role !== undefined && RESTORE_ROLES.includes(role));
 
+const leftTrash = (work: ThreadRefreshWork, roles: readonly (MailboxRole | undefined)[]) =>
+  !roles.includes('trash') || reappeared(work, roles);
+
 export const syncedThreadState = (
   work: ThreadRefreshWork,
   existing: ThreadSummary | null,
@@ -47,7 +50,7 @@ export const syncedThreadState = (
   if (existing === null) {
     return 'done';
   }
-  if (existing.state === 'trash' && reappeared(work, roles)) {
+  if (existing.state === 'trash' && leftTrash(work, roles)) {
     return inInbox ? 'inbox' : 'done';
   }
   if (work.expungedFromInbox && existing.state === 'inbox' && !inInbox) {
