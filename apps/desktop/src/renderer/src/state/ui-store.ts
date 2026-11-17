@@ -10,6 +10,7 @@ export type SettingsSection =
   | 'devices'
   | 'accounts'
   | 'splits'
+  | 'automations'
   | 'sync'
   | 'notifications'
   | 'ai'

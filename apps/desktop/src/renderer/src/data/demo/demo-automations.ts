@@ -14,28 +14,49 @@ const automationId = (key: string) => AutomationIdSchema.parse(`automation-${key
 
 export const buildDemoAutomations = (): Automation[] => [
   {
+    id: automationId('mentions'),
+    userId: demoIds.user,
+    accountId: demoIds.account('efa'),
+    name: 'Jira spomenutia',
+    enabled: true,
+    order: 0,
+    preset: null,
+    conditions: [
+      { type: 'jiraEvent', kind: 'mention' },
+      { type: 'jira', projectKeys: ['ECOM'] },
+    ],
+    ai: {
+      runner: 'codex',
+      model: 'gpt-6.1-sol',
+      effort: 'high',
+      instructions:
+        'Task vytvor iba ak odo mňa niekto niečo chce. Presun do sprintu a zmeny priority ignoruj.',
+    },
+    actions: ['summary', 'task'],
+  },
+  {
+    id: automationId('tibor'),
+    userId: demoIds.user,
+    accountId: null,
+    name: 'Tibor',
+    enabled: true,
+    order: 1,
+    preset: null,
+    conditions: [{ type: 'fromAddress', address: 'tibor@codevo.app' }],
+    ai: { runner: 'claude', model: 'claude-opus-5-5', effort: null, instructions: null },
+    actions: ['task', 'notify'],
+  },
+  {
     id: automationId('jira'),
     userId: demoIds.user,
     accountId: null,
     name: 'Jira tasky',
-    enabled: true,
-    order: 0,
+    enabled: false,
+    order: 2,
     preset: 'jiraTasks',
     conditions: [{ type: 'jira', projectKeys: [] }],
     ai: { runner: 'claude', model: null, effort: null, instructions: null },
     actions: ['task'],
-  },
-  {
-    id: automationId('mentions'),
-    userId: demoIds.user,
-    accountId: null,
-    name: 'Spomenutia v Jire',
-    enabled: true,
-    order: 1,
-    preset: null,
-    conditions: [{ type: 'jiraEvent', kind: 'mention' }],
-    ai: { runner: 'codex', model: 'gpt-6.1-sol', effort: 'medium', instructions: null },
-    actions: ['summary', 'notify'],
   },
 ];
 

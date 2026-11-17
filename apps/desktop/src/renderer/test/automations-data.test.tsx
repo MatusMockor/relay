@@ -47,14 +47,15 @@ describe('automation data hooks on the demo client', () => {
     });
     const current = result.current.list.data ?? [];
     expect(current.map((item) => [item.name, item.preset])).toEqual([
+      ['Jira spomenutia', null],
+      ['Tibor', null],
       ['Jira tasky', 'jiraTasks'],
-      ['Spomenutia v Jire', null],
     ]);
-    const preset = toAutomationInput(required(current[0]));
+    const preset = toAutomationInput(required(current.find((item) => item.preset !== null)));
 
     await act(async () => {
       await result.current.replace.mutateAsync([
-        { ...preset, enabled: false },
+        { ...preset, enabled: true },
         {
           accountId: null,
           name: 'Od Tibora',
@@ -71,7 +72,7 @@ describe('automation data hooks on the demo client', () => {
       expect(
         result.current.list.data?.map((item) => [item.name, item.enabled, item.order]),
       ).toEqual([
-        ['Jira tasky', false, 0],
+        ['Jira tasky', true, 0],
         ['Od Tibora', true, 1],
       ]);
     });
@@ -82,7 +83,7 @@ describe('automation data hooks on the demo client', () => {
 
   it('rejects a model that does not belong to the runner', async () => {
     const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
-    const preset = required((await client.listAutomations())[0]);
+    const preset = required((await client.listAutomations()).find((item) => item.preset !== null));
 
     await expect(
       client.replaceAutomations([

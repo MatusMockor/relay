@@ -1,32 +1,41 @@
-import { type AnchorRect, Icon } from '@relay/ui';
+import { AI_EFFORT_LABELS } from '@relay/shared';
+import type { AnchorRect } from '@relay/ui';
 import { useState } from 'react';
-import { describeChoice, type ModelChoice } from './model-choice';
+import { type ModelChoice, modelLabel, RUNNER_LABELS } from './model-choice';
 import { ModelPickerMenu } from './ModelPickerMenu';
+import { ProviderIcon } from './ProviderIcon';
 
 export interface ModelPickerProps {
   readonly value: ModelChoice;
   readonly onChange: (next: ModelChoice) => void;
+  readonly onOpen?: () => void;
   readonly disabled?: boolean;
 }
 
-export function ModelPicker({ value, onChange, disabled = false }: ModelPickerProps) {
+export function ModelPicker({ value, onChange, onOpen, disabled = false }: ModelPickerProps) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
-  const summary = describeChoice(value);
+  const effort = value.effort === null ? null : AI_EFFORT_LABELS[value.effort];
+  const summary = [RUNNER_LABELS[value.runner], modelLabel(value), effort]
+    .filter((part) => part !== null)
+    .join(', ');
   return (
     <>
       <button
         type="button"
-        className="btn mdlp-trigger"
-        aria-haspopup="menu"
+        className="mpb"
+        aria-haspopup="dialog"
         aria-expanded={anchor !== null}
         aria-label={`Model AI: ${summary}`}
         disabled={disabled}
         onClick={(event) => {
+          onOpen?.();
           setAnchor(event.currentTarget.getBoundingClientRect());
         }}
       >
-        <span>{summary}</span>
-        <Icon name="down" />
+        <ProviderIcon runner={value.runner} />
+        {modelLabel(value)}
+        {effort === null ? null : <span className="ef">{effort}</span>}
+        <span className="cv" />
       </button>
       {anchor === null ? null : (
         <ModelPickerMenu

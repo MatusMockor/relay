@@ -1,5 +1,4 @@
 import {
-  AI_EFFORT_LABELS,
   type AiEffort,
   type AiRunnerKind,
   defaultAiModel,
@@ -20,33 +19,36 @@ export const RUNNER_LABELS: Readonly<Record<AiRunnerKind, string>> = {
 
 export const RUNNERS: readonly AiRunnerKind[] = ['claude', 'codex'];
 
+export const effectiveModel = (choice: ModelChoice): string =>
+  choice.model ?? defaultAiModel(choice.runner).id;
+
 export const modelLabel = (choice: ModelChoice): string => {
-  if (choice.model === null) {
-    return `Predvolený (${defaultAiModel(choice.runner).label})`;
+  const id = effectiveModel(choice);
+  return findAiModel(choice.runner, id)?.label ?? id;
+};
+
+const supportedEffort = (
+  runner: AiRunnerKind,
+  model: string,
+  effort: AiEffort | null,
+): AiEffort | null =>
+  effort !== null && effortsFor(runner, model).includes(effort) ? effort : null;
+
+export const withRunner = (choice: ModelChoice, runner: AiRunnerKind): ModelChoice => {
+  if (runner === choice.runner) {
+    return choice;
   }
-  return findAiModel(choice.runner, choice.model)?.label ?? choice.model;
+  const model = defaultAiModel(runner).id;
+  return { runner, model, effort: supportedEffort(runner, model, choice.effort) };
 };
 
-export const effortLabel = (effort: AiEffort | null): string =>
-  effort === null ? 'Predvolené' : AI_EFFORT_LABELS[effort];
+export const withModel = (choice: ModelChoice, model: string): ModelChoice => ({
+  ...choice,
+  model,
+  effort: supportedEffort(choice.runner, model, choice.effort),
+});
 
-export const describeChoice = (choice: ModelChoice): string => {
-  const parts = [RUNNER_LABELS[choice.runner], modelLabel(choice)];
-  return choice.effort === null
-    ? parts.join(' · ')
-    : [...parts, AI_EFFORT_LABELS[choice.effort]].join(' · ');
-};
-
-export const withRunner = (choice: ModelChoice, runner: AiRunnerKind): ModelChoice =>
-  runner === choice.runner ? choice : { runner, model: null, effort: null };
-
-export const withModel = (choice: ModelChoice, model: string | null): ModelChoice => {
-  const supported = effortsFor(choice.runner, model);
-  const effort = choice.effort !== null && supported.includes(choice.effort) ? choice.effort : null;
-  return { ...choice, model, effort };
-};
-
-export const withEffort = (choice: ModelChoice, effort: AiEffort | null): ModelChoice => ({
+export const withEffort = (choice: ModelChoice, effort: AiEffort): ModelChoice => ({
   ...choice,
   effort,
 });
