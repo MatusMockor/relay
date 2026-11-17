@@ -33,6 +33,7 @@ export const createAppUpdates = (input: AppUpdatesInput): AppUpdates => {
     updater: new LazyAppUpdater(input.loadUpdater),
     availability: input.availability,
     logger: input.logger,
+    timers: input.timers,
   });
   const runner = new PeriodicRunner(
     () => service.check(),

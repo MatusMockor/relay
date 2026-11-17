@@ -1,8 +1,9 @@
-import type { AppUpdater, AvailableUpdate } from './app-updater';
+import type { AppUpdater, AvailableUpdate, UpdaterFailureListener } from './app-updater';
 
 export class LazyAppUpdater implements AppUpdater {
   private loaded: Promise<AppUpdater> | null = null;
   private resolved: AppUpdater | null = null;
+  private readonly failureListeners: UpdaterFailureListener[] = [];
 
   constructor(private readonly load: () => Promise<AppUpdater>) {}
 
@@ -21,10 +22,18 @@ export class LazyAppUpdater implements AppUpdater {
     return this.resolved.install();
   }
 
+  onFailure(listener: UpdaterFailureListener): void {
+    this.failureListeners.push(listener);
+    this.resolved?.onFailure(listener);
+  }
+
   private updater(): Promise<AppUpdater> {
     this.loaded ??= this.load().then(
       (updater) => {
         this.resolved = updater;
+        for (const listener of this.failureListeners) {
+          updater.onFailure(listener);
+        }
         return updater;
       },
       (error: unknown) => {

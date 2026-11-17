@@ -1,4 +1,8 @@
-import type { AppUpdater, AvailableUpdate } from '../../../src/main/updates/app-updater';
+import type {
+  AppUpdater,
+  AvailableUpdate,
+  UpdaterFailureListener,
+} from '../../../src/main/updates/app-updater';
 
 interface PendingDownload {
   readonly onProgress: (percent: number) => void;
@@ -13,6 +17,7 @@ export class InMemoryAppUpdater implements AppUpdater {
   private checkFailure: Error | null = null;
   private installFailure: Error | null = null;
   private pending: PendingDownload | null = null;
+  private readonly failureListeners: UpdaterFailureListener[] = [];
 
   publish(version: string): void {
     this.published = version;
@@ -56,6 +61,16 @@ export class InMemoryAppUpdater implements AppUpdater {
   failDownload(error: Error): void {
     this.pending?.fail(error);
     this.pending = null;
+  }
+
+  onFailure(listener: UpdaterFailureListener): void {
+    this.failureListeners.push(listener);
+  }
+
+  reportFailure(error: Error): void {
+    for (const listener of this.failureListeners) {
+      listener(error);
+    }
   }
 
   install(): Promise<void> {

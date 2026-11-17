@@ -41,6 +41,9 @@ export function UpdatePrompt() {
   const status = useUpdateStatus(platform);
   const [dismissed, setDismissed] = useState<string | null>(null);
   const [requested, setRequested] = useState(false);
+  if (requested && status?.kind === 'error') {
+    setRequested(false);
+  }
   const key = promptKey(status);
   if (key === null || key === dismissed) {
     return null;

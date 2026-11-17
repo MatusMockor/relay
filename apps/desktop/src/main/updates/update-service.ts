@@ -1,6 +1,7 @@
 import { ConflictError, type Logger } from '@relay/engine';
 import type { UpdateStatus } from '@relay/shared/ipc';
 import { EventHub } from '../events/event-hub';
+import type { TimerHandle, Timers } from '../platform/timers';
 import type { AppUpdater } from './app-updater';
 import type { UpdateAvailability } from './update-availability';
 
@@ -8,6 +9,14 @@ export interface UpdateServiceDeps {
   readonly updater: AppUpdater;
   readonly availability: UpdateAvailability;
   readonly logger: Logger;
+  readonly timers: Timers;
+  readonly installTimeoutMs?: number;
+}
+
+export const INSTALL_TIMEOUT_MS = 2 * 60_000;
+
+interface InstallAttempt {
+  readonly watchdog: TimerHandle;
 }
 
 const BUSY: ReadonlySet<UpdateStatus['kind']> = new Set([
@@ -26,9 +35,13 @@ export class UpdateService {
   readonly changes = new EventHub<UpdateStatus>();
   private current: UpdateStatus;
   private running: Promise<void> | null = null;
+  private attempt: InstallAttempt | null = null;
 
   constructor(private readonly deps: UpdateServiceDeps) {
     this.current = initialStatus(deps.availability);
+    deps.updater.onFailure((error) => {
+      this.lateFailure(error);
+    });
   }
 
   status(): UpdateStatus {
@@ -55,10 +68,41 @@ export class UpdateService {
     }
     this.deps.logger.info('Restarting to install an update', { version: current.version });
     this.transition({ kind: 'installing', version: current.version });
+    const timeoutMs = this.deps.installTimeoutMs ?? INSTALL_TIMEOUT_MS;
+    const attempt: InstallAttempt = {
+      watchdog: this.deps.timers.after(timeoutMs, () => {
+        this.failInstall(
+          attempt,
+          new Error(`The app did not restart within ${String(timeoutMs)} ms`),
+        );
+      }),
+    };
+    this.attempt = attempt;
     this.deps.updater.install().catch((error: unknown) => {
-      this.deps.logger.error('The update could not be installed', { error });
-      this.transition({ kind: 'error', failed: 'install' });
+      this.failInstall(attempt, error);
     });
+  }
+
+  private failInstall(attempt: InstallAttempt, error: unknown): void {
+    if (this.attempt !== attempt) {
+      return;
+    }
+    attempt.watchdog.cancel();
+    this.attempt = null;
+    this.deps.logger.error('The update could not be installed', { error });
+    this.transition({ kind: 'error', failed: 'install' });
+  }
+
+  private lateFailure(error: Error): void {
+    if (this.attempt !== null) {
+      this.failInstall(this.attempt, error);
+      return;
+    }
+    if (this.current.kind !== 'ready') {
+      return;
+    }
+    this.deps.logger.error('The downloaded update can no longer be installed', { error });
+    this.transition({ kind: 'error', failed: 'download' });
   }
 
   private async checkAndDownload(): Promise<void> {

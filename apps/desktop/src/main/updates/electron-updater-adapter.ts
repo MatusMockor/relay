@@ -1,6 +1,7 @@
 import type { Logger } from '@relay/engine';
 import { UpdateVersionSchema } from '@relay/shared/ipc';
-import type { AppUpdater, AvailableUpdate } from './app-updater';
+import type { AppUpdater, AvailableUpdate, UpdaterFailureListener } from './app-updater';
+import type { InstallReadiness } from './install-readiness';
 import type { RestartStrategy } from './restart-strategy';
 
 export interface UpdaterLogger {
@@ -21,6 +22,8 @@ type ErrorListener = (error: Error) => void;
 
 type RenameListener = (path: string) => void;
 
+type DownloadedListener = () => void;
+
 export interface UpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
@@ -32,18 +35,23 @@ export interface UpdaterLike {
   on(event: 'download-progress', listener: ProgressListener): unknown;
   on(event: 'error', listener: ErrorListener): unknown;
   on(event: 'appimage-filename-updated', listener: RenameListener): unknown;
+  on(event: 'update-downloaded', listener: DownloadedListener): unknown;
   removeListener(event: 'download-progress', listener: ProgressListener): unknown;
   removeListener(event: 'error', listener: ErrorListener): unknown;
   removeListener(event: 'appimage-filename-updated', listener: RenameListener): unknown;
+  removeListener(event: 'update-downloaded', listener: DownloadedListener): unknown;
 }
 
 const LOG_PREFIX = 'electron-updater';
 
 export class ElectronUpdaterAdapter implements AppUpdater {
+  private readonly failureListeners: UpdaterFailureListener[] = [];
+
   constructor(
     private readonly updater: UpdaterLike,
     private readonly logger: Logger,
     private readonly restart: RestartStrategy,
+    private readonly readiness: InstallReadiness,
   ) {
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = true;
@@ -51,7 +59,14 @@ export class ElectronUpdaterAdapter implements AppUpdater {
     updater.logger = this.updaterLogger();
     updater.on('error', (error) => {
       logger.debug(`${LOG_PREFIX} emitted an error`, { error: error.message });
+      for (const listener of this.failureListeners) {
+        listener(error);
+      }
     });
+  }
+
+  onFailure(listener: UpdaterFailureListener): void {
+    this.failureListeners.push(listener);
   }
 
   async check(): Promise<AvailableUpdate | null> {
@@ -66,9 +81,16 @@ export class ElectronUpdaterAdapter implements AppUpdater {
     const progress: ProgressListener = (info) => {
       onProgress(info.percent);
     };
+    const staging = this.readiness.watch();
     this.updater.on('download-progress', progress);
     try {
-      await this.updater.downloadUpdate();
+      const downloaded = this.updater.downloadUpdate().then(() => {
+        staging.arm();
+      });
+      await Promise.all([downloaded, staging.staged]);
+    } catch (error) {
+      staging.cancel();
+      throw error;
     } finally {
       this.updater.removeListener('download-progress', progress);
     }

@@ -2,8 +2,9 @@ import { ConflictError } from '@relay/engine';
 import type { UpdateStatus } from '@relay/shared/ipc';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { UpdateAvailability } from '../../src/main/updates/update-availability';
-import { UpdateService } from '../../src/main/updates/update-service';
+import { INSTALL_TIMEOUT_MS, UpdateService } from '../../src/main/updates/update-service';
 import { InMemoryAppUpdater } from './support/in-memory-app-updater';
+import { ManualTime } from './support/manual-time';
 import { createTestLogger } from './support/memory-log-sink';
 
 const ENABLED: UpdateAvailability = { enabled: true };
@@ -15,10 +16,12 @@ const settle = () =>
 
 describe('UpdateService', () => {
   let updater: InMemoryAppUpdater;
+  let time: ManualTime;
   let seen: UpdateStatus[];
 
   beforeEach(() => {
     updater = new InMemoryAppUpdater();
+    time = new ManualTime();
     seen = [];
   });
 
@@ -27,6 +30,7 @@ describe('UpdateService', () => {
       updater,
       availability,
       logger: createTestLogger().logger,
+      timers: time,
     });
     created.changes.subscribe((status) => {
       seen.push(status);
@@ -141,5 +145,62 @@ describe('UpdateService', () => {
     updater.publish('0.2.1');
     await downloadUntilReady(updates);
     expect(updates.status()).toEqual({ kind: 'ready', version: '0.2.1' });
+  });
+
+  it('drops a downloaded update that fails after it was reported ready and retries it', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    await downloadUntilReady(updates);
+    updater.reportFailure(new Error('Code signature at URL did not pass validation'));
+    expect(updates.status()).toEqual({ kind: 'error', failed: 'download' });
+    await downloadUntilReady(updates);
+    expect(updater.checks).toBe(2);
+    expect(updates.status()).toEqual({ kind: 'ready', version: '0.2.0' });
+  });
+
+  it('ignores updater errors that arrive while no update is waiting', async () => {
+    const updates = service();
+    await updates.check();
+    updater.reportFailure(new Error('net::ERR_INTERNET_DISCONNECTED'));
+    expect(updates.status()).toEqual({ kind: 'idle' });
+  });
+
+  it('reports an install that fails after the restart was requested', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    await downloadUntilReady(updates);
+    updates.install();
+    updater.reportFailure(new Error('Squirrel.Mac could not apply the update'));
+    expect(updates.status()).toEqual({ kind: 'error', failed: 'install' });
+    expect(time.pendingCount).toBe(0);
+  });
+
+  it('gives up on an install that never restarts the app and lets the next check retry', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    await downloadUntilReady(updates);
+    updates.install();
+    await time.advance(INSTALL_TIMEOUT_MS - 1);
+    expect(updates.status()).toEqual({ kind: 'installing', version: '0.2.0' });
+    await time.advance(1);
+    expect(updates.status()).toEqual({ kind: 'error', failed: 'install' });
+    await downloadUntilReady(updates);
+    expect(updates.status()).toEqual({ kind: 'ready', version: '0.2.0' });
+    updates.install();
+    expect(updater.installs).toBe(2);
+    expect(updates.status()).toEqual({ kind: 'installing', version: '0.2.0' });
+  });
+
+  it('reports a rejected install only once, even when the watchdog fires later', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    await downloadUntilReady(updates);
+    updater.failInstallWith(new Error('Squirrel could not verify the signature'));
+    updates.install();
+    await settle();
+    await time.advance(INSTALL_TIMEOUT_MS);
+    expect(seen.filter((status) => status.kind === 'error')).toEqual([
+      { kind: 'error', failed: 'install' },
+    ]);
   });
 });

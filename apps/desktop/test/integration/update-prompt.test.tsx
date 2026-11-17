@@ -9,6 +9,7 @@ import { createElectronPlatform } from '../../src/renderer/src/platform/Electron
 import { renderApp, resetStores } from '../../src/renderer/test/support/render-app';
 import { InMemoryIpc } from '../main/in-memory-ipc';
 import { InMemoryAppUpdater } from '../main/support/in-memory-app-updater';
+import { ManualTime } from '../main/support/manual-time';
 import { createTestLogger } from '../main/support/memory-log-sink';
 
 const appMetadata = {
@@ -27,6 +28,7 @@ const startDesktop = () => {
     updater,
     availability: { enabled: true },
     logger: createTestLogger().logger,
+    timers: new ManualTime(),
   });
   const bridge = createRelayBridge(
     new InMemoryIpc(composeIpc({ app: appMetadata, updates })),

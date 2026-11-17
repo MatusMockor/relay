@@ -5,6 +5,7 @@ import { UpdateService } from '../../src/main/updates/update-service';
 import { createRelayBridge } from '../../src/preload/create-bridge';
 import { InMemoryIpc } from './in-memory-ipc';
 import { InMemoryAppUpdater } from './support/in-memory-app-updater';
+import { ManualTime } from './support/manual-time';
 import { createTestLogger } from './support/memory-log-sink';
 
 const appMetadata = {
@@ -27,6 +28,7 @@ const setup = () => {
     updater,
     availability: { enabled: true },
     logger: createTestLogger().logger,
+    timers: new ManualTime(),
   });
   const bridge = createRelayBridge(
     new InMemoryIpc(composeIpc({ app: appMetadata, updates })),
