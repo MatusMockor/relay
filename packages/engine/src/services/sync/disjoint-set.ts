@@ -18,13 +18,4 @@ export class DisjointSet {
   join(left: number, right: number): void {
     this.parents[this.root(left)] = this.root(right);
   }
-
-  sizes(): Map<number, number> {
-    const sizes = new Map<number, number>();
-    this.parents.forEach((_, index) => {
-      const root = this.root(index);
-      sizes.set(root, (sizes.get(root) ?? 0) + 1);
-    });
-    return sizes;
-  }
 }

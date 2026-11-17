@@ -126,16 +126,19 @@ export class AccountSynchronizer {
       processed: selected.length,
       total: mailboxes.length,
     });
-    const passes = [];
+    const passes: MailboxPass[] = [];
     for (const [mailbox, role] of selected) {
-      const pass = await this.fetchPass(context, mailbox, role);
-      if (pass !== null) {
-        passes.push(pass);
-      }
+      passes.push(await this.deps.mailboxSync.open(context, mailbox, role));
     }
-    const initial = passes.filter((pass) => completedSyncState(pass.state) === null);
-    await this.deps.initialSync.run(context, initial);
-    for (const pass of passes) {
+    const incremental = passes.filter((pass) => completedSyncState(pass.state) !== null);
+    const fetched = await this.fetchIncremental(context, incremental, {
+      holdCalendar: incremental.length < passes.length,
+    });
+    await this.deps.initialSync.run(context, {
+      passes,
+      skipped: fetched.length < incremental.length,
+    });
+    for (const pass of fetched) {
       await this.deps.mailboxSync.reconcile(context, pass);
     }
     await this.deps.backfill.run(context, mailboxes);
@@ -143,14 +146,21 @@ export class AccountSynchronizer {
     await this.deps.replayer.replayPending(context.account, context.provider);
   }
 
-  private fetchPass(
+  private async fetchIncremental(
     context: SyncContext,
-    mailbox: Mailbox,
-    role: MailboxRole,
-  ): Promise<MailboxPass | null> {
-    return skipOnUidValidityChange(this.deps.logger, context, mailbox, () =>
-      this.deps.mailboxSync.fetch(context, mailbox, role),
-    );
+    passes: readonly MailboxPass[],
+    mode: { readonly holdCalendar: boolean },
+  ): Promise<MailboxPass[]> {
+    const fetched: MailboxPass[] = [];
+    for (const pass of passes) {
+      const done = await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
+        this.deps.mailboxSync.fetch(context, pass, mode.holdCalendar).then(() => pass),
+      );
+      if (done !== null) {
+        fetched.push(done);
+      }
+    }
+    return fetched;
   }
 
   private select(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {

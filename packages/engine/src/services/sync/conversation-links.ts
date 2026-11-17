@@ -48,6 +48,14 @@ const joinById = (entries: readonly WindowEntry[]): DisjointSet => {
   return set;
 };
 
+const sentAt = (entries: readonly WindowEntry[], position: number): number =>
+  Date.parse(entries[position]?.sentAt ?? '');
+
+const before = (entries: readonly WindowEntry[], left: number, right: number): number =>
+  sentAt(entries, left) - sentAt(entries, right) ||
+  (entries[left]?.arrivedAt ?? 0) - (entries[right]?.arrivedAt ?? 0) ||
+  left - right;
+
 const subjectParent = (
   entries: readonly WindowEntry[],
   bySubject: ReadonlyMap<string, number[]>,
@@ -66,14 +74,11 @@ const subjectParent = (
     return null;
   }
   const since = window.since.getTime();
-  const until = window.until.getTime();
-  const sentAt = (candidate: number): number => Date.parse(entries[candidate]?.sentAt ?? '');
   const candidates = (bySubject.get(window.normalizedSubject) ?? []).filter(
-    (candidate) =>
-      candidate !== position && sentAt(candidate) >= since && sentAt(candidate) <= until,
+    (candidate) => sentAt(entries, candidate) >= since && before(entries, candidate, position) < 0,
   );
   return candidates.reduce<number | null>(
-    (best, candidate) => (best === null || sentAt(candidate) > sentAt(best) ? candidate : best),
+    (best, candidate) => (best === null || before(entries, candidate, best) > 0 ? candidate : best),
     null,
   );
 };
@@ -81,12 +86,11 @@ const subjectParent = (
 export const conversationLinks = (entries: readonly WindowEntry[]): ConversationLinks => {
   const parents = idParents(entries);
   const set = joinById(entries);
-  const sizes = set.sizes();
   const bySubject = indexBy(entries.map((entry) => [normalizeSubject(entry.subject).value]));
-  const unlinked = entries.flatMap((_, position) =>
-    sizes.get(set.root(position)) === 1 ? [position] : [],
+  const roots = entries.flatMap((_, position) =>
+    (parents[position]?.length ?? 0) === 0 ? [position] : [],
   );
-  unlinked.forEach((position) => {
+  roots.forEach((position) => {
     const parent = subjectParent(entries, bySubject, position);
     if (parent === null) {
       return;

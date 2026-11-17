@@ -27,23 +27,26 @@ export interface MailboxSynchronizerDeps {
 export class MailboxSynchronizer {
   constructor(private readonly deps: MailboxSynchronizerDeps) {}
 
-  async fetch(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<MailboxPass> {
+  async open(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<MailboxPass> {
     const status = await context.provider.status(mailbox.path);
     const stored = await this.deps.syncStates.find(mailbox.id);
     const reset = stored !== null && stored.uidValidity !== status.uidValidity;
     if (reset) {
       await this.deps.reconciler.reset(context, mailbox, role);
     }
-    const pass: MailboxPass = { mailbox, role, state: reset ? null : stored, status };
-    const completed = completedSyncState(pass.state);
-    if (completed !== null) {
-      await this.deps.incremental.fetch(context, pass, completed);
-    }
     await this.deps.mailboxes.updateCounts(mailbox.id, {
       unreadCount: status.unseen,
       totalCount: status.messages,
     });
-    return pass;
+    return { mailbox, role, state: reset ? null : stored, status };
+  }
+
+  async fetch(context: SyncContext, pass: MailboxPass, holdCalendar: boolean): Promise<void> {
+    const completed = completedSyncState(pass.state);
+    if (completed === null) {
+      return;
+    }
+    await this.deps.incremental.fetch(context, pass, completed, holdCalendar);
   }
 
   async reconcile(context: SyncContext, pass: MailboxPass): Promise<void> {

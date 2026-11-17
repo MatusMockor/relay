@@ -18,6 +18,11 @@ export interface MessageFetchStepsDeps {
   readonly logger: Logger;
 }
 
+export interface IngestMode {
+  readonly publish: boolean;
+  readonly holdCalendar: boolean;
+}
+
 export interface SyncMark {
   readonly lastUid: number;
   readonly highestModseq: string | null;
@@ -31,7 +36,7 @@ export class MessageFetchSteps {
     context: SyncContext,
     pass: MailboxPass,
     raw: RawMessage,
-    initial: boolean,
+    mode: IngestMode,
   ): Promise<void> {
     const outcome = await this.deps.ingestor.ingest(
       {
@@ -40,8 +45,8 @@ export class MessageFetchSteps {
         mailbox: pass.mailbox,
         splits: context.splits,
         journal: context.journal,
-        publish: !initial,
-        holdCalendar: initial,
+        publish: mode.publish,
+        holdCalendar: mode.holdCalendar,
       },
       raw,
     );

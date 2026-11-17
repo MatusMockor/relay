@@ -3,6 +3,7 @@ import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { CalendarPartsSink } from './calendar-parts-sink';
+import { completedSyncState } from './completed-sync-state';
 import { conversationOrder } from './conversation-order';
 import { entryKey, fetchChunk } from './initial-chunk';
 import { InitialProgress } from './initial-progress';
@@ -12,6 +13,11 @@ import type { MailboxPass } from './mailbox-synchronizer';
 import type { MessageFetchSteps, SyncMark } from './message-fetch-steps';
 import type { SyncContext } from './sync-context';
 import { skipOnUidValidityChange } from './uid-validity-guard';
+
+export interface SyncRound {
+  readonly passes: readonly MailboxPass[];
+  readonly skipped: boolean;
+}
 
 export interface InitialSyncDeps extends InitialWindowDeps {
   readonly steps: MessageFetchSteps;
@@ -37,10 +43,12 @@ const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): S
 export class InitialSync {
   constructor(private readonly deps: InitialSyncDeps) {}
 
-  async run(context: SyncContext, passes: readonly MailboxPass[]): Promise<void> {
+  async run(context: SyncContext, round: SyncRound): Promise<void> {
     const { steps } = this.deps;
+    const selected = new Set(round.passes.map((pass) => pass.mailbox.id));
+    const passes = round.passes.filter((pass) => completedSyncState(pass.state) === null);
     if (passes.length === 0) {
-      await this.releaseWhenSettled(context);
+      await this.releaseWhenSettled(context, round, selected);
       return;
     }
     const windows = await this.windows(context, passes);
@@ -58,13 +66,21 @@ export class InitialSync {
     if (completed.length < passes.length) {
       return;
     }
-    await this.releaseWhenSettled(context);
+    await this.releaseWhenSettled(context, round, selected);
     await steps.flush(context);
   }
 
-  private async releaseWhenSettled(context: SyncContext): Promise<void> {
+  private async releaseWhenSettled(
+    context: SyncContext,
+    round: SyncRound,
+    selected: ReadonlySet<MailboxId>,
+  ): Promise<void> {
+    if (round.skipped) {
+      return;
+    }
     const states = await this.deps.syncStates.listByAccount(context.account.id);
-    if (states.some((state) => state.initialWindow !== null)) {
+    const selectedStates = states.filter((state) => selected.has(state.mailboxId));
+    if (selectedStates.some((state) => state.initialWindow !== null)) {
       return;
     }
     const order = mailboxOrder(context, this.deps.options.mailboxRoles);
@@ -101,7 +117,7 @@ export class InitialSync {
         const mailboxId = entry.pass.mailbox.id;
         const raw = fetched.get(entryKey(mailboxId, entry.uid));
         if (raw !== undefined) {
-          await steps.ingest(context, entry.pass, raw, true);
+          await steps.ingest(context, entry.pass, raw, { publish: false, holdCalendar: true });
         }
         if (!failed.has(mailboxId)) {
           progress.advance(mailboxId);

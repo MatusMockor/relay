@@ -94,4 +94,42 @@ describe('SyncService initial sync regressions', () => {
     expect(streamedUids(server)).toEqual([original, reply]);
     expect(await inboxThreads(engine)).toEqual([['Kickoff', 2]]);
   });
+
+  it('keeps a headerless reply and its linked descendants in the thread of the original', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 1 } });
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'a', subject: 'Topic', date: day(1) });
+    deliverMail(server, 'INBOX', { id: 'd', subject: 'Lunch', date: day(2) });
+    deliverMail(server, 'INBOX', { id: 'b', subject: 'Re: Topic', date: day(3) });
+    deliverMail(server, 'INBOX', {
+      id: 'c',
+      subject: 'Re: Topic',
+      date: day(4),
+      inReplyTo: 'b',
+      references: ['b'],
+    });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await inboxThreads(engine)).toEqual([
+      ['Topic', 3],
+      ['Lunch', 1],
+    ]);
+  });
+
+  it('keeps headerless replies with the same date in the thread of the original', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 1 } });
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'a', subject: 'Topic', date: day(1) });
+    deliverMail(server, 'INBOX', { id: 'd', subject: 'Lunch', date: day(2) });
+    deliverMail(server, 'INBOX', { id: 'b', subject: 'Re: Topic', date: day(5) });
+    deliverMail(server, 'INBOX', { id: 'c', subject: 'Re: Topic', date: day(5) });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await inboxThreads(engine)).toEqual([
+      ['Topic', 3],
+      ['Lunch', 1],
+    ]);
+  });
 });

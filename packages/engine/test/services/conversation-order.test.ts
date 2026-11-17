@@ -96,4 +96,27 @@ describe('conversationOrder', () => {
       ]),
     ).toEqual([5, 2, 4, 3, 1]);
   });
+
+  it('gives a headerless reply with linked descendants the subject fallback', () => {
+    expect(
+      order([
+        entry({ uid: 1, arrived: 1, id: '<a>', subject: 'Topic' }),
+        entry({ uid: 2, arrived: 3, id: '<b>', subject: 'Re: Topic' }),
+        entry({ uid: 3, arrived: 4, id: '<c>', subject: 'Re: Topic', parents: ['<b>'] }),
+        entry({ uid: 4, arrived: 2, id: '<d>', subject: 'Other' }),
+      ]),
+    ).toEqual([1, 2, 3, 4]);
+  });
+
+  it('never links headerless replies with the same date to each other in a cycle', () => {
+    const entries = [
+      entry({ uid: 1, arrived: 1, id: '<a>', subject: 'Topic' }),
+      entry({ uid: 2, arrived: 5, id: '<b>', subject: 'Re: Topic' }),
+      entry({ uid: 3, arrived: 5, id: '<c>', subject: 'Re: Topic' }),
+      entry({ uid: 4, arrived: 3, id: '<d>', subject: 'Other' }),
+    ];
+
+    expect(order(entries)).toEqual([1, 2, 3, 4]);
+    expect(order([...entries].reverse())).toEqual([1, 3, 2, 4]);
+  });
 });
