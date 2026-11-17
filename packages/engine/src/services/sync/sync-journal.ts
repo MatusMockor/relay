@@ -15,6 +15,7 @@ import { emptyThreadWork, mergeThreadWork } from './thread-refresh-work';
 
 export interface ArrivalEffects {
   readonly publish: boolean;
+  readonly live: boolean;
   readonly headers: MessageHeaders;
   readonly jira: JiraClassification | null;
 }
@@ -46,7 +47,7 @@ export class SyncJournal {
         threadId: message.threadId,
         publish: effects.publish,
         arrival,
-        live: effects.publish,
+        live: effects.live,
         jira: effects.jira,
         headers: [...effects.headers.entries()],
       },

@@ -124,7 +124,11 @@ export class InitialSync {
         const mailboxId = entry.pass.mailbox.id;
         const raw = fetched.get(entryKey(mailboxId, entry.uid));
         if (raw !== undefined) {
-          await steps.ingest(context, entry.pass, raw, { publish: false, holdCalendar: true });
+          await steps.ingest(context, entry.pass, raw, {
+            publish: false,
+            live: false,
+            holdCalendar: true,
+          });
         }
         if (!failed.has(mailboxId)) {
           progress.advance(mailboxId);

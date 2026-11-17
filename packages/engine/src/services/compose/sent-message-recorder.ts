@@ -52,6 +52,7 @@ export class SentMessageRecorder {
           splits: await this.deps.splits.listForAccount(userId, account.id),
           journal: null,
           publish: false,
+          live: false,
           holdCalendar: false,
         },
         {
