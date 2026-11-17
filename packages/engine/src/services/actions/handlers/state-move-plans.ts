@@ -68,8 +68,21 @@ const trash: StateMovePlanner = (messages, thread) => {
   };
 };
 
-const restoredState = (moves: readonly PlannedMove[]): ThreadState => {
-  if (moves.length > 0 && moves.every((move) => move.role !== 'inbox')) {
+const FILED_ROLES: readonly MailboxRole[] = ['archive', 'sent'];
+
+const rolesAfter = (
+  messages: readonly LocatedMessage[],
+  moves: readonly PlannedMove[],
+): (MailboxRole | undefined)[] => {
+  const targets = new Map(moves.map((move) => [move.messageId, move.role]));
+  return messages.map(({ message, role }) => targets.get(message.id) ?? role);
+};
+
+const restoredState = (roles: readonly (MailboxRole | undefined)[]): ThreadState => {
+  if (roles.includes('inbox')) {
+    return 'inbox';
+  }
+  if (roles.some((role) => role !== undefined && FILED_ROLES.includes(role))) {
     return 'done';
   }
   return 'inbox';
@@ -84,7 +97,7 @@ const restore: StateMovePlanner = (messages) => {
     role: restoreTarget(origin),
   }));
   return {
-    ...plan(restoredState(moves), moves),
+    ...plan(restoredState(rolesAfter(messages, moves)), moves),
     forget: moves.map((move) => move.messageId),
   };
 };

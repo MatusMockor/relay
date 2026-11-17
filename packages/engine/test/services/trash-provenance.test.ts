@@ -98,6 +98,35 @@ describe('trash provenance of local trash and restore', () => {
     expect(remoteUids(server, 'Trash')).toEqual([]);
   });
 
+  it('restores to the inbox when another message of the thread is still in INBOX', async () => {
+    const engine = createTestEngine();
+    const { account, server, thread } = await syncedThread(engine, [
+      ['Archive', { id: 'a1', date: DATE }],
+    ]);
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'trash' });
+    deliverMail(server, 'INBOX', { id: 'a2', inReplyTo: 'a1', references: ['a1'], date: DATE });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const restored = await engine.services.actions.apply(USER_ID, thread.id, {
+      type: 'restore',
+    });
+
+    expect(restored.state).toBe('inbox');
+    expect(remoteUids(server, 'Archive')).toHaveLength(1);
+    expect(remoteUids(server, 'INBOX')).toHaveLength(1);
+  });
+
+  it('files a restored thread with nothing in trash by where its mail is', async () => {
+    const engine = createTestEngine();
+    const { thread } = await syncedThread(engine, [['Sent', { id: 's1', from: ME, date: DATE }]]);
+
+    const restored = await engine.services.actions.apply(USER_ID, thread.id, {
+      type: 'restore',
+    });
+
+    expect(restored.state).toBe('done');
+  });
+
   it('forgets the provenance once a thread is restored', async () => {
     const engine = createTestEngine();
     const { thread } = await syncedThread(engine, [['INBOX', { id: 'm1', date: DATE }]]);
