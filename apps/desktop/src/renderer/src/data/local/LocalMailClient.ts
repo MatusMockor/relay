@@ -33,6 +33,8 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
     prepareThreadAi: (threadId, timeZone) =>
       unwrap(bridge.invoke('local.threads.prepareAi', { threadId, timeZone })),
+    requestThreadSummary: (threadId, timeZone) =>
+      unwrap(bridge.invoke('local.threads.requestSummary', { threadId, timeZone })),
     applyThreadAction: (threadId, action) =>
       unwrap(bridge.invoke('local.threads.action', { threadId, action })),
     listLabels: (accountId) => unwrap(bridge.invoke('local.labels.list', { accountId })),

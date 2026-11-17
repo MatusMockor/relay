@@ -26,7 +26,7 @@ const REPLIES = JSON.stringify({
   ],
 });
 
-describe('POST /threads/:id/ai/prepare', () => {
+describe('thread AI on open and on demand', () => {
   let app: TestApp;
   let claude: StubClaudeByTask;
   let owner: GreenMailUser;
@@ -61,7 +61,7 @@ describe('POST /threads/:id/ai/prepare', () => {
     await deleteGreenMailUser(owner);
   });
 
-  it('queues the summary and reply suggestions once and fills the thread detail', async () => {
+  it('queues reply suggestions on open, the summary only on request, and fills the detail', async () => {
     const session = await registerUser(app.api, `ai-open-${randomUUID().slice(0, 8)}@relay.test`);
     const token = session.accessToken;
     await app.api.ok(
@@ -83,9 +83,14 @@ describe('POST /threads/:id/ai/prepare', () => {
     const prepare = { ...params, query: {} };
 
     expect(await app.api.ok(api.threads.prepareAi, prepare, token)).toMatchObject({
-      pending: ['summary', 'replySuggestions'],
+      pending: ['replySuggestions'],
     });
     await app.api.ok(api.threads.prepareAi, prepare, token);
+    expect((await app.api.ok(api.threads.get, params, token)).aiSummary).toBeNull();
+    expect(await app.api.ok(api.threads.requestSummary, prepare, token)).toMatchObject({
+      pending: ['summary'],
+    });
+    await app.api.ok(api.threads.requestSummary, prepare, token);
 
     await expect
       .poll(async () => (await app.api.ok(api.threads.get, params, token)).replySuggestions, {
@@ -118,6 +123,9 @@ describe('POST /threads/:id/ai/prepare', () => {
     );
 
     expect(await app.api.ok(api.threads.prepareAi, prepare, token)).toMatchObject({ pending: [] });
+    expect(await app.api.ok(api.threads.requestSummary, prepare, token)).toMatchObject({
+      pending: [],
+    });
     expect(await claude.prompts()).toHaveLength(2);
     socket.close();
   });
@@ -139,11 +147,15 @@ describe('POST /threads/:id/ai/prepare', () => {
     }
     const params = { params: { id: contract.id }, query: { timeZone: 'Europe/Bratislava' } };
 
-    const states = await Promise.all(
-      Array.from({ length: 4 }, () => app.api.ok(api.threads.prepareAi, params, token)),
-    );
+    const states = await Promise.all([
+      ...Array.from({ length: 4 }, () => app.api.ok(api.threads.prepareAi, params, token)),
+      ...Array.from({ length: 4 }, () => app.api.ok(api.threads.requestSummary, params, token)),
+    ]);
 
-    expect(states.every((state) => state.pending.length === 2)).toBe(true);
+    expect(states.map((state) => state.pending)).toEqual([
+      ...Array.from({ length: 4 }, () => ['replySuggestions']),
+      ...Array.from({ length: 4 }, () => ['summary']),
+    ]);
     const claimed = await app.api.ok(api.ai.claimJobs, { body: { limit: 5 } }, token);
     expect(claimed.jobs.map((claim) => claim.job.kind).sort()).toEqual([
       'replySuggestions',
@@ -169,12 +181,11 @@ describe('POST /threads/:id/ai/prepare', () => {
 
   it('refuses unknown threads', async () => {
     const session = await registerUser(app.api, `ai-open-${randomUUID().slice(0, 8)}@relay.test`);
-    const failure = await app.api.fail(
-      api.threads.prepareAi,
-      { params: { id: 'thr_missing' }, query: {} },
-      session.accessToken,
-    );
-    expect(failure.status).toBe(404);
+    const missing = { params: { id: 'thr_missing' }, query: {} };
+    const prepare = await app.api.fail(api.threads.prepareAi, missing, session.accessToken);
+    const summary = await app.api.fail(api.threads.requestSummary, missing, session.accessToken);
+    expect(prepare.status).toBe(404);
+    expect(summary.status).toBe(404);
   });
 
   it('rejects an unknown time zone', async () => {

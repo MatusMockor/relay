@@ -73,6 +73,14 @@ export const threadsEndpoints = {
     query: PrepareThreadAiQuerySchema,
     response: ThreadAiStateSchema,
   }),
+  requestSummary: defineEndpoint({
+    method: 'POST',
+    path: '/threads/:id/ai/summary',
+    auth: 'user',
+    params: threadIdParams,
+    query: PrepareThreadAiQuerySchema,
+    response: ThreadAiStateSchema,
+  }),
   updateChecklist: defineEndpoint({
     method: 'PATCH',
     path: '/threads/:id/checklist',

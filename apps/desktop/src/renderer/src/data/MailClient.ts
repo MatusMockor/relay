@@ -75,6 +75,7 @@ export interface ThreadReader {
   listThreads(params: ThreadListParams): Promise<ThreadPage>;
   getThread(threadId: ThreadId): Promise<ThreadDetail>;
   prepareThreadAi(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
+  requestThreadSummary(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   applyThreadAction(threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary>;
   listLabels(accountId?: AccountId): Promise<Label[]>;
   downloadAttachment(attachmentId: AttachmentId): Promise<AttachmentFile>;

@@ -9,6 +9,7 @@ import { createDemoAttachments } from './demo-attachments';
 import { createDemoCalendarClient } from './demo-calendar';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
+import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
 import { queryThreads } from './demo-query';
 import type { DemoState } from './demo-state';
@@ -92,6 +93,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         record(threadId);
         return { pending: [], jobs: [] };
       }),
+    requestThreadSummary: (threadId) => run(() => requestDemoSummary(state, record(threadId))),
     applyThreadAction: (threadId, action) =>
       run(() => {
         const found = record(threadId);

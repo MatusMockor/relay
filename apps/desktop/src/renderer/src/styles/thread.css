@@ -124,6 +124,10 @@
   align-items: center;
   gap: 8px;
 }
+.sum-ask {
+  align-self: flex-start;
+  justify-self: start;
+}
 .t-sum p.sum-wait {
   color: var(--muted);
   display: flex;

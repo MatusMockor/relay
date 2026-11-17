@@ -1,6 +1,9 @@
 import type { ThreadDetail } from '@relay/shared';
-import { Icon, Spark } from '@relay/ui';
-import { useChecklistToggle } from './use-checklist-toggle';
+import { Spark } from '@relay/ui';
+import { useUserSettings } from '../../data/hooks/use-mail-queries';
+import { useThreadSummaryRequest } from '../../data/hooks/use-thread-summary-request';
+import { SummaryChecklist } from './SummaryChecklist';
+import { SummaryRequestButton } from './SummaryRequestButton';
 
 export interface AiSummaryProps {
   readonly detail: ThreadDetail;
@@ -8,11 +11,15 @@ export interface AiSummaryProps {
 }
 
 export function AiSummary({ detail, pending }: AiSummaryProps) {
-  const toggle = useChecklistToggle(detail.thread.id);
+  const settings = useUserSettings();
+  const summaryRequest = useThreadSummaryRequest(detail.thread);
   const summary = detail.aiSummary ?? detail.thread.aiOneLiner;
-  const waiting = pending && detail.aiSummary === null;
+  const waiting = (pending || summaryRequest.requesting) && detail.aiSummary === null;
+  const offered =
+    !waiting && detail.aiSummary === null && settings.data?.ai.features.summaries === true;
+  const ask = offered ? <SummaryRequestButton onRequest={summaryRequest.request} /> : null;
   if (summary === null && !waiting) {
-    return null;
+    return ask;
   }
   return (
     <section
@@ -31,30 +38,8 @@ export function AiSummary({ detail, pending }: AiSummaryProps) {
           {summary === null ? 'AI pripravuje zhrnutie…' : 'AI dopĺňa podrobnosti…'}
         </p>
       ) : null}
-      {detail.checklist.length === 0 ? null : (
-        <ul>
-          {detail.checklist.map((item) => {
-            const { done } = item;
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`chk${done ? ' on' : ''}`}
-                  aria-pressed={done}
-                  onClick={() => {
-                    void toggle(item);
-                  }}
-                >
-                  <span className="box">
-                    <Icon name="check" size={10} strokeWidth={2.6} />
-                  </span>
-                  <span className="t">{item.text}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {ask}
+      <SummaryChecklist detail={detail} />
     </section>
   );
 }

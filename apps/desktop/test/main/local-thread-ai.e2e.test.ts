@@ -7,7 +7,7 @@ import { imapAccountBody } from './support/seed-account';
 import { installStubClaude, type StubClaude } from './support/stub-claude';
 import { createTempDir, type TempDir } from './support/temp-dir';
 
-describe('local thread AI on open', () => {
+describe('local thread AI on open and on demand', () => {
   let dir: TempDir;
   let claude: StubClaude;
   let mailbox: GreenMailAccount;
@@ -43,7 +43,7 @@ describe('local thread AI on open', () => {
     await dir.remove();
   });
 
-  it('queues summary and reply jobs once and returns their results in the detail', async () => {
+  it('queues reply suggestions on open, the summary on request, and returns both results', async () => {
     const { bridge } = harness;
     expect(
       (await bridge.invoke('local.settings.update', { ai: { features: { oneLiners: false } } })).ok,
@@ -59,10 +59,14 @@ describe('local thread AI on open', () => {
       ThreadIdSchema.parse('missing');
 
     const first = await bridge.invoke('local.threads.prepareAi', { threadId });
-    expect(first.ok && first.data.pending).toEqual(['summary', 'replySuggestions']);
+    expect(first.ok && first.data.pending).toEqual(['replySuggestions']);
     const again = await bridge.invoke('local.threads.prepareAi', { threadId });
     expect(again.ok && again.data.jobs).toEqual(first.ok ? first.data.jobs : null);
-    const summaryJob = first.ok ? first.data.jobs.find((ref) => ref.kind === 'summary') : undefined;
+    const requested = await bridge.invoke('local.threads.requestSummary', { threadId });
+    expect(requested.ok && requested.data.pending).toEqual(['summary']);
+    const summaryJob = requested.ok
+      ? requested.data.jobs.find((ref) => ref.kind === 'summary')
+      : undefined;
     expect(summaryJob).toBeDefined();
 
     await harness.runtime.engine.services.ai.processQueued();
@@ -89,6 +93,8 @@ describe('local thread AI on open', () => {
     ).toHaveLength(2);
     const done = await bridge.invoke('local.threads.prepareAi', { threadId });
     expect(done.ok && done.data.pending).toEqual([]);
+    const summarized = await bridge.invoke('local.threads.requestSummary', { threadId });
+    expect(summarized.ok && summarized.data.pending).toEqual([]);
     expect(await claude.calls()).toHaveLength(2);
   });
 });
