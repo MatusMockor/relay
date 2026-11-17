@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232a3b"/>
+      <stop offset="1" stop-color="#0d0f14"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".10"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe3f2"/>
+    </linearGradient>
+    <linearGradient id="flap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9b8ff"/>
+      <stop offset="1" stop-color="#6f5cff"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gloss)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="185" fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="3"/>
+  <rect x="232" y="330" width="560" height="400" rx="72" fill="url(#paper)"/>
+  <path d="M232 402 L512 590 L792 402 A72 72 0 0 0 720 330 H304 A72 72 0 0 0 232 402 Z" fill="url(#flap)"/>
+  <path transform="translate(736 288) scale(0.84)" d="M0 -100 C11 -26 26 -11 100 0 C26 11 11 26 0 100 C-11 26 -26 11 -100 0 C-26 -11 -11 -26 0 -100 Z" fill="#eceef4"/>
+</svg>
