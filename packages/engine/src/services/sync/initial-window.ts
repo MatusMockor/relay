@@ -58,6 +58,13 @@ const freeze = (
   );
 };
 
+const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
+  if (pass.role === 'trash') {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return Date.parse(frozen.cutoff);
+};
+
 const toEntry = (
   pass: MailboxPass,
   header: RemoteThreadHeaders,
@@ -94,7 +101,7 @@ export const mailboxWindow = async (
     selected,
   );
   const stored = new Set(await deps.messages.listUids(pass.mailbox.id));
-  const cutoff = Date.parse(frozen.cutoff);
+  const cutoff = cutoffOf(pass, frozen);
   const entries = headers.map((header) => toEntry(pass, header, cutoff, stored));
   const recent = entries.filter((entry) => entry.recent);
   return {
