@@ -10,6 +10,8 @@ import { SqliteAccountRepository } from './repositories/sqlite-account-repositor
 import { SqliteAiJobRepository } from './repositories/sqlite-ai-job-repository';
 import { SqliteAiResultRepository } from './repositories/sqlite-ai-result-repository';
 import { SqliteAttachmentReferenceRepository } from './repositories/sqlite-attachment-reference-repository';
+import { SqliteAutomationRepository } from './repositories/sqlite-automation-repository';
+import { SqliteAutomationRunRepository } from './repositories/sqlite-automation-run-repository';
 import { SqliteCalendarEventRepository } from './repositories/sqlite-calendar-event-repository';
 import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-calendar-subscription-repository';
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
@@ -37,6 +39,8 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   threads: new SqliteThreadRepository(executor),
   labels: new SqliteLabelRepository(executor),
   splits: new SqliteSplitRepository(executor),
+  automations: new SqliteAutomationRepository(executor),
+  automationRuns: new SqliteAutomationRunRepository(executor),
   tasks: new SqliteTaskRepository(executor),
   reminders: new SqliteReminderRepository(executor),
   drafts: new SqliteDraftRepository(executor),

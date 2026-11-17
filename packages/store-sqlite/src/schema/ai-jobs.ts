@@ -10,6 +10,7 @@ export const aiJobs = sqliteTable(
     status: text('status').notNull(),
     runnerLocation: text('runner_location').notNull(),
     runner: text('runner').notNull(),
+    model: text('model'),
     input: text('input', { mode: 'json' }).notNull(),
     output: text('output', { mode: 'json' }),
     error: text('error'),
