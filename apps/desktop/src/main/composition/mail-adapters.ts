@@ -1,4 +1,5 @@
 import type {
+  AutomationMatcher,
   Clock,
   ConditionalCredentialVault,
   IdGenerator,
@@ -16,6 +17,7 @@ import {
   MessageRepositoryThreadLookup,
   ReferencesThreadResolver,
   RefreshingOAuthTokenProvider,
+  RuleAutomationMatcher,
   RuleJiraClassifier,
   RuleSplitMatcher,
   SmtpMailSender,
@@ -39,6 +41,7 @@ export interface MailAdapters {
   readonly threadResolver: ThreadResolver;
   readonly jiraClassifier: JiraClassifier;
   readonly splitMatcher: SplitMatcher;
+  readonly automationMatcher: AutomationMatcher;
 }
 
 export const createMailAdapters = (input: MailAdaptersInput): MailAdapters => {
@@ -60,5 +63,6 @@ export const createMailAdapters = (input: MailAdaptersInput): MailAdapters => {
     ),
     jiraClassifier: new RuleJiraClassifier(),
     splitMatcher: new RuleSplitMatcher(),
+    automationMatcher: new RuleAutomationMatcher(),
   };
 };

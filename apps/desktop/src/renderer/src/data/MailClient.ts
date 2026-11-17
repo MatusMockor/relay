@@ -4,6 +4,8 @@ import type {
   AiJob,
   AiJobId,
   AttachmentId,
+  Automation,
+  AutomationInput,
   ChecklistResponse,
   AiRunnerInfo,
   AiRunRequest,
@@ -106,6 +108,8 @@ export interface Composer {
 export interface Organizer {
   listSplits(): Promise<Split[]>;
   replaceSplits(splits: SplitInput[]): Promise<Split[]>;
+  listAutomations(): Promise<Automation[]>;
+  replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;
   updateChecklistItem(

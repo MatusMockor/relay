@@ -69,7 +69,7 @@ const textOf = (output: AiOutput): string => {
   if (output.kind === 'replySuggestions') {
     return output.suggestions.map((item) => item.label).join(', ');
   }
-  if (output.kind === 'createTask') {
+  if (output.kind === 'createTask' || output.kind === 'automationTask') {
     return output.title;
   }
   return output.text;

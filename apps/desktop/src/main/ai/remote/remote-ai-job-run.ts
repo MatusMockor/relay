@@ -1,4 +1,10 @@
-import type { AiMailToolsEndpoint, AiRunner, AiRunnerRegistry, Logger } from '@relay/engine';
+import {
+  type AiMailToolsEndpoint,
+  type AiRunner,
+  type AiRunnerRegistry,
+  jobModelFor,
+  type Logger,
+} from '@relay/engine';
 import { AI_WORKER_ERROR_MAX_LENGTH, api, type ClaimedAiJob } from '@relay/shared/api';
 import type { AiFailureCode, AiOutput, AiRunnerKind } from '@relay/shared/domain';
 import type { Timers } from '../../platform/timers';
@@ -94,6 +100,7 @@ export class RemoteAiJobRun {
       jobId: claim.job.id,
       userId: claim.job.userId,
       runner: runner.kind,
+      ...jobModelFor(claim.job, runner.kind),
       input: claim.job.input,
       thread: claim.thread,
       mailTools,

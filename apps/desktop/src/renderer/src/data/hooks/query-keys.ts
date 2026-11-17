@@ -14,6 +14,7 @@ export const queryKeys = {
   accounts: () => ['mail', 'accounts'] as const,
   labels: () => ['mail', 'labels'] as const,
   splits: () => ['mail', 'splits'] as const,
+  automations: () => ['mail', 'automations'] as const,
   tasks: (params: TaskListParams) => ['mail', 'tasks', params] as const,
   taskLists: () => ['mail', 'tasks'] as const,
   drafts: () => ['mail', 'drafts'] as const,

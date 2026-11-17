@@ -22,6 +22,7 @@ const PREFIXES: Readonly<Record<EntityKind, string>> = {
   calendarSubscription: 'csb',
   calendarConnection: 'ccn',
   googleCalendar: 'gcl',
+  automation: 'aut',
 };
 
 export class RandomIdGenerator implements IdGenerator {
