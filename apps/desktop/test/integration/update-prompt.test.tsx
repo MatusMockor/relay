@@ -121,4 +121,19 @@ describe('update prompt', () => {
     expect(screen.queryByText('Nová verzia je pripravená')).toBeNull();
     expect(desktop.updater.installs).toBe(0);
   });
+
+  it('offers the restart again when the update is ready after a failed install', async () => {
+    const desktop = startDesktop();
+    renderApp({ platform: desktop.platform });
+    await downloadUpdate(desktop, '0.2.0');
+    desktop.updater.failInstallWith(new Error('Squirrel rejected the signature'));
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reštartovať' }));
+    });
+    expect(await screen.findByText('Aktualizáciu sa nepodarilo nainštalovať')).toBeDefined();
+    await downloadUpdate(desktop, '0.2.0');
+    expect(await screen.findByText('Nová verzia je pripravená')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Reštartovať' })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: 'Neskôr' })).toHaveProperty('disabled', false);
+  });
 });
