@@ -43,6 +43,13 @@ const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): S
 export class InitialSync {
   constructor(private readonly deps: InitialSyncDeps) {}
 
+  async holdsCalendar(context: SyncContext, passes: readonly MailboxPass[]): Promise<boolean> {
+    if (passes.some((pass) => completedSyncState(pass.state) === null)) {
+      return true;
+    }
+    return this.deps.calendarParts.hasHeld(context.account);
+  }
+
   async run(context: SyncContext, round: SyncRound): Promise<void> {
     const { steps } = this.deps;
     const selected = new Set(round.passes.map((pass) => pass.mailbox.id));

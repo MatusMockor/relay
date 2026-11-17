@@ -132,7 +132,7 @@ export class AccountSynchronizer {
     }
     const incremental = passes.filter((pass) => completedSyncState(pass.state) !== null);
     const fetched = await this.fetchIncremental(context, incremental, {
-      holdCalendar: incremental.length < passes.length,
+      holdCalendar: await this.deps.initialSync.holdsCalendar(context, passes),
     });
     await this.deps.initialSync.run(context, {
       passes,

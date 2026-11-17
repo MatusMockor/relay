@@ -32,6 +32,11 @@ const rank = (mailboxOrder: readonly MailboxId[], invite: HeldInvite): number =>
 export class HeldInviteRelease {
   constructor(private readonly deps: HeldInviteReleaseDeps) {}
 
+  async hasHeld(account: MailAccount): Promise<boolean> {
+    const work = await this.deps.pendingWork.list(account.id, 'calendar-invite');
+    return work.some((item) => item.payload.held === true);
+  }
+
   async release(
     userId: UserId,
     account: MailAccount,

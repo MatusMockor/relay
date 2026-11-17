@@ -23,6 +23,7 @@ export interface CalendarPartsArrival extends CalendarParts {
 
 export interface CalendarPartsSink {
   queue(work: PendingWorkRepository, arrival: CalendarPartsArrival): Promise<void>;
+  hasHeld(account: MailAccount): Promise<boolean>;
   release(userId: UserId, account: MailAccount, mailboxOrder: readonly MailboxId[]): Promise<void>;
   flush(userId: UserId, account: MailAccount): Promise<void>;
 }

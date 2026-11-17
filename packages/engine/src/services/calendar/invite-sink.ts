@@ -16,6 +16,10 @@ export class InviteSink implements CalendarPartsSink {
     return this.queuer.queue(work, arrival);
   }
 
+  hasHeld(account: MailAccount): Promise<boolean> {
+    return this.held.hasHeld(account);
+  }
+
   release(userId: UserId, account: MailAccount, mailboxOrder: readonly MailboxId[]): Promise<void> {
     return this.held.release(userId, account, mailboxOrder);
   }

@@ -29,7 +29,35 @@ const resetOnNextFetch = (seeded: SeededAccount) => {
   };
 };
 
+const resetOnFetchOf = (seeded: SeededAccount, target: string) => {
+  seeded.server.beforeNextFetch = (path) => {
+    if (path !== target) {
+      resetOnFetchOf(seeded, target);
+      return;
+    }
+    seeded.server.resetUidValidity(path);
+  };
+};
+
 describe('SyncService calendar holds around an unfinished initial sync', () => {
+  it('holds new invitations behind held ones after the unfinished mailbox lost its role', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 1 } });
+    const seeded = await seedAccount(engine);
+    const { server } = seeded;
+    deliverRequest(engine, seeded);
+    resetOnFetchOf(seeded, 'Sent');
+    expect((await sync(engine, seeded)).ok).toBe(true);
+    expect(inviteWork(engine).map((work) => work.payload)).toMatchObject([{ held: true }]);
+    server.mailboxes.set('Sent', { ...server.mailbox('Sent'), role: 'custom' });
+    deliverCancel(engine, seeded, 'INBOX');
+
+    const synced = await sync(engine, seeded);
+
+    expect(synced.ok).toBe(true);
+    expect(masterStatus(engine)).toBe('cancelled');
+    expect(inviteWork(engine)).toEqual([]);
+  });
+
   it('holds a cancellation from an incremental pass until the initial sync of another mailbox is done', async () => {
     const engine = createTestEngine({ sync: { batchSize: 1 } });
     const seeded = await seedAccount(engine);
