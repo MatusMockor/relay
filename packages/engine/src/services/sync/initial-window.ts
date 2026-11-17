@@ -65,14 +65,12 @@ const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
   return Date.parse(frozen.cutoff);
 };
 
-const toEntry = (
+export const windowEntry = (
   pass: MailboxPass,
   header: RemoteThreadHeaders,
-  cutoff: number,
-  stored: ReadonlySet<number>,
-): RankedEntry => {
+  wanted: boolean,
+): WindowEntry => {
   const arrivedAt = Date.parse(header.internalDate);
-  const recent = arrivedAt >= cutoff;
   return {
     pass,
     uid: header.uid,
@@ -81,9 +79,18 @@ const toEntry = (
     parentIds: [...header.inReplyTo, ...header.references],
     subject: header.subject,
     sentAt: header.date,
-    recent,
-    wanted: recent && !stored.has(header.uid),
+    wanted,
   };
+};
+
+const toEntry = (
+  pass: MailboxPass,
+  header: RemoteThreadHeaders,
+  cutoff: number,
+  stored: ReadonlySet<number>,
+): RankedEntry => {
+  const recent = Date.parse(header.internalDate) >= cutoff;
+  return { ...windowEntry(pass, header, recent && !stored.has(header.uid)), recent };
 };
 
 export const mailboxWindow = async (

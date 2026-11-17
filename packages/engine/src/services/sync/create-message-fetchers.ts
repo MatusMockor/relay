@@ -4,6 +4,7 @@ import { IncrementalMessageFetcher } from './incremental-message-fetcher';
 import { InitialSync } from './initial-sync';
 import { MessageFetchSteps, type MessageFetchStepsDeps } from './message-fetch-steps';
 import type { SyncOptions } from './sync-options';
+import { TrashRelatives } from './trash-relatives';
 
 export interface MessageFetchersDeps extends MessageFetchStepsDeps {
   readonly messages: MessageRepository;
@@ -22,6 +23,7 @@ export const createMessageFetchers = (deps: MessageFetchersDeps): MessageFetcher
     incremental: new IncrementalMessageFetcher({ steps, options: deps.options }),
     initialSync: new InitialSync({
       steps,
+      relatives: new TrashRelatives({ messages: deps.messages, logger: deps.logger }),
       messages: deps.messages,
       syncStates: deps.syncStates,
       calendarParts: deps.calendarParts,
