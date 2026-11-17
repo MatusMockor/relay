@@ -20,8 +20,10 @@ export const messageRoleOf =
   (message) =>
     pendingMoves.get(message.id) ?? mailboxRoles.get(message.mailboxId);
 
-const onlyInTrash = (roles: readonly (MailboxRole | undefined)[]): boolean =>
-  roles.length > 0 && roles.every((role) => role === 'trash');
+const onlyInTrash = (roles: readonly (MailboxRole | undefined)[]): boolean => {
+  const placed = roles.filter((role) => role !== 'sent');
+  return placed.length > 0 && placed.every((role) => role === 'trash');
+};
 
 const reappeared = (
   work: ThreadRefreshWork,
