@@ -15,8 +15,15 @@ const AutomationTaskResponseSchema = z.strictObject({
 type AutomationTaskResponse = z.infer<typeof AutomationTaskResponseSchema>;
 
 const TASK: Localized<string> = {
-  sk: 'Úloha: Posúď, či najnovšia správa vo vlákne vyžaduje od používateľa nejakú akciu (odpoveď, rozhodnutie, prácu alebo termín). Ak áno, nastav actionable na true, title je krátky názov úlohy v rozkazovacom spôsobe (najviac 10 slov) a what sú 1 až 2 vety, čo presne treba urobiť a do kedy, ak je termín uvedený. Ak správa je len informatívna, nastav actionable na false a title aj what nechaj prázdne.',
-  en: 'Task: Decide whether the latest message in the thread needs an action from the user (a reply, a decision, work or a deadline). If it does, set actionable to true, title is a short imperative task name (at most 10 words) and what is 1 to 2 sentences saying what exactly has to be done and by when, if a deadline is given. If the message is only informational, set actionable to false and leave title and what empty.',
+  sk: 'Úloha: Posúď, či posudzovaná správa vyžaduje od používateľa nejakú akciu (odpoveď, rozhodnutie, prácu alebo termín). Ak áno, nastav actionable na true, title je krátky názov úlohy v rozkazovacom spôsobe (najviac 10 slov) a what sú 1 až 2 vety, čo presne treba urobiť a do kedy, ak je termín uvedený. Ak správa je len informatívna, nastav actionable na false a title aj what nechaj prázdne.',
+  en: 'Task: Decide whether the message under review needs an action from the user (a reply, a decision, work or a deadline). If it does, set actionable to true, title is a short imperative task name (at most 10 words) and what is 1 to 2 sentences saying what exactly has to be done and by when, if a deadline is given. If the message is only informational, set actionable to false and leave title and what empty.',
+};
+
+const TARGET: Localized<(messageId: string) => string> = {
+  sk: (messageId) =>
+    `Posudzovaná správa je správa s message_id ${messageId}. Ostatné správy vo vlákne ber iba ako kontext.`,
+  en: (messageId) =>
+    `The message under review is the message with message_id ${messageId}. Use the other messages in the thread only as context.`,
 };
 
 const INSTRUCTIONS: Localized<string> = {
@@ -40,6 +47,7 @@ export const automationTaskPrompt: PromptSpec<
   languageRule: 'output',
   task: (_input, context) => TASK[context.language],
   content: (input, context) => [
+    TARGET[context.language](input.messageId),
     ...(input.instructions === null
       ? []
       : [`${INSTRUCTIONS[context.language]} ${input.instructions}`]),

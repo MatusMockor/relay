@@ -70,7 +70,7 @@ export const createDemoAutomations = (
     const keepsPreset = state.automations
       .filter((item) => item.preset !== null)
       .every((item) => next.some((automation) => automation.id === item.id));
-    if (!keepsPreset) {
+    if (!keepsPreset || next.some((item) => item.preset !== null && item.accountId !== null)) {
       return Promise.reject(new Error('Predvolenú automatizáciu môžeš len vypnúť'));
     }
     state.automations = next;

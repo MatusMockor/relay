@@ -145,9 +145,16 @@ describe('default Jira tasks automation', () => {
     ]);
   });
 
-  it('can be turned off but not removed', async () => {
+  it('can be turned off but not removed or scoped to one account', async () => {
     const engine = createTestEngine();
-    await preset(engine);
+    const { account } = await seedAccount(engine);
+    const current = await preset(engine);
+
+    await expect(
+      engine.services.automations.replace(USER_ID, {
+        automations: [{ ...current, accountId: account.id }],
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
 
     await expect(
       engine.services.automations.replace(USER_ID, { automations: [automationInput()] }),

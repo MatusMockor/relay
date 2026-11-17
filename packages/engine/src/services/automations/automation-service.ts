@@ -53,6 +53,11 @@ export class AutomationService {
     if (new Set(automations.map((automation) => automation.id)).size !== automations.length) {
       throw new ValidationError('Automation ids must be unique');
     }
+    if (
+      automations.some((automation) => automation.preset !== null && automation.accountId !== null)
+    ) {
+      throw new ValidationError('The default Jira automation applies to all accounts');
+    }
     if (hasJiraTasksPreset(current) && !hasJiraTasksPreset(automations)) {
       throw new ValidationError('The default Jira automation can be turned off but not removed');
     }

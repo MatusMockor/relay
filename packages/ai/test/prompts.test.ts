@@ -177,6 +177,7 @@ describe('task prompts', () => {
     expect(prompt.text).toContain('Pravidlá používateľa pre toto posúdenie');
     expect(prompt.text).toContain('Presun do iného sprintu ignoruj.');
     expect(prompt.text).toContain('Jira úlohe EF-12');
+    expect(prompt.text).toContain('Posudzovaná správa je správa s message_id msg_1.');
     expect(
       prompt.parse('{"actionable":true,"title":" Opraviť platby ","what":"Do piatku."}'),
     ).toEqual({

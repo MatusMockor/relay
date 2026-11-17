@@ -70,6 +70,8 @@ describe('SqliteAutomationRepository', () => {
 
     expect(saved).toEqual([buildAutomation({ name: 'Premenované', enabled: false })]);
     expect(await automations.listByUser(OTHER_USER)).toHaveLength(1);
+    expect(await automations.replaceAll(LOCAL_USER_ID, [])).toEqual([]);
+    expect(await automations.listByUser(OTHER_USER)).toHaveLength(1);
   });
 
   it('creates a preset only once per user', async () => {
