@@ -9,6 +9,7 @@ import type {
   RemoteMailbox,
   RemoteMailboxStatus,
   RemoteSyncCursor,
+  RemoteThreadHeaders,
 } from '../model/remote-mail';
 import type { MessageFlags } from '@relay/shared/domain';
 
@@ -18,6 +19,16 @@ export interface MailProvider {
   createMailbox(name: string): Promise<RemoteMailbox>;
   status(mailboxPath: string): Promise<RemoteMailboxStatus>;
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage>;
+  fetchUids(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): AsyncIterable<RawMessage>;
+  fetchThreadHeaders(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteThreadHeaders[]>;
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange>;
   listUids(mailboxPath: string): Promise<number[]>;
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null>;

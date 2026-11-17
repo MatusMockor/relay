@@ -1,5 +1,4 @@
 import type { AccountId, MailAccount, Mailbox, MailboxRole, UserId } from '@relay/shared/domain';
-import { UidValidityChangedError } from '../../errors';
 import type { PendingWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
@@ -8,6 +7,8 @@ import type { PendingWorkRepository } from '../../ports/pending-work-repository'
 import type { SplitRepository } from '../../ports/split-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
+import { completedSyncState } from './completed-sync-state';
+import type { InitialSync } from './initial-sync';
 import type { MailboxRefresher } from './mailbox-refresher';
 import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
 import type { SyncBackfill } from './sync-backfill';
@@ -16,6 +17,7 @@ import type { SyncContext, SyncStats } from './sync-context';
 import type { SyncOptions } from './sync-options';
 import type { SyncReporter } from './sync-reporter';
 import { SyncJournal } from './sync-journal';
+import { skipOnUidValidityChange } from './uid-validity-guard';
 
 export interface SyncReport {
   readonly accountId: AccountId;
@@ -31,6 +33,7 @@ export interface AccountSynchronizerDeps {
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
   readonly mailboxSync: MailboxSynchronizer;
+  readonly initialSync: InitialSync;
   readonly flusher: ChangeFlusher;
   readonly backfill: SyncBackfill;
   readonly replayer: ProviderOpReplayer;
@@ -130,6 +133,8 @@ export class AccountSynchronizer {
         passes.push(pass);
       }
     }
+    const initial = passes.filter((pass) => completedSyncState(pass.state) === null);
+    await this.deps.initialSync.run(context, initial);
     for (const pass of passes) {
       await this.deps.mailboxSync.reconcile(context, pass);
     }
@@ -138,23 +143,14 @@ export class AccountSynchronizer {
     await this.deps.replayer.replayPending(context.account, context.provider);
   }
 
-  private async fetchPass(
+  private fetchPass(
     context: SyncContext,
     mailbox: Mailbox,
     role: MailboxRole,
   ): Promise<MailboxPass | null> {
-    try {
-      return await this.deps.mailboxSync.fetch(context, mailbox, role);
-    } catch (error) {
-      if (!(error instanceof UidValidityChangedError)) {
-        throw error;
-      }
-      this.deps.logger.warn('Mailbox UIDVALIDITY changed during the sync, retrying next time', {
-        accountId: context.account.id,
-        mailboxId: mailbox.id,
-      });
-      return null;
-    }
+    return skipOnUidValidityChange(this.deps.logger, context, mailbox, () =>
+      this.deps.mailboxSync.fetch(context, mailbox, role),
+    );
   }
 
   private select(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {

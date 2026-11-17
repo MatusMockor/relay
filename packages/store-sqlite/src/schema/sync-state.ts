@@ -14,6 +14,9 @@ export const syncState = sqliteTable(
     uidValidity: integer('uid_validity').notNull(),
     lastUid: integer('last_uid').notNull(),
     highestModseq: text('highest_modseq'),
+    initialSyncPending: integer('initial_sync_pending', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     syncedAt: text('synced_at').notNull(),
   },
   (table) => [index('sync_state_account_idx').on(table.accountId)],

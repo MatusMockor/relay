@@ -1,6 +1,7 @@
 import type { EngineDeps } from '../../engine-deps';
 import type { EngineEvents } from '../shared/engine-events';
 import { FailedInvitationService } from './failed-invitation-service';
+import { HeldInviteRelease } from './held-invite-release';
 import { DEFAULT_INVITE_BACKFILL_BATCH, InviteBackfill } from './invite-backfill';
 import { InviteIngestor } from './invite-ingestor';
 import { InviteQueue } from './invite-queue';
@@ -44,7 +45,12 @@ export const createInviteComponents = (
     logger,
   });
   const batchSize = deps.options.calendar?.inviteBackfillBatch ?? DEFAULT_INVITE_BACKFILL_BATCH;
-  const sink = new InviteSink(queue, processor);
+  const held = new HeldInviteRelease({
+    pendingWork: repositories.pendingWork,
+    messages: repositories.messages,
+    queue,
+  });
+  const sink = new InviteSink(queue, processor, held);
   return {
     sink,
     backfill: new SyncBackfills([

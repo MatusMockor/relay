@@ -70,6 +70,7 @@ export class InviteBackfill implements SyncBackfill {
           threadId: candidate.threadId,
           parts,
           publish: true,
+          hold: false,
         });
         const { revision: _revision, ...key } = cursor;
         return repositories.pendingWork.put({

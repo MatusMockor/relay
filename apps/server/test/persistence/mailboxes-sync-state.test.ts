@@ -83,14 +83,22 @@ describe('PgSyncStateRepository', () => {
       uidValidity: 4_000_000_000,
       lastUid: 42,
       highestModseq: '18446744073709551615',
+      initialSyncPending: true,
       syncedAt: at(1),
     };
     await context.repositories.syncStates.save(state);
-    await context.repositories.syncStates.save({ ...state, lastUid: 50, syncedAt: at(2) });
+    await expect(context.repositories.syncStates.find(state.mailboxId)).resolves.toEqual(state);
+    await context.repositories.syncStates.save({
+      ...state,
+      lastUid: 50,
+      initialSyncPending: false,
+      syncedAt: at(2),
+    });
 
     await expect(context.repositories.syncStates.find(state.mailboxId)).resolves.toEqual({
       ...state,
       lastUid: 50,
+      initialSyncPending: false,
       syncedAt: at(2),
     });
     await expect(
@@ -108,6 +116,7 @@ describe('PgSyncStateRepository', () => {
       uidValidity: 1,
       lastUid: 1,
       highestModseq: null,
+      initialSyncPending: false,
       syncedAt: at(1),
     });
     await context.repositories.mailboxes.deleteMissing(seeded.account.id, ['INBOX']);

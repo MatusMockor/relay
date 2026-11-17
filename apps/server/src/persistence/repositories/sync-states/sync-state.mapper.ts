@@ -12,6 +12,7 @@ export const toSyncState = (row: SyncStateRow): MailboxSyncState => ({
   uidValidity: row.uidValidity,
   lastUid: row.lastUid,
   highestModseq: row.highestModseq,
+  initialSyncPending: row.initialSyncPending,
   syncedAt: toIso(row.syncedAt),
 });
 
@@ -22,5 +23,6 @@ export const toSyncStateInsert = (userId: UserId, state: MailboxSyncState): Sync
   uidValidity: state.uidValidity,
   lastUid: state.lastUid,
   highestModseq: state.highestModseq,
+  initialSyncPending: state.initialSyncPending,
   syncedAt: toDate(state.syncedAt),
 });

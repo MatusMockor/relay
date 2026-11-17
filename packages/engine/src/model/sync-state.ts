@@ -6,5 +6,6 @@ export interface MailboxSyncState {
   readonly uidValidity: number;
   readonly lastUid: number;
   readonly highestModseq: string | null;
+  readonly initialSyncPending: boolean;
   readonly syncedAt: string;
 }

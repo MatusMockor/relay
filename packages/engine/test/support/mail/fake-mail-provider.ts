@@ -1,6 +1,5 @@
 import type { AccountCredentials, MessageFlags } from '@relay/shared/domain';
 import {
-  PartialMoveError,
   UidValidityChangedError,
   type AppendResult,
   type Disposer,
@@ -13,12 +12,21 @@ import {
   type RemoteMailbox,
   type RemoteMailboxStatus,
   type RemoteSyncCursor,
+  type RemoteThreadHeaders,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
 import { calendarHeaders, CREATED_ROLES, missing, toRaw, toRemote } from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
+import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
+import { threadHeadersOf } from './fake-thread-headers';
+import { applyKeywords, type KeywordMutation, moveRecords } from './fake-writes';
 
 type ChangeListener = (change: MailboxChange) => void;
+
+interface OpenedMailbox {
+  readonly mailbox: FakeMailbox;
+  readonly server: FakeMailServer;
+}
 
 export class FakeMailProvider implements MailProvider {
   private connected = false;
@@ -86,34 +94,45 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage> {
-    const beforeFetch = this.server?.beforeNextFetch ?? null;
-    if (this.server !== null) {
-      this.server.beforeNextFetch = null;
+    const opened = this.openStream(mailboxPath, cursor?.uidValidity ?? null);
+    if (opened instanceof Error) {
+      return failingItems(opened);
     }
-    beforeFetch?.(mailboxPath);
-    const mailbox = this.streamMailbox(mailboxPath, `Cannot fetch ${mailboxPath}`);
-    if (mailbox instanceof Error) {
-      return failingItems(mailbox);
+    return streamRecords(opened.server, mailboxPath, recordsSince(opened.mailbox, cursor));
+  }
+
+  fetchUids(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): AsyncIterable<RawMessage> {
+    const opened = this.openStream(mailboxPath, uidValidity);
+    if (opened instanceof Error) {
+      return failingItems(opened);
     }
-    if (cursor !== null && cursor.uidValidity !== mailbox.uidValidity) {
-      return failingItems(
-        new UidValidityChangedError(mailboxPath, cursor.uidValidity, mailbox.uidValidity),
-      );
+    return streamRecords(opened.server, mailboxPath, recordsOf(opened.mailbox, uids));
+  }
+
+  fetchThreadHeaders(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteThreadHeaders[]> {
+    const opened = this.openStream(mailboxPath, uidValidity);
+    if (opened instanceof Error) {
+      return Promise.reject(opened);
     }
-    const records = [...mailbox.messages.values()]
-      .filter((record) => record.uid > (cursor?.lastUid ?? 0))
-      .sort((a, b) => a.uid - b.uid);
-    return asyncItems(records.map((record) => toRaw(mailboxPath, record)));
+    return Promise.resolve(recordsOf(opened.mailbox, uids).map(threadHeadersOf));
   }
 
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange> {
-    const mailbox = this.streamMailbox(mailboxPath, `Cannot fetch flags of ${mailboxPath}`);
-    if (mailbox instanceof Error) {
-      return failingItems(mailbox);
+    const opened = this.streamMailbox(mailboxPath, `Cannot fetch flags of ${mailboxPath}`);
+    if (opened instanceof Error) {
+      return failingItems(opened);
     }
     const since = BigInt(sinceModseq);
     return asyncItems(
-      [...mailbox.messages.values()]
+      [...opened.mailbox.messages.values()]
         .filter((record) => record.modseq > since)
         .map((record) => ({
           uid: record.uid,
@@ -168,42 +187,18 @@ export class FakeMailProvider implements MailProvider {
   setKeywords(
     mailboxPath: string,
     uids: readonly number[],
-    mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
+    mutation: KeywordMutation,
   ): Promise<void> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
-      uids.forEach((uid) => {
-        const current = mailbox.messages.get(uid)?.keywords ?? [];
-        const next = [...new Set([...current, ...mutation.add])].filter(
-          (keyword) => !mutation.remove.includes(keyword),
-        );
-        server.updateKeywords(mailboxPath, uid, next);
-      });
+      applyKeywords(mailbox, server, uids, mutation);
       return Promise.resolve();
     });
   }
 
   move(mailboxPath: string, uids: readonly number[], targetPath: string): Promise<MoveResult> {
-    return this.withMailbox(mailboxPath, (mailbox, server) => {
-      if (server.find(targetPath) === null) {
-        return missing(`Mailbox ${targetPath}`);
-      }
-      const uidMap = new Map<number, number>();
-      uids.forEach((uid) => {
-        const record = mailbox.messages.get(uid);
-        const newUid =
-          record === undefined ? null : server.tryDeliver(targetPath, record.source, record);
-        if (newUid !== null && !server.partialMoves) {
-          server.expunge(mailboxPath, uid);
-        }
-        if (newUid !== null) {
-          uidMap.set(uid, newUid);
-        }
-      });
-      if (server.partialMoves) {
-        return Promise.reject(new PartialMoveError(mailboxPath, targetPath, uidMap));
-      }
-      return Promise.resolve({ uidMap: server.uidplus ? uidMap : new Map<number, number>() });
-    });
+    return this.withMailbox(mailboxPath, (mailbox, server) =>
+      moveRecords(mailbox, server, uids, targetPath),
+    );
   }
 
   append(
@@ -251,7 +246,24 @@ export class FakeMailProvider implements MailProvider {
     return Promise.resolve();
   }
 
-  private streamMailbox(path: string, failure: string): FakeMailbox | Error {
+  private openStream(path: string, uidValidity: number | null): OpenedMailbox | Error {
+    const beforeFetch = this.server?.beforeNextFetch ?? null;
+    if (this.server !== null) {
+      this.server.beforeNextFetch = null;
+    }
+    beforeFetch?.(path);
+    const opened = this.streamMailbox(path, `Cannot fetch ${path}`);
+    if (opened instanceof Error) {
+      return opened;
+    }
+    const actual = opened.mailbox.uidValidity;
+    if (uidValidity !== null && uidValidity !== actual) {
+      return new UidValidityChangedError(path, uidValidity, actual);
+    }
+    return opened;
+  }
+
+  private streamMailbox(path: string, failure: string): OpenedMailbox | Error {
     const server = this.connected ? this.server : null;
     const mailbox = server?.find(path) ?? null;
     if (server === null || mailbox === null) {
@@ -260,7 +272,7 @@ export class FakeMailProvider implements MailProvider {
     if (server.failOperations !== null) {
       return new Error(server.failOperations);
     }
-    return mailbox;
+    return { mailbox, server };
   }
 
   private withMailbox<Result>(

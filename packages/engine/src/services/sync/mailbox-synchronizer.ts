@@ -4,8 +4,9 @@ import type { MailboxSyncState } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import { completedSyncState } from './completed-sync-state';
+import type { IncrementalMessageFetcher } from './incremental-message-fetcher';
 import type { MailboxReconciler } from './mailbox-reconciler';
-import type { NewMessageFetcher } from './new-message-fetcher';
 import type { SyncContext } from './sync-context';
 
 export interface MailboxPass {
@@ -19,7 +20,7 @@ export interface MailboxSynchronizerDeps {
   readonly mailboxes: MailboxRepository;
   readonly syncStates: SyncStateRepository;
   readonly reconciler: MailboxReconciler;
-  readonly fetcher: NewMessageFetcher;
+  readonly incremental: IncrementalMessageFetcher;
   readonly clock: Clock;
 }
 
@@ -34,7 +35,10 @@ export class MailboxSynchronizer {
       await this.deps.reconciler.reset(context, mailbox, role);
     }
     const pass: MailboxPass = { mailbox, role, state: reset ? null : stored, status };
-    await this.deps.fetcher.fetch(context, pass);
+    const completed = completedSyncState(pass.state);
+    if (completed !== null) {
+      await this.deps.incremental.fetch(context, pass, completed);
+    }
     await this.deps.mailboxes.updateCounts(mailbox.id, {
       unreadCount: status.unseen,
       totalCount: status.messages,
@@ -43,11 +47,12 @@ export class MailboxSynchronizer {
   }
 
   async reconcile(context: SyncContext, pass: MailboxPass): Promise<void> {
-    if (pass.state === null) {
+    const state = completedSyncState(pass.state);
+    if (state === null) {
       return;
     }
     await this.deps.reconciler.expunges(context, pass.mailbox, pass.role);
-    await this.deps.reconciler.flagChanges(context, pass.mailbox, pass.state, pass.status);
+    await this.deps.reconciler.flagChanges(context, pass.mailbox, state, pass.status);
     const current = await this.deps.syncStates.find(pass.mailbox.id);
     if (current === null) {
       return;

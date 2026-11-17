@@ -60,7 +60,7 @@ shared  ◄── engine ◄── store-sqlite
 ## Hexagonal core (`@relay/engine`)
 
 - **Ports** (interfaces, one per file) in `engine/src/ports/`:
-  - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
+  - repositories: `AccountRepository`, `MailboxRepository`, `MessageRepository`, `ThreadRepository` (folder-view query with cursor pagination, unified or per account), `LabelRepository`, `SplitRepository`, `TaskRepository`, `ReminderRepository`, `DraftRepository`, `ScheduledSendRepository`, `SettingsRepository`, `AiResultRepository`, `AiJobRepository`, `SyncStateRepository` (UIDVALIDITY / last UID / HIGHESTMODSEQ / initial-sync-pending flag per mailbox). User-facing methods take the `UserId` first; sync-internal methods are keyed by account or mailbox.
   - `UnitOfWork.run(work)` passes transaction-bound `Repositories` to `work`.
   - mail: `MailProvider`, `MailProviderFactory`, `MailSender`, `CredentialVault`, `AttachmentStore`, `MessageParser`, `ThreadResolver`, `JiraClassifier`, `SplitMatcher`.
   - AI: `AiRunner` (`run(request): AsyncIterable<AiEvent>`), `AiRunnerRegistry`.

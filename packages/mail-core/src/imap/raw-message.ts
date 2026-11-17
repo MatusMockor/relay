@@ -10,7 +10,7 @@ export const FULL_MESSAGE_QUERY: FetchQueryObject = {
   source: true,
 };
 
-const toIsoDate = (value: Date | string | undefined): string => {
+export const toIsoDate = (value: Date | string | undefined): string => {
   const date = value === undefined ? new Date(0) : new Date(value);
   if (Number.isNaN(date.getTime())) {
     return new Date(0).toISOString();

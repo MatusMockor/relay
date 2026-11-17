@@ -3,7 +3,7 @@ import type { CalendarExpander, CalendarParser } from '../../ports/calendar-adap
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
-import type { CalendarPartsArrival } from '../sync/calendar-parts-sink';
+import type { CalendarParts } from '../sync/calendar-parts-sink';
 import { InviteCancelHandler } from './invite-cancel-handler';
 import type { InviteContext, InviteHandler } from './invite-context';
 import { InviteReplyHandler } from './invite-reply-handler';
@@ -37,7 +37,7 @@ export class InviteIngestor {
   async apply(
     repositories: Repositories,
     userId: UserId,
-    arrival: CalendarPartsArrival,
+    arrival: CalendarParts,
     uid?: string,
   ): Promise<boolean> {
     let changed = false;

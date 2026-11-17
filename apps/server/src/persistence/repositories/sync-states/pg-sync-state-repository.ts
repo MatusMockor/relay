@@ -30,6 +30,7 @@ export class PgSyncStateRepository implements SyncStateRepository {
           uidValidity: values.uidValidity,
           lastUid: values.lastUid,
           highestModseq: values.highestModseq,
+          initialSyncPending: values.initialSyncPending,
           syncedAt: values.syncedAt,
         },
         setWhere: eq(syncState.accountId, state.accountId),

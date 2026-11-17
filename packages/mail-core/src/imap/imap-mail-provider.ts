@@ -10,10 +10,13 @@ import type {
   RemoteMailbox,
   RemoteMailboxStatus,
   RemoteSyncCursor,
+  RemoteThreadHeaders,
 } from '@relay/engine';
 import type { MessageFlags } from '@relay/shared/domain';
 import { fetchFlagChanges } from './fetch-flag-changes';
 import { fetchSince } from './fetch-since';
+import { fetchThreadHeaders } from './fetch-thread-headers';
+import { fetchUids } from './fetch-uids';
 import { DEFAULT_IDLE_OPTIONS, IdleWatcher, type IdleWatcherOptions } from './idle-watcher';
 import { createMailbox } from './create-mailbox';
 import type { ImapClientFactory } from './imap-client-factory';
@@ -65,6 +68,22 @@ export class ImapMailProvider implements MailProvider {
 
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage> {
     return fetchSince(this.connection, mailboxPath, cursor, this.fetchBatchSize);
+  }
+
+  fetchUids(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): AsyncIterable<RawMessage> {
+    return fetchUids(this.connection, mailboxPath, uidValidity, uids, this.fetchBatchSize);
+  }
+
+  fetchThreadHeaders(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteThreadHeaders[]> {
+    return fetchThreadHeaders(this.connection, mailboxPath, uidValidity, uids, this.fetchBatchSize);
   }
 
   async *fetchFlagChanges(

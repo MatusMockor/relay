@@ -1,0 +1,1 @@
+ALTER TABLE `sync_state` ADD `initial_sync_pending` integer DEFAULT false NOT NULL;

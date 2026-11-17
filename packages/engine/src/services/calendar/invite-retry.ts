@@ -4,6 +4,7 @@ const RETRY_DELAYS_MS = [60_000, 300_000, 1_800_000, 7_200_000, 43_200_000];
 const MAX_ERROR_LENGTH = 500;
 
 export const isDue = (work: CalendarInviteWork, now: Date): boolean =>
+  work.held !== true &&
   work.failedAt === null &&
   (work.nextAttemptAt === null || Date.parse(work.nextAttemptAt) <= now.getTime());
 

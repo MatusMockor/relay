@@ -1,5 +1,5 @@
 import type { AccountId, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
-import { bigint, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { mailAccounts } from './accounts';
 import { timestampTz } from './columns';
 import { users } from './users';
@@ -46,5 +46,6 @@ export const syncState = pgTable('sync_state', {
   uidValidity: bigint('uid_validity', { mode: 'number' }).notNull(),
   lastUid: bigint('last_uid', { mode: 'number' }).notNull(),
   highestModseq: text('highest_modseq'),
+  initialSyncPending: boolean('initial_sync_pending').notNull().default(false),
   syncedAt: timestampTz('synced_at').notNull(),
 });
