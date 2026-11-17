@@ -24,6 +24,7 @@ import { PersistenceModule } from './persistence';
 import { toPersistenceConfig } from './persistence-config.factory';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SettingsModule } from './settings/settings.module';
+import { AutomationsModule } from './automations/automations.module';
 import { SplitsModule } from './splits/splits.module';
 import { SyncModule } from './sync/sync.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -57,6 +58,7 @@ export class AppModule {
         ComposeModule,
         AttachmentsModule,
         SplitsModule,
+        AutomationsModule,
         AccountsModule,
         SettingsModule,
         SyncModule,

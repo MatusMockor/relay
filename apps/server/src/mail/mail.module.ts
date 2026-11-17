@@ -14,6 +14,7 @@ import {
   type OAuthTokenProvider,
   ReferencesThreadResolver,
   RuleJiraClassifier,
+  RuleAutomationMatcher,
   RuleSplitMatcher,
   SmtpMailSender,
 } from '@relay/mail-core';
@@ -62,6 +63,7 @@ const OAUTH_TOKEN_PROVIDER = Symbol.for('relay.server.OAuthTokenProvider');
     },
     { provide: PORT_TOKENS.JiraClassifier, useFactory: () => new RuleJiraClassifier() },
     { provide: PORT_TOKENS.SplitMatcher, useFactory: () => new RuleSplitMatcher() },
+    { provide: PORT_TOKENS.AutomationMatcher, useFactory: () => new RuleAutomationMatcher() },
     {
       provide: OAUTH_CODE_EXCHANGER,
       inject: [SERVER_CONFIG, PORT_TOKENS.Clock],
@@ -77,6 +79,7 @@ const OAUTH_TOKEN_PROVIDER = Symbol.for('relay.server.OAuthTokenProvider');
     PORT_TOKENS.ThreadResolver,
     PORT_TOKENS.JiraClassifier,
     PORT_TOKENS.SplitMatcher,
+    PORT_TOKENS.AutomationMatcher,
     OAUTH_CODE_EXCHANGER,
   ],
 })

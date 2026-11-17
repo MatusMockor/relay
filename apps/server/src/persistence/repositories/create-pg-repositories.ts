@@ -3,6 +3,8 @@ import type { DbExecutor } from '../database/database';
 import { PgAccountRepository } from './accounts/pg-account-repository';
 import { PgAiJobRepository } from './ai-jobs/pg-ai-job-repository';
 import { PgAiResultRepository } from './ai-results/pg-ai-result-repository';
+import { PgAutomationRepository } from './automations/pg-automation-repository';
+import { PgAutomationRunRepository } from './automations/pg-automation-run-repository';
 import { PgCalendarEventRepository } from './calendar/pg-calendar-event-repository';
 import { PgCalendarSubscriptionRepository } from './calendar/pg-calendar-subscription-repository';
 import { PgDeviceRepository } from './devices/pg-device-repository';
@@ -32,6 +34,8 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   threads: new PgThreadRepository(db),
   labels: new PgLabelRepository(db),
   splits: new PgSplitRepository(db),
+  automations: new PgAutomationRepository(db),
+  automationRuns: new PgAutomationRunRepository(db),
   tasks: new PgTaskRepository(db),
   reminders: new PgReminderRepository(db),
   drafts: new PgDraftRepository(db),

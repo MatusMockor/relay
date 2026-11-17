@@ -1,4 +1,5 @@
 import type {
+  AiEffort,
   AiJobId,
   AiJobInput,
   AiJobStatus,
@@ -56,6 +57,8 @@ export const aiJobs = pgTable(
     status: text('status').$type<AiJobStatus>().notNull(),
     runnerLocation: text('runner_location').$type<AiRunnerLocation>().notNull(),
     runner: text('runner').$type<AiRunnerKind>().notNull(),
+    model: text('model'),
+    effort: text('effort').$type<AiEffort>(),
     input: jsonb('input').$type<AiJobInput>().notNull(),
     output: jsonb('output').$type<AiOutput>(),
     error: text('error'),
