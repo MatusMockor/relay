@@ -28,7 +28,7 @@ export function SettingRow({ title, description, scope, children }: SettingRowPr
       <div className="l">
         <b>
           {title}
-          {scope === undefined ? null : <ScopeBadge scope={scope} />}
+          {scope === 'device' ? <ScopeBadge scope={scope} /> : null}
         </b>
         {description === undefined ? null : <span>{description}</span>}
       </div>

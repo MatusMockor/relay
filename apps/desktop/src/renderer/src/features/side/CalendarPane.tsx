@@ -92,7 +92,7 @@ export function CalendarPane() {
           <AgendaList occurrences={events} base={base} offset={day} now={now} />
         )}
         {demo ? (
-          <p className="mono">Ukážková agenda</p>
+          <p className="cal-foot">Ukážková agenda</p>
         ) : (
           <p className="cal-foot">
             Pozvánky z mailov sa pridávajú samé.{' '}

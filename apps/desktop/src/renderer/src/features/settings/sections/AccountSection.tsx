@@ -14,7 +14,7 @@ export function AccountSection() {
   if (services?.mode !== 'synced') {
     return (
       <>
-        <SectionHeader title="Účet">
+        <SectionHeader title="Relay účet">
           Používaš Relay bez účtu. Pošta aj nastavenia ostávajú len na tomto zariadení.
         </SectionHeader>
         <SettingRow
@@ -36,7 +36,7 @@ export function AccountSection() {
   }
   return (
     <>
-      <SectionHeader title="Účet">
+      <SectionHeader title="Relay účet">
         Prihlásený používateľ na serveri {services.serverUrl}.
       </SectionHeader>
       <SettingRow title={user?.displayName ?? 'Používateľ'} description={user?.email ?? ''}>

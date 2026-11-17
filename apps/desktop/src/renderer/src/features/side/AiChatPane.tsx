@@ -1,7 +1,7 @@
 import type { AiRunnerKind } from '@relay/shared';
 import { Kbd, Spark } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useThreadDetail, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
@@ -57,22 +57,21 @@ export function AiChatPane() {
         <span className="ctx">
           Kontext: <b>{threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}</b>
         </span>
-        <span className="runner">
-          {RUNNERS.map(([kind, label], index) => (
-            <Fragment key={kind}>
-              {index > 0 ? <span className="dt">·</span> : null}
-              <button
-                type="button"
-                className={kind === activeRunner ? 'on' : undefined}
-                title={`Spustiť cez ${label}`}
-                onClick={() => {
-                  setRunner(kind);
-                  void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
-                }}
-              >
-                {label}
-              </button>
-            </Fragment>
+        <span className="runner" role="group" aria-label="Spustiť cez">
+          {RUNNERS.map(([kind, label]) => (
+            <button
+              key={kind}
+              type="button"
+              className={kind === activeRunner ? 'on' : undefined}
+              aria-pressed={kind === activeRunner}
+              title={`Spustiť cez ${label}`}
+              onClick={() => {
+                setRunner(kind);
+                void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
+              }}
+            >
+              {label}
+            </button>
           ))}
         </span>
       </div>

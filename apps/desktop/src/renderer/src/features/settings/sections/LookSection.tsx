@@ -17,16 +17,16 @@ export function LookSection() {
   const density = settings.data?.density ?? 'normal';
   return (
     <>
-      <SectionHeader title="Vzhľad">
-        Rozloženie, šírky panelov a zvolený účet si appka pamätá aj po zatvorení.
+      <SectionHeader title="Vzhľad" stored>
+        Ako hustý je zoznam a ktoré panely vidíš. Rozloženie si Relay pamätá aj po zatvorení.
       </SectionHeader>
       <SettingRow
         title="Hustota zoznamu"
         scope="synced"
         description={
           density === 'compact'
-            ? 'Riadky majú 36 px, zmestí sa viac mailov naraz'
-            : 'Riadky majú 46 px, viac vzduchu medzi mailmi'
+            ? 'Nižšie riadky, zmestí sa viac mailov naraz'
+            : 'Viac vzduchu medzi mailmi, ľahšie sa číta'
         }
       >
         <Segmented
@@ -44,7 +44,7 @@ export function LookSection() {
       <SettingRow
         title="Šírky panelov"
         scope="device"
-        description={`Priečinky ${String(layout.sidebar)} px, pravý panel ${String(layout.rightPanel)} px. Potiahni okraj panela, dvojklik obnoví.`}
+        description="Šírku zmeníš potiahnutím okraja panela, dvojklik na okraj ju vráti"
       >
         <Button
           onClick={() => {
@@ -60,7 +60,7 @@ export function LookSection() {
         scope="device"
         description={
           layout.leftVisible
-            ? 'Zobrazené. Pod šírkou 1180 px sa skryjú samy.'
+            ? 'Zobrazené, v úzkom okne sa skryjú samy'
             : 'Skryté, zoznam má viac miesta'
         }
       >
@@ -105,8 +105,8 @@ export function LookSection() {
           }}
         />
       </SettingRow>
-      <SettingRow title="Téma" description="Podľa schváleného návrhu">
-        Tmavá
+      <SettingRow title="Téma" description="Relay má zatiaľ jednu tému, tmavú">
+        <span className="ro-val">Tmavá</span>
       </SettingRow>
     </>
   );

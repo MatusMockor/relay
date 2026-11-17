@@ -159,7 +159,7 @@
   white-space: nowrap;
 }
 .toast .dt {
-  color: var(--faint);
+  color: var(--muted);
 }
 .toast .u {
   color: var(--accent);

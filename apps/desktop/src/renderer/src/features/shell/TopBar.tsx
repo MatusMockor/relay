@@ -4,6 +4,7 @@ import { MOD } from '../../lib/platform-keys';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { closeSearch, openRight, openSearch, toggleRight } from '../mail/navigation';
 import { FolderTitle } from './FolderTitle';
+import { MeAvatar } from './MeAvatar';
 import { SplitTabs } from './SplitTabs';
 import { ThreadNav } from './ThreadNav';
 
@@ -104,7 +105,7 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
             setUi({ overlay: { kind: 'settings', section: 'accounts', adding: false } });
           }}
         >
-          <span className="av sm c1">JA</span>
+          <MeAvatar size="sm" />
         </button>
       </div>
     </div>

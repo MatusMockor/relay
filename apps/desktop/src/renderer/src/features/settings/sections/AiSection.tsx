@@ -80,7 +80,7 @@ export function AiSection() {
     : 'Na počítači s aplikáciou Relay. V prehliadači lokálne AI nebeží.';
   return (
     <>
-      <SectionHeader title="AI">
+      <SectionHeader title="AI" stored>
         AI spúšťa Claude Code alebo Codex CLI na tvojom predplatnom. Obsah mailov je nedôveryhodný
         vstup a odoslanie vždy potvrdzuješ ty.
       </SectionHeader>

@@ -1,3 +1,5 @@
+import { withBlockedImagePlaceholders } from './blocked-images';
+
 const IMAGE_TAG_PATTERN = /<(img|source)\b[^>]*>/gi;
 const IMAGE_ATTRIBUTE_PATTERN = /(?<![\w-])(src|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
 const REMOTE_URL_PATTERN = /^\s*(?:https?:)?\/\//i;
@@ -35,13 +37,16 @@ export const mailCsp = (allowRemote: boolean): string =>
 const escapeAttribute = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
-export const buildMailDocument = (html: string, allowRemote: boolean): string =>
+const documentOf = (html: string, allowRemote: boolean): string =>
   [
     '<!doctype html><html><head><meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="${escapeAttribute(mailCsp(allowRemote))}">`,
     '<base target="_blank">',
-    '<style>html,body{margin:0;padding:16px;background:#fff;color:#1b1d23;font:14px/1.5 -apple-system,"Segoe UI",Inter,sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto}</style>',
+    '<style>html,body{margin:0;padding:16px;background:#f6f6f8;color:#1b1d23;font:14px/1.5 -apple-system,"Segoe UI",Inter,sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto}</style>',
     '</head><body>',
     html.replace(/<script\b[\s\S]*?<\/script>/gi, ''),
     '</body></html>',
   ].join('');
+
+export const buildMailDocument = (html: string, allowRemote: boolean): string =>
+  documentOf(allowRemote ? html : withBlockedImagePlaceholders(html), allowRemote);

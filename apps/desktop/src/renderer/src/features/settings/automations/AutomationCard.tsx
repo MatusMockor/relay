@@ -67,7 +67,9 @@ export function AutomationCard({
           >
             <Icon name="trash" />
           </IconButton>
-        ) : null}
+        ) : (
+          <span className="au-slot" aria-hidden="true" />
+        )}
       </div>
       <RuleSentence
         rule={rule}

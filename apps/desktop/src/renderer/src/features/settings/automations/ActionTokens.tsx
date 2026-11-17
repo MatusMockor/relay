@@ -26,37 +26,39 @@ export function ActionTokens({ actions, disabled, onChange, onEngage }: ActionTo
     <>
       {actions.map((action) => (
         <Fragment key={action}>
-          <TokenPopover
-            className="tk a"
-            label={`Zmeniť akciu ${ACTION_LABELS[action]}`}
-            popoverLabel="Zmeniť akciu"
-            content={ACTION_LABELS[action]}
-            disabled={disabled || unused.length === 0}
-            onOpen={onEngage}
-          >
-            {(close) => (
-              <OptionList
-                title="Zmeniť na"
-                options={choices((next) => {
-                  onChange(actions.map((item) => (item === action ? next : item)));
-                }, close)}
-              />
-            )}
-          </TokenPopover>
-          {actions.length > 1 ? (
-            <button
-              type="button"
-              className="tk-x"
-              aria-label={`Odstrániť akciu ${ACTION_LABELS[action]}`}
-              disabled={disabled}
-              onClick={() => {
-                onEngage();
-                onChange(actions.filter((item) => item !== action));
-              }}
+          <span className={actions.length > 1 ? 'tk-g a' : 'tk-g a solo'}>
+            <TokenPopover
+              className="tk a"
+              label={`Zmeniť akciu ${ACTION_LABELS[action]}`}
+              popoverLabel="Zmeniť akciu"
+              content={ACTION_LABELS[action]}
+              disabled={disabled || unused.length === 0}
+              onOpen={onEngage}
             >
-              ×
-            </button>
-          ) : null}{' '}
+              {(close) => (
+                <OptionList
+                  title="Zmeniť na"
+                  options={choices((next) => {
+                    onChange(actions.map((item) => (item === action ? next : item)));
+                  }, close)}
+                />
+              )}
+            </TokenPopover>
+            {actions.length > 1 ? (
+              <button
+                type="button"
+                className="tk-x"
+                aria-label={`Odstrániť akciu ${ACTION_LABELS[action]}`}
+                disabled={disabled}
+                onClick={() => {
+                  onEngage();
+                  onChange(actions.filter((item) => item !== action));
+                }}
+              >
+                ×
+              </button>
+            ) : null}
+          </span>{' '}
         </Fragment>
       ))}
       {unused.length === 0 ? null : (

@@ -41,7 +41,11 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding: 10px 0 12px;
+  padding: 12px 0 16px;
+}
+.acc-f .btn.danger {
+  border-color: rgba(255, 122, 122, 0.3);
+  background: transparent;
 }
 .swatches {
   display: flex;
@@ -174,9 +178,4 @@
   margin: 0;
   color: var(--fg2);
   font-size: var(--fs-base);
-}
-.rule .cnt {
-  display: flex;
-  gap: 8px;
-  align-items: center;
 }

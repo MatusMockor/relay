@@ -23,7 +23,7 @@
   min-width: 0;
 }
 .update-prompt-text span {
-  color: var(--faint);
+  color: var(--muted);
 }
 .update-prompt-actions {
   display: flex;

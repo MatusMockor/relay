@@ -32,7 +32,8 @@ export function ContactHeader({
       <p>{subtitle}</p>
       {account === undefined ? null : (
         <p className="a-acct">
-          <AccountDot account={accountLike(account)} /> {account.displayName}
+          <AccountDot account={accountLike(account)} />
+          {account.displayName}
         </p>
       )}
       {children}

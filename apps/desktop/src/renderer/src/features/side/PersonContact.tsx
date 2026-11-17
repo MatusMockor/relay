@@ -3,7 +3,7 @@ import { Button, Icon, Spark } from '@relay/ui';
 import { useTasks } from '../../data/hooks/use-mail-queries';
 import { listTimeLabel } from '../../lib/dates';
 import { plural } from '../../lib/text';
-import { setUi } from '../../state/ui-store';
+import { setUi, useUiStore } from '../../state/ui-store';
 import { jiraActorOf } from '../mail/jira-display';
 import { openRight, openThread } from '../mail/navigation';
 import { useChat } from './chat-store';
@@ -74,6 +74,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
     jira,
   );
   const address = actor === null ? person.email : `Jira · ${person.email}`;
+  const summaryShown = useUiStore((state) => state.openThreadId === thread.id);
   return (
     <>
       <ContactHeader
@@ -84,7 +85,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
       >
         {actions ? <ContactActions person={person} name={name} /> : null}
       </ContactHeader>
-      {thread.aiOneLiner === null ? null : (
+      {thread.aiOneLiner === null || summaryShown ? null : (
         <div className="ai-card">
           <span className="h">
             <Spark />

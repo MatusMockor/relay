@@ -48,13 +48,13 @@
   box-shadow: 0 0 0 3px rgba(142, 162, 255, 0.12);
 }
 .a-row .who {
-  color: var(--fg3);
+  color: var(--fg2);
   font-weight: var(--w-regular);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
   align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 .a-row .who .who-n {
@@ -68,19 +68,6 @@
   font-size: var(--fs-xs);
   font-weight: var(--w-medium);
   font-variant-numeric: tabular-nums;
-  margin-left: 6px;
-}
-.a-row .who small.via {
-  font-size: var(--fs-2xs);
-  letter-spacing: 0.02em;
-  padding: 0 5px;
-  line-height: 16px;
-  border-radius: 4px;
-  background: var(--raised);
-  color: var(--muted);
-}
-.a-row .who .acc-dot {
-  margin: 0 8px 0 0;
 }
 .a-row.unread .who {
   color: var(--fg);
@@ -95,22 +82,17 @@
 }
 .a-row .line > .chip {
   flex: none;
-  margin-right: -2px;
 }
 .a-row .subj {
-  color: var(--fg3);
+  color: var(--fg2);
   flex: 0 1 auto;
-  min-width: 64px;
-  max-width: 56%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .a-row.unread .subj {
   color: var(--fg);
-  font-weight: var(--w-medium);
-}
-.a-row .line:has(.snip.ai) .subj {
-  max-width: 48%;
+  font-weight: var(--w-semibold);
 }
 .a-row .snip {
   color: var(--muted);
@@ -120,19 +102,7 @@
   flex: 1 1 0;
 }
 .a-row .snip.ai {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.a-row .snip.ai svg {
-  color: var(--accent);
-  opacity: 0.7;
-  width: 11px;
-  height: 11px;
-}
-.a-row .snip.ai span {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--ai-ink);
 }
 .a-row .st {
   margin-left: auto;
@@ -146,8 +116,8 @@
 }
 .st::before {
   content: '';
-  width: 6px;
-  height: 6px;
+  width: var(--dot-size);
+  height: var(--dot-size);
   border-radius: 50%;
   background: var(--muted);
 }
@@ -163,17 +133,25 @@
 .st-ok::before {
   background: var(--ok);
 }
+.a-row .when {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dot-gap);
+  min-width: 46px;
+}
 .a-row time {
   color: var(--muted);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  min-width: 34px;
-  text-align: right;
 }
 .a-row.unread time {
   color: var(--fg2);
   font-weight: var(--w-medium);
+}
+.a-row:hover .when .acc-dot {
+  visibility: hidden;
 }
 .a-row .acts {
   position: absolute;
@@ -257,10 +235,6 @@
     grid-template-columns: 6px 96px minmax(0, 1fr) auto;
     gap: 8px;
     padding: 0 8px;
-  }
-  .a-row .subj,
-  .a-row .line:has(.snip.ai) .subj {
-    max-width: 58%;
   }
   .a-row .line > .chip {
     display: none;

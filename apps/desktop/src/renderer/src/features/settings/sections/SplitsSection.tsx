@@ -1,5 +1,5 @@
 import type { Split, SplitInput, SplitRule } from '@relay/shared';
-import { AccountDot, Button, Field, Switch } from '@relay/ui';
+import { AccountDot, Button, Field, Icon, IconButton, Switch } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
@@ -8,7 +8,6 @@ import { useClient } from '../../../data/hooks/services-context';
 import { useSplits } from '../../../data/hooks/use-mail-queries';
 import { showToast } from '../../../state/toast-store';
 import { accountLike, useAccountsModel } from '../../mail/use-accounts-model';
-import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
 
 export const describeRule = (rule: SplitRule): string => {
@@ -87,7 +86,7 @@ export function SplitsSection() {
   };
   return (
     <>
-      <SectionHeader title="Split Inbox">
+      <SectionHeader title="Split Inbox" stored>
         Splity rozdelia Doručenú poštu na tematické záložky. Pravidlá bežia pri každej
         synchronizácii, zhora nadol. Všetko ostatné ostáva v Dôležitých.
       </SectionHeader>
@@ -96,9 +95,11 @@ export function SplitsSection() {
         return (
           <div className="rule" key={split.id}>
             <b>
-              {account === null || account === undefined ? null : (
-                <AccountDot account={accountLike(account)} />
-              )}{' '}
+              <span className="dot-slot">
+                {account === null || account === undefined ? null : (
+                  <AccountDot account={accountLike(account)} />
+                )}
+              </span>
               {split.name}
             </b>
             <p>
@@ -119,49 +120,40 @@ export function SplitsSection() {
                   );
                 }}
               />
-              <Button
-                variant="danger"
+              <IconButton
+                label={`Odstrániť split ${split.name}`}
                 disabled={locked}
                 onClick={() => {
                   save(list.filter((item) => item.id !== split.id).map(toInput));
                 }}
               >
-                Odstrániť
-              </Button>
+                <Icon name="trash" />
+              </IconButton>
             </span>
           </div>
         );
       })}
-      <div className="form">
-        <div className="fld-2">
-          <Field
-            label="Nový split"
-            placeholder="napr. Klienti"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-            }}
-          />
-          <Field
-            label="Doména"
-            placeholder="firma.sk"
-            value={domain}
-            onChange={(event) => {
-              setDomain(event.target.value);
-            }}
-          />
-        </div>
-        <div className="btns">
-          <Button onClick={add} disabled={locked}>
-            Pridať split
-          </Button>
-        </div>
+      <div className="split-add">
+        <Field
+          label="Nový split"
+          placeholder="napr. Klienti"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
+        />
+        <Field
+          label="Doména"
+          placeholder="firma.sk"
+          value={domain}
+          onChange={(event) => {
+            setDomain(event.target.value);
+          }}
+        />
+        <Button onClick={add} disabled={locked}>
+          Pridať split
+        </Button>
       </div>
-      <SettingRow
-        title="Pravidlá sa synchronizujú"
-        scope="synced"
-        description="Rovnaké splity uvidíš na všetkých zariadeniach."
-      />
     </>
   );
 }

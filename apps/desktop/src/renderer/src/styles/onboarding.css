@@ -117,7 +117,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--faint);
+  color: var(--muted);
   font-size: var(--fs-sm);
 }
 .divider::before,

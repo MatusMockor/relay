@@ -3,6 +3,7 @@ export const STROKE_ICONS = {
   check: '<path d="M3 8.5l3.2 3L13 4.5"/>',
   clock: '<circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.6"/>',
   reply: '<path d="M6.5 4L3 7.5 6.5 11"/><path d="M3.5 7.5H9a4 4 0 014 4V13"/>',
+  forwardMail: '<path d="M9.5 4L13 7.5 9.5 11"/><path d="M12.5 7.5H7a4 4 0 00-4 4V13"/>',
   back: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
   forward: '<path d="M6 3.5L10.5 8 6 12.5"/>',
   up: '<path d="M4 10l4-4 4 4"/>',

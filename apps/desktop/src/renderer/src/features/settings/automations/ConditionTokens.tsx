@@ -29,36 +29,38 @@ export function ConditionTokens({
               <span className="kw">a</span>{' '}
             </>
           ) : null}
-          <TokenPopover
-            className="tk c"
-            label={`Upraviť podmienku ${describeCondition(condition)}`}
-            popoverLabel="Upraviť podmienku"
-            content={describeCondition(condition)}
-            disabled={disabled}
-            onOpen={onEngage}
-          >
-            {(close) => (
-              <ConditionForm
-                initial={condition}
-                onSave={(next) => {
-                  close();
-                  replace(index, next);
-                }}
-              />
-            )}
-          </TokenPopover>
-          <button
-            type="button"
-            className="tk-x"
-            aria-label={`Odstrániť podmienku ${describeCondition(condition)}`}
-            disabled={disabled}
-            onClick={() => {
-              onEngage();
-              onChange(conditions.filter((_, position) => position !== index));
-            }}
-          >
-            ×
-          </button>{' '}
+          <span className="tk-g c">
+            <TokenPopover
+              className="tk c"
+              label={`Upraviť podmienku ${describeCondition(condition)}`}
+              popoverLabel="Upraviť podmienku"
+              content={describeCondition(condition)}
+              disabled={disabled}
+              onOpen={onEngage}
+            >
+              {(close) => (
+                <ConditionForm
+                  initial={condition}
+                  onSave={(next) => {
+                    close();
+                    replace(index, next);
+                  }}
+                />
+              )}
+            </TokenPopover>
+            <button
+              type="button"
+              className="tk-x"
+              aria-label={`Odstrániť podmienku ${describeCondition(condition)}`}
+              disabled={disabled}
+              onClick={() => {
+                onEngage();
+                onChange(conditions.filter((_, position) => position !== index));
+              }}
+            >
+              ×
+            </button>
+          </span>{' '}
         </Fragment>
       ))}
       <TokenPopover

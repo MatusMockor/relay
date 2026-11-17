@@ -17,6 +17,8 @@ import {
 } from './support/thread-ai-session';
 import { serverDetail, serverThread } from './support/thread-fixtures';
 
+const SUMMARY_ASK = /^(Zhrnúť vlákno|Podrobné zhrnutie)$/;
+
 const SUMMARY = 'Jana posiela zmluvu na podpis.';
 const WAITING = 'AI pripravuje zhrnutie…';
 
@@ -48,7 +50,7 @@ describe('a requested thread summary stays pending', () => {
   };
 
   const askForSummary = async () => {
-    const ask = await screen.findByRole('button', { name: 'Zhrnúť vlákno' });
+    const ask = await screen.findByRole('button', { name: SUMMARY_ASK });
     act(() => {
       ask.click();
     });
@@ -58,7 +60,7 @@ describe('a requested thread summary stays pending', () => {
   const expectStillWaiting = async () => {
     await settle(server);
     expect(screen.getByText(WAITING)).toBeDefined();
-    expect(screen.queryByRole('button', { name: 'Zhrnúť vlákno' })).toBeNull();
+    expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
   };
 
   const finish = (served: { detail: ThreadDetail }, thread: ThreadSummary) => {

@@ -44,7 +44,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         }}
       >
         <Kbd keys={['H']} />
-        Pripomenúť neskôr
+        Pripomenúť
       </button>
       <button
         type="button"
@@ -71,7 +71,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
   const own = (
     <button
       type="button"
-      className="sug own"
+      className={bot ? 'sug lead' : 'sug own'}
       onClick={() => {
         reply();
       }}
@@ -103,8 +103,9 @@ export function NextActions({ detail, pending }: NextActionsProps) {
     return (
       <div className="t-next">
         <div className="sugs">
+          {bot ? own : null}
           {quick}
-          {own}
+          {bot ? null : own}
         </div>
       </div>
     );

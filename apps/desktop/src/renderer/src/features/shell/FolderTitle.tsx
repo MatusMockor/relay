@@ -1,20 +1,11 @@
 import { FolderIcon } from '@relay/ui';
+import { folderIconOf } from '../folders/folder-icons';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { useAccountsModel } from '../mail/use-accounts-model';
-
-const ICONS = {
-  inbox: 'inbox',
-  task: 'task',
-  clock: 'clock',
-  check: 'check',
-  send: 'send',
-  file: 'file',
-  calendar: 'calendar',
-  trash: 'trash',
-} as const;
+import { KeyHint } from './KeyHint';
 
 export function FolderTitle() {
   const folder = useUiStore((state) => state.folder);
@@ -43,15 +34,20 @@ export function FolderTitle() {
       </div>
     );
   }
-  const meta = VIEW_META[viewOf(folder)];
+  const view = viewOf(folder);
+  const meta = VIEW_META[view];
+  const hint = count > 0 ? meta.hint : undefined;
+  const text = [meta.sub, hint, where].filter((part) => part !== undefined && part !== '');
   return (
     <div className="a-title">
       <h2>
-        <FolderIcon name={ICONS[meta.icon]} />
+        <FolderIcon name={folderIconOf(view)} />
         {meta.label}
         {count > 0 ? <b>{count}</b> : null}
       </h2>
-      <span className="sub">{[meta.sub, where].filter((part) => part !== '').join(' · ')}</span>
+      <span className="sub">
+        <KeyHint text={text.join(' · ')} />
+      </span>
     </div>
   );
 }

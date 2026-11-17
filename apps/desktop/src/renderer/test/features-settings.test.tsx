@@ -152,14 +152,14 @@ describe('split settings', () => {
     renderApp({ demo: () => client });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
     const sheet = openSection('splits');
-    const removes = await within(sheet).findAllByRole('button', { name: 'Odstrániť' });
+    const removes = await within(sheet).findAllByRole('button', { name: /^Odstrániť split/ });
     expect(removes.length).toBeGreaterThan(1);
     act(() => {
       fireEvent.click(removes[0] ?? document.body);
     });
     act(() => {
       fireEvent.click(
-        within(sheet).getAllByRole('button', { name: 'Odstrániť' })[1] ?? document.body,
+        within(sheet).getAllByRole('button', { name: /^Odstrániť split/ })[1] ?? document.body,
       );
     });
     expect(saves).toHaveLength(1);

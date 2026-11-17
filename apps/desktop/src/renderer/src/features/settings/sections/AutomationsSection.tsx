@@ -13,7 +13,7 @@ export function AutomationsSection() {
   const locked = editor.saving || editor.loading;
   return (
     <>
-      <SectionHeader title="Automatizácie">
+      <SectionHeader title="Automatizácie" stored>
         Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Platí iba pre nové
         maily.
       </SectionHeader>

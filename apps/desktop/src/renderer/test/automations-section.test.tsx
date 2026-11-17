@@ -46,9 +46,10 @@ describe('Nastavenia > Automatizácie', () => {
     const mentions = card(sheet, 'Jira spomenutia');
 
     expect(within(mentions).getByText('eFabrica', { selector: '.scope' })).toBeDefined();
-    expect(mentions.querySelector('.sent')?.textContent).toBe(
-      'Keď na eFabrica príde mail, kde Jira udalosť je Spomenutie× a projekt je ECOM× + podmienka→AI zhrnutie× Vytvoriť task× + akcia',
-    );
+    expect([...mentions.querySelectorAll('.sent-r')].map((row) => row.textContent)).toEqual([
+      'Keďna eFabrica príde mail, kde Jira udalosť je Spomenutie× a projekt je ECOM× + podmienka',
+      'PotomAI zhrnutie× Vytvoriť task× + akcia',
+    ]);
     expect(within(card(sheet, 'Jira tasky')).getByText('predvolené')).toBeDefined();
     click(within(card(sheet, 'Tibor')).getByRole('switch', { name: 'Pravidlo Tibor zapnuté' }));
     await settle();

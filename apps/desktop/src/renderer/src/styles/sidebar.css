@@ -102,7 +102,7 @@
 }
 .fold-foot .proto {
   font-size: var(--fs-xs);
-  color: var(--faint);
+  color: var(--muted);
 }
 .acct {
   display: flex;
@@ -150,7 +150,7 @@
 }
 .acct .hide {
   flex: none;
-  color: var(--faint);
+  color: var(--muted);
   width: 26px;
   height: 26px;
   border-radius: 7px;

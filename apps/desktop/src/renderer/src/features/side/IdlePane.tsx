@@ -4,7 +4,7 @@ import { capitalize } from '../../lib/text';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { openThread, selectScope } from '../mail/navigation';
 import { useAccountsModel } from '../mail/use-accounts-model';
-import { AccountDot } from '@relay/ui';
+import { AccountDot, Icon } from '@relay/ui';
 import { accountLike } from '../mail/use-accounts-model';
 import { MiniSection } from './Mini';
 
@@ -24,20 +24,26 @@ export function IdlePane() {
     (inbox.data?.items ?? []).filter((thread) => thread.accountId === id && thread.unread).length;
   return (
     <>
-      <div className="a-prof">
-        <span className="av lg c1">JA</span>
-        <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
-        <p>{model.unified ? `Všetky účty · ${lead}` : lead}</p>
+      <div className="day-h">
+        <span className="day-ic" aria-hidden="true">
+          <Icon name="calendar" size={16} />
+        </span>
+        <div>
+          <small>{model.unified ? 'Prehľad dňa · všetky účty' : 'Prehľad dňa'}</small>
+          <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
+        </div>
       </div>
+      <p className="day-lead">{lead}</p>
       {model.unified ? (
         <MiniSection
           title="Neprečítané podľa účtu"
           rows={model.accounts.map((account) => ({
             key: account.id,
             left: (
-              <>
-                <AccountDot account={accountLike(account)} /> {account.displayName}
-              </>
+              <span className="dot-l">
+                <AccountDot account={accountLike(account)} />
+                {account.displayName}
+              </span>
             ),
             right: String(unreadOf(account.id)),
             onClick: () => {

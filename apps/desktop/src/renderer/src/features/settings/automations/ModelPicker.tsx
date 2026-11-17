@@ -34,7 +34,7 @@ export function ModelPicker({ value, onChange, onOpen, disabled = false }: Model
       >
         <ProviderIcon runner={value.runner} />
         {modelLabel(value)}
-        {effort === null ? null : <span className="ef">{effort}</span>}
+        <span className="ef">{effort ?? 'Predvolené'}</span>
         <span className="cv" />
       </button>
       {anchor === null ? null : (

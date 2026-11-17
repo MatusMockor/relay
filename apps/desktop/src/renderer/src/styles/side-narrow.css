@@ -21,8 +21,4 @@
   .stab svg:not(.spark) {
     display: none;
   }
-  .chat-ctx .runner .dt,
-  .chat-ctx .runner button:not(.on) {
-    display: none;
-  }
 }

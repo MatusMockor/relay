@@ -17,7 +17,7 @@ import { SyncSection } from './sections/SyncSection';
 
 const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
   ['server', 'Server'],
-  ['account', 'Účet'],
+  ['account', 'Relay účet'],
   ['devices', 'Zariadenia'],
   ['accounts', 'Účty'],
   ['splits', 'Split Inbox'],

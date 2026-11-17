@@ -92,7 +92,7 @@ export function CalendarsSection() {
   const subscriptions = useCalendarSubscriptions();
   return (
     <>
-      <SectionHeader title="Kalendáre">
+      <SectionHeader title="Kalendáre" stored>
         Pozvánky z mailov sa do kalendára pridávajú samé.
       </SectionHeader>
       <FailedInvitations />

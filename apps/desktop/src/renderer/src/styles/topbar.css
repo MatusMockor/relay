@@ -44,7 +44,7 @@
   font-weight: var(--w-medium);
   font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
-  color: var(--faint);
+  color: var(--muted);
 }
 .a-tab.on {
   color: var(--fg);

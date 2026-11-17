@@ -27,7 +27,7 @@ export function SyncSection() {
     .at(-1);
   return (
     <>
-      <SectionHeader title="Synchronizácia">
+      <SectionHeader title="Synchronizácia" stored>
         {client.kind === 'remote'
           ? 'Server sa pozerá na nové maily nepretržite cez IMAP IDLE.'
           : 'Appka sa pozerá na nové maily, kým beží.'}

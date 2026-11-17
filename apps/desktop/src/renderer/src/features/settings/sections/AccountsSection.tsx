@@ -168,7 +168,7 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
   }
   return (
     <>
-      <SectionHeader title="Účty">
+      <SectionHeader title="Účty" stored>
         Každý účet sa synchronizuje samostatne. Heslá a tokeny ostávajú na serveri alebo v
         zabezpečenom úložisku zariadenia.
       </SectionHeader>
