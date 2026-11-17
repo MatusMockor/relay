@@ -11,6 +11,11 @@ export interface TrashRelativesDeps {
   readonly logger: Logger;
 }
 
+export interface TrashRelativesFound {
+  readonly entries: readonly WindowEntry[];
+  readonly complete: boolean;
+}
+
 const LIVE_ROLES: readonly MailboxRole[] = ['inbox', 'archive'];
 
 const conversationIds = (entries: readonly WindowEntry[]): string[] => [
@@ -29,19 +34,21 @@ export class TrashRelatives {
     context: SyncContext,
     chunk: readonly WindowEntry[],
     passes: readonly MailboxPass[],
-  ): Promise<WindowEntry[]> {
+  ): Promise<TrashRelativesFound> {
     const ids = conversationIds(chunk);
     if (ids.length === 0) {
-      return [];
+      return { entries: [], complete: true };
     }
-    const related: WindowEntry[] = [];
+    const entries: WindowEntry[] = [];
+    let complete = true;
     for (const pass of passes.filter((candidate) => LIVE_ROLES.includes(candidate.role))) {
       const found = await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
         this.findIn(context, pass, ids, chunk),
       );
-      related.push(...(found ?? []));
+      complete = complete && found !== null;
+      entries.push(...(found ?? []));
     }
-    return related;
+    return { entries, complete };
   }
 
   private async findIn(
