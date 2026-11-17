@@ -25,6 +25,7 @@ export interface IngestTarget {
   readonly splits: readonly Split[];
   readonly journal: SyncJournal | null;
   readonly publish: boolean;
+  readonly live: boolean;
   readonly holdCalendar: boolean;
 }
 
@@ -130,13 +131,17 @@ export class MessageIngestor {
     }
     await journal.arrived(work, message, target.mailbox.role, splitIds, {
       publish: target.publish,
+      live: target.live,
       headers: parsed.headers,
+      jira,
     });
     if (jira !== null) {
       await journal.jira(work, message.id, {
         threadId: message.threadId,
         classification: jira,
         title: parsed.subject,
+        from: parsed.from,
+        headers: [...parsed.headers.entries()],
       });
     }
   }

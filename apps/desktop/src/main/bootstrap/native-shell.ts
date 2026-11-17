@@ -2,6 +2,7 @@ import type { Logger } from '@relay/engine';
 import { LOCAL_USER_ID } from '@relay/store-sqlite';
 import { app } from 'electron';
 import type { LocalRuntime } from '../composition/local-runtime';
+import { AutomationNotifier } from '../native/automation-notifier';
 import { MailboxUnreadSource } from '../native/mailbox-unread-source';
 import { electronNotifications } from '../native/electron-notification-factory';
 import { ElectronTrayView } from '../native/electron-tray';
@@ -59,11 +60,14 @@ export const startNativeShell = (
     timers: systemTimers,
     logger,
   });
+  const automations = new AutomationNotifier(hub, presenter);
   badge.start();
   notifier.start();
+  automations.start();
   return {
     dispose: () => {
       notifier.stop();
+      automations.stop();
       presenter.dispose();
       badge.stop();
       tray.destroy();

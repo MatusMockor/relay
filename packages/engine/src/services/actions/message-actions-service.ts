@@ -7,6 +7,7 @@ import type { ReminderScheduler } from '../reminders/reminder-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { ThreadReadMarker } from '../threads/thread-query-service';
 import type { LabelHandler } from './handlers/label-handler';
+import type { PinHandler } from './handlers/pin-handler';
 import type { ReadStateHandler } from './handlers/read-state-handler';
 import type { StateMoveHandler } from './handlers/state-move-handler';
 import type { ThreadActionContext } from './thread-action-context';
@@ -17,6 +18,7 @@ export interface MessageActionsServiceDeps {
   readonly accounts: AccountRepository;
   readonly stateMoves: StateMoveHandler;
   readonly readState: ReadStateHandler;
+  readonly pins: PinHandler;
   readonly labels: LabelHandler;
   readonly reminders: ReminderScheduler;
   readonly events: EngineEvents;
@@ -27,6 +29,12 @@ export class MessageActionsService implements ThreadReadMarker {
 
   markRead(userId: UserId, threadId: ThreadId): Promise<ThreadSummary> {
     return this.apply(userId, threadId, { type: 'markRead' });
+  }
+
+  async pin(userId: UserId, threadId: ThreadId): Promise<ThreadSummary> {
+    const thread = await this.deps.pins.pin(await this.context(userId, threadId));
+    await this.deps.events.emit(userId, 'thread.upserted', { thread });
+    return thread;
   }
 
   async apply(userId: UserId, threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary> {

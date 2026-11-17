@@ -2,7 +2,9 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ReminderScheduler } from '../reminders/reminder-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
+import { FlagWriter } from './handlers/flag-writer';
 import { LabelHandler } from './handlers/label-handler';
+import { PinHandler } from './handlers/pin-handler';
 import { ReadStateHandler } from './handlers/read-state-handler';
 import { StateMoveHandler } from './handlers/state-move-handler';
 import { MessageActionsService } from './message-actions-service';
@@ -24,6 +26,7 @@ export const createMessageActionsService = (
     replayer: shared.replayer,
     logger,
   });
+  const flags = new FlagWriter({ unitOfWork, mirror, clock });
   return new MessageActionsService({
     threads: repositories.threads,
     messages: repositories.messages,
@@ -35,7 +38,8 @@ export const createMessageActionsService = (
       mirror,
       clock,
     }),
-    readState: new ReadStateHandler({ unitOfWork, mirror, clock }),
+    readState: new ReadStateHandler(flags),
+    pins: new PinHandler(flags),
     labels: new LabelHandler({ labels: repositories.labels, unitOfWork, mirror, clock }),
     reminders: shared.reminders,
     events: shared.events,

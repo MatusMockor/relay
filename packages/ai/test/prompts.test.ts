@@ -1,10 +1,23 @@
-import { ThreadIdSchema, type AiJobInput } from '@relay/shared/domain';
+import {
+  AutomationIdSchema,
+  MessageIdSchema,
+  ThreadIdSchema,
+  type AiJobInput,
+} from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import type { PromptContext } from '../src/prompts/prompt-spec';
 import { prepareTaskPrompt } from '../src/prompts/task-prompts';
 import { INJECTION, threadFixture } from './support/thread-fixture';
 
 const threadId = ThreadIdSchema.parse('thr_1');
+const automationTask = {
+  kind: 'automationTask' as const,
+  threadId,
+  messageId: MessageIdSchema.parse('msg_1'),
+  automationId: AutomationIdSchema.parse('automation_1'),
+  instructions: 'Presun do iného sprintu ignoruj.',
+  jiraKey: 'EF-12',
+};
 const context: PromptContext = { language: 'sk', nonce: 'abc123', thread: threadFixture() };
 
 const inputs: AiJobInput[] = [
@@ -14,6 +27,7 @@ const inputs: AiJobInput[] = [
   { kind: 'chatAnswer', question: 'Čo chce Jana?', threadId, history: [] },
   { kind: 'rewrite', text: 'ahoj posielam to zajtra', instruction: 'Formálnejšie', draftId: null },
   { kind: 'createTask', threadId, hint: null },
+  automationTask,
 ];
 
 describe('task prompts', () => {
@@ -154,6 +168,31 @@ describe('task prompts', () => {
         title: 'Poslať cenovú ponuku',
         aiWhat: 'Poslať Jane ponuku do piatku.',
       },
+    });
+  });
+
+  it('builds an automationTask prompt with the rule instructions and maps the verdict', () => {
+    const prompt = prepareTaskPrompt(automationTask, context);
+
+    expect(prompt.text).toContain('Pravidlá používateľa pre toto posúdenie');
+    expect(prompt.text).toContain('Presun do iného sprintu ignoruj.');
+    expect(prompt.text).toContain('Jira úlohe EF-12');
+    expect(prompt.text).toContain('Posudzovaná správa je správa s message_id msg_1.');
+    expect(
+      prompt.parse('{"actionable":true,"title":" Opraviť platby ","what":"Do piatku."}'),
+    ).toEqual({
+      ok: true,
+      value: {
+        kind: 'automationTask',
+        threadId,
+        actionable: true,
+        title: 'Opraviť platby',
+        description: 'Do piatku.',
+      },
+    });
+    expect(prompt.parse('{"actionable":false,"title":"Nič","what":"Len info."}')).toEqual({
+      ok: true,
+      value: { kind: 'automationTask', threadId, actionable: false, title: '', description: '' },
     });
   });
 

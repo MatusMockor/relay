@@ -34,6 +34,24 @@ describe('ClaudeCodeRunner', () => {
     await bin.dispose();
   });
 
+  it('runs with the model of the request instead of the configured one', async () => {
+    await bin.install('claude', { responses: [{ lines: claudeToolThenAnswer(summaryAnswer, 5) }] });
+
+    await collect(
+      runner.run(
+        aiRequest(
+          { kind: 'summary', threadId },
+          { thread: threadFixture(), model: 'claude-opus-5-5', effort: 'max' },
+        ),
+      ),
+    );
+
+    const [call] = await bin.calls('claude');
+    expect(call?.args[call.args.indexOf('--model') + 1]).toBe('claude-opus-5-5');
+    expect(call?.args[call.args.indexOf('--effort') + 1]).toBe('max');
+    expect(call?.args).not.toContain('sonnet');
+  });
+
   it('maps stream-json events to AI events and parses the final JSON', async () => {
     await bin.install('claude', {
       responses: [{ lines: claudeToolThenAnswer(summaryAnswer, 20) }],

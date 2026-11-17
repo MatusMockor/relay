@@ -28,7 +28,7 @@ import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
 import { FakeMailSender } from './mail/fake-mail-sender';
 import { HeaderThreadResolver } from './mail/header-thread-resolver';
-import { RuleSplitMatcher } from './mail/rule-split-matcher';
+import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-matcher';
 import { SimpleMessageParser } from './mail/simple-message-parser';
 import { SubjectJiraClassifier } from './mail/subject-jira-classifier';
 import { MemoryDatabase } from './memory/memory-database';
@@ -102,6 +102,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
+    automationMatcher: new RuleAutomationMatcher(),
     aiRunnerRegistry: runners,
     calendar,
     googleCalendar: google,

@@ -1,13 +1,15 @@
-import type { SplitId, SplitRule } from '@relay/shared/domain';
+import type { AutomationCondition, SplitId } from '@relay/shared/domain';
 import type {
+  AutomationMatcher,
+  AutomationMatchInput,
   JiraClassification,
   SplitMatcher,
   SplitMatchInput,
   SplitMatchSubject,
 } from '../../../src';
 
-const matchesRule = (
-  rule: SplitRule,
+const matchesCondition = (
+  rule: AutomationCondition,
   message: SplitMatchSubject,
   jira: JiraClassification | null,
 ): boolean => {
@@ -29,6 +31,8 @@ const matchesRule = (
         (rule.projectKeys.length === 0 ||
           rule.projectKeys.some((key) => jira.jiraKey.startsWith(`${key}-`)))
       );
+    case 'jiraEvent':
+      return jira?.eventKind === rule.kind;
   }
 };
 
@@ -36,8 +40,18 @@ export class RuleSplitMatcher implements SplitMatcher {
   match(input: SplitMatchInput): Promise<SplitId[]> {
     return Promise.resolve(
       input.splits
-        .filter((split) => split.rules.some((rule) => matchesRule(rule, input.message, input.jira)))
+        .filter((split) =>
+          split.rules.some((rule) => matchesCondition(rule, input.message, input.jira)),
+        )
         .map((split) => split.id),
+    );
+  }
+}
+
+export class RuleAutomationMatcher implements AutomationMatcher {
+  matches(input: AutomationMatchInput): Promise<boolean> {
+    return Promise.resolve(
+      input.conditions.every((condition) => matchesCondition(condition, input.message, input.jira)),
     );
   }
 }

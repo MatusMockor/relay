@@ -3,11 +3,13 @@ import type { UserId } from '@relay/shared/domain';
 import type { IpcInvokeHandlers } from '../../ipc/invoke-router';
 
 export const createSettingsHandlers = (
-  services: Pick<EngineServices, 'settings' | 'splits'>,
+  services: Pick<EngineServices, 'settings' | 'splits' | 'automations'>,
   userId: UserId,
 ): IpcInvokeHandlers => ({
   'local.settings.get': () => services.settings.get(userId),
   'local.settings.update': (patch) => services.settings.update(userId, patch),
   'local.splits.list': () => services.splits.list(userId),
   'local.splits.replace': (body) => services.splits.replace(userId, body),
+  'local.automations.list': () => services.automations.list(userId),
+  'local.automations.replace': (body) => services.automations.replace(userId, body),
 });

@@ -6,6 +6,7 @@ import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { projectThreadAction } from '../thread-projection';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
+import { createDemoAutomations } from './demo-automations';
 import { createDemoCalendarClient } from './demo-calendar';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
@@ -178,6 +179,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     ...createDemoAttachments(state, now),
+    ...createDemoAutomations(state, now),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
       Promise.resolve(state.scheduled.filter((item) => item.status === 'pending')),

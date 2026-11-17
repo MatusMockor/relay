@@ -12,6 +12,7 @@ import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Repositories } from '../../ports/repositories';
 import type { EngineEvents } from '../shared/engine-events';
+import { AutomationTaskWriter } from '../automations/automation-task-writer';
 import type { AiTaskBuilder } from '../tasks/ai-task-builder';
 import { isThreadScoped, sourceMessageIdOf, threadIdOf } from './ai-input-context';
 
@@ -29,7 +30,11 @@ export interface AiResultEffects {
 }
 
 export class AiResultApplier {
-  constructor(private readonly deps: AiResultApplierDeps) {}
+  private readonly automationTasks: AutomationTaskWriter;
+
+  constructor(private readonly deps: AiResultApplierDeps) {
+    this.automationTasks = new AutomationTaskWriter(deps.tasks, deps.clock, deps.ids);
+  }
 
   async persist(
     repositories: Repositories,
@@ -90,6 +95,9 @@ export class AiResultApplier {
     threadId: ThreadId | null,
     output: AiOutput,
   ): Promise<Task | null> {
+    if (output.kind === 'automationTask') {
+      return this.automationTasks.write(repositories, job, output);
+    }
     if (output.kind !== 'createTask') {
       return null;
     }

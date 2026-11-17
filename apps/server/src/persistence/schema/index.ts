@@ -1,5 +1,6 @@
 export * from './accounts';
 export * from './ai';
+export * from './automations';
 export * from './calendar';
 export * from './drafts';
 export * from './google-calendar';

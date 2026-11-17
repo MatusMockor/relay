@@ -14,6 +14,7 @@ const RECONNECT_KEYS = [
   queryKeys.scheduled(),
   queryKeys.accounts(),
   queryKeys.splits(),
+  queryKeys.automations(),
   queryKeys.settings(),
 ];
 

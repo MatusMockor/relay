@@ -78,6 +78,7 @@ export { extractJiraKey } from './jira/jira-key';
 export { detectJiraEventKind } from './jira/jira-event-kind';
 export { extractJiraActor } from './jira/jira-actor';
 
+export { RuleAutomationMatcher } from './splits/rule-automation-matcher';
 export { RuleSplitMatcher } from './splits/rule-split-matcher';
 export { isUnsafeRegex, MAX_MATCH_INPUT_LENGTH } from './splits/regex-safety';
 

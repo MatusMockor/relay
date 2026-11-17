@@ -5,6 +5,9 @@ import type { AiRunnerRegistry } from './ports/ai-runner-registry';
 import type { AttachmentBlobCatalog } from './ports/attachment-blob-catalog';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { AttachmentStore } from './ports/attachment-store';
+import type { AutomationMatcher } from './ports/automation-matcher';
+import type { AutomationRepository } from './ports/automation-repository';
+import type { AutomationRunRepository } from './ports/automation-run-repository';
 import type { CalendarAdapters } from './ports/calendar-adapters';
 import type { CalendarEventRepository } from './ports/calendar-event-repository';
 import type { CalendarSubscriptionRepository } from './ports/calendar-subscription-repository';
@@ -49,6 +52,8 @@ export const PORT_TOKENS = {
   ThreadRepository: Symbol.for('relay.engine.ThreadRepository'),
   LabelRepository: Symbol.for('relay.engine.LabelRepository'),
   SplitRepository: Symbol.for('relay.engine.SplitRepository'),
+  AutomationRepository: Symbol.for('relay.engine.AutomationRepository'),
+  AutomationRunRepository: Symbol.for('relay.engine.AutomationRunRepository'),
   TaskRepository: Symbol.for('relay.engine.TaskRepository'),
   ReminderRepository: Symbol.for('relay.engine.ReminderRepository'),
   DraftRepository: Symbol.for('relay.engine.DraftRepository'),
@@ -78,6 +83,7 @@ export const PORT_TOKENS = {
   ThreadResolver: Symbol.for('relay.engine.ThreadResolver'),
   JiraClassifier: Symbol.for('relay.engine.JiraClassifier'),
   SplitMatcher: Symbol.for('relay.engine.SplitMatcher'),
+  AutomationMatcher: Symbol.for('relay.engine.AutomationMatcher'),
   SplitPatternPolicy: Symbol.for('relay.engine.SplitPatternPolicy'),
   AiRunnerRegistry: Symbol.for('relay.engine.AiRunnerRegistry'),
   EventPublisher: Symbol.for('relay.engine.EventPublisher'),
@@ -93,6 +99,8 @@ export interface PortRegistry {
   ThreadRepository: ThreadRepository;
   LabelRepository: LabelRepository;
   SplitRepository: SplitRepository;
+  AutomationRepository: AutomationRepository;
+  AutomationRunRepository: AutomationRunRepository;
   TaskRepository: TaskRepository;
   ReminderRepository: ReminderRepository;
   DraftRepository: DraftRepository;
@@ -122,6 +130,7 @@ export interface PortRegistry {
   ThreadResolver: ThreadResolver;
   JiraClassifier: JiraClassifier;
   SplitMatcher: SplitMatcher;
+  AutomationMatcher: AutomationMatcher;
   SplitPatternPolicy: SplitPatternPolicy;
   AiRunnerRegistry: AiRunnerRegistry;
   EventPublisher: EventPublisher;

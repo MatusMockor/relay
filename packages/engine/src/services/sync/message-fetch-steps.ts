@@ -20,6 +20,7 @@ export interface MessageFetchStepsDeps {
 
 export interface IngestMode {
   readonly publish: boolean;
+  readonly live: boolean;
   readonly holdCalendar: boolean;
 }
 
@@ -46,6 +47,7 @@ export class MessageFetchSteps {
         splits: context.splits,
         journal: context.journal,
         publish: mode.publish,
+        live: mode.live,
         holdCalendar: mode.holdCalendar,
       },
       raw,

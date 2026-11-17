@@ -5,6 +5,7 @@ import { type SettingsSection, setUi } from '../../state/ui-store';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
 import { AiSection } from './sections/AiSection';
+import { AutomationsSection } from './sections/AutomationsSection';
 import { CalendarsSection } from './sections/CalendarsSection';
 import { DevicesSection } from './sections/DevicesSection';
 import { KeysSection } from './sections/KeysSection';
@@ -20,6 +21,7 @@ const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
   ['devices', 'Zariadenia'],
   ['accounts', 'Účty'],
   ['splits', 'Split Inbox'],
+  ['automations', 'Automatizácie'],
   ['sync', 'Synchronizácia'],
   ['calendars', 'Kalendáre'],
   ['notifications', 'Notifikácie'],
@@ -35,6 +37,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     devices: () => <DevicesSection />,
     accounts: () => <AccountsSection adding={adding} />,
     splits: () => <SplitsSection />,
+    automations: () => <AutomationsSection />,
     sync: () => <SyncSection />,
     notifications: () => <NotificationsSection />,
     ai: () => <AiSection />,

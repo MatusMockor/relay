@@ -31,7 +31,7 @@ export class IncrementalMessageFetcher {
     for await (const raw of context.provider.fetchSince(pass.mailbox.path, cursor)) {
       lastUid = Math.max(lastUid, raw.uid);
       processed += 1;
-      await steps.ingest(context, pass, raw, { publish: true, holdCalendar });
+      await steps.ingest(context, pass, raw, { publish: true, live: true, holdCalendar });
       if (processed % options.batchSize === 0) {
         await steps.checkpoint(context, pass, { ...mark, lastUid });
         await steps.progress(context, pass, processed, expected);

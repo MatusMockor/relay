@@ -14,6 +14,8 @@ import { createCalendarComponents } from './services/calendar/create-calendar-se
 import { createInviteComponents } from './services/calendar/create-invite-components';
 import type { FailedInvitationService } from './services/calendar/failed-invitation-service';
 import { createAiComponents } from './services/ai/create-ai-service';
+import type { AutomationService } from './services/automations/automation-service';
+import { createAutomationComponents } from './services/automations/create-automation-components';
 import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
 import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
 import type { ComposeService } from './services/compose/compose-service';
@@ -33,6 +35,7 @@ import {
 import { SplitMembershipEvaluator } from './services/splits/split-membership-evaluator';
 import { PERMISSIVE_PATTERN_POLICY } from './services/splits/split-rule-validator';
 import { SplitService } from './services/splits/split-service';
+import { CompositeArrivalListener } from './services/sync/composite-arrival-listener';
 import { createSyncComponents } from './services/sync/create-sync-service';
 import type { SyncService } from './services/sync/sync-service';
 import { TaskService } from './services/tasks/task-service';
@@ -56,6 +59,7 @@ export interface EngineServices {
   readonly attachments: AttachmentContentService;
   readonly attachmentSweeper: AttachmentSweeper;
   readonly splits: SplitService;
+  readonly automations: AutomationService;
   readonly ai: AiService;
   readonly calendar: CalendarService;
   readonly failedInvitations: FailedInvitationService;
@@ -110,14 +114,21 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     readMarker: actions,
   });
   const ai = createAiComponents(deps, { events, threads, settings: userSettings });
+  const automations = createAutomationComponents(deps, {
+    events,
+    settings: userSettings,
+    actions,
+    factory: ai.factory,
+    tasks,
+  });
   const invites = createInviteComponents(deps, events);
   const sync = createSyncComponents(deps, {
     calendarParts: invites.sink,
     backfill: invites.backfill,
     events,
     sessions,
-    tasks,
-    arrivals: ai.oneLiners,
+    tasks: automations.jiraTasks,
+    arrivals: new CompositeArrivalListener([ai.oneLiners, automations.runner]),
     replayer,
   });
   const google = createGoogleCalendarComponents(deps, events);
@@ -194,6 +205,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       ids,
       patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
     }),
+    automations: automations.service,
     ai: ai.service,
     calendar,
     failedInvitations: invites.failed,

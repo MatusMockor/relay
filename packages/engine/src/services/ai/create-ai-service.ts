@@ -32,6 +32,7 @@ export interface AiComponents {
   readonly service: AiService;
   readonly oneLiners: OneLinerScheduler;
   readonly relocator: QueuedAiJobRelocator;
+  readonly factory: AiJobFactory;
 }
 
 export const createAiComponents = (
@@ -125,5 +126,5 @@ export const createAiComponents = (
     logger,
     limitPerSync: options.oneLinersPerSync,
   });
-  return { service, oneLiners, relocator };
+  return { service, oneLiners, relocator, factory };
 };

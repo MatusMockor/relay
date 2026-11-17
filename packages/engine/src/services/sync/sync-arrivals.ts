@@ -1,9 +1,12 @@
 import type { MailAccount, Message, UserId } from '@relay/shared/domain';
+import type { JiraClassification } from '../../model/jira';
 import type { MessageHeaders } from '../../model/split-match-subject';
 
 export interface InboxArrival {
   readonly message: Message;
   readonly headers: MessageHeaders;
+  readonly jira: JiraClassification | null;
+  readonly live: boolean;
 }
 
 export interface SyncArrivalBatch {

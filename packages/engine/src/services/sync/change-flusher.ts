@@ -73,7 +73,12 @@ export class ChangeFlusher {
       const arrival = payload.publish
         ? await this.deps.pendingWork.put({ ...item, payload: { ...payload, publish: false } })
         : item;
-      context.arrivals.push({ message, headers: new Map(payload.headers) });
+      context.arrivals.push({
+        message,
+        headers: new Map(payload.headers),
+        jira: payload.jira ?? null,
+        live: payload.live ?? false,
+      });
       context.arrivalWork.push(arrival);
     }
   }
@@ -93,7 +98,9 @@ export class ChangeFlusher {
         continue;
       }
       try {
-        await this.deps.tasks.applyJiraEvent(context.userId, item.payload);
+        await this.deps.tasks.applyJiraEvent(context.userId, item.payload, {
+          accountId: context.account.id,
+        });
         await this.deps.pendingWork.remove([item]);
       } catch (error) {
         this.deps.logger.warn('Applying a Jira task failed', {

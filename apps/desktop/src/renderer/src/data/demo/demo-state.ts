@@ -1,4 +1,5 @@
 import type {
+  Automation,
   ChecklistItem,
   Draft,
   Label,
@@ -23,6 +24,7 @@ export interface DemoThreadRecord {
 export interface DemoState {
   accounts: MailAccount[];
   splits: Split[];
+  automations: Automation[];
   labels: Label[];
   threads: Map<string, DemoThreadRecord>;
   tasks: Task[];

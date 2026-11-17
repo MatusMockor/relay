@@ -6,6 +6,7 @@ import type {
   SplitId,
   ThreadId,
 } from '@relay/shared/domain';
+import type { JiraClassification } from '../../model/jira';
 import type { JiraEventWork, ThreadRefreshWork } from '../../model/pending-work';
 import type { MessageHeaders } from '../../model/split-match-subject';
 import type { Clock } from '../../ports/clock';
@@ -14,7 +15,9 @@ import { emptyThreadWork, mergeThreadWork } from './thread-refresh-work';
 
 export interface ArrivalEffects {
   readonly publish: boolean;
+  readonly live: boolean;
   readonly headers: MessageHeaders;
+  readonly jira: JiraClassification | null;
 }
 
 export class SyncJournal {
@@ -44,6 +47,8 @@ export class SyncJournal {
         threadId: message.threadId,
         publish: effects.publish,
         arrival,
+        live: effects.live,
+        jira: effects.jira,
         headers: [...effects.headers.entries()],
       },
       createdAt: this.now(),

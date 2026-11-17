@@ -1,6 +1,7 @@
 import { ResizeHandle } from '@relay/ui';
 import { useEffect } from 'react';
 import { useRealtimeSync } from '../../data/hooks/use-realtime-sync';
+import { useRemoteAutomationNotifications } from '../../data/hooks/use-remote-automation-notifications';
 import { useUserSettings } from '../../data/hooks/use-mail-queries';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { FolderSidebar } from '../folders/FolderSidebar';
@@ -21,6 +22,7 @@ const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
 function Shell() {
   useKeyboard();
   useRealtimeSync();
+  useRemoteAutomationNotifications();
   const commit = useLayoutPersistence();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);

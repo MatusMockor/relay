@@ -71,3 +71,8 @@ export const useAiRunners = () => {
     staleTime: 60_000,
   });
 };
+
+export const useAutomations = () => {
+  const client = useClient();
+  return useQuery({ queryKey: queryKeys.automations(), queryFn: () => client.listAutomations() });
+};

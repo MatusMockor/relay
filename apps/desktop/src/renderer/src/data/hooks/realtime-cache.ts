@@ -39,6 +39,10 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     client.setQueryData(queryKeys.splits(), event.data.splits);
     return;
   }
+  if (event.type === 'automations.updated') {
+    client.setQueryData(queryKeys.automations(), event.data.automations);
+    return;
+  }
   if (event.type === 'calendar.updated') {
     invalidate(client, calendarKeys.all());
     return;

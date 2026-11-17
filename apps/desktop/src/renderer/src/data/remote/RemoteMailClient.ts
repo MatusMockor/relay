@@ -77,6 +77,9 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   },
   listSplits: () => http.call(api.splits.list, {}),
   replaceSplits: (splits) => http.call(api.splits.replace, { body: { splits } }),
+  listAutomations: () => http.call(api.automations.list, {}),
+  replaceAutomations: (automations) =>
+    http.call(api.automations.replace, { body: { automations } }),
   listTasks: (query) => http.call(api.tasks.list, { query }),
   updateTask: (id: TaskId, body) => http.call(api.tasks.update, { params: { id }, body }),
   updateChecklistItem: (id, body) =>
