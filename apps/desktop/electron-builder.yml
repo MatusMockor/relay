@@ -49,7 +49,7 @@ linux:
   executableName: relay
   synopsis: AI-native e-mailový klient
   description: Relay je e-mailový klient s AI, ktorý beží lokálne alebo so synchronizačným serverom.
-  maintainer: Relay <relay@localhost>
+  maintainer: Relay <info@codevo.app>
   target:
     - target: AppImage
       arch: [x64, arm64]
