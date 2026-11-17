@@ -5,6 +5,7 @@ import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-superviso
 import { ModeAwareBackground } from './background/mode-aware-background';
 import { createMainLogger } from './bootstrap/create-logger';
 import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platform';
+import { electronAppUpdates } from './bootstrap/electron-updates';
 import { MainWindowController } from './bootstrap/main-window-controller';
 import { electronMcpEntry } from './bootstrap/mcp-entry';
 import { startNativeShell } from './bootstrap/native-shell';
@@ -60,6 +61,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     allowPlaintextMail: !app.isPackaged && process.env.RELAY_DEV_ALLOW_PLAINTEXT_MAIL === '1',
   });
   hardenSession(session.defaultSession);
+  const updates = electronAppUpdates(logger);
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -73,6 +75,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       },
       ...runtime.ipc,
       attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
+      updates: updates.service,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
@@ -111,6 +114,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   await windows.open();
   await background.start();
   await remoteAi.start();
+  updates.start();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -128,6 +132,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
 
   return {
     stop: async () => {
+      updates.stop();
       unregisterIpc();
       shell.dispose();
       await Promise.all([background.stop(), remoteAi.stop()])

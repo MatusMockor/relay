@@ -9,6 +9,7 @@ import type {
   GoogleCalendarAuthorizeInput,
   GoogleCalendarAuthorizeOutput,
   RelayBridge,
+  UpdateStatus,
 } from '@relay/shared';
 import type { FetchLike } from '../data/remote/HttpApi';
 import type { SessionHooks, SessionTokens } from '../data/remote/SessionTokens';
@@ -34,6 +35,8 @@ export interface Platform {
   authorizeGoogleCalendar(
     input: GoogleCalendarAuthorizeInput,
   ): Promise<GoogleCalendarAuthorizeOutput>;
+  subscribeToUpdates(listener: (status: UpdateStatus) => void): () => void;
+  installUpdate(): Promise<void>;
 }
 
 const PLATFORM_LABEL: Readonly<Record<AppInfo['platform'], string>> = {

@@ -100,7 +100,7 @@ shared  ◄── engine ◄── store-sqlite
 - IPC contract lives in `shared/src/ipc`: a channel map of zod schemas (`app.*`, `settings.device.*`, `secure.*`, `ai.*`, `local.*`). The preload exposes `window.relay: RelayBridge` with `invoke(channel, input)` (one Electron channel `relay:invoke`, returns `IpcResult`) and `subscribe(channel, handlers, input)` for streams (`ai.run`, `local.events`). Main validates input and output of every call (`IpcInvokeRouter`, `IpcStreamRouter`).
 - `pnpm --filter @relay/desktop dev:web` serves the renderer alone on port 5173. `window.relay` is then absent and the renderer must handle it.
 - Windows run with `contextIsolation`, `sandbox` and no Node integration; the preload is bundled as CommonJS. CSP is injected into the built `index.html`.
-- `main` hosts the `LocalEngine` for local mode, secure storage (Electron `safeStorage`) for tokens and local credentials, the local AI runner, and native features (tray, notifications, global shortcuts, auto-update later).
+- `main` hosts the `LocalEngine` for local mode, secure storage (Electron `safeStorage`) for tokens and local credentials, the local AI runner, and native features (tray, notifications, global shortcuts) and auto-update (`electron-updater` behind the `AppUpdater` port, packaged macOS and AppImage only, see `docs/operations/release.md`).
 - HTML mail is rendered in a sandboxed iframe (no scripts, remote images blocked by default).
 - UI follows the approved prototype `design/prototype/app-a.html` (dark tokens, Inter + JetBrains Mono, split inbox, folder sidebar, right panel with Kontakt / AI / Kalendár, resizable panels, multiple accounts, command palette, keyboard-first).
 

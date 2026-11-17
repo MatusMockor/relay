@@ -95,5 +95,7 @@ export const createBrowserPlatform = (
     authorizeGoogle: googleUnavailable,
     authorizeGoogleCalendar: googleUnavailable,
     cancelGoogleAuthorization: () => Promise.resolve(),
+    subscribeToUpdates: () => () => undefined,
+    installUpdate: () => Promise.resolve(),
   };
 };

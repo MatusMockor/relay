@@ -1,0 +1,8 @@
+{
+  "extends": "@relay/config/tsconfig/node-library.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["release-tools", "test", "*.config.ts", "*.config.js"]
+}

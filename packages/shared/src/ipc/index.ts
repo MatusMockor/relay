@@ -9,3 +9,4 @@ export * from './local-channels';
 export * from './oauth-channels';
 export * from './protocol';
 export * from './session-channels';
+export * from './update-channels';

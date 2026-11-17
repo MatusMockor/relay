@@ -6,6 +6,7 @@ export async function* streamHub<Event>(
   hub: EventHub<Event>,
   signal: AbortSignal,
   maxBuffered = DEFAULT_MAX_BUFFERED,
+  seed: () => readonly Event[] = () => [],
 ): AsyncGenerator<Event> {
   const buffer: Event[] = [];
   let wake: (() => void) | null = null;
@@ -21,6 +22,7 @@ export async function* streamHub<Event>(
     buffer.push(event);
     notify();
   });
+  buffer.push(...seed());
   signal.addEventListener('abort', notify, { once: true });
   try {
     while (!signal.aborted) {

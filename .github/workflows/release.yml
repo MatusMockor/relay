@@ -1,0 +1,313 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  version:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the build commit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          BUILD_SHA: ${{ github.sha }}
+        run: scripts/release-tools/verify-build-ref.sh
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --filter @relay/release-scripts
+      - name: Resolve the version from apps/desktop/package.json and the tag
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: scripts/release-tools/resolve-version.sh
+
+  checks:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      TEST_DATABASE_URL: postgres://relay:relay@127.0.0.1:5433/relay_test
+      GREENMAIL_HOST: 127.0.0.1
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: relay
+          POSTGRES_PASSWORD: relay
+          POSTGRES_DB: relay_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U relay -d relay_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+      greenmail:
+        image: greenmail/standalone:2.1.15
+        env:
+          GREENMAIL_OPTS: >-
+            -Dgreenmail.setup.test.all
+            -Dgreenmail.hostname=0.0.0.0
+            -Dgreenmail.auth.disabled=false
+            -Dgreenmail.users.login=email
+            -Dgreenmail.users=relay:relay-secret@relay.test
+        ports:
+          - 3025:3025
+          - 3143:3143
+          - 3465:3465
+          - 3993:3993
+          - 8086:8080
+        options: >-
+          --health-cmd "bash -c 'exec 3<>/dev/tcp/127.0.0.1/3143'"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - name: Raise test Postgres connection limit
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec "$POSTGRES_CONTAINER" psql -U relay -d relay_test -c "ALTER SYSTEM SET max_connections = 400"
+          docker restart "$POSTGRES_CONTAINER"
+          until docker exec "$POSTGRES_CONTAINER" pg_isready -U relay -d relay_test; do sleep 1; done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  bundle:
+    needs: [version, checks]
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Bundle main, preload and renderer with the Google OAuth client baked in
+        env:
+          RELAY_GOOGLE_CLIENT_ID: ${{ secrets.RELAY_GOOGLE_CLIENT_ID }}
+          RELAY_GOOGLE_CLIENT_SECRET: ${{ secrets.RELAY_GOOGLE_CLIENT_SECRET }}
+        run: |
+          [ -n "$RELAY_GOOGLE_CLIENT_ID" ] || { echo "::error::RELAY_GOOGLE_CLIENT_ID is not set in the release environment"; exit 1; }
+          pnpm --filter @relay/desktop build
+          grep -qF "\"$RELAY_GOOGLE_CLIENT_ID\"" apps/desktop/out/main/index.js || { echo "::error::the Google OAuth client id was not baked into out/main/index.js"; exit 1; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bundle
+          path: apps/desktop/out
+          if-no-files-found: error
+          retention-days: 14
+
+  build-mac:
+    needs: [version, bundle]
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    env:
+      ARCH: ${{ matrix.arch }}
+      VERSION: ${{ needs.version.outputs.version }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      NOTARY_TIMEOUT: 150m
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the build commit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          BUILD_SHA: ${{ github.sha }}
+        run: scripts/release-tools/verify-build-ref.sh
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bundle
+          path: apps/desktop/out
+      - name: Import the Developer ID certificate
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: scripts/release-tools/import-certificate.sh
+      - name: Package and sign the app
+        run: scripts/release-tools/package-app.sh "$ARCH"
+      - name: Notarize and staple the app
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: scripts/release-tools/with-api-key.sh scripts/release-tools/notarize-app.sh "$ARCH"
+      - name: Build DMG and ZIP from the stapled app
+        run: scripts/release-tools/package-distributables.sh "$ARCH" "$VERSION"
+      - name: Notarize and staple the DMG
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: scripts/release-tools/with-api-key.sh scripts/release-tools/notarize-dmg.sh "$ARCH" "$VERSION"
+      - name: Release gates on the shipped ZIP and DMG
+        run: scripts/release-tools/verify-shipped.sh "$ARCH" "$VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mac-${{ matrix.arch }}
+          path: apps/desktop/release/dist/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove signing material
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/relay-signing.keychain-db" || true
+
+  build-linux:
+    needs: [version, bundle]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      ARCH: ${{ matrix.arch }}
+      VERSION: ${{ needs.version.outputs.version }}
+      USE_SYSTEM_FPM: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the build commit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          BUILD_SHA: ${{ github.sha }}
+        run: scripts/release-tools/verify-build-ref.sh
+      - name: Install packaging tools and the Electron runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ruby ruby-dev build-essential file libgtk-3-0t64 libnss3 libgbm1 libasound2t64
+          sudo gem install fpm -v 1.16.0 --no-document
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bundle
+          path: apps/desktop/out
+      - name: Package AppImage and deb and verify the update manifest
+        run: scripts/release-tools/package-linux.sh "$ARCH" "$VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            apps/desktop/release/linux/${{ matrix.arch }}/*.AppImage
+            apps/desktop/release/linux/${{ matrix.arch }}/*.deb
+            apps/desktop/release/linux/${{ matrix.arch }}/latest-linux*.yml
+            apps/desktop/release/linux/${{ matrix.arch }}/SHA256SUMS-linux-*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [version, build-mac, build-linux]
+    if: github.event_name == 'push'
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_SHA: ${{ github.sha }}
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --filter @relay/release-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mac-*
+          path: artifacts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: linux-*
+          path: artifacts
+      - name: Merge and verify the macOS update feed
+        run: scripts/release-tools/assemble-mac-feed.sh artifacts feed "$VERSION"
+      - name: Add and verify the Linux packages and update feeds
+        run: scripts/release-tools/assemble-linux-feed.sh artifacts feed "$VERSION"
+      - name: Draft, re-verify and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release-tools/publish-github-release.sh "$VERSION" feed

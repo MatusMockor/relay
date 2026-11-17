@@ -9,6 +9,7 @@ import { sendQueue } from './features/mail/send-queue';
 import { AppShell } from './features/shell/AppShell';
 import { resetChat } from './features/side/chat-store';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
+import { UpdatePrompt } from './features/updates/UpdatePrompt';
 import { useSessionStore } from './session/session-store';
 
 export interface AppProps extends AppContextValue {
@@ -73,6 +74,7 @@ export function App({ createQueryClient = defaultQueryClient, ...context }: AppP
   return (
     <AppContextProvider value={context}>
       <Root createQueryClient={createQueryClient} />
+      <UpdatePrompt />
     </AppContextProvider>
   );
 }
