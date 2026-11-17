@@ -4,7 +4,7 @@ import type {
   CalendarFeedResult,
   CalendarFeedValidators,
 } from '@relay/engine';
-import { isPublicAddress } from './address-policy';
+import { isPublicAddress } from '@relay/shared/net';
 import { CalendarFeedError, FEED_MESSAGES } from './feed-errors';
 import { DEFAULT_FEED_FETCH_OPTIONS, type FeedFetchOptions } from './feed-options';
 import { type FeedResponse, requestFeed } from './feed-request';

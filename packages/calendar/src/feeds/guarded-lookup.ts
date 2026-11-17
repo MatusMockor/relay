@@ -1,7 +1,7 @@
 import type { LookupAddress, LookupOptions } from 'node:dns';
 import { lookup as dnsLookup } from 'node:dns';
 import type { LookupFunction } from 'node:net';
-import { isPublicAddress } from './address-policy';
+import { isPublicAddress } from '@relay/shared/net';
 import { CalendarFeedError, FEED_MESSAGES } from './feed-errors';
 
 type LookupCallback = (

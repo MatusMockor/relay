@@ -118,7 +118,7 @@ shared  ◄── engine ◄── store-sqlite
 - `ImapMailProvider` (imapflow): folders, incremental fetch by UID/MODSEQ, IDLE, flags, move, append.
 - Gmail: OAuth 2 (desktop loopback + PKCE in local mode, server web flow in synced mode) then XOAUTH2 over IMAP/SMTP. Needs a Google Cloud OAuth client ID configured via env/settings.
 - Outlook / Microsoft 365: same pattern, later.
-- `SmtpMailSender` (nodemailer). `FetchUnsubscribeSender` posts RFC 8058 one-click unsubscribes to public https URLs only (no redirects, no credentials), from the desktop main process in local mode and from the server in synced mode, never from the renderer.
+- `SmtpMailSender` (nodemailer). `HttpsUnsubscribeSender` posts RFC 8058 one-click unsubscribes to public https URLs only: it resolves the host once, denies every non-global address (including IPv4 embedded in IPv6), pins the connection to the validated IP while keeping the Host header and SNI, and never follows redirects, from the desktop main process in local mode and from the server in synced mode, never from the renderer.
 - `MimeParser` (mailparser). `ThreadBuilder` (Message-ID / References / In-Reply-To). `JiraClassifier` (sender + headers + subject patterns, outputs split + task events).
 
 ## Tooling

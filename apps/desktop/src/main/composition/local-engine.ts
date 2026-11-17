@@ -17,7 +17,7 @@ import {
 } from '@relay/store-sqlite';
 import type { FeedFetchOptions } from '@relay/calendar';
 import {
-  FetchUnsubscribeSender,
+  HttpsUnsubscribeSender,
   isUnsafeRegex,
   MailparserAttachmentExtractor,
 } from '@relay/mail-core';
@@ -67,7 +67,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     splitPatternPolicy: { isUnsafe: isUnsafeRegex },
     messageAttachmentLookup: createSqliteMessageAttachmentLookup(database),
     attachmentExtractor: new MailparserAttachmentExtractor(),
-    unsubscribeSender: new FetchUnsubscribeSender(),
+    unsubscribeSender: new HttpsUnsubscribeSender(),
     credentialVault: infrastructure.vault,
     attachmentStore: new FileAttachmentStore(infrastructure.paths.attachments, infrastructure.ids),
     attachmentBlobs: new FileAttachmentBlobCatalog(

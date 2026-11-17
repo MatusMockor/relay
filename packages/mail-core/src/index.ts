@@ -62,10 +62,17 @@ export { extractAttachment, type ExtractedAttachment } from './parser/extract-at
 export { MailparserAttachmentExtractor } from './parser/mailparser-attachment-extractor';
 export { MailparserMessageParser } from './parser/mailparser-message-parser';
 export {
-  FetchUnsubscribeSender,
-  type FetchUnsubscribeSenderOptions,
-  type UnsubscribeFetch,
-} from './unsubscribe/fetch-unsubscribe-sender';
+  HttpsUnsubscribeSender,
+  type HttpsUnsubscribeSenderOptions,
+} from './unsubscribe/https-unsubscribe-sender';
+export {
+  createPinnedHttpsTransport,
+  type PinnedHttpsTransportOptions,
+  type PinnedRequest,
+  pinnedLookup,
+  type UnsubscribeTransport,
+} from './unsubscribe/pinned-https-transport';
+export { type HostResolver, type ResolvedAddress } from './unsubscribe/public-host-guard';
 export { buildSnippet, htmlToText, SNIPPET_LENGTH } from './parser/snippet';
 
 export { normalizeSubject, type NormalizedSubject } from './threading/normalize-subject';

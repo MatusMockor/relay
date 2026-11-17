@@ -8,7 +8,7 @@ import {
 } from '@relay/engine';
 import {
   DefaultMailProviderFactory,
-  FetchUnsubscribeSender,
+  HttpsUnsubscribeSender,
   MailparserAttachmentExtractor,
   MailparserMessageParser,
   MessageRepositoryThreadLookup,
@@ -62,7 +62,7 @@ const OAUTH_TOKEN_PROVIDER = Symbol.for('relay.server.OAuthTokenProvider');
       provide: PORT_TOKENS.AttachmentExtractor,
       useFactory: () => new MailparserAttachmentExtractor(),
     },
-    { provide: PORT_TOKENS.UnsubscribeSender, useFactory: () => new FetchUnsubscribeSender() },
+    { provide: PORT_TOKENS.UnsubscribeSender, useFactory: () => new HttpsUnsubscribeSender() },
     { provide: PORT_TOKENS.JiraClassifier, useFactory: () => new RuleJiraClassifier() },
     { provide: PORT_TOKENS.SplitMatcher, useFactory: () => new RuleSplitMatcher() },
     { provide: PORT_TOKENS.AutomationMatcher, useFactory: () => new RuleAutomationMatcher() },

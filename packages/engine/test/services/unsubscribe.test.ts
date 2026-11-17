@@ -42,7 +42,7 @@ describe('parseListUnsubscribe', () => {
       parseListUnsubscribe(
         headersOf({
           'list-unsubscribe':
-            '<https://>, <http://letter.test/u>, <javascript:alert(1)>, <https://127.0.0.1/u>, <https://localhost/u>, <https://user:pw@letter.test/u>, <ftp://letter.test>',
+            '<https://>, <https://letter.test:8443/u>, <http://letter.test/u>, <javascript:alert(1)>, <https://127.0.0.1/u>, <https://localhost/u>, <https://user:pw@letter.test/u>, <ftp://letter.test>',
           'list-unsubscribe-post': 'List-Unsubscribe=One-Click',
         }),
       ),

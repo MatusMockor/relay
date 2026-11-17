@@ -1,18 +1,18 @@
 import { z } from 'zod';
 import { EmailAddressSchema } from './primitives';
 
-const withoutCredentials = (value: string): boolean => {
+const onDefaultPortWithoutCredentials = (value: string): boolean => {
   if (!URL.canParse(value)) {
     return false;
   }
   const url = new URL(value);
-  return url.username === '' && url.password === '';
+  return url.username === '' && url.password === '' && url.port === '';
 };
 
 export const UnsubscribeUrlSchema = z
   .url({ protocol: /^https$/, hostname: z.regexes.domain })
   .max(2_048)
-  .refine(withoutCredentials);
+  .refine(onDefaultPortWithoutCredentials);
 export type UnsubscribeUrl = z.infer<typeof UnsubscribeUrlSchema>;
 
 export const UnsubscribeMailtoSchema = z.object({
