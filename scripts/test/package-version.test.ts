@@ -32,6 +32,37 @@ describe('readPackageVersion', () => {
     await expect(readPackageVersion(manifest({ version: 'latest' }))).rejects.toThrow(FeedError);
     await expect(readPackageVersion(manifest({ name: 'x' }))).rejects.toThrow(/not semver/);
   });
+
+  it.each([
+    '01.2.0',
+    '1.02.0',
+    '1.2.00',
+    '1.2.0-beta..1',
+    '1.2.0-beta.01',
+    '1.2.0-',
+    '1.2.0+build.1',
+  ])('rejects %s, which breaks the semver grammar', async (version) => {
+    await expect(readPackageVersion(manifest({ version }))).rejects.toThrow(/not semver/);
+  });
+
+  it.each([
+    '0.0.0',
+    '10.20.30',
+    '1.2.0-0',
+    '1.2.0-rc.0',
+    '1.2.0-0alpha',
+    '1.2.0-x.7.z.92',
+    '1.2.0-beta-2',
+  ])('accepts the valid semver %s', async (version) => {
+    expect(await readPackageVersion(manifest({ version }))).toBe(version);
+  });
+
+  it.each(['1.2.0-arm64.1', '1.2.0-x64', '1.2.0-beta.arm64build'])(
+    'rejects %s, whose prerelease would be read as an artifact architecture',
+    async (version) => {
+      await expect(readPackageVersion(manifest({ version }))).rejects.toThrow(/architecture/);
+    },
+  );
 });
 
 describe('releaseVersionProblem', () => {
@@ -54,5 +85,9 @@ describe('releaseVersionProblem', () => {
   it('reports a tag that is not v<semver>', () => {
     expect(releaseVersionProblem('1.4.0', '1.4.0')).toBe('tag 1.4.0 is not v<semver>');
     expect(releaseVersionProblem('1.4.0', 'v1.4')).toBe('tag v1.4 is not v<semver>');
+    expect(releaseVersionProblem('01.4.0', 'v01.4.0')).toBe('tag v01.4.0 is not v<semver>');
+    expect(releaseVersionProblem('1.2.0-arm64.1', 'v1.2.0-arm64.1')).toBe(
+      'tag v1.2.0-arm64.1 is not v<semver>',
+    );
   });
 });

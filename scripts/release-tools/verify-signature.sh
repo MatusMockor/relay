@@ -23,8 +23,8 @@ details="$(signature_of "$app")"
 grep -q "^Identifier=sk.relay.desktop$" <<<"$details" || { echo "$app: identifier is not sk.relay.desktop" >&2; exit 1; }
 grep -Eq "flags=0x[0-9a-f]+\([^)]*runtime" <<<"$details" || { echo "$app: hardened runtime is off" >&2; exit 1; }
 expect_team "$app" "$details"
-entitlements="$(codesign --display --entitlements - --xml "$app" 2>/dev/null)"
-grep -q "com.apple.security.cs.allow-jit" <<<"$entitlements" || { echo "$app: allow-jit entitlement missing" >&2; exit 1; }
+allow_jit="$(codesign --display --entitlements - --xml "$app" 2>/dev/null | plutil -extract 'com\.apple\.security\.cs\.allow-jit' raw -expect bool -o - - 2>/dev/null || true)"
+[[ "$allow_jit" == "true" ]] || { echo "$app: allow-jit entitlement is not true" >&2; exit 1; }
 echo "ok sk.relay.desktop"
 
 module="$(native_module_dir "$app/Contents/Resources")/prebuilds/$(native_prebuild_name "$arch")"
