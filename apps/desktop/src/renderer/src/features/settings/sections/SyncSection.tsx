@@ -7,6 +7,7 @@ import { listTimeLabel } from '../../../lib/dates';
 import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 export function SyncSection() {
   const accounts = useAccounts();
@@ -26,12 +27,11 @@ export function SyncSection() {
     .at(-1);
   return (
     <>
-      <h2>Synchronizácia</h2>
-      <p className="lead">
+      <SectionHeader title="Synchronizácia">
         {client.kind === 'remote'
           ? 'Server sa pozerá na nové maily nepretržite cez IMAP IDLE.'
           : 'Appka sa pozerá na nové maily, kým beží.'}
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Interval"
         scope="synced"

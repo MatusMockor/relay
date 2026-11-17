@@ -12,7 +12,7 @@
   background: var(--raised);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-pop);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   color: var(--fg);
   animation: update-prompt-in 0.18s ease-out;
 }

@@ -74,6 +74,7 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
           <SearchBox />
         ) : (
           <button type="button" className="srch" title="Hľadať (/)" onClick={openSearch}>
+            <Icon name="search" size={14} />
             <span>Hľadať</span>
             <Kbd keys={['/']} />
           </button>

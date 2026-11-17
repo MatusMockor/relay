@@ -1,22 +1,23 @@
 .a-list {
   flex: 1;
   overflow: auto;
-  padding: 4px 16px 24px;
+  padding: 0 14px 28px;
   position: relative;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
 .a-row {
   display: grid;
-  grid-template-columns: 14px 140px minmax(0, 1fr) auto;
+  grid-template-columns: 6px clamp(128px, 21cqi, 212px) minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
   height: var(--row-h);
-  padding: 0 16px;
-  border-radius: 10px;
-  color: var(--fg2);
+  padding: 0 14px 0 12px;
+  border-radius: 8px;
+  color: var(--fg3);
+  font-size: var(--fs-base);
   position: relative;
   cursor: default;
   --rowbg: var(--bg);
@@ -29,37 +30,61 @@
   background: var(--sel);
   --rowbg: var(--sel);
 }
-.a-row .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.a-row.sel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+  width: 2px;
+  border-radius: 2px;
   background: var(--accent);
 }
+.a-row .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(142, 162, 255, 0.12);
+}
 .a-row .who {
-  font-weight: 500;
+  color: var(--fg3);
+  font-weight: var(--w-regular);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.a-row .who .who-n {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .a-row .who small {
-  color: var(--faint);
-  font-weight: 500;
-  margin-left: 4px;
+  flex: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--w-medium);
+  font-variant-numeric: tabular-nums;
+  margin-left: 6px;
 }
 .a-row .who small.via {
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.02em;
   padding: 0 5px;
+  line-height: 16px;
   border-radius: 4px;
-  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--muted);
 }
 .a-row .who .acc-dot {
-  margin: -2px 7px 0 0;
+  margin: 0 8px 0 0;
 }
-.a-row.unread .who,
-.a-row.unread .subj {
+.a-row.unread .who {
   color: var(--fg);
-  font-weight: 600;
+  font-weight: var(--w-semibold);
 }
 .a-row .line {
   display: flex;
@@ -73,15 +98,19 @@
   margin-right: -2px;
 }
 .a-row .subj {
-  color: var(--fg2);
+  color: var(--fg3);
   flex: 0 1 auto;
   min-width: 64px;
-  max-width: 52%;
+  max-width: 56%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.a-row.unread .subj {
+  color: var(--fg);
+  font-weight: var(--w-medium);
+}
 .a-row .line:has(.snip.ai) .subj {
-  max-width: 42%;
+  max-width: 48%;
 }
 .a-row .snip {
   color: var(--muted);
@@ -91,13 +120,15 @@
   flex: 1 1 0;
 }
 .a-row .snip.ai {
-  color: var(--fg2);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 .a-row .snip.ai svg {
   color: var(--accent);
+  opacity: 0.7;
+  width: 11px;
+  height: 11px;
 }
 .a-row .snip.ai span {
   overflow: hidden;
@@ -109,7 +140,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--muted);
   padding-left: 10px;
 }
@@ -134,9 +165,15 @@
 }
 .a-row time {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  min-width: 34px;
+  text-align: right;
+}
+.a-row.unread time {
+  color: var(--fg2);
+  font-weight: var(--w-medium);
 }
 .a-row .acts {
   position: absolute;
@@ -167,114 +204,57 @@
   animation: fresh 3s ease-out;
 }
 .a-day {
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
-  color: var(--faint);
-  padding: 16px 16px 6px;
-  font-weight: 600;
+  color: var(--muted);
+  padding: 18px 14px 6px 32px;
+  font-weight: var(--w-semibold);
+}
+.a-day:first-child {
+  padding-top: 8px;
 }
 .dense {
   --row-h: 36px;
 }
 .dense .a-row {
-  border-radius: 8px;
+  border-radius: 7px;
+}
+.dense .a-row.sel::before {
+  top: 8px;
+  bottom: 8px;
 }
 .dense .a-day {
-  padding: 10px 16px 4px;
+  padding: 12px 14px 4px 32px;
 }
 .dense .a-row .act {
   width: 26px;
   height: 26px;
 }
-.zero {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.zero-in {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  margin-top: -9vh;
-  animation: fadein 0.6s ease-out;
-}
-.zero h2 {
-  margin: 0;
-  font-size: 34px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: var(--fg);
-}
-.zero.small h2 {
-  font-size: 22px;
-  letter-spacing: -0.01em;
-}
-.zero p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  max-width: 380px;
-}
-.zero .go {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-.horizon {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 36%;
-  background: linear-gradient(180deg, rgba(142, 162, 255, 0.06), transparent 70%);
-  animation: fadein 1.2s ease-out;
-}
-.horizon::before {
-  content: '';
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  top: -110px;
-  height: 220px;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(142, 162, 255, 0.16), transparent 72%);
-}
-.horizon::after {
-  content: '';
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(142, 162, 255, 0.45), transparent);
-}
 @container main (max-width: 700px) {
   .a-list {
-    padding: 4px 8px 24px;
+    padding: 0 8px 24px;
   }
 }
 @container main (max-width: 600px) {
   .a-row {
-    grid-template-columns: 10px 108px minmax(0, 1fr) auto;
+    grid-template-columns: 6px 112px minmax(0, 1fr) auto;
     gap: 10px;
     padding: 0 10px;
   }
   .a-row .who small {
     display: none;
   }
+  .a-day {
+    padding-left: 26px;
+  }
 }
 @container main (max-width: 540px) {
   .a-list {
-    padding: 4px 6px 24px;
+    padding: 0 6px 24px;
   }
   .a-row {
-    grid-template-columns: 8px 96px minmax(0, 1fr) auto;
+    grid-template-columns: 6px 96px minmax(0, 1fr) auto;
     gap: 8px;
     padding: 0 8px;
   }

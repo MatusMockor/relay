@@ -22,8 +22,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: var(--w-semibold);
+  font-size: var(--fs-md);
 }
 .onb-brand i {
   width: 22px;
@@ -35,13 +35,13 @@
 .onb-card h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 650;
+  font-weight: var(--w-semibold);
   letter-spacing: -0.015em;
 }
 .onb-card .lead {
   margin: -6px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.55;
 }
 .paths {
@@ -75,12 +75,12 @@
 }
 .path b {
   display: block;
-  font-weight: 600;
-  font-size: 14.5px;
+  font-weight: var(--w-semibold);
+  font-size: var(--fs-md);
 }
 .path span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .onb-steps {
   display: flex;
@@ -98,7 +98,7 @@
 .onb-back {
   justify-self: start;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-base);
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -118,7 +118,7 @@
   align-items: center;
   gap: 10px;
   color: var(--faint);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .divider::before,
 .divider::after {

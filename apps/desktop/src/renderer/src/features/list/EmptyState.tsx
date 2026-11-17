@@ -1,5 +1,6 @@
-import { Button, Kbd } from '@relay/ui';
+import { Button, FolderIcon, Icon, Kbd } from '@relay/ui';
 import type { FolderView } from '@relay/shared';
+import { folderIconOf } from '../folders/folder-icons';
 import { selectFolder } from '../mail/navigation';
 
 const EMPTY: Readonly<Partial<Record<FolderView, readonly [string, string]>>> = {
@@ -48,6 +49,9 @@ export function EmptyFolder({ view }: { readonly view: FolderView }) {
   return (
     <div className="zero small">
       <div className="zero-in">
+        <span className="zero-ic" aria-hidden="true">
+          <FolderIcon name={folderIconOf(view)} />
+        </span>
         <h2>{title}</h2>
         <p>{text}</p>
       </div>
@@ -59,6 +63,9 @@ export function NoHits({ query }: { readonly query: string }) {
   return (
     <div className="zero small">
       <div className="zero-in">
+        <span className="zero-ic" aria-hidden="true">
+          <Icon name="search" size={18} />
+        </span>
         <h2>Nič sa nenašlo</h2>
         <p>{`Pre „${query.trim()}“ tu nie je žiadna konverzácia. Skús iný priečinok, alebo hľadanie zruš klávesom Esc.`}</p>
       </div>

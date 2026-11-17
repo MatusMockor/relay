@@ -4,6 +4,7 @@ import { useAccountsModel } from '../../mail/use-accounts-model';
 import { AutomationCard } from '../automations/AutomationCard';
 import { useAutomationEditor } from '../automations/use-automation-editor';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 export function AutomationsSection() {
   const editor = useAutomationEditor();
@@ -12,11 +13,10 @@ export function AutomationsSection() {
   const locked = editor.saving || editor.loading;
   return (
     <>
-      <h2>Automatizácie</h2>
-      <p className="lead">
+      <SectionHeader title="Automatizácie">
         Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Platí iba pre nové
         maily.
-      </p>
+      </SectionHeader>
       {editor.rules.map((rule) => (
         <AutomationCard
           key={rule.key}

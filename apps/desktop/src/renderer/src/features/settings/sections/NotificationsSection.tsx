@@ -3,6 +3,7 @@ import type { NotificationMode } from '@relay/shared';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
+import { SectionHeader } from '../SectionHeader';
 
 const DESCRIPTIONS: Readonly<Record<NotificationMode, string>> = {
   off: 'Vypnuté. Pošta ťa nevyrušuje, keď pracuješ.',
@@ -16,8 +17,9 @@ export function NotificationsSection() {
   const mode = settings.data?.notifications ?? 'off';
   return (
     <>
-      <h2>Notifikácie</h2>
-      <p className="lead">Predvolene vypnuté. Pošta ťa nemá vyrušovať, keď pracuješ.</p>
+      <SectionHeader title="Notifikácie">
+        Predvolene vypnuté. Pošta ťa nemá vyrušovať, keď pracuješ.
+      </SectionHeader>
       <SettingRow title="Notifikácie na ploche" scope="synced" description={DESCRIPTIONS[mode]}>
         <Segmented<NotificationMode>
           label="Notifikácie"

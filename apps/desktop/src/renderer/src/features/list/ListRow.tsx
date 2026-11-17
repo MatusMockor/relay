@@ -108,7 +108,9 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
         {context.unified && context.account !== undefined ? (
           <AccountDot account={accountLike(context.account)} title={context.account.displayName} />
         ) : null}
-        <Highlight text={whoOf(item)} query={context.query} />
+        <span className="who-n">
+          <Highlight text={whoOf(item)} query={context.query} />
+        </span>
         {thread !== null && jiraActorOf(thread) !== null ? (
           <small className="via">Jira</small>
         ) : null}

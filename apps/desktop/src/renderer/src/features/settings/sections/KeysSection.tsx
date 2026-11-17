@@ -2,6 +2,7 @@ import { Button, Kbd } from '@relay/ui';
 import { MOD } from '../../../lib/platform-keys';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 const ROWS: readonly (readonly [string, readonly string[]])[] = [
   ['Príkazy a hľadanie konverzácií', [`${MOD}K`]],
@@ -17,10 +18,9 @@ const ROWS: readonly (readonly [string, readonly string[]])[] = [
 export function KeysSection() {
   return (
     <>
-      <h2>Klávesové skratky</h2>
-      <p className="lead">
+      <SectionHeader title="Klávesové skratky">
         Celá pošta sa dá ovládať z klávesnice. Prehľad otvoríš kedykoľvek cez ?
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Prehľad všetkých skratiek"
         description="Zoznam, vlákno, písanie, priečinky a panely"

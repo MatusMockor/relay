@@ -10,7 +10,7 @@
 }
 .a-tag {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--w-semibold);
   padding: 1px 7px;
   border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--ok) 12%, transparent);
@@ -20,7 +20,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .a-hint {
   display: inline-flex;
@@ -33,12 +33,12 @@
   border-radius: var(--radius-sm);
   background: var(--raised);
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-base);
   min-width: 0;
 }
 .c-rcpt b {
   color: var(--fg);
-  font-weight: 500;
+  font-weight: var(--w-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

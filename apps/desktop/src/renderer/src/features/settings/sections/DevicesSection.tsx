@@ -7,6 +7,7 @@ import { useServices } from '../../../data/hooks/services-context';
 import { listTimeLabel } from '../../../lib/dates';
 import { showToast } from '../../../state/toast-store';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 const PLATFORM: Readonly<Record<string, string>> = {
   macos: 'macOS',
@@ -35,10 +36,9 @@ export function DevicesSection() {
   };
   return (
     <>
-      <h2>Zariadenia</h2>
-      <p className="lead">
+      <SectionHeader title="Zariadenia">
         Zariadenia prihlásené k tvojmu účtu. Odhlásené zariadenie stratí prístup okamžite.
-      </p>
+      </SectionHeader>
       {(devices.data ?? []).map((device) => (
         <SettingRow
           key={device.id}

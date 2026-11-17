@@ -11,9 +11,9 @@
 .stabs {
   flex: none;
   display: flex;
-  gap: 4px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line-soft);
+  gap: 2px;
+  height: 60px;
+  padding: 0 14px;
   align-items: center;
 }
 .stabs .sp {
@@ -32,10 +32,10 @@
   scrollbar-color: var(--line) transparent;
 }
 .sbody {
-  padding: 22px;
+  padding: 12px 22px 22px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 .a-prof {
   display: flex;
@@ -44,12 +44,14 @@
 }
 .a-prof h3 {
   margin: 4px 0 0;
-  font-size: 17px;
+  font-size: var(--fs-lg);
+  letter-spacing: var(--ls-tight);
+  line-height: var(--lh-tight);
 }
 .a-prof p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-base);
   overflow-wrap: anywhere;
 }
 .pacts {
@@ -60,18 +62,20 @@
 }
 .sec h4 {
   margin: 0 0 10px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
-  color: var(--faint);
-  font-weight: 600;
+  color: var(--muted);
+  font-weight: var(--w-semibold);
 }
 .ai-card {
   border-radius: 10px;
-  background: var(--accent-soft);
-  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(142, 162, 255, 0.075), rgba(142, 162, 255, 0.03));
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  padding: 12px 14px 13px;
   color: var(--fg);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
+  line-height: 1.55;
   display: grid;
   gap: 6px;
 }
@@ -80,12 +84,18 @@
   align-items: center;
   gap: 6px;
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  font-weight: var(--w-semibold);
+}
+.ai-card .h .spark {
+  width: 11px;
+  height: 11px;
 }
 .ai-card .note {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .mini {
   display: grid;
@@ -98,7 +108,7 @@
   gap: 10px;
   padding: 6px 0;
   color: var(--fg2);
-  font-size: 13px;
+  font-size: var(--fs-base);
   border-bottom: 1px solid var(--line-soft);
   width: 100%;
   text-align: left;
@@ -109,7 +119,7 @@
 .mini > * span:last-child {
   color: var(--muted);
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .mini > * span:first-child {
   overflow: hidden;
@@ -122,7 +132,7 @@
   grid-template-columns: 62px minmax(0, 1fr);
   gap: 7px 10px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .kv dt {
   color: var(--muted);
@@ -133,328 +143,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.chatpane {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.chat-ctx {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-bottom: 1px solid var(--line-soft);
-  font-size: 12px;
-  color: var(--muted);
-  min-width: 0;
-}
-.chat-ctx .ctx {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.chat-ctx b {
-  color: var(--fg2);
-  font-weight: 500;
-}
-.runner {
-  margin-left: auto;
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  flex: none;
-}
-.runner button {
-  color: var(--faint);
-  font-size: 11.5px;
-}
-.runner button:hover {
-  color: var(--fg2);
-}
-.runner button.on {
-  color: var(--fg2);
-}
-.runner .dt {
-  color: var(--faint);
-}
-.chat-log {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 16px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
-}
-.chat-day {
-  align-self: center;
-  font-size: 11px;
-  color: var(--faint);
-  letter-spacing: 0.04em;
-}
-.chat-empty {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.turn {
-  display: grid;
-  gap: 10px;
-}
-.bub {
-  justify-self: end;
-  background: var(--sel);
-  color: var(--fg);
-  padding: 8px 12px;
-  border-radius: 12px 12px 4px 12px;
-  font-size: 13.5px;
-  max-width: 88%;
-  animation: fadein 0.2s ease-out;
-}
-.steps {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--muted);
-  display: grid;
-  gap: 4px;
-}
-.steps div {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  animation: fadein 0.2s ease-out;
-}
-.steps div::before {
-  content: '✓';
-  color: var(--ok);
-  width: 10px;
-}
-.steps div.run::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  margin: 0 2px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: pulse 1s ease-in-out infinite;
-}
-.ans {
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--fg);
-  display: grid;
-  gap: 8px;
-  white-space: pre-line;
-  animation: fadein 0.3s ease-out;
-}
-.ans.err {
-  color: var(--bad);
-}
-.ans-foot {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.chat-ex {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--line-soft);
-}
-.chat-ex .chipb {
-  font-size: 12px;
-  padding: 4px 10px;
-}
-.chat-in {
-  flex: none;
-  margin: 0 14px 14px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  padding: 0 8px 0 12px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg);
-  color: var(--accent);
-}
-.chat-in:focus-within {
-  border-color: rgba(142, 162, 255, 0.45);
-}
-.chat-in input {
-  flex: 1;
-  min-width: 0;
-  background: none;
-  border: 0;
-  outline: 0;
-  color: var(--fg);
-  font-size: 13px;
-}
-.chat-in input::placeholder {
-  color: var(--faint);
-}
-.cal-h {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-.cal-h h3 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-}
-.cal-h span {
-  color: var(--muted);
-  font-size: 12.5px;
-}
-.week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 2px;
-  margin-top: -6px;
-}
-.wd {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 6px 0;
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.wd b {
-  font-size: 14px;
-  color: var(--fg2);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.wd:hover {
-  background: var(--hover);
-}
-.wd.on {
-  background: var(--sel);
-}
-.wd.on b {
-  color: var(--fg);
-}
-.wd.today b {
-  color: var(--accent);
-}
-.wd i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--faint);
-}
-.wd i.none {
-  visibility: hidden;
-}
-.agenda {
-  display: grid;
-  gap: 2px;
-  margin: -6px -8px 0;
-}
-.ev {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 10px;
-  padding: 7px 8px;
-  border-radius: 9px;
-  width: 100%;
-  text-align: left;
-}
-.ev time {
-  color: var(--muted);
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  padding-top: 1px;
-}
-.ev .eb {
-  border-left: 2px solid var(--c, var(--line));
-  padding-left: 10px;
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-.ev .eb b {
-  font-weight: 500;
-  color: var(--fg);
-  font-size: 13.5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ev .eb span {
-  color: var(--muted);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ev.past {
-  opacity: 0.45;
-}
-.ev-empty {
-  color: var(--muted);
-  font-size: 13px;
-  padding: 6px 8px 8px;
-}
-@container side (max-width: 300px) {
-  .stabs {
-    padding: 12px 10px;
-    gap: 2px;
-  }
-  .stab {
-    padding: 5px 8px;
-    gap: 5px;
-  }
-  .sbody {
-    padding: 20px 16px;
-  }
-  .chat-log {
-    padding: 14px 12px 12px;
-  }
-  .chat-in {
-    margin: 0 12px 12px;
-  }
-}
-@container side (max-width: 275px) {
-  .stab svg:not(.spark) {
-    display: none;
-  }
-  .chat-ctx .runner .dt,
-  .chat-ctx .runner button:not(.on) {
-    display: none;
-  }
-}
-.ans-link {
-  display: inline;
-  padding: 0 2px;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-.ans-link:hover {
-  color: var(--fg);
-}
-.ans-refs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  white-space: normal;
 }

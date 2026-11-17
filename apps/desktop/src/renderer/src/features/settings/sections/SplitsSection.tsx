@@ -9,6 +9,7 @@ import { useSplits } from '../../../data/hooks/use-mail-queries';
 import { showToast } from '../../../state/toast-store';
 import { accountLike, useAccountsModel } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 export const describeRule = (rule: SplitRule): string => {
   if (rule.type === 'fromDomain') {
@@ -86,11 +87,10 @@ export function SplitsSection() {
   };
   return (
     <>
-      <h2>Split Inbox</h2>
-      <p className="lead">
+      <SectionHeader title="Split Inbox">
         Splity rozdelia Doručenú poštu na tematické záložky. Pravidlá bežia pri každej
         synchronizácii, zhora nadol. Všetko ostatné ostáva v Dôležitých.
-      </p>
+      </SectionHeader>
       {list.map((split) => {
         const account = split.accountId === null ? null : model.byId.get(split.accountId);
         return (

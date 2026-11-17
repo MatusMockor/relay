@@ -6,6 +6,7 @@ import { useAppContext, useServices } from '../../../data/hooks/services-context
 import { useAiRunners, useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
+import { SectionHeader } from '../SectionHeader';
 
 const RUNNER_LABEL: Readonly<Record<AiRunnerKind, string>> = {
   claude: 'Claude Code',
@@ -79,11 +80,10 @@ export function AiSection() {
     : 'Na počítači s aplikáciou Relay. V prehliadači lokálne AI nebeží.';
   return (
     <>
-      <h2>AI</h2>
-      <p className="lead">
+      <SectionHeader title="AI">
         AI spúšťa Claude Code alebo Codex CLI na tvojom predplatnom. Obsah mailov je nedôveryhodný
         vstup a odoslanie vždy potvrdzuješ ty.
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Kde beží AI"
         scope="synced"

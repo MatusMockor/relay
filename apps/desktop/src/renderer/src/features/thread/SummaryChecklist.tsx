@@ -7,16 +7,20 @@ export function SummaryChecklist({ detail }: { readonly detail: ThreadDetail }) 
   if (detail.checklist.length === 0) {
     return null;
   }
+  const done = detail.checklist.filter((item) => item.done).length;
   return (
-    <ul>
-      {detail.checklist.map((item) => {
-        const { done } = item;
-        return (
+    <>
+      <div className="chk-h" aria-hidden="true">
+        <span>Ďalšie kroky</span>
+        <span>{`${String(done)}/${String(detail.checklist.length)}`}</span>
+      </div>
+      <ul>
+        {detail.checklist.map((item) => (
           <li key={item.id}>
             <button
               type="button"
-              className={`chk${done ? ' on' : ''}`}
-              aria-pressed={done}
+              className={`chk${item.done ? ' on' : ''}`}
+              aria-pressed={item.done}
               onClick={() => {
                 void toggle(item);
               }}
@@ -27,8 +31,8 @@ export function SummaryChecklist({ detail }: { readonly detail: ThreadDetail }) 
               <span className="t">{item.text}</span>
             </button>
           </li>
-        );
-      })}
-    </ul>
+        ))}
+      </ul>
+    </>
   );
 }

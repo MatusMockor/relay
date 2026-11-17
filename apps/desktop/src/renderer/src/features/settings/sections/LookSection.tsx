@@ -6,6 +6,7 @@ import { type RightTab, setUi, useUiStore } from '../../../state/ui-store';
 import { useLayout } from '../../shell/use-layout';
 import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
+import { SectionHeader } from '../SectionHeader';
 
 export function LookSection() {
   const settings = useUserSettings();
@@ -16,10 +17,9 @@ export function LookSection() {
   const density = settings.data?.density ?? 'normal';
   return (
     <>
-      <h2>Vzhľad</h2>
-      <p className="lead">
+      <SectionHeader title="Vzhľad">
         Rozloženie, šírky panelov a zvolený účet si appka pamätá aj po zatvorení.
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Hustota zoznamu"
         scope="synced"

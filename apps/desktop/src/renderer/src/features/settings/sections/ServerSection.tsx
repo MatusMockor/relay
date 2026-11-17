@@ -6,6 +6,7 @@ import { useSessionStore } from '../../../session/session-store';
 import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 export function ServerSection() {
   const { platform, session } = useAppContext();
@@ -23,11 +24,10 @@ export function ServerSection() {
   };
   return (
     <>
-      <h2>Server</h2>
-      <p className="lead">
+      <SectionHeader title="Server">
         Server synchronizuje poštu 24/7 a drží nastavenia pre všetky tvoje zariadenia. Adresa
         servera je nastavenie len tohto zariadenia.
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Režim"
         scope="device"

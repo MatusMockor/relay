@@ -1,0 +1,195 @@
+.fold {
+  flex: none;
+  width: 214px;
+  background: var(--panel);
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px 12px;
+  gap: 1px;
+  overflow: auto;
+  container: fold / inline-size;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.fold .compose {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  padding: 0 8px 0 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  color: var(--fg);
+  font-weight: var(--w-medium);
+  width: 100%;
+}
+.fold .compose:hover {
+  background: var(--hover);
+}
+.fold .compose .kbd {
+  margin-left: auto;
+}
+.f {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: var(--fg3);
+  font-size: var(--fs-base);
+  width: 100%;
+}
+.f .ico {
+  color: var(--muted);
+}
+.f:hover {
+  background: var(--hover);
+  color: var(--fg2);
+}
+.f.on {
+  background: var(--sel);
+  color: var(--fg);
+  font-weight: var(--w-medium);
+}
+.f.on .ico {
+  color: var(--fg2);
+}
+.f .fl {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f .n {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.f.on .n {
+  color: var(--accent);
+  font-weight: var(--w-semibold);
+}
+.fold h5 {
+  margin: 18px 10px 6px;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: var(--w-semibold);
+}
+.fold-foot {
+  margin-top: auto;
+  padding: 16px 10px 2px;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.fold-foot .stat {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.fold-foot .stat:hover {
+  color: var(--fg2);
+}
+.fold-foot .proto {
+  font-size: var(--fs-xs);
+  color: var(--faint);
+}
+.acct {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: -2px -2px 12px;
+}
+.acct-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.acct-btn:hover,
+.acct-btn[aria-expanded='true'] {
+  background: var(--hover);
+}
+.acct-btn .t {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+.acct-btn .t b {
+  font-size: var(--fs-base);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--ls-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-btn .t small {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-btn > svg {
+  flex: none;
+  color: var(--faint);
+  margin-left: auto;
+}
+.acct .hide {
+  flex: none;
+  color: var(--faint);
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.acct .hide:hover {
+  background: var(--hover);
+  color: var(--fg2);
+}
+.acm .pi {
+  min-height: 44px;
+}
+.acm .pi .lb {
+  display: grid;
+  line-height: 1.3;
+}
+.acm .pi .lb small {
+  margin-left: 0;
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--w-regular);
+}
+.acm .pi.cur .lb {
+  color: var(--fg);
+  font-weight: var(--w-semibold);
+}
+@container fold (max-width: 190px) {
+  .acct-btn {
+    gap: 8px;
+    padding: 6px;
+  }
+  .acct-btn > svg {
+    display: none;
+  }
+  .f {
+    gap: 8px;
+    padding: 0 8px;
+  }
+}
