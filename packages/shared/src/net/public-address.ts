@@ -32,7 +32,6 @@ const GLOBAL_UNICAST = prefix('2000::/3');
 
 const DENIED_V6 = [
   '::/96',
-  '64:ff9b::/96',
   '64:ff9b:1::/48',
   '2001::/23',
   '2001:db8::/32',
@@ -40,9 +39,9 @@ const DENIED_V6 = [
   'fec0::/10',
 ].map(prefix);
 
-const MAPPED = prefix('::ffff:0:0/96');
+const IPV4_TRANSLATED = ['::ffff:0:0/96', '64:ff9b::/96'].map(prefix);
 const SIX_TO_FOUR = prefix('2002::/16');
-const LOW_BITS_EMBEDDING = ['::/96', '64:ff9b::/96', '64:ff9b:1::/48'].map(prefix);
+const LOW_BITS_EMBEDDING = ['::/96', '64:ff9b:1::/48'].map(prefix);
 
 const matches = (address: IpAddress, entry: Prefix): boolean =>
   inPrefix(address, entry.network, entry.bits);
@@ -60,7 +59,7 @@ const embeddedV4 = (address: IpAddress): IpAddress | null => {
 };
 
 const isPublicV6 = (address: IpAddress): boolean => {
-  if (matches(address, MAPPED)) {
+  if (within(address, IPV4_TRANSLATED)) {
     return isPublicV4(lowV4(address.value));
   }
   const embedded = embeddedV4(address);

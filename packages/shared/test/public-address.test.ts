@@ -32,6 +32,8 @@ describe('isPublicAddress', () => {
     '2606:4700::6810:84e5',
     '::ffff:8.8.8.8',
     '::ffff:808:808',
+    '64:ff9b::808:808',
+    '64:ff9b::8.8.8.8',
   ])('allows the public address %s', (address) => {
     expect(isPublicAddress(address)).toBe(true);
   });
@@ -70,7 +72,7 @@ describe('isPublicAddress', () => {
     ['unspecified', '::'],
     ['loopback', '::1'],
     ['IPv4-compatible with a public IPv4', '::8.8.8.8'],
-    ['NAT64 with a public IPv4', '64:ff9b::808:808'],
+    ['NAT64 with a private IPv4', '64:ff9b::a00:1'],
     ['NAT64 local use', '64:ff9b:1::808:808'],
     ['6to4 with a public IPv4', '2002:808:808::1'],
     ['Teredo', '2001:0:4136:e378:8000:63bf:3fff:fdd2'],
