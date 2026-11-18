@@ -40,6 +40,7 @@ export function ReasoningTrigger({ value, onChange }: ReasoningTriggerProps) {
           value={value}
           onChange={onChange}
           onClose={popover.close}
+          onLeave={popover.dismiss}
         />
       )}
     </>

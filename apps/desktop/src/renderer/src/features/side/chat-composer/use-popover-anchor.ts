@@ -7,9 +7,12 @@ export const usePopoverAnchor = () => {
   const open = (event: MouseEvent<HTMLElement>) => {
     setAnchor(event.currentTarget.getBoundingClientRect());
   };
-  const close = () => {
+  const dismiss = () => {
     setAnchor(null);
+  };
+  const close = () => {
+    dismiss();
     trigger.current?.focus();
   };
-  return { trigger, anchor, open, close };
+  return { trigger, anchor, open, close, dismiss };
 };

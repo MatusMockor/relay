@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type FocusEvent, useEffect, useRef, useState } from 'react';
 import { isControlTarget } from '../../keyboard/focus-target';
 
 export interface MenuCursorOptions {
@@ -6,6 +6,7 @@ export interface MenuCursorOptions {
   readonly initial: number;
   readonly numbered: boolean;
   readonly onPick: (index: number) => void;
+  readonly onLeave: () => void;
 }
 
 export interface MenuItemProps {
@@ -17,7 +18,15 @@ export interface MenuItemProps {
 
 const MOVES: Readonly<Record<string, number>> = { ArrowDown: 1, ArrowUp: -1 };
 
-const digitIndex = (key: string): number | null => (/^[1-9]$/.test(key) ? Number(key) - 1 : null);
+const digitIndex = (event: KeyboardEvent): number | null => {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return null;
+  }
+  return /^[1-9]$/.test(event.key) ? Number(event.key) - 1 : null;
+};
+
+const isInside = (root: HTMLElement | null, target: EventTarget | null): boolean =>
+  target === document.body || (target instanceof Node && root?.contains(target) === true);
 
 const itemIndex = (target: EventTarget | null): number | null => {
   if (!(target instanceof HTMLElement)) {
@@ -38,7 +47,7 @@ const consume = (event: KeyboardEvent): true => {
   return true;
 };
 
-export const useMenuCursor = ({ count, initial, numbered, onPick }: MenuCursorOptions) => {
+export const useMenuCursor = ({ count, initial, numbered, onPick, onLeave }: MenuCursorOptions) => {
   const body = useRef<HTMLDivElement>(null);
   const start = useRef(initial);
   const [cursor, setCursor] = useState(initial);
@@ -52,7 +61,10 @@ export const useMenuCursor = ({ count, initial, numbered, onPick }: MenuCursorOp
   const enterTarget = (target: EventTarget | null): number | null =>
     itemIndex(target) ?? (isControlTarget(target) ? null : cursor);
   const onKey = (event: KeyboardEvent): boolean => {
-    const digit = numbered ? digitIndex(event.key) : null;
+    if (!isInside(body.current, event.target)) {
+      return false;
+    }
+    const digit = numbered ? digitIndex(event) : null;
     if (digit !== null && digit < count) {
       onPick(digit);
       return consume(event);
@@ -81,5 +93,12 @@ export const useMenuCursor = ({ count, initial, numbered, onPick }: MenuCursorOp
       }
     },
   });
-  return { body, cursor, setCursor, onKey, item };
+  const onBlur = (event: FocusEvent<HTMLElement>) => {
+    const next = event.relatedTarget;
+    if (next === null || event.currentTarget.contains(next)) {
+      return;
+    }
+    onLeave();
+  };
+  return { body, cursor, setCursor, onKey, onBlur, item };
 };

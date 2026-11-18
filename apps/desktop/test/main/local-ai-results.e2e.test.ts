@@ -107,9 +107,17 @@ describe('local AI results over IPC', () => {
       effort: 'high',
     });
     expect(run.error).toBeNull();
+    expect(run.events.at(-1)).toMatchObject({
+      type: 'completed',
+      output: { kind: 'summary' },
+    });
     const [call] = await claude.calls();
     const args = call?.args ?? [];
-    expect(args[args.indexOf('--model') + 1]).toBe('claude-sonnet-5-5');
-    expect(args[args.indexOf('--effort') + 1]).toBe('high');
+    const model = args.indexOf('--model');
+    const effort = args.indexOf('--effort');
+    expect(model).toBeGreaterThanOrEqual(0);
+    expect(effort).toBeGreaterThanOrEqual(0);
+    expect(args[model + 1]).toBe('claude-sonnet-5-5');
+    expect(args[effort + 1]).toBe('high');
   });
 });

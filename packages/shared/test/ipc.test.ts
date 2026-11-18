@@ -32,10 +32,13 @@ describe('ipc channel map', () => {
   it('validates the model and effort of a local AI run against the catalog', () => {
     const { input } = ipcStreamChannels['ai.run'];
     const question = { kind: 'chatAnswer', question: 'Čo dnes?', threadId: null, history: [] };
-    expect(
-      input.safeParse({ input: question, runner: 'codex', model: 'gpt-6-astra', effort: 'high' })
-        .success,
-    ).toBe(true);
+    const picked = input.safeParse({
+      input: question,
+      runner: 'codex',
+      model: 'gpt-6-astra',
+      effort: 'high',
+    });
+    expect(picked.data).toMatchObject({ runner: 'codex', model: 'gpt-6-astra', effort: 'high' });
     expect(
       input.safeParse({ input: question, runner: 'claude', model: null, effort: null }).success,
     ).toBe(true);

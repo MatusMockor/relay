@@ -15,6 +15,7 @@ export interface ModelMenuProps {
   readonly value: ModelChoice;
   readonly onChange: (next: ModelChoice) => void;
   readonly onClose: () => void;
+  readonly onLeave: () => void;
 }
 
 const activeIn = (value: ModelChoice, runner: AiRunnerKind): string | null =>
@@ -26,7 +27,7 @@ const cursorFor = (value: ModelChoice, runner: AiRunnerKind): number =>
     AI_MODEL_CATALOG[runner].findIndex((model) => model.id === activeIn(value, runner)),
   );
 
-export function ModelMenu({ anchor, value, onChange, onClose }: ModelMenuProps) {
+export function ModelMenu({ anchor, value, onChange, onClose, onLeave }: ModelMenuProps) {
   const [listed, setListed] = useState(value.runner);
   const models = AI_MODEL_CATALOG[listed];
   const pick = (index: number) => {
@@ -42,6 +43,7 @@ export function ModelMenu({ anchor, value, onChange, onClose }: ModelMenuProps) 
     initial: cursorFor(value, listed),
     numbered: true,
     onPick: pick,
+    onLeave,
   });
   return (
     <Popover
@@ -53,7 +55,7 @@ export function ModelMenu({ anchor, value, onChange, onClose }: ModelMenuProps) 
       onClose={onClose}
       onKey={menu.onKey}
     >
-      <div ref={menu.body} className="mdlm-body" tabIndex={-1}>
+      <div ref={menu.body} className="mdlm-body" tabIndex={-1} onBlur={menu.onBlur}>
         <ProviderRail
           listed={listed}
           onList={(runner) => {

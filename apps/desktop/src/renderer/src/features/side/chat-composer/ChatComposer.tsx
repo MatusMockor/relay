@@ -47,6 +47,9 @@ export function ChatComposer({
           onQuestion(event.target.value);
         }}
         onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) {
+            return;
+          }
           if (event.key === 'Escape') {
             event.currentTarget.blur();
             return;

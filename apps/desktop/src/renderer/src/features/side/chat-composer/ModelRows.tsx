@@ -13,14 +13,14 @@ export interface ModelRowsProps {
 
 export function ModelRows({ runner, active, cursor, item, onPick }: ModelRowsProps) {
   return (
-    <div className="mdlm-list" role="radiogroup" aria-label="Model">
+    <div className="mdlm-list" role="listbox" aria-label="Model">
       {AI_MODEL_CATALOG[runner].map((model, index) => (
         <button
           key={model.id}
           {...item(index)}
           type="button"
-          role="radio"
-          aria-checked={model.id === active}
+          role="option"
+          aria-selected={model.id === active}
           className={cx('mrow', index === cursor && 'on', model.id === active && 'cur')}
           onClick={() => {
             onPick(index);

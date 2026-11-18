@@ -1,5 +1,6 @@
 import type { ThreadId } from '@relay/shared';
 import { create } from 'zustand';
+import type { ModelChoice } from '../ai/model-choice/model-choice';
 
 export type TurnStatus = 'running' | 'done' | 'error';
 
@@ -17,6 +18,7 @@ interface ChatState {
   readonly turns: readonly ChatTurn[];
   readonly queued: string | null;
   readonly draft: string;
+  readonly choice: ModelChoice | null;
   readonly ask: (question: string) => void;
 }
 
@@ -24,6 +26,7 @@ export const useChat = create<ChatState>((set) => ({
   turns: [],
   queued: null,
   draft: '',
+  choice: null,
   ask: (question) => {
     set({ queued: question });
   },
@@ -41,7 +44,11 @@ export const resetChat = (): void => {
     stop();
   });
   running.clear();
-  useChat.setState({ turns: [], queued: null, draft: '' });
+  useChat.setState({ turns: [], queued: null, draft: '', choice: null });
+};
+
+export const setChatChoice = (choice: ModelChoice): void => {
+  useChat.setState({ choice });
 };
 
 export const setChatDraft = (draft: string): void => {

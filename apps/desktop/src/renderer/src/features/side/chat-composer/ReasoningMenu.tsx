@@ -13,9 +13,10 @@ export interface ReasoningMenuProps {
   readonly value: ModelChoice;
   readonly onChange: (next: ModelChoice) => void;
   readonly onClose: () => void;
+  readonly onLeave: () => void;
 }
 
-export function ReasoningMenu({ anchor, value, onChange, onClose }: ReasoningMenuProps) {
+export function ReasoningMenu({ anchor, value, onChange, onClose, onLeave }: ReasoningMenuProps) {
   const efforts = choiceEfforts(value);
   const selected = effectiveEffort(value);
   const pick = (index: number) => {
@@ -34,6 +35,7 @@ export function ReasoningMenu({ anchor, value, onChange, onClose }: ReasoningMen
     ),
     numbered: false,
     onPick: pick,
+    onLeave,
   });
   return (
     <Popover
@@ -46,7 +48,7 @@ export function ReasoningMenu({ anchor, value, onChange, onClose }: ReasoningMen
       onClose={onClose}
       onKey={menu.onKey}
     >
-      <div ref={menu.body} tabIndex={-1}>
+      <div ref={menu.body} tabIndex={-1} onBlur={menu.onBlur}>
         <div className="gl">Reasoning</div>
         {efforts.map((effort, index) => (
           <button

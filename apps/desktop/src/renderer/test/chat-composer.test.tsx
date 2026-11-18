@@ -2,67 +2,18 @@
 import type { AiRunRequest } from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
-import type { MailClient } from '../src/data/MailClient';
+import {
+  ask,
+  click,
+  listedModels,
+  modelTrigger,
+  openAiPane,
+  openModelMenu,
+  press,
+  reasoningTrigger,
+  recordingClient,
+} from './support/chat-composer';
 import { renderApp, resetStores } from './support/render-app';
-
-const recordingClient = (requests: AiRunRequest[]): MailClient => {
-  const base = createDemoMailClient({ aiStepMs: 0 });
-  return {
-    ...base,
-    runAi: (request, listener) => {
-      requests.push(request);
-      return base.runAi(request, listener);
-    },
-  };
-};
-
-const openAiPane = () => {
-  act(() => {
-    fireEvent.click(screen.getByRole('tab', { name: /^AI/ }));
-  });
-  return screen.getByRole('tabpanel', { name: 'AI' });
-};
-
-const modelTrigger = (pane: HTMLElement) => within(pane).getByRole('button', { name: /^Model: / });
-
-const reasoningTrigger = (pane: HTMLElement) =>
-  within(pane).getByRole('button', { name: /^Reasoning: / });
-
-const click = (element: HTMLElement) => {
-  act(() => {
-    fireEvent.click(element);
-  });
-};
-
-const press = (key: string) => {
-  act(() => {
-    fireEvent.keyDown(document.activeElement ?? document.body, { key });
-  });
-};
-
-const openModelMenu = (pane: HTMLElement) => {
-  click(modelTrigger(pane));
-  return screen.getByRole('dialog', { name: 'Výber modelu' });
-};
-
-const listedModels = (menu: HTMLElement): string[] =>
-  within(within(menu).getByRole('radiogroup', { name: 'Model' }))
-    .getAllByRole('radio')
-    .map((row) => row.querySelector('.nm')?.textContent ?? '');
-
-const ask = async (pane: HTMLElement, question: string, requests: AiRunRequest[]) => {
-  const count = requests.length;
-  const input = within(pane).getByRole('textbox', { name: 'Otázka pre AI' });
-  fireEvent.change(input, { target: { value: question } });
-  act(() => {
-    fireEvent.keyDown(input, { key: 'Enter' });
-  });
-  await waitFor(() => {
-    expect(requests).toHaveLength(count + 1);
-  });
-  return requests[count];
-};
 
 describe('AI chat composer', () => {
   const requests: AiRunRequest[] = [];
@@ -111,15 +62,15 @@ describe('AI chat composer', () => {
     expect(listedModels(menu)).toEqual(['Opus 5.5', 'Sonnet 5.5', 'Haiku 5.5']);
     expect(
       within(menu)
-        .getByRole('radio', { name: /^Opus 5\.5/ })
-        .getAttribute('aria-checked'),
+        .getByRole('option', { name: /^Opus 5\.5/ })
+        .getAttribute('aria-selected'),
     ).toBe('true');
 
     click(within(menu).getByRole('button', { name: 'Codex' }));
 
     expect(listedModels(menu)).toEqual(['GPT-6.1 Sol', 'GPT-6 Astra', 'GPT-6 Luna']);
     expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Claude Code, Opus 5.5');
-    click(within(menu).getByRole('radio', { name: /^GPT-6 Astra/ }));
+    click(within(menu).getByRole('option', { name: /^GPT-6 Astra/ }));
 
     expect(screen.queryByRole('dialog', { name: 'Výber modelu' })).toBeNull();
     expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Codex, GPT-6 Astra');
@@ -173,18 +124,18 @@ describe('AI chat composer', () => {
   it('keeps focus, highlight and activation on the same menu item', () => {
     const pane = openAiPane();
     const menu = openModelMenu(pane);
-    const opus = within(menu).getByRole('radio', { name: /^Opus 5\.5/ });
+    const opus = within(menu).getByRole('option', { name: /^Opus 5\.5/ });
     expect(document.activeElement).toBe(opus);
     expect(opus.tabIndex).toBe(0);
 
-    const sonnet = within(menu).getByRole('radio', { name: /^Sonnet 5\.5/ });
+    const sonnet = within(menu).getByRole('option', { name: /^Sonnet 5\.5/ });
     act(() => {
       sonnet.focus();
     });
     expect(sonnet.classList.contains('on')).toBe(true);
     press('ArrowDown');
 
-    const haiku = within(menu).getByRole('radio', { name: /^Haiku 5\.5/ });
+    const haiku = within(menu).getByRole('option', { name: /^Haiku 5\.5/ });
     expect(document.activeElement).toBe(haiku);
     expect([opus.tabIndex, sonnet.tabIndex, haiku.tabIndex]).toEqual([-1, -1, 0]);
     press('Enter');
@@ -232,7 +183,7 @@ describe('AI chat composer', () => {
     ]);
   });
 
-  it('drops an effort the newly picked model does not support', () => {
+  it('drops an effort the newly picked model does not support', async () => {
     const pane = openAiPane();
     click(reasoningTrigger(pane));
     click(
@@ -246,6 +197,30 @@ describe('AI chat composer', () => {
 
     expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Codex, GPT-6.1 Sol');
     expect(reasoningTrigger(pane).textContent).toBe('Stredný');
+    expect(await ask(pane, 'Zhrň neprečítané', requests)).toMatchObject({
+      runner: 'codex',
+      model: 'gpt-6.1-sol',
+      effort: 'medium',
+    });
+  });
+
+  it('keeps the picked model and reasoning when the AI tab is hidden and shown again', () => {
+    let pane = openAiPane();
+    click(within(openModelMenu(pane)).getByRole('button', { name: 'Codex' }));
+    press('2');
+    click(reasoningTrigger(pane));
+    click(
+      within(screen.getByRole('menu', { name: 'Reasoning' })).getByRole('menuitemradio', {
+        name: 'Vysoký',
+      }),
+    );
+
+    click(screen.getByRole('tab', { name: /^Kalendár/ }));
+    expect(screen.queryByRole('tabpanel', { name: 'AI' })).toBeNull();
+    pane = openAiPane();
+
+    expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Codex, GPT-6 Astra');
+    expect(reasoningTrigger(pane).textContent).toBe('Vysoký');
   });
 
   it('submits with the send button only when there is a question', async () => {

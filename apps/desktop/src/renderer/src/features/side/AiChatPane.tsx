@@ -1,6 +1,6 @@
 import { Icon } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useThreadDetail, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
@@ -9,7 +9,7 @@ import { RUNNER_LABELS } from '../ai/model-choice/model-labels';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
 import { ChatComposer } from './chat-composer/ChatComposer';
-import { setChatDraft, useChat } from './chat-store';
+import { setChatChoice, setChatDraft, useChat } from './chat-store';
 import { finishedStepLabel } from './step-labels';
 import { useChatRuns } from './use-chat-runs';
 
@@ -18,8 +18,7 @@ export function AiChatPane() {
   const { current } = useMailActions();
   const openThreadId = useUiStore((state) => state.openThreadId);
   const settings = useUserSettings();
-  const { turns, queued, draft: question } = useChat();
-  const [override, setOverride] = useState<ModelChoice | null>(null);
+  const { turns, queued, draft: question, choice: override } = useChat();
   const log = useRef<HTMLDivElement>(null);
   const choice = override ?? defaultChoice(settings.data?.ai.defaultRunner ?? 'claude');
   const thread = current?.kind === 'thread' ? current.thread : null;
@@ -28,7 +27,7 @@ export function AiChatPane() {
   const subject = openThreadId === null ? thread?.subject : openDetail.data?.thread.subject;
   const runs = useChatRuns({ choice, runnerLabel: RUNNER_LABELS[choice.runner], threadId });
   const changeChoice = (next: ModelChoice) => {
-    setOverride(next);
+    setChatChoice(next);
     if (next.runner !== choice.runner) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
     }

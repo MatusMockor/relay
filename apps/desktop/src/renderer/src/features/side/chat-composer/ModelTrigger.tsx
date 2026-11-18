@@ -37,6 +37,7 @@ export function ModelTrigger({ value, onChange }: ModelTriggerProps) {
           value={value}
           onChange={onChange}
           onClose={popover.close}
+          onLeave={popover.dismiss}
         />
       )}
     </>
