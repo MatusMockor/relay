@@ -22,9 +22,10 @@ const openMenu = async (scope: HTMLElement, name: string | RegExp) => {
   return screen.getByRole('menu');
 };
 
-const choose = (menu: HTMLElement, item: string) => {
-  fire(() => {
+const choose = async (menu: HTMLElement, item: string) => {
+  await act(async () => {
     fireEvent.click(within(menu).getByRole('menuitem', { name: item }));
+    await Promise.resolve();
   });
 };
 
@@ -82,11 +83,11 @@ describe('managing folders from the sidebar', () => {
       },
     });
 
-    choose(await openMenu(efabrica, 'Projekty'), 'Nový podpriečinok');
+    await choose(await openMenu(efabrica, 'Projekty'), 'Nový podpriečinok');
     typeName(within(efabrica).getByRole('textbox', { name: 'Nový podpriečinok' }), 'Gama');
     expect(await within(efabrica).findByRole('button', { name: 'Gama' })).toBeDefined();
 
-    choose(await openMenu(efabrica, /Faktúry/), 'Premenovať');
+    await choose(await openMenu(efabrica, /Faktúry/), 'Premenovať');
     const input = within(efabrica).getByRole('textbox', { name: 'Premenovať Faktúry' });
     expect((input as HTMLInputElement).value).toBe('Faktúry');
     typeName(input, 'Účty');
@@ -104,10 +105,10 @@ describe('managing folders from the sidebar', () => {
     renderApp({ demo: () => client });
     const efabrica = await waitFor(() => group('eFabrica'));
 
-    choose(await openMenu(efabrica, /Faktúry/), 'Presunúť do…');
+    await choose(await openMenu(efabrica, /Faktúry/), 'Presunúť do…');
     const picker = screen.getByRole('menu', { name: 'Presunúť Faktúry' });
     expect(within(picker).getByRole('menuitem', { name: 'Projekty / Alfa' })).toBeDefined();
-    choose(picker, 'Projekty');
+    await choose(picker, 'Projekty');
 
     await waitFor(async () => {
       expect(await paths(client, 'efa')).toContain('Projekty/Faktúry');
@@ -118,7 +119,7 @@ describe('managing folders from the sidebar', () => {
     renderApp({ demo: () => client });
     const efabrica = await waitFor(() => group('eFabrica'));
 
-    choose(await openMenu(efabrica, /Beta/), 'Zmazať');
+    await choose(await openMenu(efabrica, /Beta/), 'Zmazať');
     const dialog = screen.getByRole('alertdialog');
     expect(within(dialog).getByText('Zmazať priečinok „Beta“?')).toBeDefined();
     expect(within(dialog).getByText('Správy sa presunú do Koša.')).toBeDefined();
@@ -140,7 +141,7 @@ describe('managing folders from the sidebar', () => {
     renderApp({ demo: () => client });
     const efabrica = await waitFor(() => group('eFabrica'));
 
-    choose(await openMenu(efabrica, 'Projekty'), 'Zmazať');
+    await choose(await openMenu(efabrica, 'Projekty'), 'Zmazať');
     fire(() => {
       fireEvent.click(
         within(screen.getByRole('alertdialog')).getByRole('button', { name: /Zmazať/ }),
@@ -157,7 +158,7 @@ describe('managing folders from the sidebar', () => {
     renderApp({ demo: () => client });
     const personal = await waitFor(() => group('Osobný'));
 
-    choose(await openMenu(personal, 'Acme'), 'Zmazať');
+    await choose(await openMenu(personal, 'Acme'), 'Zmazať');
     const dialog = screen.getByRole('alertdialog');
     expect(within(dialog).getByText('Zmazať štítok „Acme“?')).toBeDefined();
     expect(within(dialog).getByText('Správy ostanú v Archíve.')).toBeDefined();

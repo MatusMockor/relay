@@ -1,9 +1,16 @@
 import { FolderIcon } from '@relay/ui';
-import { type Folder, NAV_VIEWS, type NavView, VIEW_META } from '../../state/folders';
+import {
+  type Folder,
+  NAV_VIEWS,
+  type NavView,
+  usesThreadList,
+  VIEW_META,
+} from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { selectFolder } from '../mail/navigation';
 import { folderIconOf } from './folder-icons';
 import { useFolderCounts } from './use-folder-counts';
+import { useFolderMenu } from './use-folder-menu';
 
 const isOn = (folder: Folder, view: NavView): boolean => {
   if (view === 'inbox') {
@@ -18,11 +25,13 @@ const folderFor = (view: NavView): Folder =>
 export function SystemFolders({ showTasks }: { readonly showTasks: boolean }) {
   const folder = useUiStore((state) => state.folder);
   const counts = useFolderCounts();
+  const showMenu = useFolderMenu();
   return (
     <>
       {NAV_VIEWS.filter((view) => view !== 'tasks' || showTasks).map((view) => {
         const meta = VIEW_META[view];
         const count = counts[view] ?? 0;
+        const entry = folderFor(view);
         return (
           <button
             key={view}
@@ -31,8 +40,15 @@ export function SystemFolders({ showTasks }: { readonly showTasks: boolean }) {
             title={`${meta.label} (G ${meta.g})`}
             aria-current={isOn(folder, view) ? 'page' : undefined}
             onClick={() => {
-              selectFolder(folderFor(view));
+              selectFolder(entry);
             }}
+            onContextMenu={
+              usesThreadList(entry)
+                ? (event) => {
+                    showMenu(event, entry, null);
+                  }
+                : undefined
+            }
           >
             <FolderIcon name={folderIconOf(view)} />
             <span className="fl">{meta.label}</span>

@@ -12,7 +12,6 @@ export interface FolderTarget {
 }
 
 export type FolderEdit =
-  | { readonly kind: 'menu'; readonly target: FolderTarget; readonly anchor: AnchorRect }
   | { readonly kind: 'rename'; readonly target: FolderTarget }
   | { readonly kind: 'move'; readonly target: FolderTarget; readonly anchor: AnchorRect }
   | { readonly kind: 'delete'; readonly target: FolderTarget }
