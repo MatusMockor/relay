@@ -3,10 +3,10 @@ import type { AnchorRect } from '@relay/ui';
 import type { MouseEvent } from 'react';
 import { setUi } from '../../state/ui-store';
 import { useContextMenu } from '../context-menu/use-context-menu';
+import { actionView } from '../mail/action-view';
 import type { ListItem } from '../mail/list-items';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { selectKey } from '../mail/selection';
-import { actionView } from '../shell/RowActions';
 import { threadMenuItems } from './thread-menu-items';
 
 export type ThreadListItem = Extract<ListItem, { kind: 'thread' }>;

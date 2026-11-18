@@ -4,6 +4,7 @@ import type { MouseEvent } from 'react';
 import { viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { rectOf } from '../folders/rect';
+import { actionView } from '../mail/action-view';
 import type { ListItem } from '../mail/list-items';
 import { useMailActions } from '../mail/MailActionsProvider';
 
@@ -21,19 +22,6 @@ const MOVE: ActionSpec = { id: 'move', icon: 'folder', label: 'Presunúť do…'
 const LABELS: ActionSpec = { id: 'labels', icon: 'label', label: 'Štítok…', key: 'L' };
 const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: '#' };
 const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', key: '!' };
-
-const HELD_VIEWS: readonly FolderView[] = ['trash', 'spam'];
-const MIXED_VIEWS: readonly FolderView[] = ['mailbox', 'label'];
-
-export const actionView = (view: FolderView, item: ListItem): string => {
-  if (item.kind !== 'thread') {
-    return view;
-  }
-  if (MIXED_VIEWS.includes(view)) {
-    return item.thread.state;
-  }
-  return HELD_VIEWS.includes(view) && item.thread.state !== view ? item.thread.state : view;
-};
 
 const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   const map: Record<string, ActionSpec[]> = {
