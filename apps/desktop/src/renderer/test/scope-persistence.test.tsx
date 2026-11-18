@@ -85,6 +85,18 @@ describe('remembering the account scope', () => {
     expect(window.localStorage.getItem(SCOPE_KEY)).toBe(JSON.stringify('all'));
   });
 
+  it('falls back to all accounts when an unknown account is selected after loading', async () => {
+    await start();
+    act(() => {
+      setUi({ scope: demoIds.account('gone') });
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().scope).toBe('all');
+    });
+    expect(window.localStorage.getItem(SCOPE_KEY)).toBe(JSON.stringify('all'));
+  });
+
   it('falls back to all accounts when the current account is disconnected', async () => {
     await start();
     pickAccount(/Freelance/);

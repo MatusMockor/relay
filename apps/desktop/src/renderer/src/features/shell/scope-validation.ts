@@ -18,14 +18,15 @@ const resetUnknownComposeScope = (accounts: readonly MailAccount[]): void => {
 
 export const useScopeValidation = (): void => {
   const { data } = useAccounts();
+  const scope = useUiStore((state) => state.scope);
   useEffect(() => {
     if (data === undefined) {
       return;
     }
     resetUnknownComposeScope(data);
-    if (isKnownScope(useUiStore.getState().scope, data)) {
+    if (isKnownScope(scope, data)) {
       return;
     }
     selectScope('all');
-  }, [data]);
+  }, [data, scope]);
 };
