@@ -1,10 +1,13 @@
-import type { AutomationRepository } from '@relay/engine';
-import type { Automation, UserId } from '@relay/shared/domain';
+import type { AutomationRepository, PresetAutomation } from '@relay/engine';
+import type { Automation, AutomationPreset, UserId } from '@relay/shared/domain';
 import { and, asc, eq, notInArray } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toAutomation, toAutomationRow } from '../mappers/automation-mapper';
-import { automations } from '../schema';
+import { automations, removedAutomationPresets } from '../schema';
+
+const removedPresetOf = (userId: UserId, preset: AutomationPreset) =>
+  and(eq(removedAutomationPresets.userId, userId), eq(removedAutomationPresets.preset, preset));
 
 export class SqliteAutomationRepository implements AutomationRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -44,6 +47,29 @@ export class SqliteAutomationRepository implements AutomationRepository {
 
   createPresetIfAbsent(automation: Automation): Promise<void> {
     return this.executor.execute((db) => {
+      db.insert(automations).values(toAutomationRow(automation)).onConflictDoNothing().run();
+    });
+  }
+
+  isPresetRemoved(userId: UserId, preset: AutomationPreset): Promise<boolean> {
+    return this.executor.execute(
+      (db) =>
+        db.select().from(removedAutomationPresets).where(removedPresetOf(userId, preset)).get() !==
+        undefined,
+    );
+  }
+
+  markPresetRemoved(userId: UserId, preset: AutomationPreset): Promise<void> {
+    return this.executor.execute((db) => {
+      db.insert(removedAutomationPresets).values({ userId, preset }).onConflictDoNothing().run();
+    });
+  }
+
+  restorePreset(automation: PresetAutomation): Promise<void> {
+    return this.executor.execute((db) => {
+      db.delete(removedAutomationPresets)
+        .where(removedPresetOf(automation.userId, automation.preset))
+        .run();
       db.insert(automations).values(toAutomationRow(automation)).onConflictDoNothing().run();
     });
   }

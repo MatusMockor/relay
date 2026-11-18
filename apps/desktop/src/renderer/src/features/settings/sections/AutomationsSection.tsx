@@ -3,14 +3,16 @@ import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../../mail/use-accounts-model';
 import { AutomationCard } from '../automations/AutomationCard';
 import { useAutomationEditor } from '../automations/use-automation-editor';
+import { useDefaultRule } from '../automations/use-default-rule';
 import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
 
 export function AutomationsSection() {
   const editor = useAutomationEditor();
+  const defaultRule = useDefaultRule();
   const settings = useUserSettings();
   const { accounts } = useAccountsModel();
-  const locked = editor.saving || editor.loading;
+  const locked = editor.saving || editor.loading || defaultRule.restoring;
   return (
     <>
       <SectionHeader title="Automatizácie">
@@ -46,6 +48,16 @@ export function AutomationsSection() {
           >
             + Nové pravidlo
           </Button>
+          {defaultRule.removed ? (
+            <Button
+              disabled={locked}
+              onClick={() => {
+                defaultRule.restore();
+              }}
+            >
+              Obnoviť predvolené Jira pravidlo
+            </Button>
+          ) : null}
         </div>
       </div>
       <SettingRow

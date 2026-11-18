@@ -45,3 +45,12 @@ export const automationRuns = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.automationId, table.messageId] })],
 );
+
+export const removedAutomationPresets = sqliteTable(
+  'removed_automation_presets',
+  {
+    userId: text('user_id').notNull(),
+    preset: text('preset').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.preset] })],
+);

@@ -70,3 +70,15 @@ export const automationRuns = pgTable(
   },
   (table) => [primaryKey({ columns: [table.automationId, table.messageId] })],
 );
+
+export const removedAutomationPresets = pgTable(
+  'removed_automation_presets',
+  {
+    userId: text('user_id')
+      .$type<UserId>()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    preset: text('preset').$type<AutomationPreset>().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.preset] })],
+);

@@ -1,6 +1,6 @@
 import type { Automation } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { automationInput, JIRA, jobsOf, sync, syncedSetup } from '../support/automations';
+import { enableJiraTasks, JIRA, jobsOf, sync, syncedSetup } from '../support/automations';
 import { deliverMail, seedAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
@@ -14,7 +14,7 @@ const preset = async (engine: TestEngine): Promise<Automation> => {
 const updatePreset = async (engine: TestEngine, change: Partial<Automation>): Promise<void> => {
   const current = await preset(engine);
   await engine.services.automations.replace(USER_ID, {
-    automations: [{ ...current, ...change }],
+    automations: [{ ...current, enabled: true, ...change }],
   });
 };
 
@@ -22,7 +22,7 @@ const tasks = async (engine: TestEngine) =>
   (await engine.services.tasks.list(USER_ID, { limit: 20 })).items;
 
 describe('default Jira tasks automation', () => {
-  it('is seeded once with the existing Jira behavior', async () => {
+  it('is seeded once, turned off, with the existing Jira behavior', async () => {
     const engine = createTestEngine();
 
     const first = await engine.services.automations.list(USER_ID);
@@ -32,7 +32,7 @@ describe('default Jira tasks automation', () => {
     expect(first).toEqual([
       expect.objectContaining({
         name: 'Jira tasky',
-        enabled: true,
+        enabled: false,
         preset: 'jiraTasks',
         accountId: null,
         conditions: [{ type: 'jira', projectKeys: [] }],
@@ -42,9 +42,43 @@ describe('default Jira tasks automation', () => {
     ]);
   });
 
+  it('creates no Jira tasks for a new user until the rule is turned on', async () => {
+    const setup = await syncedSetup();
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[EF-10] Pred zapnutím',
+      headers: { 'X-Jira-Event': 'assigned' },
+    });
+    await sync(setup);
+    expect(await setup.engine.services.automations.list(USER_ID)).toEqual([
+      expect.objectContaining({ preset: 'jiraTasks', enabled: false }),
+    ]);
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j2',
+      from: JIRA,
+      subject: '[EF-11] Tiež pred zapnutím',
+      headers: { 'X-Jira-Event': 'assigned' },
+    });
+    await sync(setup);
+    expect(await tasks(setup.engine)).toEqual([]);
+
+    await enableJiraTasks(setup.engine);
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j3',
+      from: JIRA,
+      subject: '[EF-12] Po zapnutí',
+      headers: { 'X-Jira-Event': 'assigned' },
+    });
+    await sync(setup);
+
+    expect((await tasks(setup.engine)).map((task) => task.jiraKey)).toEqual(['EF-12']);
+  });
+
   it('creates and reopens Jira tasks without AI, also on the initial sync', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     deliverMail(server, 'INBOX', {
       id: 'j1',
       from: JIRA,
@@ -197,14 +231,5 @@ describe('default Jira tasks automation', () => {
     await engine.services.sync.syncAccount(USER_ID, other.account.id);
 
     expect((await tasks(engine)).map((task) => task.jiraKey)).toEqual(['EF-6']);
-  });
-
-  it('can be turned off but not removed', async () => {
-    const engine = createTestEngine();
-    await preset(engine);
-
-    await expect(
-      engine.services.automations.replace(USER_ID, { automations: [automationInput()] }),
-    ).rejects.toMatchObject({ code: 'validation_failed' });
   });
 });

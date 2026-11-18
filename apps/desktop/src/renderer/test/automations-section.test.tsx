@@ -131,13 +131,10 @@ describe('Nastavenia > Automatizácie', () => {
     });
   });
 
-  it('deletes a rule but only turns off the default Jira rule', async () => {
+  it('deletes a rule', async () => {
     const client = demoClient();
     const sheet = await openSection(client);
 
-    expect(
-      within(card(sheet, 'Jira tasky')).queryByRole('button', { name: /^Odstrániť pravidlo/ }),
-    ).toBeNull();
     click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Odstrániť pravidlo Tibor' }));
     await settle();
 

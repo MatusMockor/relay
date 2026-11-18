@@ -1,5 +1,6 @@
 import type { ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
+import { enableJiraTasks } from '../support/automations';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
@@ -68,6 +69,7 @@ describe('TaskService', () => {
   it('keeps a title edited while a Jira event updates the task', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     deliverMail(server, 'INBOX', {
       id: 'j1',
       from: { name: 'Jira', email: 'jira@company.test' },

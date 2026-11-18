@@ -54,6 +54,7 @@ export class MemoryTables {
   readonly splits = new Map<UserId, Split[]>();
   readonly automations = new Map<UserId, Automation[]>();
   readonly automationRuns = new Set<string>();
+  readonly removedPresets = new Set<string>();
   readonly tasks = new Map<TaskId, Task>();
   readonly reminders = new Map<ReminderId, Reminder>();
   readonly drafts = new Map<DraftId, StoredDraft>();

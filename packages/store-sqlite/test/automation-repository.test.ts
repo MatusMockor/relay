@@ -6,6 +6,7 @@ import {
   MessageIdSchema,
   UserIdSchema,
 } from '@relay/shared/domain';
+import type { PresetAutomation } from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LOCAL_USER_ID } from '../src';
 import { seedAccount, type SeededAccount } from './support/seed';
@@ -31,17 +32,18 @@ const buildAutomation = (overrides: Partial<Automation> = {}): Automation => ({
   ...overrides,
 });
 
-const preset = (userId = LOCAL_USER_ID, id = 'automation-jira'): Automation =>
-  buildAutomation({
+const preset = (userId = LOCAL_USER_ID, id = 'automation-jira'): PresetAutomation => ({
+  ...buildAutomation({
     id: automationId(id),
     userId,
     name: 'Jira tasky',
     order: 0,
-    preset: 'jiraTasks',
     conditions: [{ type: 'jira', projectKeys: [] }],
     ai: { runner: 'claude', model: null, effort: null, instructions: null },
     actions: [{ type: 'task' }],
-  });
+  }),
+  preset: 'jiraTasks',
+});
 
 describe('SqliteAutomationRepository', () => {
   let store: TestStore;
@@ -102,6 +104,32 @@ describe('SqliteAutomationRepository', () => {
     expect((await automations.listByUser(OTHER_USER)).map((item) => item.id)).toEqual([
       'automation-jira-other',
     ]);
+  });
+
+  it('remembers a removed preset per user until it is restored', async () => {
+    const { automations } = store.repositories;
+    await automations.createPresetIfAbsent(preset());
+    await automations.replaceAll(LOCAL_USER_ID, []);
+
+    await automations.markPresetRemoved(LOCAL_USER_ID, 'jiraTasks');
+    await automations.markPresetRemoved(LOCAL_USER_ID, 'jiraTasks');
+
+    expect(await automations.isPresetRemoved(LOCAL_USER_ID, 'jiraTasks')).toBe(true);
+    expect(await automations.isPresetRemoved(OTHER_USER, 'jiraTasks')).toBe(false);
+    await automations.restorePreset(preset(LOCAL_USER_ID, 'automation-jira-2'));
+    expect(await automations.isPresetRemoved(LOCAL_USER_ID, 'jiraTasks')).toBe(false);
+    expect(await automations.listByUser(LOCAL_USER_ID)).toEqual([
+      preset(LOCAL_USER_ID, 'automation-jira-2'),
+    ]);
+  });
+
+  it('restores a preset without duplicating one that still exists', async () => {
+    const { automations } = store.repositories;
+    await automations.createPresetIfAbsent(preset());
+
+    await automations.restorePreset(preset(LOCAL_USER_ID, 'automation-jira-2'));
+
+    expect(await automations.listByUser(LOCAL_USER_ID)).toEqual([preset()]);
   });
 
   it('removes account scoped rules with their account', async () => {

@@ -72,7 +72,7 @@ export const useAutomationEditor = (): AutomationEditor => {
 
   const remove = (key: string) => {
     const rule = rules.find((item) => item.key === key);
-    if (rule === undefined || rule.preset !== null || saving) {
+    if (rule === undefined || saving) {
       return;
     }
     if (!rule.saved) {

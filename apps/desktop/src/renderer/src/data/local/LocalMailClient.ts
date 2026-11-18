@@ -88,6 +88,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     listAutomations: () => unwrap(bridge.invoke('local.automations.list')),
     replaceAutomations: (automations) =>
       unwrap(bridge.invoke('local.automations.replace', { automations })),
+    restoreDefaultAutomation: () => unwrap(bridge.invoke('local.automations.restoreDefault')),
     applyAutomation: (automationId) =>
       unwrap(bridge.invoke('local.automations.apply', { automationId })),
     listTasks: (query) => unwrap(bridge.invoke('local.tasks.list', query)),
