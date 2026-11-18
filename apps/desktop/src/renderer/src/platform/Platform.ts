@@ -39,6 +39,7 @@ export interface Platform {
   subscribeToUpdates(listener: (status: UpdateStatus) => void): () => void;
   installUpdate(): Promise<void>;
   subscribeToThreadOpens(listener: (threadId: ThreadId) => void): () => void;
+  subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
 }
 
 const PLATFORM_LABEL: Readonly<Record<AppInfo['platform'], string>> = {

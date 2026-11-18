@@ -8,6 +8,7 @@ import { googleCalendarInvokeChannels } from './google-calendar-channels';
 import { oauthInvokeChannels } from './oauth-channels';
 import { sessionInvokeChannels } from './session-channels';
 import { updateInvokeChannels, updateStreamChannels } from './update-channels';
+import { windowStreamChannels } from './window-channels';
 
 export const ipcInvokeChannels = {
   ...appInvokeChannels,
@@ -24,6 +25,7 @@ export const ipcStreamChannels = {
   ...localStreamChannels,
   ...updateStreamChannels,
   ...notificationStreamChannels,
+  ...windowStreamChannels,
 };
 
 export type IpcInvokeChannels = typeof ipcInvokeChannels;

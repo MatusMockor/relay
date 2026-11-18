@@ -2,16 +2,16 @@
 .fold-bar {
   display: none;
 }
-.mac-inset .win-drag {
+.mac-inset:not(.fullscreen) .win-drag {
   display: block;
   flex: none;
   height: 40px;
   -webkit-app-region: drag;
 }
-.mac-inset .fold {
+.mac-inset:not(.fullscreen) .fold {
   padding-top: 0;
 }
-.mac-inset .fold-bar {
+.mac-inset:not(.fullscreen) .fold-bar {
   display: block;
   position: sticky;
   top: 0;
@@ -23,14 +23,17 @@
   border-bottom: 1px solid var(--line-soft);
   -webkit-app-region: drag;
 }
-.mac-inset .acct {
-  margin-top: 0;
+.mac-inset:not(.fullscreen) .acct {
+  height: auto;
+  margin: 0 -10px 4px;
+  padding-block: 8px;
+  border-bottom: 0;
 }
 .mac-inset .a-top,
 .mac-inset .stabs {
   -webkit-app-region: drag;
 }
-.mac-inset .a-top:has(> .lt-btn) {
+.mac-inset:not(.fullscreen) .a-top:has(> .lt-btn) {
   padding-left: 80px;
 }
 .mac-inset :is(.a-top, .stabs) :is(button, input, label, .a-tabs),

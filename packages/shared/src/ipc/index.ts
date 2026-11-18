@@ -11,3 +11,4 @@ export * from './oauth-channels';
 export * from './protocol';
 export * from './session-channels';
 export * from './update-channels';
+export * from './window-channels';
