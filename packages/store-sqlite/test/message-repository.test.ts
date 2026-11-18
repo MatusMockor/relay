@@ -31,6 +31,8 @@ describe('SqliteMessageRepository', () => {
       accountId: seeded.account.id,
       name: 'Faktúry',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Faktúry',
     });
     const stored = message('msg-1', 1, {
       labelIds: [labelId('lbl-1')],
@@ -112,6 +114,8 @@ describe('SqliteMessageRepository', () => {
       accountId: seeded.account.id,
       name: 'A',
       color: null,
+      kind: 'keyword',
+      remoteName: 'A',
     });
     await messages.upsert(message('msg-1', 1), NO_HEADERS);
 
@@ -132,7 +136,14 @@ describe('SqliteMessageRepository', () => {
   it('adds and removes single labels without touching the others', async () => {
     const { messages, labels } = store.repositories;
     for (const id of ['lbl-1', 'lbl-2']) {
-      await labels.upsert({ id: labelId(id), accountId: seeded.account.id, name: id, color: null });
+      await labels.upsert({
+        id: labelId(id),
+        accountId: seeded.account.id,
+        name: id,
+        color: null,
+        kind: 'keyword',
+        remoteName: id,
+      });
     }
     await messages.upsert(message('msg-1', 1), NO_HEADERS);
 

@@ -97,6 +97,7 @@ describe('local background work (scheduler + IMAP IDLE + mail tools socket)', ()
       accountId: null,
       splitId: null,
       labelId: null,
+      mailboxId: null,
       search: null,
       cursor: null,
       limit: 10,

@@ -52,6 +52,7 @@ export interface UiState {
   readonly overlay: OverlayState | null;
   readonly reply: ReplyState | null;
   readonly expanded: Readonly<Record<string, boolean>>;
+  readonly collapsed: Readonly<Record<string, boolean>>;
   readonly calendarDay: number;
 }
 
@@ -69,10 +70,18 @@ export const INITIAL_UI: UiState = {
   overlay: null,
   reply: null,
   expanded: {},
+  collapsed: {},
   calendarDay: 0,
 };
 
 export const useUiStore = create<UiState>(() => INITIAL_UI);
+
+export const toggleCollapsed = (key: string): void => {
+  useUiStore.setState((state) => {
+    const { [key]: wasCollapsed = false, ...rest } = state.collapsed;
+    return { collapsed: wasCollapsed ? rest : { ...rest, [key]: true } };
+  });
+};
 
 export const setUi = (patch: Partial<UiState> | ((state: UiState) => Partial<UiState>)): void => {
   useUiStore.setState(patch);

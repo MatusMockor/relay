@@ -12,6 +12,8 @@ export const toSyncState = (row: SyncStateRow): MailboxSyncState => ({
   uidValidity: row.uidValidity,
   lastUid: row.lastUid,
   highestModseq: row.highestModseq,
+  uidNext: row.uidNext,
+  messageCount: row.messageCount,
   initialWindow:
     row.initialFloorUid === null || row.initialCutoff === null
       ? null
@@ -26,6 +28,8 @@ export const toSyncStateInsert = (userId: UserId, state: MailboxSyncState): Sync
   uidValidity: state.uidValidity,
   lastUid: state.lastUid,
   highestModseq: state.highestModseq,
+  uidNext: state.uidNext,
+  messageCount: state.messageCount,
   initialFloorUid: state.initialWindow?.floorUid ?? null,
   initialCutoff: state.initialWindow === null ? null : toDate(state.initialWindow.cutoff),
   syncedAt: toDate(state.syncedAt),

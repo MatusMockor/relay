@@ -52,6 +52,19 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
   if (params.view === 'scheduled') {
     return false;
   }
+  if (params.view === 'mailbox') {
+    return (
+      !isHeldThreadState(thread.state) &&
+      record.messages.some((message) => message.mailboxId === params.mailboxId)
+    );
+  }
+  if (params.view === 'label') {
+    return (
+      !isHeldThreadState(thread.state) &&
+      params.labelId !== undefined &&
+      thread.labelIds.includes(params.labelId)
+    );
+  }
   return thread.state === params.view;
 };
 

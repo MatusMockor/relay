@@ -12,7 +12,9 @@ export const searchThreadsTool = defineMailTool({
   readOnly: true,
   inputShape: {
     query: z.string().min(1).max(200).describe('Search text'),
-    view: FolderViewSchema.optional().describe('Folder to search in (default inbox)'),
+    view: FolderViewSchema.exclude(['mailbox', 'label'])
+      .optional()
+      .describe('Folder to search in (default inbox)'),
     accountId: AccountIdSchema.optional().describe('Limit to one mail account'),
     limit: limitInput,
     cursor: cursorInput,
@@ -24,6 +26,7 @@ export const searchThreadsTool = defineMailTool({
         accountId: args.accountId ?? null,
         splitId: null,
         labelId: null,
+        mailboxId: null,
         search: args.query,
         limit: args.limit ?? DEFAULT_LIMIT,
         cursor: args.cursor ?? null,

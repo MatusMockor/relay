@@ -60,6 +60,8 @@ export class SentMessageRecorder {
           uid,
           flags: { seen: true, flagged: false, answered: false },
           keywords: [],
+          labels: null,
+          emailId: null,
           internalDate: this.deps.clock.now().toISOString(),
           size: sent.sentCopy.byteLength,
           modseq: null,

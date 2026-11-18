@@ -46,6 +46,8 @@ describe('mirroring thread actions that the provider rejected', () => {
       accountId: account.id,
       name: 'Work',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Work',
     });
     server.failOperations = 'Server busy';
 

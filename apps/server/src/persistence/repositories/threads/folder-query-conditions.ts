@@ -30,6 +30,15 @@ const labelFilter = (query: ThreadFolderQuery): SQL | undefined => {
   )`;
 };
 
+const mailboxFilter = (query: ThreadFolderQuery): SQL | undefined => {
+  if (query.mailboxId === null) {
+    return undefined;
+  }
+  return sql`${threads.id} in (
+    select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${query.mailboxId}
+  )`;
+};
+
 const searchFilter = (query: ThreadFolderQuery): SQL | undefined => {
   const terms = toSearchTerms(query.search);
   if (terms.length === 0) {
@@ -60,6 +69,7 @@ export const folderQueryConditions = (
     folderViewFilter({ view: query.view, splitSelected: query.splitId !== null }),
     splitFilter(query),
     labelFilter(query),
+    mailboxFilter(query),
     searchFilter(query),
     cursorFilter(cursor),
   );

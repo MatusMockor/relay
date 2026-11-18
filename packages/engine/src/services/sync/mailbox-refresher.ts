@@ -1,18 +1,35 @@
 import type { Mailbox } from '@relay/shared/domain';
+import type { RemoteMailbox } from '../../model/remote-mail';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
-import type { MessageRepository } from '../../ports/message-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
-import type { UnitOfWork } from '../../ports/unit-of-work';
+import type { GmailLabelCatalog, LabelRename } from './gmail-label-catalog';
+import type { MailboxEvents } from './mailbox-events';
+import type { MailboxForgetter } from './mailbox-forgetter';
+import { mailboxRecords, sameMailboxes } from './mailbox-records';
+import { detectRenames, type MailboxRename } from './mailbox-rename-detector';
+import type { MailboxStatusProbe, MailboxStatuses } from './mailbox-status-probe';
 import type { SyncContext } from './sync-context';
 
 export interface MailboxRefresherDeps {
   readonly mailboxes: MailboxRepository;
-  readonly messages: MessageRepository;
   readonly syncStates: SyncStateRepository;
-  readonly unitOfWork: UnitOfWork;
+  readonly forgetter: MailboxForgetter;
+  readonly probe: MailboxStatusProbe;
+  readonly catalog: GmailLabelCatalog;
+  readonly events: MailboxEvents;
   readonly ids: IdGenerator;
 }
+
+const relocated = (mailbox: Mailbox, renames: readonly MailboxRename[]): Mailbox => {
+  const rename = renames.find((candidate) => candidate.mailbox.id === mailbox.id);
+  return rename === undefined ? mailbox : { ...mailbox, path: rename.target.path };
+};
+
+const labelRenames = (renames: readonly MailboxRename[]): LabelRename[] =>
+  renames
+    .filter(({ mailbox, target }) => mailbox.role === 'label' || target.role === 'label')
+    .map(({ mailbox, target }) => ({ from: mailbox.path, to: target.path }));
 
 export class MailboxRefresher {
   constructor(private readonly deps: MailboxRefresherDeps) {}
@@ -21,28 +38,19 @@ export class MailboxRefresher {
     const accountId = context.account.id;
     const existing = await this.deps.mailboxes.listForSync(accountId);
     const remote = await context.provider.listMailboxes();
+    const statuses = await this.probe(context, existing, remote);
+    const renames = await this.relocate(context, existing, remote, statuses);
+    const located = existing.map((mailbox) => relocated(mailbox, renames));
     const remotePaths = new Set(remote.map((mailbox) => mailbox.path));
-    for (const gone of existing.filter((mailbox) => !remotePaths.has(mailbox.path))) {
-      await this.forget(context, gone);
+    for (const gone of located.filter((mailbox) => !remotePaths.has(mailbox.path))) {
+      await this.deps.forgetter.forget(context, gone);
     }
-    const byPath = new Map(existing.map((mailbox) => [mailbox.path, mailbox]));
+    const known = new Map(located.map((mailbox) => [mailbox.path, mailbox]));
     const stored = await this.deps.mailboxes.upsertMany(
       accountId,
-      remote.map((mailbox) => {
-        const known = byPath.get(mailbox.path);
-        return {
-          id: known?.id ?? this.deps.ids.generate('mailbox'),
-          accountId,
-          name: mailbox.name,
-          path: mailbox.path,
-          delimiter: mailbox.delimiter,
-          role: mailbox.role,
-          unreadCount: known?.unreadCount ?? 0,
-          totalCount: known?.totalCount ?? 0,
-        };
-      }),
+      mailboxRecords({ accountId, remote, known, statuses }, this.deps.ids),
     );
-    const appeared = await this.appearedSince(context, existing, remotePaths);
+    const appeared = await this.appearedSince(context, located, remotePaths);
     await this.deps.mailboxes.deleteMissing(accountId, [
       ...remotePaths,
       ...appeared.map((mailbox) => mailbox.path),
@@ -50,7 +58,60 @@ export class MailboxRefresher {
     const current = [...stored, ...appeared];
     context.mailboxRoles.clear();
     current.forEach((mailbox) => context.mailboxRoles.set(mailbox.id, mailbox.role));
+    const labelsChanged = await this.deps.catalog.sync(context, current, labelRenames(renames));
+    await this.announce(context, sameMailboxes(existing, current), labelsChanged);
     return current;
+  }
+
+  private probe(
+    context: SyncContext,
+    existing: readonly Mailbox[],
+    remote: readonly RemoteMailbox[],
+  ): Promise<MailboxStatuses> {
+    const validated = new Set(
+      existing.filter((mailbox) => mailbox.uidValidity !== null).map((mailbox) => mailbox.path),
+    );
+    const paths = remote.map((mailbox) => mailbox.path).filter((path) => !validated.has(path));
+    return this.deps.probe.probe(context, paths);
+  }
+
+  private async relocate(
+    context: SyncContext,
+    existing: readonly Mailbox[],
+    remote: readonly RemoteMailbox[],
+    statuses: MailboxStatuses,
+  ): Promise<MailboxRename[]> {
+    const remotePaths = new Set(remote.map((mailbox) => mailbox.path));
+    const existingPaths = new Set(existing.map((mailbox) => mailbox.path));
+    const gone = existing.filter((mailbox) => !remotePaths.has(mailbox.path));
+    const appeared = remote.filter((mailbox) => !existingPaths.has(mailbox.path));
+    if (gone.length === 0 || appeared.length === 0) {
+      return [];
+    }
+    const states = await this.deps.syncStates.listByAccount(context.account.id);
+    const syncedValidity = new Map(states.map((state) => [state.mailboxId, state.uidValidity]));
+    const renames = detectRenames({ gone, appeared, statuses, syncedValidity });
+    for (const { mailbox, target } of renames) {
+      await this.deps.mailboxes.relocate(mailbox.id, {
+        path: target.path,
+        name: target.name,
+        delimiter: target.delimiter,
+      });
+    }
+    return renames;
+  }
+
+  private async announce(
+    context: SyncContext,
+    sameMailboxSet: boolean,
+    labelsChanged: boolean,
+  ): Promise<void> {
+    if (!sameMailboxSet) {
+      await this.deps.events.mailboxesChanged(context);
+    }
+    if (labelsChanged) {
+      await this.deps.events.labelsChanged(context);
+    }
   }
 
   private async appearedSince(
@@ -61,14 +122,5 @@ export class MailboxRefresher {
     const known = new Set(snapshot.map((mailbox) => mailbox.path));
     const latest = await this.deps.mailboxes.listForSync(context.account.id);
     return latest.filter((mailbox) => !known.has(mailbox.path) && !remotePaths.has(mailbox.path));
-  }
-
-  private async forget(context: SyncContext, mailbox: Mailbox): Promise<void> {
-    const uids = await this.deps.messages.listUids(mailbox.id);
-    await this.deps.unitOfWork.run(async (repositories) => {
-      const threadIds = await repositories.messages.deleteByUids(mailbox.id, uids);
-      await context.journal.expunged(repositories.pendingWork, threadIds, mailbox.role);
-    });
-    await this.deps.syncStates.delete(mailbox.id);
   }
 }

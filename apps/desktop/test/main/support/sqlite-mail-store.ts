@@ -61,6 +61,8 @@ export const storeMailbox = async (
       path,
       delimiter: '/',
       role,
+      subscribed: true,
+      uidValidity: null,
       unreadCount,
       totalCount: unreadCount + 10,
     },

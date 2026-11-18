@@ -1,5 +1,5 @@
 import type { AccountId, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
-import { bigint, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { mailAccounts } from './accounts';
 import { timestampTz } from './columns';
 import { users } from './users';
@@ -20,6 +20,8 @@ export const mailboxes = pgTable(
     path: text('path').notNull(),
     delimiter: text('delimiter'),
     role: text('role').$type<MailboxRole>().notNull(),
+    subscribed: boolean('subscribed').notNull().default(true),
+    uidValidity: bigint('uid_validity', { mode: 'number' }),
     unreadCount: integer('unread_count').notNull(),
     totalCount: integer('total_count').notNull(),
   },
@@ -46,6 +48,8 @@ export const syncState = pgTable('sync_state', {
   uidValidity: bigint('uid_validity', { mode: 'number' }).notNull(),
   lastUid: bigint('last_uid', { mode: 'number' }).notNull(),
   highestModseq: text('highest_modseq'),
+  uidNext: bigint('uid_next', { mode: 'number' }),
+  messageCount: integer('message_count'),
   initialFloorUid: bigint('initial_floor_uid', { mode: 'number' }),
   initialCutoff: timestampTz('initial_cutoff'),
   syncedAt: timestampTz('synced_at').notNull(),

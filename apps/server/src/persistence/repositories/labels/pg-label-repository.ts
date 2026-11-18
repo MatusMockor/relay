@@ -1,5 +1,5 @@
 import { ConflictError, type LabelRepository } from '@relay/engine';
-import type { AccountId, Label, LabelId, UserId } from '@relay/shared/domain';
+import type { AccountId, Label, LabelId, LabelKind, UserId } from '@relay/shared/domain';
 import { and, asc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { labels } from '../../schema';
@@ -39,6 +39,33 @@ export class PgLabelRepository implements LabelRepository {
     return row === undefined ? null : toLabel(row);
   }
 
+  async findByRemoteName(
+    accountId: AccountId,
+    kind: LabelKind,
+    remoteName: string,
+  ): Promise<Label | null> {
+    const [row] = await this.db
+      .select()
+      .from(labels)
+      .where(
+        and(
+          eq(labels.accountId, accountId),
+          eq(labels.kind, kind),
+          eq(labels.remoteName, remoteName),
+        ),
+      );
+    return row === undefined ? null : toLabel(row);
+  }
+
+  async listByKind(accountId: AccountId, kind: LabelKind): Promise<Label[]> {
+    const rows = await this.db
+      .select()
+      .from(labels)
+      .where(and(eq(labels.accountId, accountId), eq(labels.kind, kind)))
+      .orderBy(asc(labels.name), asc(labels.id));
+    return rows.map(toLabel);
+  }
+
   async upsert(label: Label): Promise<Label> {
     const userId = await findAccountOwner(this.db, label.accountId);
     const [row] = await this.db
@@ -46,7 +73,12 @@ export class PgLabelRepository implements LabelRepository {
       .values(toLabelInsert(userId, label))
       .onConflictDoUpdate({
         target: labels.id,
-        set: { name: label.name, color: label.color },
+        set: {
+          name: label.name,
+          color: label.color,
+          kind: label.kind,
+          remoteName: label.remoteName,
+        },
         setWhere: eq(labels.userId, userId),
       })
       .returning();

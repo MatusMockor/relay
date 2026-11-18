@@ -52,6 +52,7 @@ export const serverDetail = (
         mailboxId: 'mbx-1',
         uid: 1,
         messageIdHeader: '<msg-1@firma.sk>',
+        emailId: null,
         inReplyTo: null,
         references: [],
         from: { name: 'Peter Novák', email: 'peter@firma.sk' },

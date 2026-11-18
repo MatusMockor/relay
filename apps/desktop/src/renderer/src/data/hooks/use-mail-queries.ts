@@ -1,5 +1,5 @@
-import type { ThreadId } from '@relay/shared';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { AccountId, ThreadId } from '@relay/shared';
+import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
@@ -35,6 +35,25 @@ export const useAccounts = () => {
 export const useLabels = () => {
   const client = useClient();
   return useQuery({ queryKey: queryKeys.labels(), queryFn: () => client.listLabels() });
+};
+
+export const useMailboxes = (accountId: AccountId | null) => {
+  const client = useClient();
+  return useQuery({
+    queryKey: accountId === null ? ['mail', 'mailboxes', 'none'] : queryKeys.mailboxes(accountId),
+    queryFn: () => (accountId === null ? [] : client.listMailboxes(accountId)),
+    enabled: accountId !== null,
+  });
+};
+
+export const useAccountsMailboxes = (accountIds: readonly AccountId[]) => {
+  const client = useClient();
+  return useQueries({
+    queries: accountIds.map((accountId) => ({
+      queryKey: queryKeys.mailboxes(accountId),
+      queryFn: () => client.listMailboxes(accountId),
+    })),
+  });
 };
 
 export const useSplits = () => {

@@ -4,9 +4,11 @@ import type { DemoState, DemoThreadRecord } from '../demo-state';
 import { buildDrafts } from './build-drafts';
 import { buildThreadRecord } from './build-threads';
 import { DEMO_ACCOUNTS, DEMO_LABELS } from './catalog';
+import { buildDemoMailboxes } from './folders';
 import { atTime } from './clock';
 import { demoIds } from './ids';
 import { PERSONAL_THREADS } from './threads-personal';
+import { FOLDER_THREADS } from './threads-folders';
 import { SPAM_THREADS } from './threads-spam';
 import { WORK_THREADS } from './threads-work';
 import { WORK_THREADS_MORE } from './threads-work-more';
@@ -94,7 +96,13 @@ const buildTasks = (seeds: readonly DemoThread[], now: Date): Task[] =>
   );
 
 export const buildDemoState = (now: Date = new Date()): DemoState => {
-  const seeds = [...WORK_THREADS, ...WORK_THREADS_MORE, ...PERSONAL_THREADS, ...SPAM_THREADS];
+  const seeds = [
+    ...WORK_THREADS,
+    ...WORK_THREADS_MORE,
+    ...PERSONAL_THREADS,
+    ...SPAM_THREADS,
+    ...FOLDER_THREADS,
+  ];
   const threads = new Map<string, DemoThreadRecord>(
     seeds.map((seed, order) => [seed.id, buildThreadRecord(seed, now, order)]),
   );
@@ -115,7 +123,10 @@ export const buildDemoState = (now: Date = new Date()): DemoState => {
       accountId: demoIds.account(label.acct),
       name: label.name,
       color: label.color,
+      kind: label.acct === 'os' ? 'gmail' : 'keyword',
+      remoteName: label.name,
     })),
+    mailboxes: buildDemoMailboxes(),
     threads,
     tasks: buildTasks(seeds, now),
     drafts,

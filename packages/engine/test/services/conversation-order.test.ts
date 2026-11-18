@@ -12,6 +12,8 @@ const PASS: MailboxPass = {
     path: 'INBOX',
     delimiter: '/',
     role: 'inbox',
+    subscribed: true,
+    uidValidity: 1,
     unreadCount: 0,
     totalCount: 0,
   },

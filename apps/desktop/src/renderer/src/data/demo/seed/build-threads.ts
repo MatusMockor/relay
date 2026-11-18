@@ -23,9 +23,13 @@ const buildMessages = (seed: DemoThread, now: Date, order: number): Message[] =>
     id: demoIds.message(`${seed.id}-m${String(index)}`),
     threadId: demoIds.thread(seed.id),
     accountId: demoIds.account(seed.acct),
-    mailboxId: demoIds.mailbox(seed.acct),
+    mailboxId:
+      seed.folder === undefined
+        ? demoIds.mailbox(seed.acct)
+        : demoIds.folder(seed.acct, seed.folder),
     uid: order * 10 + index + 1,
     messageIdHeader: `<${seed.id}.${String(index)}@demo.relay>`,
+    emailId: null,
     inReplyTo: index === 0 ? null : `<${seed.id}.${String(index - 1)}@demo.relay>`,
     references: [],
     from: addressOf(from),

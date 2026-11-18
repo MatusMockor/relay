@@ -17,6 +17,7 @@ export const messages = sqliteTable(
       .references(() => mailboxes.id, { onDelete: 'cascade' }),
     uid: integer('uid').notNull(),
     messageIdHeader: text('message_id_header'),
+    emailId: text('email_id'),
     inReplyTo: text('in_reply_to'),
     references: text('references', { mode: 'json' }).notNull(),
     fromName: text('from_name'),
@@ -42,6 +43,7 @@ export const messages = sqliteTable(
     uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
     index('messages_thread_date_idx').on(table.threadId, table.dateTs),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
+    index('messages_account_email_idx').on(table.accountId, table.emailId),
     index('messages_user_idx').on(table.userId),
     index('messages_account_subject_idx').on(
       table.accountId,

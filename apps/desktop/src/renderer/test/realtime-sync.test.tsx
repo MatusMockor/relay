@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import {
+  AccountIdSchema,
+  MailboxSchema,
   type RealtimeEvent,
   TaskIdSchema,
   ThreadIdSchema,
@@ -138,6 +140,54 @@ describe('realtime cache sync', () => {
     await waitUntil(() => count('threads.list') > lists && count('threads.get') > details);
   });
 
+  it('refetches mailboxes and labels after the realtime connection comes back', async () => {
+    const accountId = AccountIdSchema.parse('acc-1');
+    const fetches = { mailboxes: 0, labels: 0 };
+    const observers = [
+      new QueryObserver(queryClient, {
+        queryKey: queryKeys.mailboxes(accountId),
+        queryFn: () => {
+          fetches.mailboxes += 1;
+          return Promise.resolve([]);
+        },
+      }),
+      new QueryObserver(queryClient, {
+        queryKey: queryKeys.labels(),
+        queryFn: () => {
+          fetches.labels += 1;
+          return Promise.resolve([]);
+        },
+      }),
+    ];
+    const unsubscribes = observers.map((observer) => observer.subscribe(() => undefined));
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <ServicesProvider
+          services={{ mode: 'synced', client, server: null, serverUrl: server.url }}
+        >
+          {children}
+        </ServicesProvider>
+      </QueryClientProvider>
+    );
+    renderHook(
+      () => {
+        useRealtimeSync();
+      },
+      { wrapper },
+    );
+    await waitUntil(() => server.sockets[0]?.messages.length === 1);
+    await waitUntil(() => fetches.mailboxes >= 1 && queryClient.isFetching() === 0);
+    const before = { ...fetches };
+
+    server.sockets[0]?.close();
+    await waitUntil(() => server.sockets[1]?.messages.length === 1);
+
+    await waitUntil(() => fetches.mailboxes > before.mailboxes && fetches.labels > before.labels);
+    unsubscribes.forEach((unsubscribe) => {
+      unsubscribe();
+    });
+  });
+
   it('coalesces thread list refetches during a burst of thread updates', async () => {
     let fetches = 0;
     const observer = new QueryObserver<ThreadPage>(queryClient, {
@@ -176,6 +226,46 @@ describe('realtime cache sync', () => {
     await waitUntil(() => fetches === 1);
     applyRealtimeEvent(queryClient, event);
     await waitUntil(() => fetches === 2);
+    unsubscribe();
+  });
+  it('stores pushed mailboxes and refetches labels when a sync changes them', async () => {
+    const accountId = AccountIdSchema.parse('acc-1');
+    const mailbox = MailboxSchema.parse({
+      id: 'mbx-alfa',
+      accountId,
+      name: 'Alfa',
+      path: 'Projekty/Alfa',
+      delimiter: '/',
+      role: 'custom',
+      subscribed: true,
+      uidValidity: 7,
+      unreadCount: 1,
+      totalCount: 3,
+    });
+    let labelFetches = 0;
+    const observer = new QueryObserver(queryClient, {
+      queryKey: queryKeys.labels(),
+      queryFn: () => {
+        labelFetches += 1;
+        return Promise.resolve([]);
+      },
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await waitUntil(() => labelFetches === 1);
+
+    applyRealtimeEvent(queryClient, {
+      type: 'mailboxes.updated',
+      at: '2026-11-15T08:00:00.000Z',
+      data: { accountId, mailboxes: [mailbox] },
+    });
+    applyRealtimeEvent(queryClient, {
+      type: 'labels.updated',
+      at: '2026-11-15T08:00:00.000Z',
+      data: { accountId, labels: [] },
+    });
+
+    expect(queryClient.getQueryData(queryKeys.mailboxes(accountId))).toEqual([mailbox]);
+    await waitUntil(() => labelFetches === 2);
     unsubscribe();
   });
 });

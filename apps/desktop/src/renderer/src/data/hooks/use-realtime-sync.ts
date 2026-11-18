@@ -16,6 +16,8 @@ const RECONNECT_KEYS = [
   queryKeys.splits(),
   queryKeys.automations(),
   queryKeys.settings(),
+  queryKeys.allMailboxes(),
+  queryKeys.labels(),
 ];
 
 export const useRealtimeSync = (): void => {

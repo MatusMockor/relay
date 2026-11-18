@@ -22,6 +22,7 @@ export class InboxQueryService {
       accountId: query.accountId ?? null,
       splitId: query.splitId ?? null,
       labelId: query.labelId ?? null,
+      mailboxId: query.mailboxId ?? null,
       search: query.q ?? null,
       cursor: query.cursor ?? null,
       limit: query.limit,

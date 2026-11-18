@@ -10,8 +10,17 @@ export const labels = sqliteTable(
       .references(() => accounts.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     color: text('color'),
+    kind: text('kind').notNull().default('keyword'),
+    remoteName: text('remote_name').notNull(),
   },
-  (table) => [uniqueIndex('labels_account_name_unique').on(table.accountId, table.name)],
+  (table) => [
+    uniqueIndex('labels_account_name_unique').on(table.accountId, table.name),
+    uniqueIndex('labels_account_kind_remote_unique').on(
+      table.accountId,
+      table.kind,
+      table.remoteName,
+    ),
+  ],
 );
 
 export type LabelRow = typeof labels.$inferSelect;

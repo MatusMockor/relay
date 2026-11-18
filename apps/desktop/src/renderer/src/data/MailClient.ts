@@ -17,6 +17,7 @@ import type {
   DraftId,
   Label,
   MailAccount,
+  Mailbox,
   MessageId,
   Draft,
   RealtimeEvent,
@@ -93,6 +94,7 @@ export interface AccountManager {
   updateAccount(accountId: AccountId, patch: UpdateAccountBody): Promise<MailAccount>;
   removeAccount(accountId: AccountId): Promise<void>;
   testConnection(body: TestConnectionBody): Promise<TestConnectionResponse>;
+  listMailboxes(accountId: AccountId): Promise<Mailbox[]>;
   syncNow(accountId?: AccountId): Promise<void>;
 }
 

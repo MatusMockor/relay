@@ -22,6 +22,7 @@ export const buildMessage = (draft: MessageDraft, ids: IdGenerator): Message => 
     mailboxId: draft.mailbox.id,
     uid: raw.uid,
     messageIdHeader: parsed.messageIdHeader,
+    emailId: raw.emailId,
     inReplyTo: parsed.inReplyTo,
     references: [...parsed.references],
     from: parsed.from,

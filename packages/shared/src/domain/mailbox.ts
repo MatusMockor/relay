@@ -9,6 +9,8 @@ export const MailboxRoleSchema = z.enum([
   'archive',
   'spam',
   'custom',
+  'label',
+  'system',
 ]);
 export type MailboxRole = z.infer<typeof MailboxRoleSchema>;
 
@@ -19,6 +21,8 @@ export const MailboxSchema = z.object({
   path: z.string().min(1),
   delimiter: z.string().nullable(),
   role: MailboxRoleSchema,
+  subscribed: z.boolean(),
+  uidValidity: z.number().int().nonnegative().nullable(),
   unreadCount: z.number().int().nonnegative(),
   totalCount: z.number().int().nonnegative(),
 });

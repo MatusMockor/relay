@@ -1,20 +1,14 @@
 import type { Mailbox, MailboxRole } from '@relay/shared/domain';
-import type { RemoteMailboxStatus } from '../../model/remote-mail';
-import type { MailboxSyncState } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import { completedSyncState } from './completed-sync-state';
 import type { IncrementalMessageFetcher } from './incremental-message-fetcher';
+import type { MailboxPass } from './mailbox-pass';
 import type { MailboxReconciler } from './mailbox-reconciler';
 import type { SyncContext } from './sync-context';
 
-export interface MailboxPass {
-  readonly mailbox: Mailbox;
-  readonly role: MailboxRole;
-  readonly state: MailboxSyncState | null;
-  readonly status: RemoteMailboxStatus;
-}
+export type { MailboxPass } from './mailbox-pass';
 
 export interface MailboxSynchronizerDeps {
   readonly mailboxes: MailboxRepository;
@@ -34,6 +28,9 @@ export class MailboxSynchronizer {
     if (reset) {
       await this.deps.reconciler.reset(context, mailbox, role);
     }
+    if (mailbox.uidValidity !== status.uidValidity) {
+      await this.deps.mailboxes.saveUidValidity(mailbox.id, status.uidValidity);
+    }
     await this.deps.mailboxes.updateCounts(mailbox.id, {
       unreadCount: status.unseen,
       totalCount: status.messages,
@@ -49,13 +46,13 @@ export class MailboxSynchronizer {
     await this.deps.incremental.fetch(context, pass, completed, holdCalendar);
   }
 
-  async reconcile(context: SyncContext, pass: MailboxPass): Promise<void> {
+  async reconcile(context: SyncContext, pass: MailboxPass, rescanLabels: boolean): Promise<void> {
     const state = completedSyncState(pass.state);
     if (state === null) {
       return;
     }
     await this.deps.reconciler.expunges(context, pass.mailbox, pass.role);
-    await this.deps.reconciler.flagChanges(context, pass.mailbox, state, pass.status);
+    await this.deps.reconciler.flagChanges(context, pass, state, rescanLabels);
     const current = await this.deps.syncStates.find(pass.mailbox.id);
     if (current === null) {
       return;
@@ -63,6 +60,8 @@ export class MailboxSynchronizer {
     await this.deps.syncStates.save({
       ...current,
       highestModseq: pass.status.highestModseq,
+      uidNext: pass.status.uidNext,
+      messageCount: pass.status.messages,
       syncedAt: this.deps.clock.now().toISOString(),
     });
   }

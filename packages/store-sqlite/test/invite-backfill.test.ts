@@ -68,7 +68,7 @@ describe('calendar invitation back-fill storage', () => {
       migrationsFolder: writeMigrationsBefore('0011_calendar_invite_backfill', directory.path),
     });
     const repositories = createSqliteRepositories(database);
-    const { account, inbox, sent } = await seedLegacyAccount(database, repositories);
+    const { account, inbox, sent } = await seedLegacyAccount(database);
     database.sqlite
       .prepare(
         `insert into mailboxes (id, account_id, name, path, role, unread_count, total_count) values ('mbx-drafts', ?, 'Drafts', 'Drafts', 'drafts', 0, 0)`,

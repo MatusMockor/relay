@@ -9,6 +9,7 @@ const query = (overrides: Partial<ThreadFolderQuery>): ThreadFolderQuery => ({
   accountId: null,
   splitId: null,
   labelId: null,
+  mailboxId: null,
   search: null,
   cursor: null,
   limit: 50,

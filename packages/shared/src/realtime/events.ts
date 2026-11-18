@@ -4,6 +4,8 @@ import { AiJobSchema } from '../domain/ai';
 import { AutomationSchema } from '../domain/automation';
 import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
+import { LabelSchema } from '../domain/label';
+import { MailboxSchema } from '../domain/mailbox';
 import {
   AccountIdSchema,
   AutomationIdSchema,
@@ -115,6 +117,16 @@ export const CalendarUpdatedEventSchema = event(
   z.object({ sourceKind: CalendarSourceKindSchema, sourceId: z.string().min(1) }),
 );
 
+export const MailboxesUpdatedEventSchema = event(
+  'mailboxes.updated',
+  z.object({ accountId: AccountIdSchema, mailboxes: z.array(MailboxSchema) }),
+);
+
+export const LabelsUpdatedEventSchema = event(
+  'labels.updated',
+  z.object({ accountId: AccountIdSchema, labels: z.array(LabelSchema) }),
+);
+
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
@@ -133,6 +145,8 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   AutomationsUpdatedEventSchema,
   AutomationNotifiedEventSchema,
   CalendarUpdatedEventSchema,
+  MailboxesUpdatedEventSchema,
+  LabelsUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
 export type RealtimeEventType = RealtimeEvent['type'];

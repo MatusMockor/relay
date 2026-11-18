@@ -16,12 +16,16 @@ describe('PgLabelRepository', () => {
       accountId: seeded.account.id,
       name: 'Práca',
       color: '#ff0000',
+      kind: 'keyword',
+      remoteName: 'Práca',
     };
     const home: Label = {
       id: newId('label'),
       accountId: second.account.id,
       name: 'Domov',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Domov',
     };
     await context.repositories.labels.upsert(work);
     await context.repositories.labels.upsert(home);
@@ -62,6 +66,8 @@ describe('PgMessageRepository', () => {
       accountId: seeded.account.id,
       name: 'VIP',
       color: null,
+      kind: 'keyword',
+      remoteName: 'VIP',
     };
     await context.repositories.labels.upsert(label);
     const thread = buildThread(seeded.account.id);
@@ -117,12 +123,21 @@ describe('PgMessageRepository', () => {
   it('updates flags, labels and location, and drops labels of other accounts', async () => {
     const seeded = await seedAccount(context.repositories);
     const other = await seedAccount(context.repositories, seeded.user);
-    const own: Label = { id: newId('label'), accountId: seeded.account.id, name: 'A', color: null };
+    const own: Label = {
+      id: newId('label'),
+      accountId: seeded.account.id,
+      name: 'A',
+      color: null,
+      kind: 'keyword',
+      remoteName: 'A',
+    };
     const foreign: Label = {
       id: newId('label'),
       accountId: other.account.id,
       name: 'B',
       color: null,
+      kind: 'keyword',
+      remoteName: 'B',
     };
     await context.repositories.labels.upsert(own);
     await context.repositories.labels.upsert(foreign);
@@ -157,6 +172,8 @@ describe('PgMessageRepository', () => {
       accountId: seeded.account.id,
       name,
       color: null,
+      kind: 'keyword',
+      remoteName: name,
     });
     const first = label('Prvý');
     const second = label('Druhý');
@@ -230,6 +247,8 @@ describe('PgMessageRepository', () => {
       accountId,
       name,
       color: null,
+      kind: 'keyword',
+      remoteName: name,
     });
     const first = label(seeded.account.id, 'Prvý');
     const second = label(seeded.account.id, 'Druhý');

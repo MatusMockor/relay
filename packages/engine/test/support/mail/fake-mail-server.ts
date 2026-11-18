@@ -7,6 +7,8 @@ export interface RemoteMessageRecord {
   readonly source: Uint8Array;
   flags: MessageFlags;
   keywords: string[];
+  labels: string[] | null;
+  readonly emailId: string | null;
   readonly internalDate: string;
   modseq: bigint;
 }
@@ -15,6 +17,7 @@ export interface FakeMailbox {
   readonly path: string;
   readonly name: string;
   readonly role: MailboxRole;
+  subscribed: boolean;
   uidValidity: number;
   uidNext: number;
   highestModseq: bigint;
@@ -31,6 +34,8 @@ export interface FakeMailServerOptions {
 export interface DeliveryOptions {
   readonly flags?: Partial<MessageFlags>;
   readonly keywords?: readonly string[];
+  readonly labels?: readonly string[] | null;
+  readonly emailId?: string | null;
   readonly internalDate?: string;
 }
 
@@ -47,6 +52,9 @@ export class FakeMailServer {
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
+  readonly flagScans: { path: string; uids: number[] | null }[] = [];
+  readonly statusCalls: string[] = [];
+  readonly uidListings: string[] = [];
   failFetchUid: number | null = null;
   interruptStreamAfter: number | null = null;
   afterNextList: (() => Promise<void>) | null = null;
@@ -73,6 +81,7 @@ export class FakeMailServer {
       path,
       name: path.split('/').pop() ?? path,
       role,
+      subscribed: true,
       uidValidity,
       uidNext: 1,
       highestModseq: 0n,
@@ -114,6 +123,8 @@ export class FakeMailServer {
       source: new Uint8Array(source),
       flags: { ...NO_FLAGS, ...options.flags },
       keywords: [...(options.keywords ?? [])],
+      labels: this.gmail ? [...(options.labels ?? [])] : null,
+      emailId: options.emailId ?? (this.gmail ? `gm-${String(this.modseq)}` : null),
       internalDate: options.internalDate ?? DEFAULT_INTERNAL_DATE,
       modseq: this.nextModseq(mailbox),
     });
@@ -138,6 +149,17 @@ export class FakeMailServer {
       return false;
     }
     record.keywords = [...keywords];
+    record.modseq = this.nextModseq(this.mailbox(path));
+    this.notify({ type: 'flags', mailboxPath: path, uid });
+    return true;
+  }
+
+  updateLabels(path: string, uid: number, labels: readonly string[]): boolean {
+    const record = this.findRecord(path, uid);
+    if (record === null) {
+      return false;
+    }
+    record.labels = [...labels];
     record.modseq = this.nextModseq(this.mailbox(path));
     this.notify({ type: 'flags', mailboxPath: path, uid });
     return true;

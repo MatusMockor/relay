@@ -1,5 +1,11 @@
 import type { ThreadId } from '@relay/shared';
-import { type AccountScope, type Folder, folderKey, INBOX } from '../../state/folders';
+import {
+  type AccountScope,
+  type Folder,
+  folderKey,
+  INBOX,
+  isAccountFolder,
+} from '../../state/folders';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import type { ListItem } from './list-items';
 import { selectKey } from './selection';
@@ -13,7 +19,7 @@ export const selectScope = (scope: AccountScope): void => {
     scope,
     openThreadId: null,
     reply: null,
-    folder: state.folder.kind === 'label' ? INBOX : state.folder,
+    folder: isAccountFolder(state.folder) ? INBOX : state.folder,
   }));
 };
 

@@ -1,4 +1,4 @@
-import type { AccountId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type { AccountId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
 import type { PendingWork, ProviderChange, ProviderOpWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
@@ -36,16 +36,27 @@ export const recordProviderOps = async (
   return recorded;
 };
 
+export interface PendingMoveTarget {
+  readonly role: MailboxRole;
+  readonly mailboxId?: MailboxId;
+}
+
+export const pendingMoveTargets = async (
+  pendingWork: PendingWorkRepository,
+  accountId: AccountId,
+): Promise<Map<MessageId, PendingMoveTarget>> => {
+  const ops = await pendingWork.list(accountId, 'provider-op');
+  return new Map(
+    ops.flatMap((op) =>
+      op.payload.change.kind === 'move' ? [[op.payload.messageId, op.payload.change] as const] : [],
+    ),
+  );
+};
+
 export const pendingMoveRoles = async (
   pendingWork: PendingWorkRepository,
   accountId: AccountId,
 ): Promise<Map<MessageId, MailboxRole>> => {
-  const ops = await pendingWork.list(accountId, 'provider-op');
-  return new Map(
-    ops.flatMap((op) =>
-      op.payload.change.kind === 'move'
-        ? [[op.payload.messageId, op.payload.change.role] as const]
-        : [],
-    ),
-  );
+  const targets = await pendingMoveTargets(pendingWork, accountId);
+  return new Map([...targets].map(([messageId, target]) => [messageId, target.role]));
 };

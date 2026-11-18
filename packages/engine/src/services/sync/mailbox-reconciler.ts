@@ -5,15 +5,16 @@ import type { MessageRepository } from '../../ports/message-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { PENDING_UID } from '../shared/pending-uid';
-import type { KeywordLabels } from './keyword-labels';
+import type { MailboxPass } from './mailbox-pass';
 import { flagsDiffer, sameMembers } from './message-diff';
+import type { MessageLabelsResolver } from './message-labels-resolver';
 import type { SyncContext } from './sync-context';
 
 export interface MailboxReconcilerDeps {
   readonly messages: MessageRepository;
   readonly syncStates: SyncStateRepository;
   readonly unitOfWork: UnitOfWork;
-  readonly keywordLabels: KeywordLabels;
+  readonly labelsResolver: MessageLabelsResolver;
 }
 
 export class MailboxReconciler {
@@ -49,15 +50,35 @@ export class MailboxReconciler {
 
   async flagChanges(
     context: SyncContext,
-    mailbox: Mailbox,
+    pass: MailboxPass,
     state: MailboxSyncState,
-    status: RemoteMailboxStatus,
+    rescanLabels: boolean,
   ): Promise<void> {
-    const since = changedSince(state, status);
+    const { mailbox } = pass;
+    if (rescanLabels) {
+      const uids = await this.deps.messages.listUids(mailbox.id);
+      await this.apply(
+        context,
+        mailbox,
+        FULL_SCAN,
+        uids.filter((uid) => uid !== PENDING_UID),
+      );
+      return;
+    }
+    const since = changedSince(state, pass.status);
     if (since === null) {
       return;
     }
-    const changes = context.provider.fetchFlagChanges(mailbox.path, since);
+    await this.apply(context, mailbox, since, undefined);
+  }
+
+  private async apply(
+    context: SyncContext,
+    mailbox: Mailbox,
+    since: string,
+    uids: readonly number[] | undefined,
+  ): Promise<void> {
+    const changes = context.provider.fetchFlagChanges(mailbox.path, since, uids);
     for await (const change of changes) {
       const message = await this.deps.messages.findByLocation({
         mailboxId: mailbox.id,
@@ -67,10 +88,10 @@ export class MailboxReconciler {
         continue;
       }
       await this.deps.unitOfWork.run(async (repositories) => {
-        const labelIds = await this.deps.keywordLabels.resolve(
+        const labelIds = await this.deps.labelsResolver.resolve(
           repositories.labels,
           context.account.id,
-          change.keywords,
+          change,
         );
         const flags = { ...change.flags };
         const flagsChanged = flagsDiffer(flags, message.flags);

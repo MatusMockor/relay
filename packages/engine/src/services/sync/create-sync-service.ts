@@ -9,11 +9,16 @@ import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
 import type { SyncBackfill } from './sync-backfill';
-import { KeywordLabels } from './keyword-labels';
+import { GmailLabelCatalog } from './gmail-label-catalog';
+import { LabelRescans } from './label-rescans';
+import { MailboxEvents } from './mailbox-events';
+import { MailboxForgetter } from './mailbox-forgetter';
 import { MailboxReconciler } from './mailbox-reconciler';
 import { MailboxRefresher } from './mailbox-refresher';
+import { MailboxStatusProbe } from './mailbox-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
+import { MessageLabelsResolver } from './message-labels-resolver';
 import { DEFAULT_SYNC_OPTIONS } from './sync-options';
 import { SyncReporter } from './sync-reporter';
 import { SyncService } from './sync-service';
@@ -38,7 +43,7 @@ export const createSyncComponents = (
 ): SyncComponents => {
   const { repositories, unitOfWork, idGenerator: ids, clock, logger } = deps;
   const options = { ...DEFAULT_SYNC_OPTIONS, ...deps.options.sync };
-  const keywordLabels = new KeywordLabels(ids);
+  const labelsResolver = new MessageLabelsResolver(ids);
   const reporter = new SyncReporter(repositories.accounts, shared.events);
   const flusher = new ChangeFlusher({
     unitOfWork,
@@ -56,7 +61,7 @@ export const createSyncComponents = (
     threadResolver: deps.threadResolver,
     jiraClassifier: deps.jiraClassifier,
     splitMatcher: deps.splitMatcher,
-    keywordLabels,
+    labelsResolver,
     ids,
     calendarParts: shared.calendarParts,
   });
@@ -75,7 +80,7 @@ export const createSyncComponents = (
     messages: repositories.messages,
     syncStates: repositories.syncStates,
     unitOfWork,
-    keywordLabels,
+    labelsResolver,
   });
   const mailboxSync = new MailboxSynchronizer({
     mailboxes: repositories.mailboxes,
@@ -84,11 +89,28 @@ export const createSyncComponents = (
     incremental: fetchers.incremental,
     clock,
   });
+  const mailboxEvents = new MailboxEvents({
+    mailboxes: repositories.mailboxes,
+    labels: repositories.labels,
+    events: shared.events,
+  });
+  const rescans = new LabelRescans({
+    pendingWork: repositories.pendingWork,
+    syncStates: repositories.syncStates,
+    clock,
+  });
   const refresher = new MailboxRefresher({
     mailboxes: repositories.mailboxes,
-    messages: repositories.messages,
     syncStates: repositories.syncStates,
-    unitOfWork,
+    forgetter: new MailboxForgetter({
+      messages: repositories.messages,
+      syncStates: repositories.syncStates,
+      unitOfWork,
+      rescans,
+    }),
+    probe: new MailboxStatusProbe(logger),
+    catalog: new GmailLabelCatalog({ labels: repositories.labels, rescans, ids, logger }),
+    events: mailboxEvents,
     ids,
   });
   const synchronizer = new AccountSynchronizer({
@@ -96,6 +118,8 @@ export const createSyncComponents = (
     pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,
+    rescans,
+    mailboxEvents,
     mailboxSync,
     initialSync: fetchers.initialSync,
     flusher,

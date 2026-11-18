@@ -28,6 +28,8 @@ export interface RawMessage {
   readonly uid: number;
   readonly flags: MessageFlags;
   readonly keywords: readonly string[];
+  readonly labels: readonly string[] | null;
+  readonly emailId: string | null;
   readonly internalDate: string;
   readonly size: number;
   readonly modseq: string | null;
@@ -48,6 +50,7 @@ export interface RemoteFlagChange {
   readonly uid: number;
   readonly flags: MessageFlags;
   readonly keywords: readonly string[];
+  readonly labels: readonly string[] | null;
   readonly modseq: string | null;
 }
 

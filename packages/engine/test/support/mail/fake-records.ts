@@ -1,12 +1,19 @@
 import type { MailboxRole } from '@relay/shared/domain';
-import type { RawMessage, RemoteMailbox } from '../../../src';
-import type { FakeMailbox, RemoteMessageRecord } from './fake-mail-server';
+import type {
+  RawMessage,
+  RemoteFlagChange,
+  RemoteMailbox,
+  RemoteMailboxStatus,
+} from '../../../src';
+import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 
 export const toRaw = (path: string, record: RemoteMessageRecord): RawMessage => ({
   mailboxPath: path,
   uid: record.uid,
   flags: { ...record.flags },
   keywords: [...record.keywords],
+  labels: record.labels === null ? null : [...record.labels],
+  emailId: record.emailId,
   internalDate: record.internalDate,
   size: record.source.byteLength,
   modseq: record.modseq.toString(),
@@ -34,8 +41,35 @@ export const toRemote = (mailbox: FakeMailbox): RemoteMailbox => ({
   name: mailbox.name,
   delimiter: '/',
   role: mailbox.role,
-  subscribed: true,
+  subscribed: mailbox.subscribed,
 });
 
 export const missing = (what: string): Promise<never> =>
   Promise.reject(new Error(`${what} does not exist`));
+
+export const flagChangesOf = (
+  mailbox: FakeMailbox,
+  since: bigint,
+  uids: readonly number[] | undefined,
+): RemoteFlagChange[] =>
+  [...mailbox.messages.values()]
+    .filter((record) => record.modseq > since && (uids === undefined || uids.includes(record.uid)))
+    .map((record) => ({
+      uid: record.uid,
+      flags: { ...record.flags },
+      keywords: [...record.keywords],
+      labels: record.labels === null ? null : [...record.labels],
+      modseq: record.modseq.toString(),
+    }));
+
+export const statusOf = (server: FakeMailServer, mailbox: FakeMailbox): RemoteMailboxStatus => {
+  const records = [...mailbox.messages.values()];
+  return {
+    path: mailbox.path,
+    uidValidity: mailbox.uidValidity,
+    uidNext: mailbox.uidNext,
+    highestModseq: server.condstore ? server.highestModseq(mailbox).toString() : null,
+    messages: records.length,
+    unseen: records.filter((record) => !record.flags.seen).length,
+  };
+};

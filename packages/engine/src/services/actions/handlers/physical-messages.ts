@@ -5,7 +5,7 @@ import { inRoles, type LocatedMessage, type PlannedMove } from './state-move-pla
 
 type Role = MailboxRole | undefined;
 
-const RANK: readonly MailboxRole[] = ['trash', 'spam', 'inbox', 'archive', 'sent'];
+const RANK: readonly MailboxRole[] = ['trash', 'spam', 'inbox', 'archive', 'custom', 'sent'];
 
 const rankOf = (role: Role): number => {
   const index = role === undefined ? -1 : RANK.indexOf(role);

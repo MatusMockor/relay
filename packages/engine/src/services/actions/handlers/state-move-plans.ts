@@ -14,7 +14,9 @@ import { restore, trash } from './trash-plans';
 
 const PLANNERS: Readonly<Record<StateMoveAction, StateMovePlanner>> = {
   done: outsideHeld((messages) => moveTo('done', inRoles(messages, ['inbox']), 'archive')),
-  undone: outsideHeld((messages) => moveTo('inbox', inRoles(messages, ['archive']), 'inbox')),
+  undone: outsideHeld((messages) =>
+    moveTo('inbox', inRoles(messages, ['archive', 'custom']), 'inbox'),
+  ),
   trash,
   restore,
   reportSpam,

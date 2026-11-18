@@ -46,18 +46,24 @@ describe('SqliteLabelRepository', () => {
       accountId: work.account.id,
       name: 'Účty',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Účty',
     });
     await labels.upsert({
       id: labelId('l-a'),
       accountId: personal.account.id,
       name: 'Rodina',
       color: '#00ff00',
+      kind: 'keyword',
+      remoteName: 'Rodina',
     });
     await labels.upsert({
       id: labelId('l-b'),
       accountId: work.account.id,
       name: 'Faktúry',
       color: '#ff0000',
+      kind: 'keyword',
+      remoteName: 'Faktúry',
     });
 
     expect((await labels.list(LOCAL_USER_ID, null)).map((label) => label.name)).toEqual([
@@ -65,7 +71,14 @@ describe('SqliteLabelRepository', () => {
       'Rodina',
     ]);
     expect(await labels.list(LOCAL_USER_ID, work.account.id)).toEqual([
-      { id: 'l-b', accountId: work.account.id, name: 'Faktúry', color: '#ff0000' },
+      {
+        id: 'l-b',
+        accountId: work.account.id,
+        name: 'Faktúry',
+        color: '#ff0000',
+        kind: 'keyword',
+        remoteName: 'Faktúry',
+      },
     ]);
     expect(await labels.list(userId('intruder'), null)).toEqual([]);
     expect((await labels.findByName(work.account.id, 'Faktúry'))?.id).toBe('l-b');
@@ -74,15 +87,36 @@ describe('SqliteLabelRepository', () => {
 
   it('rejects duplicate names within an account', async () => {
     const { labels } = store.repositories;
-    await labels.upsert({ id: labelId('l-1'), accountId: work.account.id, name: 'X', color: null });
+    await labels.upsert({
+      id: labelId('l-1'),
+      accountId: work.account.id,
+      name: 'X',
+      color: null,
+      kind: 'keyword',
+      remoteName: 'X',
+    });
     await expect(
-      labels.upsert({ id: labelId('l-2'), accountId: work.account.id, name: 'X', color: null }),
+      labels.upsert({
+        id: labelId('l-2'),
+        accountId: work.account.id,
+        name: 'X',
+        color: null,
+        kind: 'keyword',
+        remoteName: 'X',
+      }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('deletes a label and strips it from threads', async () => {
     const { labels, threads } = store.repositories;
-    await labels.upsert({ id: labelId('l-1'), accountId: work.account.id, name: 'X', color: null });
+    await labels.upsert({
+      id: labelId('l-1'),
+      accountId: work.account.id,
+      name: 'X',
+      color: null,
+      kind: 'keyword',
+      remoteName: 'X',
+    });
     await threads.upsert(buildThread({ labelIds: [labelId('l-1'), labelId('l-2')] }));
 
     expect(await labels.delete(userId('intruder'), labelId('l-1'))).toBe(false);

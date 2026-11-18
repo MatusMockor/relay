@@ -3,13 +3,17 @@ import type { MailboxRole } from '@relay/shared/domain';
 export interface SyncOptions {
   readonly initialWindowDays: number;
   readonly initialMessageLimit: number;
+  readonly initialFolderMessageLimit: number;
   readonly mailboxRoles: readonly MailboxRole[];
+  readonly syncUnsubscribedFolders: boolean;
   readonly batchSize: number;
 }
 
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   initialWindowDays: 30,
   initialMessageLimit: 500,
-  mailboxRoles: ['inbox', 'sent', 'archive', 'trash', 'spam'],
+  initialFolderMessageLimit: 200,
+  mailboxRoles: ['inbox', 'sent', 'archive', 'trash', 'spam', 'custom'],
+  syncUnsubscribedFolders: false,
   batchSize: 50,
 };

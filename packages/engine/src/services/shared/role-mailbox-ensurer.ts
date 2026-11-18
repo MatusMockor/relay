@@ -80,6 +80,8 @@ export class RoleMailboxEnsurer {
       path: remote.path,
       delimiter: remote.delimiter,
       role,
+      subscribed: remote.subscribed,
+      uidValidity: known?.uidValidity ?? null,
       unreadCount: known?.unreadCount ?? 0,
       totalCount: known?.totalCount ?? 0,
     };

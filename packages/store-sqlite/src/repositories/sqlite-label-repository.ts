@@ -1,5 +1,5 @@
 import type { LabelRepository } from '@relay/engine';
-import type { AccountId, Label, LabelId, UserId } from '@relay/shared/domain';
+import type { AccountId, Label, LabelId, LabelKind, UserId } from '@relay/shared/domain';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
@@ -42,13 +42,52 @@ export class SqliteLabelRepository implements LabelRepository {
     });
   }
 
+  findByRemoteName(
+    accountId: AccountId,
+    kind: LabelKind,
+    remoteName: string,
+  ): Promise<Label | null> {
+    return this.executor.execute((db) => {
+      const row = db
+        .select()
+        .from(labels)
+        .where(
+          and(
+            eq(labels.accountId, accountId),
+            eq(labels.kind, kind),
+            eq(labels.remoteName, remoteName),
+          ),
+        )
+        .get();
+      return row === undefined ? null : toLabel(row);
+    });
+  }
+
+  listByKind(accountId: AccountId, kind: LabelKind): Promise<Label[]> {
+    return this.executor.execute((db) =>
+      db
+        .select()
+        .from(labels)
+        .where(and(eq(labels.accountId, accountId), eq(labels.kind, kind)))
+        .orderBy(asc(labels.name), asc(labels.id))
+        .all()
+        .map(toLabel),
+    );
+  }
+
   upsert(label: Label): Promise<Label> {
     return this.executor.execute((db) => {
       db.insert(labels)
         .values(label)
         .onConflictDoUpdate({
           target: labels.id,
-          set: { accountId: label.accountId, name: label.name, color: label.color },
+          set: {
+            accountId: label.accountId,
+            name: label.name,
+            color: label.color,
+            kind: label.kind,
+            remoteName: label.remoteName,
+          },
         })
         .run();
       return label;

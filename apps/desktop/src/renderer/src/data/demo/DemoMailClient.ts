@@ -12,6 +12,7 @@ import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
+import { demoMailboxesOf } from './demo-mailboxes';
 import { queryThreads } from './demo-query';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
 import type { DemoState } from './demo-state';
@@ -125,6 +126,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         state.labels.filter((label) => accountId === undefined || label.accountId === accountId),
       ),
     listAccounts: () => Promise.resolve([...state.accounts]),
+    listMailboxes: (accountId) => Promise.resolve(demoMailboxesOf(state, accountId)),
     createAccount: (body) =>
       run(() => {
         const account = demoAccountFrom(body, state.accounts, now());

@@ -46,6 +46,7 @@ export const messages = pgTable(
     threadId: text('thread_id').$type<ThreadId>().notNull(),
     uid: bigint('uid', { mode: 'number' }).notNull(),
     messageIdHeader: text('message_id_header'),
+    emailId: text('email_id'),
     inReplyTo: text('in_reply_to'),
     references: text('references').array().notNull(),
     from: jsonb('from_address').$type<Address>(),
@@ -70,6 +71,7 @@ export const messages = pgTable(
     uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
     index('messages_thread_idx').on(table.threadId, table.date),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
+    index('messages_account_email_idx').on(table.accountId, table.emailId),
     index('messages_user_idx').on(table.userId),
     index('messages_search_idx').using('gin', table.searchVector),
     index('messages_account_subject_hash_idx').on(

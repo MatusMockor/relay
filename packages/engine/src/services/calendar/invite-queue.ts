@@ -3,7 +3,7 @@ import type { Clock } from '../../ports/clock';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { CalendarPartsArrival } from '../sync/calendar-parts-sink';
 
-const IGNORED_ROLES: ReadonlySet<MailboxRole> = new Set(['drafts', 'spam']);
+const IGNORED_ROLES: ReadonlySet<MailboxRole> = new Set(['drafts', 'spam', 'custom']);
 
 export const acceptsInvites = (role: MailboxRole): boolean => !IGNORED_ROLES.has(role);
 

@@ -17,7 +17,7 @@ import type { JiraClassification } from './jira';
 export type ProviderChange =
   | { readonly kind: 'flag'; readonly flag: 'seen' | 'flagged'; readonly value: boolean }
   | { readonly kind: 'keyword'; readonly keyword: string; readonly value: boolean }
-  | { readonly kind: 'move'; readonly role: MailboxRole };
+  | { readonly kind: 'move'; readonly role: MailboxRole; readonly mailboxId?: MailboxId };
 
 export interface ProviderOpWork {
   readonly messageId: MessageId;
@@ -36,6 +36,7 @@ export interface ThreadRefreshWork {
 export interface MoveOriginWork {
   readonly messageId: MessageId;
   readonly role: MailboxRole;
+  readonly mailboxId?: MailboxId;
 }
 
 export interface MessageEffectsWork {
@@ -109,6 +110,10 @@ export interface CalendarRebuildPartWork {
   readonly parts: readonly string[];
 }
 
+export interface LabelRescanWork {
+  readonly mailboxId: MailboxId;
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
@@ -122,6 +127,7 @@ export interface PendingWorkPayloads {
   readonly 'calendar-rebuild-part': CalendarRebuildPartWork;
   readonly 'trash-origin': MoveOriginWork;
   readonly 'spam-origin': MoveOriginWork;
+  readonly 'label-rescan': LabelRescanWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

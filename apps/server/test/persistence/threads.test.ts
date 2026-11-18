@@ -25,6 +25,8 @@ describe('PgThreadRepository', () => {
       accountId: seeded.account.id,
       name: 'VIP',
       color: null,
+      kind: 'keyword',
+      remoteName: 'VIP',
     };
     await context.repositories.labels.upsert(label);
 

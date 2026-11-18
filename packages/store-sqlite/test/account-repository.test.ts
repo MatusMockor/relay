@@ -122,6 +122,8 @@ describe('SqliteAccountRepository', () => {
         path: 'INBOX',
         delimiter: '/',
         role: 'inbox',
+        subscribed: true,
+        uidValidity: null,
         unreadCount: 0,
         totalCount: 0,
       },

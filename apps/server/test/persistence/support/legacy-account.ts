@@ -1,18 +1,23 @@
-import type { MailAccount, User } from '@relay/shared/domain';
+import type { Mailbox, MailAccount, User, UserId } from '@relay/shared/domain';
 import pg from 'pg';
 import type { ServerRepositories } from '../../../src/core/ports/server-unit-of-work';
-import {
-  buildAccount,
-  buildMailbox,
-  buildUser,
-  mailboxByRole,
-  type SeededAccount,
-} from './fixtures';
+import { buildAccount, buildMailbox, buildUser, type SeededAccount } from './fixtures';
 
-const insertLegacyAccount = async (databaseUrl: string, account: MailAccount): Promise<void> => {
+const withClient = async (
+  databaseUrl: string,
+  work: (client: pg.Client) => Promise<void>,
+): Promise<void> => {
   const client = new pg.Client({ connectionString: databaseUrl });
   await client.connect();
   try {
+    await work(client);
+  } finally {
+    await client.end();
+  }
+};
+
+const insertLegacyAccount = (databaseUrl: string, account: MailAccount): Promise<void> =>
+  withClient(databaseUrl, async (client) => {
     await client.query(
       `INSERT INTO mail_accounts (id, user_id, provider, display_name, email, color, is_primary, sync_interval_seconds, settings, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
@@ -29,9 +34,32 @@ const insertLegacyAccount = async (databaseUrl: string, account: MailAccount): P
         account.createdAt,
       ],
     );
-  } finally {
-    await client.end();
-  }
+  });
+
+export const insertLegacyMailboxes = async (
+  databaseUrl: string,
+  userId: UserId,
+  mailboxes: readonly Mailbox[],
+): Promise<Mailbox[]> => {
+  await withClient(databaseUrl, async (client) => {
+    for (const mailbox of mailboxes) {
+      await client.query(
+        `INSERT INTO mailboxes (id, user_id, account_id, name, path, delimiter, role, unread_count, total_count) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          mailbox.id,
+          userId,
+          mailbox.accountId,
+          mailbox.name,
+          mailbox.path,
+          mailbox.delimiter,
+          mailbox.role,
+          mailbox.unreadCount,
+          mailbox.totalCount,
+        ],
+      );
+    }
+  });
+  return [...mailboxes];
 };
 
 export const seedLegacyAccount = async (
@@ -43,16 +71,8 @@ export const seedLegacyAccount = async (
   await repositories.users.create(user, 'hash');
   const account = buildAccount(user.id, overrides);
   await insertLegacyAccount(databaseUrl, account);
-  const mailboxes = await repositories.mailboxes.upsertMany(account.id, [
-    buildMailbox(account.id, 'inbox'),
-    buildMailbox(account.id, 'sent'),
-  ]);
-  return {
-    user,
-    account,
-    mailboxes: {
-      inbox: mailboxByRole(mailboxes, 'inbox'),
-      sent: mailboxByRole(mailboxes, 'sent'),
-    },
-  };
+  const inbox = buildMailbox(account.id, 'inbox');
+  const sent = buildMailbox(account.id, 'sent');
+  await insertLegacyMailboxes(databaseUrl, user.id, [inbox, sent]);
+  return { user, account, mailboxes: { inbox, sent } };
 };

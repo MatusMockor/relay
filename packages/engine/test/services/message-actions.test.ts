@@ -119,6 +119,8 @@ describe('MessageActionsService', () => {
       accountId: account.id,
       name: 'Clients',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Clients',
     });
 
     const labelled = await engine.services.actions.apply(USER_ID, thread.id, {
@@ -144,12 +146,16 @@ describe('MessageActionsService', () => {
       accountId: account.id,
       name: 'Clients',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Clients',
     });
     const urgent = await engine.repositories.labels.upsert({
       id: 'label_urgent' as LabelId,
       accountId: account.id,
       name: 'Urgent',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Urgent',
     });
 
     await Promise.all([
@@ -187,6 +193,8 @@ describe('MessageActionsService', () => {
       accountId: other.account.id,
       name: 'Other',
       color: null,
+      kind: 'keyword',
+      remoteName: 'Other',
     });
 
     await expect(

@@ -12,6 +12,8 @@ export const mailboxes = sqliteTable(
     path: text('path').notNull(),
     delimiter: text('delimiter'),
     role: text('role').notNull(),
+    subscribed: integer('subscribed', { mode: 'boolean' }).notNull().default(true),
+    uidValidity: integer('uid_validity'),
     unreadCount: integer('unread_count').notNull(),
     totalCount: integer('total_count').notNull(),
   },

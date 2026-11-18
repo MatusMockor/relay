@@ -14,7 +14,15 @@ import {
   type RemoteThreadHeaders,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
-import { calendarHeaders, CREATED_ROLES, missing, toRaw, toRemote } from './fake-records';
+import {
+  calendarHeaders,
+  CREATED_ROLES,
+  flagChangesOf,
+  missing,
+  statusOf,
+  toRaw,
+  toRemote,
+} from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
@@ -82,15 +90,8 @@ export class FakeMailProvider implements MailProvider {
 
   status(mailboxPath: string): Promise<RemoteMailboxStatus> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
-      const records = [...mailbox.messages.values()];
-      return Promise.resolve({
-        path: mailboxPath,
-        uidValidity: mailbox.uidValidity,
-        uidNext: mailbox.uidNext,
-        highestModseq: server.condstore ? server.highestModseq(mailbox).toString() : null,
-        messages: records.length,
-        unseen: records.filter((record) => !record.flags.seen).length,
-      });
+      server.statusCalls.push(mailboxPath);
+      return Promise.resolve(statusOf(server, mailbox));
     });
   }
 
@@ -126,22 +127,20 @@ export class FakeMailProvider implements MailProvider {
     return Promise.resolve(recordsOf(opened.mailbox, uids).map(threadHeadersOf));
   }
 
-  fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange> {
+  fetchFlagChanges(
+    mailboxPath: string,
+    sinceModseq: string,
+    uids?: readonly number[],
+  ): AsyncIterable<RemoteFlagChange> {
     const opened = this.streamMailbox(mailboxPath, `Cannot fetch flags of ${mailboxPath}`);
     if (opened instanceof Error) {
       return failingItems(opened);
     }
-    const since = BigInt(sinceModseq);
-    return asyncItems(
-      [...opened.mailbox.messages.values()]
-        .filter((record) => record.modseq > since)
-        .map((record) => ({
-          uid: record.uid,
-          flags: { ...record.flags },
-          keywords: [...record.keywords],
-          modseq: record.modseq.toString(),
-        })),
-    );
+    opened.server.flagScans.push({
+      path: mailboxPath,
+      uids: uids === undefined ? null : [...uids],
+    });
+    return asyncItems(flagChangesOf(opened.mailbox, BigInt(sinceModseq), uids));
   }
 
   searchRelated(path: string, uidValidity: number, ids: readonly string[]): Promise<number[]> {
@@ -152,9 +151,10 @@ export class FakeMailProvider implements MailProvider {
   }
 
   listUids(mailboxPath: string): Promise<number[]> {
-    return this.withMailbox(mailboxPath, (mailbox) =>
-      Promise.resolve([...mailbox.messages.keys()].sort((a, b) => a - b)),
-    );
+    return this.withMailbox(mailboxPath, (mailbox, server) => {
+      server.uidListings.push(mailboxPath);
+      return Promise.resolve([...mailbox.messages.keys()].sort((a, b) => a - b));
+    });
   }
 
   async fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {

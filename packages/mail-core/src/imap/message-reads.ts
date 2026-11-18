@@ -1,5 +1,6 @@
 import type { RawMessage } from '@relay/engine';
 import type { ImapConnection } from './imap-connection';
+import { labelReadingOf } from './gmail-labels';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
 import { searchUids } from './uid-batches';
 
@@ -31,6 +32,6 @@ export const fetchMessage = (
       if (fetched === false || fetched.uid !== uid) {
         return null;
       }
-      return toRawMessage(path, fetched);
+      return toRawMessage(path, fetched, labelReadingOf(client));
     },
   );

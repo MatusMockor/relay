@@ -34,6 +34,8 @@ export class SqliteSyncStateRepository implements SyncStateRepository {
         uidValidity: state.uidValidity,
         lastUid: state.lastUid,
         highestModseq: state.highestModseq,
+        uidNext: state.uidNext,
+        messageCount: state.messageCount,
         initialFloorUid: state.initialWindow?.floorUid ?? null,
         initialCutoff: state.initialWindow?.cutoff ?? null,
         syncedAt: state.syncedAt,

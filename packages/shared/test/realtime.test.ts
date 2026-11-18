@@ -13,6 +13,8 @@ describe('realtime protocol', () => {
       'calendar.updated',
       'draft.removed',
       'draft.upserted',
+      'labels.updated',
+      'mailboxes.updated',
       'message.upserted',
       'scheduledSend.upserted',
       'settings.updated',

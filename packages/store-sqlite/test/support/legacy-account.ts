@@ -1,8 +1,7 @@
-import type { Repositories } from '@relay/engine';
-import type { MailAccount } from '@relay/shared/domain';
+import type { MailAccount, Mailbox } from '@relay/shared/domain';
 import type { SqliteDatabase } from '../../src';
-import { buildAccount } from './fixtures';
-import { type SeededAccount, seedMailboxes } from './seed';
+import { buildAccount, buildMailbox, mailboxId } from './fixtures';
+import type { SeededAccount } from './seed';
 
 export const insertLegacyAccount = (
   database: SqliteDatabase,
@@ -29,7 +28,39 @@ export const insertLegacyAccount = (
   return account;
 };
 
-export const seedLegacyAccount = (
-  database: SqliteDatabase,
-  repositories: Repositories,
-): Promise<SeededAccount> => seedMailboxes(repositories, insertLegacyAccount(database));
+const insertLegacyMailbox = (database: SqliteDatabase, mailbox: Mailbox): Mailbox => {
+  database.sqlite
+    .prepare(
+      `insert into mailboxes (id, account_id, name, path, delimiter, role, unread_count, total_count) values (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      mailbox.id,
+      mailbox.accountId,
+      mailbox.name,
+      mailbox.path,
+      mailbox.delimiter,
+      mailbox.role,
+      mailbox.unreadCount,
+      mailbox.totalCount,
+    );
+  return mailbox;
+};
+
+export const seedLegacyAccount = (database: SqliteDatabase): Promise<SeededAccount> => {
+  const account = insertLegacyAccount(database);
+  const inbox = insertLegacyMailbox(
+    database,
+    buildMailbox({ id: mailboxId(`${account.id}-inbox`), accountId: account.id }),
+  );
+  const sent = insertLegacyMailbox(
+    database,
+    buildMailbox({
+      id: mailboxId(`${account.id}-sent`),
+      accountId: account.id,
+      name: 'Sent',
+      path: 'Sent',
+      role: 'sent',
+    }),
+  );
+  return Promise.resolve({ account, inbox, sent });
+};
