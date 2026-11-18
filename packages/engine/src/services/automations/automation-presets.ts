@@ -1,26 +1,19 @@
-import {
-  type AiRunnerKind,
-  type Automation,
-  type AutomationId,
-  AutomationIdSchema,
-  type UserId,
-} from '@relay/shared/domain';
+import type { AiRunnerKind, Automation, AutomationId, UserId } from '@relay/shared/domain';
+import type { PresetAutomation } from '../../ports/automation-repository';
 
 export const JIRA_TASKS_PRESET_NAME = 'Jira tasky';
-
-const VIRTUAL_JIRA_TASKS_ID = AutomationIdSchema.parse('automation_default_jira_tasks');
 
 export const jiraTasksPreset = (
   userId: UserId,
   id: AutomationId,
   runner: AiRunnerKind,
   order: number,
-): Automation => ({
+): PresetAutomation => ({
   id,
   userId,
   accountId: null,
   name: JIRA_TASKS_PRESET_NAME,
-  enabled: true,
+  enabled: false,
   order,
   preset: 'jiraTasks',
   conditions: [{ type: 'jira', projectKeys: [] }],
@@ -28,16 +21,11 @@ export const jiraTasksPreset = (
   actions: [{ type: 'task' }],
 });
 
-export const hasJiraTasksPreset = (automations: readonly Automation[]): boolean =>
-  automations.some((automation) => automation.preset === 'jiraTasks');
+export const storedJiraTasksPreset = (automations: readonly Automation[]): Automation | null =>
+  automations.find((automation) => automation.preset === 'jiraTasks') ?? null;
 
-export const effectiveJiraTasksPreset = (
-  userId: UserId,
-  stored: readonly Automation[],
-  runner: AiRunnerKind,
-): Automation =>
-  stored.find((automation) => automation.preset === 'jiraTasks') ??
-  jiraTasksPreset(userId, VIRTUAL_JIRA_TASKS_ID, runner, 0);
+export const hasJiraTasksPreset = (automations: readonly Automation[]): boolean =>
+  storedJiraTasksPreset(automations) !== null;
 
 export const runsLegacyJiraTasks = (automation: Automation): boolean =>
   automation.preset === 'jiraTasks' &&

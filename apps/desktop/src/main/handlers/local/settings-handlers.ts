@@ -12,6 +12,7 @@ export const createSettingsHandlers = (
   'local.splits.replace': (body) => services.splits.replace(userId, body),
   'local.automations.list': () => services.automations.list(userId),
   'local.automations.replace': (body) => services.automations.replace(userId, body),
+  'local.automations.restoreDefault': () => services.automations.restoreDefault(userId),
   'local.automations.apply': ({ automationId }) =>
     services.automations.applyToExisting(userId, automationId),
 });

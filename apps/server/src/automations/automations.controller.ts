@@ -24,6 +24,11 @@ export class AutomationsController {
     return this.automations.replace(principal.userId, request.body);
   }
 
+  @ApiRoute(api.automations.restoreDefault)
+  restoreDefault(@CurrentPrincipal() principal: Principal): Promise<Automation[]> {
+    return this.automations.restoreDefault(principal.userId);
+  }
+
   @ApiRoute(api.automations.apply)
   apply(
     @CurrentPrincipal() principal: Principal,

@@ -44,6 +44,7 @@ describe('runMigrations', () => {
       'pending_work',
       'refresh_tokens',
       'reminders',
+      'removed_automation_presets',
       'scheduled_sends',
       'splits',
       'sync_state',

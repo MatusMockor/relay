@@ -34,7 +34,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
   it('seeds the Jira rule, stores new rules and runs them on new mail only', async () => {
     const { bridge } = harness;
     const preset = required(expectOk(await bridge.invoke('local.automations.list'))[0]);
-    expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: true });
+    expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false });
     const account = expectOk(
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),
     );
@@ -48,7 +48,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
     const saved = expectOk(
       await bridge.invoke('local.automations.replace', {
         automations: [
-          { ...preset, enabled: false },
+          { ...preset, enabled: true },
           {
             accountId: account.id,
             name: 'Od Tibora',
@@ -62,7 +62,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
       }),
     );
     expect(saved.map((item) => [item.name, item.enabled])).toEqual([
-      ['Jira tasky', false],
+      ['Jira tasky', true],
       ['Od Tibora', true],
     ]);
     expect(harness.events.map((event) => event.type)).toContain('automations.updated');
@@ -101,5 +101,21 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
     });
 
     expect(result).toMatchObject({ ok: false });
+  });
+
+  it('removes the default Jira rule for good and restores it on request', async () => {
+    const { bridge } = harness;
+    expectOk(await bridge.invoke('local.automations.list'));
+
+    expect(expectOk(await bridge.invoke('local.automations.replace', { automations: [] }))).toEqual(
+      [],
+    );
+    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual([]);
+    const restored = expectOk(await bridge.invoke('local.automations.restoreDefault'));
+
+    expect(restored).toEqual([
+      expect.objectContaining({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false }),
+    ]);
+    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual(restored);
   });
 });

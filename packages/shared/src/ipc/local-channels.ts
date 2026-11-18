@@ -141,6 +141,7 @@ export const localInvokeChannels = {
     ReplaceAutomationsBodySchema,
     z.array(AutomationSchema),
   ),
+  'local.automations.restoreDefault': invokeChannel(z.undefined(), z.array(AutomationSchema)),
   'local.automations.apply': invokeChannel(
     z.object({ automationId: AutomationIdSchema }),
     ApplyAutomationResponseSchema,

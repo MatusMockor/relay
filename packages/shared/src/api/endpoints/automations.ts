@@ -16,8 +16,10 @@ export const AutomationInputSchema = AutomationSchema.omit({
 });
 export type AutomationInput = z.infer<typeof AutomationInputSchema>;
 
+export const MAX_AUTOMATIONS = 50;
+
 export const ReplaceAutomationsBodySchema = z.object({
-  automations: z.array(AutomationInputSchema).max(50),
+  automations: z.array(AutomationInputSchema).max(MAX_AUTOMATIONS),
 });
 export type ReplaceAutomationsBody = z.infer<typeof ReplaceAutomationsBodySchema>;
 
@@ -40,6 +42,12 @@ export const automationsEndpoints = {
     path: '/automations',
     auth: 'user',
     body: ReplaceAutomationsBodySchema,
+    response: z.array(AutomationSchema),
+  }),
+  restoreDefault: defineEndpoint({
+    method: 'POST',
+    path: '/automations/restore-default',
+    auth: 'user',
     response: z.array(AutomationSchema),
   }),
   apply: defineEndpoint({

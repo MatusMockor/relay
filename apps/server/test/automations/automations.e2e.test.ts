@@ -30,13 +30,13 @@ describe('automations', () => {
     const socket = await authenticateRealtime(app.baseUrl, session.accessToken);
 
     const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
-    expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: true });
+    expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false });
     const saved = await app.api.ok(
       api.automations.replace,
       {
         body: {
           automations: [
-            { ...preset, enabled: false },
+            { ...preset, enabled: true },
             {
               accountId: null,
               name: 'eFabrica spomenutia',
@@ -60,7 +60,7 @@ describe('automations', () => {
       session.accessToken,
     );
     expect(saved.map((item) => [item.name, item.enabled, item.userId])).toEqual([
-      ['Jira tasky', false, session.user.id],
+      ['Jira tasky', true, session.user.id],
       ['eFabrica spomenutia', true, session.user.id],
     ]);
     expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(saved);
@@ -84,13 +84,27 @@ describe('automations', () => {
       session.accessToken,
     );
     expect(unknownModel).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
-    const removedPreset = await app.api.fail(
+    socket.close();
+  });
+
+  it('removes the default Jira rule for good and restores it on request', async () => {
+    const session = await registerUser(app.api, email());
+    const [preset, ...rest] = await app.api.ok(api.automations.list, {}, session.accessToken);
+    expect(preset?.preset).toBe('jiraTasks');
+
+    const removed = await app.api.ok(
       api.automations.replace,
-      { body: { automations: [] } },
+      { body: { automations: rest } },
       session.accessToken,
     );
-    expect(removedPreset).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
-    socket.close();
+
+    expect(removed).toEqual([]);
+    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual([]);
+    const restored = await app.api.ok(api.automations.restoreDefault, {}, session.accessToken);
+    expect(restored).toEqual([
+      expect.objectContaining({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false }),
+    ]);
+    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(restored);
   });
 
   it('applies a rule to existing mail and refuses moves for all accounts', async () => {

@@ -65,6 +65,12 @@ describe('accounts with only an INBOX on the IMAP server', () => {
   it('creates Archive, Trash and Sent on first use and mirrors the actions', async () => {
     const session = await registerUser(app.api, `inbox-only-${owner.email}`);
     const token = session.accessToken;
+    const rules = await app.api.ok(api.automations.list, {}, token);
+    await app.api.ok(
+      api.automations.replace,
+      { body: { automations: rules.map((rule) => ({ ...rule, enabled: true })) } },
+      token,
+    );
     const account = await addImapAccount(app.api, token, owner);
     const threads = await waitForInbox(app.api, token, (items) => items.length === 4);
     const bySubject = (subject: string) => threads.find((thread) => thread.subject === subject);

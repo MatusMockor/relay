@@ -1,12 +1,13 @@
-import type {
-  ApplyAutomationResponse,
-  AutomationInput,
-  ReplaceAutomationsBody,
+import {
+  type ApplyAutomationResponse,
+  type AutomationInput,
+  MAX_AUTOMATIONS,
+  type ReplaceAutomationsBody,
 } from '@relay/shared/api';
 import type { Automation, AutomationId, UserId } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
-import type { AutomationRepository } from '../../ports/automation-repository';
+import type { AutomationRepository, PresetAutomation } from '../../ports/automation-repository';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { SplitPatternPolicy } from '../../ports/split-pattern-policy';
 import type { EngineEvents } from '../shared/engine-events';
@@ -40,6 +41,10 @@ export class AutomationService {
 
   replace(userId: UserId, body: ReplaceAutomationsBody): Promise<Automation[]> {
     return this.serializer.run(userId, () => this.replaceNow(userId, body));
+  }
+
+  restoreDefault(userId: UserId): Promise<Automation[]> {
+    return this.serializer.run(userId, () => this.restoreNow(userId));
   }
 
   applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
@@ -77,28 +82,48 @@ export class AutomationService {
       throw new ValidationError('Automation ids must be unique');
     }
     if (hasJiraTasksPreset(current) && !hasJiraTasksPreset(automations)) {
-      throw new ValidationError('The default Jira automation can be turned off but not removed');
+      await this.deps.automations.markPresetRemoved(userId, 'jiraTasks');
     }
-    const stored = await this.deps.automations.replaceAll(userId, automations);
-    await this.deps.events.emit(userId, 'automations.updated', { automations: stored });
-    return stored;
+    return this.published(userId, await this.deps.automations.replaceAll(userId, automations));
   }
 
-  private async seeded(userId: UserId): Promise<Automation[]> {
+  private async restoreNow(userId: UserId): Promise<Automation[]> {
     const stored = await this.deps.automations.listByUser(userId);
     if (hasJiraTasksPreset(stored)) {
       return stored;
     }
-    const settings = await this.deps.settings.read(userId);
-    await this.deps.automations.createPresetIfAbsent(
-      jiraTasksPreset(
-        userId,
-        this.deps.ids.generate('automation'),
-        settings.ai.defaultRunner,
-        stored.length,
-      ),
-    );
+    if (stored.length >= MAX_AUTOMATIONS) {
+      throw new ValidationError(`At most ${String(MAX_AUTOMATIONS)} automations are allowed`);
+    }
+    await this.deps.automations.restorePreset(await this.presetFor(userId, stored.length));
+    return this.published(userId, await this.deps.automations.listByUser(userId));
+  }
+
+  private async seeded(userId: UserId): Promise<Automation[]> {
+    const stored = await this.deps.automations.listByUser(userId);
+    if (
+      hasJiraTasksPreset(stored) ||
+      (await this.deps.automations.isPresetRemoved(userId, 'jiraTasks'))
+    ) {
+      return stored;
+    }
+    await this.deps.automations.createPresetIfAbsent(await this.presetFor(userId, stored.length));
     return this.deps.automations.listByUser(userId);
+  }
+
+  private async presetFor(userId: UserId, order: number): Promise<PresetAutomation> {
+    const settings = await this.deps.settings.read(userId);
+    return jiraTasksPreset(
+      userId,
+      this.deps.ids.generate('automation'),
+      settings.ai.defaultRunner,
+      order,
+    );
+  }
+
+  private async published(userId: UserId, automations: Automation[]): Promise<Automation[]> {
+    await this.deps.events.emit(userId, 'automations.updated', { automations });
+    return automations;
   }
 
   private async assertAccounts(userId: UserId, inputs: readonly AutomationInput[]): Promise<void> {

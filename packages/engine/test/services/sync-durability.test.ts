@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { enableJiraTasks } from '../support/automations';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
 import { MemorySyncStateRepository } from '../support/memory/memory-small-repositories';
 import { MemoryTaskRepository } from '../support/memory/memory-task-repository';
@@ -30,6 +31,7 @@ describe('sync side effects survive failures', () => {
   it('retries a Jira task that could not be created on the next sync', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     deliverMail(server, 'INBOX', {
       id: 'j1',
       from: JIRA,
@@ -81,6 +83,7 @@ describe('sync side effects survive failures', () => {
   it('replays the effects of new mail stored by a batch that failed', async () => {
     const engine = createTestEngine({ ai: { oneLinersPerSync: 5 } });
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     await engine.services.sync.syncAccount(USER_ID, account.id);
     deliverMail(server, 'INBOX', {
       id: 'j2',

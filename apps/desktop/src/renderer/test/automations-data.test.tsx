@@ -39,7 +39,7 @@ describe('automation data hooks on the demo client', () => {
     cleanup();
   });
 
-  it('lists the seeded rules and saves edits, toggles and deletes', async () => {
+  it('lists the seeded rules and saves edits, toggles and deletes, also the default rule', async () => {
     const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
     const { result } = renderHook(useAutomationData, { wrapper: wrapperFor(client) });
     await waitFor(() => {
@@ -77,9 +77,28 @@ describe('automation data hooks on the demo client', () => {
         ['Od Tibora', true, 1],
       ]);
     });
-    await expect(result.current.replace.mutateAsync([])).rejects.toThrow(
-      'Predvolenú automatizáciu môžeš len vypnúť',
-    );
+    await act(async () => {
+      await result.current.replace.mutateAsync([]);
+    });
+    await waitFor(() => {
+      expect(result.current.list.data).toEqual([]);
+    });
+  });
+
+  it('restores the removed default rule turned off', async () => {
+    const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
+    const kept = (await client.listAutomations()).filter((item) => item.preset === null);
+    await client.replaceAutomations(kept.map(toAutomationInput));
+
+    const restored = await client.restoreDefaultAutomation();
+
+    expect(restored.map((item) => [item.name, item.preset, item.enabled, item.order])).toEqual([
+      ['Jira spomenutia', null, true, 0],
+      ['Tibor', null, true, 1],
+      ['GitLab do Projektov', null, true, 2],
+      ['Jira tasky', 'jiraTasks', false, 3],
+    ]);
+    expect(await client.restoreDefaultAutomation()).toEqual(restored);
   });
 
   it('rejects a model that does not belong to the runner', async () => {

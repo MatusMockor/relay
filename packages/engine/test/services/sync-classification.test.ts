@@ -1,5 +1,6 @@
 import type { SplitId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
+import { enableJiraTasks } from '../support/automations';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
@@ -9,6 +10,7 @@ describe('SyncService classification', () => {
   it('creates one task per Jira key and updates its state', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     deliverMail(server, 'INBOX', {
       id: 'j1',
       from: JIRA,
@@ -49,6 +51,7 @@ describe('SyncService classification', () => {
   it('keeps the task state for status-only Jira updates', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
+    await enableJiraTasks(engine);
     deliverMail(server, 'INBOX', {
       id: 'j1',
       from: JIRA,

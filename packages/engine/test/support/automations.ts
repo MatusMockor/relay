@@ -59,3 +59,12 @@ export const threadIdOf = (engine: TestEngine, subject: string): Promise<ThreadI
 
 export const notifiedSubjects = (engine: TestEngine): string[] =>
   engine.events.ofType('automation.notified').map((event) => event.data.body);
+
+export const enableJiraTasks = async (engine: TestEngine): Promise<Automation[]> => {
+  const current = await engine.services.automations.list(USER_ID);
+  return engine.services.automations.replace(USER_ID, {
+    automations: current.map((automation) =>
+      automation.preset === 'jiraTasks' ? { ...automation, enabled: true } : automation,
+    ),
+  });
+};

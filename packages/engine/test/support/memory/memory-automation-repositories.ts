@@ -1,5 +1,16 @@
-import type { Automation, AutomationId, MessageId, UserId } from '@relay/shared/domain';
-import type { AutomationRepository, AutomationRun, AutomationRunRepository } from '../../../src';
+import type {
+  Automation,
+  AutomationId,
+  AutomationPreset,
+  MessageId,
+  UserId,
+} from '@relay/shared/domain';
+import type {
+  AutomationRepository,
+  AutomationRun,
+  AutomationRunRepository,
+  PresetAutomation,
+} from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
 export class MemoryAutomationRepository implements AutomationRepository {
@@ -24,6 +35,20 @@ export class MemoryAutomationRepository implements AutomationRepository {
     }
     this.db.tables.automations.set(automation.userId, [...current, automation]);
     return Promise.resolve();
+  }
+
+  isPresetRemoved(userId: UserId, preset: AutomationPreset): Promise<boolean> {
+    return Promise.resolve(this.db.tables.removedPresets.has(`${userId}:${preset}`));
+  }
+
+  markPresetRemoved(userId: UserId, preset: AutomationPreset): Promise<void> {
+    this.db.tables.removedPresets.add(`${userId}:${preset}`);
+    return Promise.resolve();
+  }
+
+  restorePreset(automation: PresetAutomation): Promise<void> {
+    this.db.tables.removedPresets.delete(`${automation.userId}:${automation.preset}`);
+    return this.createPresetIfAbsent(automation);
   }
 }
 

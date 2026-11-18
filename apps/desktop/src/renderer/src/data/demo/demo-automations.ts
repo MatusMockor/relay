@@ -13,12 +13,25 @@ import { demoIds } from './seed/ids';
 
 type DemoAutomationMethods = Pick<
   Organizer,
-  'listAutomations' | 'replaceAutomations' | 'applyAutomation'
+  'listAutomations' | 'replaceAutomations' | 'restoreDefaultAutomation' | 'applyAutomation'
 >;
 
 const ALL_ACCOUNTS_MESSAGE = 'Pravidlo pre všetky účty nemôže presúvať ani štítkovať, vyber účet';
 
 const automationId = (key: string) => AutomationIdSchema.parse(`automation-${key}`);
+
+const jiraTasksPreset = (id: AutomationId, order: number): Automation => ({
+  id,
+  userId: demoIds.user,
+  accountId: null,
+  name: 'Jira tasky',
+  enabled: false,
+  order,
+  preset: 'jiraTasks',
+  conditions: [{ type: 'jira', projectKeys: [] }],
+  ai: { runner: 'claude', model: null, effort: null, instructions: null },
+  actions: [{ type: 'task' }],
+});
 
 export const buildDemoAutomations = (): Automation[] => [
   {
@@ -69,18 +82,7 @@ export const buildDemoAutomations = (): Automation[] => [
       { type: 'moveTo', mailboxId: demoIds.folder('efa', 'projekty') },
     ],
   },
-  {
-    id: automationId('jira'),
-    userId: demoIds.user,
-    accountId: null,
-    name: 'Jira tasky',
-    enabled: false,
-    order: 3,
-    preset: 'jiraTasks',
-    conditions: [{ type: 'jira', projectKeys: [] }],
-    ai: { runner: 'claude', model: null, effort: null, instructions: null },
-    actions: [{ type: 'task' }],
-  },
+  jiraTasksPreset(automationId('jira'), 3),
 ];
 
 const toAutomation = (
@@ -126,13 +128,15 @@ export const createDemoAutomations = (
     const next = parsed.data.automations.map((input, order) =>
       toAutomation(state, input, order, now),
     );
-    const keepsPreset = state.automations
-      .filter((item) => item.preset !== null)
-      .every((item) => next.some((automation) => automation.id === item.id));
-    if (!keepsPreset) {
-      return Promise.reject(new Error('Predvolenú automatizáciu môžeš len vypnúť'));
-    }
     state.automations = next;
+    return Promise.resolve([...state.automations]);
+  },
+  restoreDefaultAutomation: () => {
+    if (state.automations.some((item) => item.preset === 'jiraTasks')) {
+      return Promise.resolve([...state.automations]);
+    }
+    const id = automationId(`jira-${String(now().getTime())}`);
+    state.automations = [...state.automations, jiraTasksPreset(id, state.automations.length)];
     return Promise.resolve([...state.automations]);
   },
 });

@@ -67,6 +67,26 @@ describe('PgAutomationRepository', () => {
 
     await expect(context.repositories.automations.listByUser(user.id)).resolves.toEqual([preset]);
   });
+
+  it('remembers a removed preset per user until it is restored', async () => {
+    const { automations, users } = context.repositories;
+    const user = await users.create(buildUser(), 'hash');
+    const other = await users.create(buildUser(), 'hash');
+    const preset = {
+      ...buildAutomation(user.id, { name: 'Jira tasky' }),
+      preset: 'jiraTasks' as const,
+    };
+
+    await automations.markPresetRemoved(user.id, 'jiraTasks');
+    await automations.markPresetRemoved(user.id, 'jiraTasks');
+
+    await expect(automations.isPresetRemoved(user.id, 'jiraTasks')).resolves.toBe(true);
+    await expect(automations.isPresetRemoved(other.id, 'jiraTasks')).resolves.toBe(false);
+    await automations.restorePreset(preset);
+    await automations.restorePreset({ ...preset, id: newId('automation') });
+    await expect(automations.isPresetRemoved(user.id, 'jiraTasks')).resolves.toBe(false);
+    await expect(automations.listByUser(user.id)).resolves.toEqual([preset]);
+  });
 });
 
 describe('PgAutomationRunRepository', () => {

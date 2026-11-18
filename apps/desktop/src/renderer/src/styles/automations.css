@@ -43,15 +43,6 @@
 .au-h .fld {
   flex: 1;
 }
-.au-slot {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--faint);
-}
 .sent {
   display: grid;
   gap: 6px;

@@ -133,6 +133,7 @@ export interface Organizer {
   deleteLabel(labelId: LabelId): Promise<void>;
   listAutomations(): Promise<Automation[]>;
   replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
+  restoreDefaultAutomation(): Promise<Automation[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;

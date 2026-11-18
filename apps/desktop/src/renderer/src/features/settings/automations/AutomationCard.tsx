@@ -44,19 +44,13 @@ export function AutomationCard({
           />
           {rule.preset !== null ? <span className="scope">Predvolené</span> : null}
         </b>
-        {rule.preset === null ? (
-          <IconButton
-            label={`Odstrániť pravidlo ${input.name}`}
-            disabled={disabled}
-            onClick={onRemove}
-          >
-            <Icon name="trash" />
-          </IconButton>
-        ) : (
-          <span className="au-slot" title="Predvolené pravidlo sa nedá odstrániť, len vypnúť">
-            <Icon name="lock" />
-          </span>
-        )}
+        <IconButton
+          label={`Odstrániť pravidlo ${input.name}`}
+          disabled={disabled}
+          onClick={onRemove}
+        >
+          <Icon name="trash" />
+        </IconButton>
         <Switch
           checked={input.enabled}
           label={`Pravidlo ${input.name} zapnuté`}
