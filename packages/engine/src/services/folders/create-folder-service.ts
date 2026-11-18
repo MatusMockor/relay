@@ -1,7 +1,8 @@
 import type { EngineDeps } from '../../engine-deps';
-import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
+import { MovedCopyMerger } from '../actions/moved-copy-merger';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
+import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import { LabelRescans } from '../sync/label-rescans';
 import { MailboxEvents } from '../sync/mailbox-events';
 import { MailboxForgetter } from '../sync/mailbox-forgetter';
@@ -11,15 +12,16 @@ import { FolderRemover } from './folder-remover';
 import { FolderRenamer } from './folder-renamer';
 import { FolderService } from './folder-service';
 import { FolderThreadRefresher } from './folder-thread-refresh';
-import { FolderTrash } from './folder-trash';
+import { FolderEmptier } from './folder-emptier';
 import { GmailFolderLabels } from './gmail-folder-labels';
+import { TrashedCopies } from './trashed-copies';
 
 export const createFolderService = (
   deps: EngineDeps,
   shared: {
     readonly events: EngineEvents;
     readonly sessions: MailProviderSessions;
-    readonly replayer: ProviderOpReplayer;
+    readonly roleMailboxes: RoleMailboxEnsurer;
   },
 ): FolderService => {
   const { repositories, unitOfWork, clock, idGenerator: ids } = deps;
@@ -44,12 +46,15 @@ export const createFolderService = (
     remover: new FolderRemover({
       mailboxes,
       sessions,
-      trash: new FolderTrash({
-        messages,
-        pendingWork,
-        unitOfWork,
-        replayer: shared.replayer,
-        clock,
+      emptier: new FolderEmptier({
+        roleMailboxes: shared.roleMailboxes,
+        copies: new TrashedCopies({
+          messages,
+          pendingWork,
+          merger: new MovedCopyMerger({ messages, unitOfWork, clock }),
+          clock,
+        }),
+        logger: deps.logger,
       }),
       forgetter: new MailboxForgetter({ messages, syncStates, unitOfWork, rescans }),
       gmailLabels,

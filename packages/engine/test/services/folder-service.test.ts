@@ -152,14 +152,14 @@ describe('FolderService on plain IMAP', () => {
     expect(seeded.server.folderCommands).toEqual([]);
   });
 
-  it('keeps the folder when its mail cannot be moved to Trash', async () => {
+  it('keeps the folder and its mail when the server fails', async () => {
     const engine = createTestEngine();
     const seeded = await imapFolders(engine);
     const child = await storedFolder(engine, seeded, 'Projekty/Alfa');
     seeded.server.failOperations = 'Server is busy';
     const failing = engine.services.folders.remove(USER_ID, child.id);
 
-    await expect(failing).rejects.toBeInstanceOf(ProviderError);
+    await expect(failing).rejects.toThrow('Server is busy');
     seeded.server.failOperations = null;
     expect(seeded.server.mailbox('Projekty/Alfa').messages.size).toBe(1);
     expect(await engine.repositories.pendingWork.list(seeded.account.id, 'provider-op')).toEqual(

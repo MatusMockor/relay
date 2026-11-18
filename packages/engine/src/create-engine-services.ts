@@ -175,7 +175,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     }),
     labels: new LabelQueryService(repositories.labels),
     labelAdmin: createLabelService(deps, { events, sessions, replayer }),
-    folders: createFolderService(deps, { events, sessions, replayer }),
+    folders: createFolderService(deps, { events, sessions, roleMailboxes }),
     threads,
     threadAi: new ThreadAiPreparer({
       threads: repositories.threads,

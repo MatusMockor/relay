@@ -80,6 +80,7 @@ export class FakeMailServer {
   failSearchIn: string | null = null;
   failKeywordPurge: string | null = null;
   beforeNextFetch: ((path: string) => void) | null = null;
+  afterMove: ((sourcePath: string) => void) | null = null;
   private modseq = 1n;
 
   constructor(options: FakeMailServerOptions = {}) {

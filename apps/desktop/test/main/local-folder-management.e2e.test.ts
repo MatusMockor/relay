@@ -16,13 +16,13 @@ const expectOk = <T>(result: { ok: true; data: T } | { ok: false; error: unknown
 
 const CONTRACT = 'Zmluva Alfa';
 
-const rawMail = (to: string): Buffer =>
+const rawMail = (to: string, subject = CONTRACT, id = 'contract-1'): Buffer =>
   Buffer.from(
     [
       'From: Jana <jana@klient.test>',
       `To: ${to}`,
-      `Subject: ${CONTRACT}`,
-      'Message-ID: <contract-1@klient.test>',
+      `Subject: ${subject}`,
+      `Message-ID: <${id}@klient.test>`,
       'Date: Sat, 14 Nov 2026 08:00:00 +0000',
       'Content-Type: text/plain; charset=utf-8',
       '',
@@ -117,4 +117,46 @@ describe('local mode folder management (SQLite + GreenMail)', () => {
     );
     expect(remaining.some((candidate) => candidate.id === alfa.id)).toBe(false);
   });
+
+  it('moves every server message of a deleted folder to Trash, also uncached ones', async () => {
+    const { bridge } = harness;
+    const archivePath = await withImap(mailbox, async (client) => {
+      const created = await client.mailboxCreate('Archív 2020');
+      for (let index = 0; index < 201; index += 1) {
+        await client.append(
+          created.path,
+          rawMail(mailbox.email, `Starý ${String(index)}`, `old-${String(index)}`),
+        );
+      }
+      return created.path;
+    });
+    const account = expectOk(
+      await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),
+    );
+    expectOk(await bridge.invoke('local.sync.now', { accountId: account.id }));
+    const folder = expectOk(
+      await bridge.invoke('local.accounts.mailboxes', { accountId: account.id }),
+    ).find((candidate) => candidate.path === archivePath);
+    if (folder === undefined) {
+      expect(folder).toBeDefined();
+      return;
+    }
+    const cached = expectOk(
+      await bridge.invoke('local.threads.list', {
+        view: 'mailbox',
+        mailboxId: folder.id,
+        limit: 200,
+      }),
+    );
+    expect(cached.items).toHaveLength(200);
+    expect(cached.nextCursor).toBeNull();
+
+    expectOk(await bridge.invoke('local.mailboxes.delete', { mailboxId: folder.id }));
+
+    expect(await subjectsIn(mailbox, 'Trash')).toHaveLength(201);
+    const remaining = await withImap(mailbox, async (client) =>
+      (await client.list()).map((listed) => listed.path),
+    );
+    expect(remaining).not.toContain(archivePath);
+  }, 60_000);
 });

@@ -5,6 +5,7 @@ import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { MailboxEvents } from '../sync/mailbox-events';
+import { assertEditableTree } from './folder-guard';
 import type { EditableFolder, FolderLookup } from './folder-lookup';
 import type { GmailFolderLabels, PathRename } from './gmail-folder-labels';
 import { onMailServer } from './mail-server-call';
@@ -56,7 +57,9 @@ export class FolderRenamer {
     }
     const remote = await onMailServer('rename', mailbox.role, () =>
       this.deps.sessions.with(folder.account, async (provider) => {
-        assertFreePath(target, [...stored, ...(await provider.listMailboxes())], mailbox);
+        const listed = [...stored, ...(await provider.listMailboxes())];
+        assertEditableTree(mailbox, listed);
+        assertFreePath(target, listed, mailbox);
         return provider.renameMailbox(mailbox.path, target);
       }),
     );

@@ -8,15 +8,16 @@ import type { MailboxForgetter } from '../sync/mailbox-forgetter';
 import { SyncJournal } from '../sync/sync-journal';
 import type { EditableFolder } from './folder-lookup';
 import type { FolderThreadRefresher } from './folder-thread-refresh';
-import type { FolderTrash } from './folder-trash';
+import type { FolderEmptier } from './folder-emptier';
+import { assertEditableTree } from './folder-guard';
 import type { GmailFolderLabels } from './gmail-folder-labels';
 import { onMailServer } from './mail-server-call';
-import { isInTree } from './mailbox-path';
+import { isInTree, type ListedPath } from './mailbox-path';
 
 export interface FolderRemoverDeps {
   readonly mailboxes: MailboxRepository;
   readonly sessions: MailProviderSessions;
-  readonly trash: FolderTrash;
+  readonly emptier: FolderEmptier;
   readonly forgetter: MailboxForgetter;
   readonly gmailLabels: GmailFolderLabels;
   readonly threads: FolderThreadRefresher;
@@ -42,33 +43,29 @@ export class FolderRemover {
 
   private async removeFolder(folder: EditableFolder): Promise<ThreadId[]> {
     const { account, mailbox } = folder;
-    const stored = await this.deps.mailboxes.listForSync(account.id);
-    if (
-      stored.some((candidate) => candidate.id !== mailbox.id && isInTree(mailbox, candidate.path))
-    ) {
-      throw new ConflictError('Priečinok obsahuje podpriečinky. Najprv ich presuň alebo zmaž.');
-    }
+    assertNoSubfolders(mailbox, await this.deps.mailboxes.listForSync(account.id));
     const outcome = await onMailServer('delete', mailbox.role, () =>
       this.deps.sessions.with(account, async (provider) => {
-        const emptied = await this.deps.trash.empty(account, provider, mailbox);
-        if (emptied.complete) {
-          await provider.deleteMailbox(mailbox.path);
-        }
-        return emptied;
+        assertNoSubfolders(mailbox, await provider.listMailboxes());
+        return this.deps.emptier.deleteWhenEmpty(account, provider, mailbox);
       }),
     );
-    if (!outcome.complete) {
+    if (!outcome.deleted) {
       await this.deps.threads.refresh(folder.userId, account, outcome.threadIds);
-      throw new ProviderError('Správy sa nepodarilo presunúť do Koša, priečinok ostal zachovaný.');
+      throw new ProviderError(
+        'Priečinok sa nepodarilo vyprázdniť, preto ostal zachovaný. Správy, ktoré sa už presunuli, sú v Koši.',
+      );
     }
     return [...outcome.threadIds];
   }
 
   private async removeLabel(folder: EditableFolder): Promise<ThreadId[]> {
+    const stored = await this.deps.mailboxes.listForSync(folder.account.id);
     await onMailServer('delete', folder.mailbox.role, () =>
-      this.deps.sessions.with(folder.account, (provider) =>
-        provider.deleteMailbox(folder.mailbox.path),
-      ),
+      this.deps.sessions.with(folder.account, async (provider) => {
+        assertEditableTree(folder.mailbox, [...stored, ...(await provider.listMailboxes())]);
+        await provider.deleteMailbox(folder.mailbox.path);
+      }),
     );
     return this.deps.gmailLabels.remove(folder.userId, folder.mailbox);
   }
@@ -81,6 +78,14 @@ export class FolderRemover {
     await this.deps.mailboxes.deleteMissing(account.id, keptPaths(remaining, mailbox));
   }
 }
+
+const assertNoSubfolders = (mailbox: Mailbox, listed: readonly ListedPath[]): void => {
+  if (
+    listed.some((candidate) => candidate.path !== mailbox.path && isInTree(mailbox, candidate.path))
+  ) {
+    throw new ConflictError('Priečinok obsahuje podpriečinky. Najprv ich presuň alebo zmaž.');
+  }
+};
 
 const keptPaths = (mailboxes: readonly Mailbox[], removed: Mailbox): string[] =>
   mailboxes.filter((mailbox) => mailbox.id !== removed.id).map((mailbox) => mailbox.path);

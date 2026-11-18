@@ -17,7 +17,9 @@ const isGmailSystemPath = (path: string, delimiter: string | null): boolean => {
   return top !== 'inbox' && RESERVED_ROOTS.includes(top);
 };
 
-export const isSystemFolder = (mailbox: Mailbox): boolean =>
+type GuardedMailbox = Pick<Mailbox, 'path' | 'role' | 'delimiter'>;
+
+export const isSystemFolder = (mailbox: GuardedMailbox): boolean =>
   !EDITABLE_ROLES.includes(mailbox.role) ||
   mailbox.path.toLowerCase() === 'inbox' ||
   isGmailSystemPath(mailbox.path, mailbox.delimiter);
@@ -25,5 +27,24 @@ export const isSystemFolder = (mailbox: Mailbox): boolean =>
 export const assertEditable = (mailbox: Mailbox): void => {
   if (isSystemFolder(mailbox)) {
     throw new ForbiddenError(SYSTEM_FOLDER_MESSAGE);
+  }
+};
+
+const inTree = (root: GuardedMailbox, path: string): boolean =>
+  path === root.path ||
+  (root.delimiter !== null && root.delimiter !== '' && path.startsWith(root.path + root.delimiter));
+
+export const assertEditableTree = (
+  root: GuardedMailbox,
+  listed: readonly GuardedMailbox[],
+): void => {
+  const protectedChild = listed.some(
+    (mailbox) =>
+      mailbox.path !== root.path && inTree(root, mailbox.path) && isSystemFolder(mailbox),
+  );
+  if (protectedChild) {
+    throw new ForbiddenError(
+      'Priečinok obsahuje systémový priečinok, preto ho nie je možné upraviť',
+    );
   }
 };
