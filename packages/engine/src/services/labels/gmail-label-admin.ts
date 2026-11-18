@@ -6,7 +6,7 @@ import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { relocateLabelTree } from './gmail-label-tree';
-import { asNameConflict } from './label-name-policy';
+import { upsertGmailLabel } from './gmail-label-record';
 
 export interface GmailLabelAdminDeps {
   readonly labels: LabelRepository;
@@ -26,17 +26,7 @@ export class GmailLabelAdmin {
       provider.createMailbox(name),
     );
     await this.storeMailbox(account.id, remote);
-    const existing = await this.deps.labels.findByRemoteName(account.id, 'gmail', remote.path);
-    return asNameConflict(
-      this.deps.labels.upsert({
-        id: existing?.id ?? this.deps.ids.generate('label'),
-        accountId: account.id,
-        name: remote.path,
-        color: color ?? existing?.color ?? null,
-        kind: 'gmail',
-        remoteName: remote.path,
-      }),
-    );
+    return upsertGmailLabel(this.deps.labels, this.deps.ids, account.id, remote.path, color);
   }
 
   async rename(account: MailAccount, label: Label, name: string): Promise<Label> {

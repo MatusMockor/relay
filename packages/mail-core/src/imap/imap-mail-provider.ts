@@ -12,6 +12,7 @@ import type {
   RemoteMailboxStatus,
   RemoteSyncCursor,
   RemoteThreadHeaders,
+  UidListOptions,
 } from '@relay/engine';
 import type { MessageFlags } from '@relay/shared/domain';
 import { fetchFlagChanges } from './fetch-flag-changes';
@@ -108,8 +109,8 @@ export class ImapMailProvider implements MailProvider {
     yield* await fetchFlagChanges(this.connection, mailboxPath, sinceModseq, uids);
   }
 
-  listUids(mailboxPath: string): Promise<number[]> {
-    return listUids(this.connection, mailboxPath);
+  listUids(mailboxPath: string, options?: UidListOptions): Promise<number[]> {
+    return listUids(this.connection, mailboxPath, options);
   }
 
   searchRelated(

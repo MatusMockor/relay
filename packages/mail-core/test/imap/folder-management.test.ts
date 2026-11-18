@@ -1,6 +1,11 @@
 import { ProviderError, type RemoteMailbox } from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createProviderHarness, type ProviderHarness } from '../support/provider-harness';
+import { passwordCredentials } from '../support/accounts';
+import {
+  createProvider,
+  createProviderHarness,
+  type ProviderHarness,
+} from '../support/provider-harness';
 import { rawMail } from '../support/raw-mail';
 
 const byPath = (mailboxes: readonly RemoteMailbox[]): Map<string, RemoteMailbox> =>
@@ -85,5 +90,15 @@ describe('folder management against GreenMail', () => {
     );
     const paths = (await harness.provider.listMailboxes()).map((mailbox) => mailbox.path).sort();
     expect(paths).toEqual(['INBOX', 'Klienti', 'Projekty']);
+  });
+
+  it('sees mail another client added to the selected folder when asked for a fresh listing', async () => {
+    await harness.provider.createMailbox('Smeti');
+    expect(await harness.provider.listUids('Smeti')).toEqual([]);
+    const other = createProvider(harness.account, passwordCredentials(harness.user));
+    await other.append('Smeti', rawMail({ to: harness.user.email, subject: 'neskoro' }), {});
+    await other.close();
+
+    expect(await harness.provider.listUids('Smeti', { fresh: true })).toEqual([1]);
   });
 });

@@ -1,5 +1,6 @@
 import type { EngineDeps } from '../../engine-deps';
 import { MovedCopyMerger } from '../actions/moved-copy-merger';
+import { LabelRemoval } from '../labels/label-removal';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
@@ -7,13 +8,12 @@ import { LabelRescans } from '../sync/label-rescans';
 import { MailboxEvents } from '../sync/mailbox-events';
 import { MailboxForgetter } from '../sync/mailbox-forgetter';
 import { FolderCreator } from './folder-creator';
+import { FolderEmptier } from './folder-emptier';
 import { FolderLookup } from './folder-lookup';
 import { FolderRemover } from './folder-remover';
 import { FolderRenamer } from './folder-renamer';
 import { FolderService } from './folder-service';
 import { FolderThreadRefresher } from './folder-thread-refresh';
-import { FolderEmptier } from './folder-emptier';
-import { GmailFolderLabels } from './gmail-folder-labels';
 import { TrashedCopies } from './trashed-copies';
 
 export const createFolderService = (
@@ -25,46 +25,43 @@ export const createFolderService = (
   },
 ): FolderService => {
   const { repositories, unitOfWork, clock, idGenerator: ids } = deps;
-  const { mailboxes, messages, pendingWork, syncStates } = repositories;
+  const { mailboxes, messages, pendingWork, syncStates, labels } = repositories;
   const { sessions } = shared;
   const lookup = new FolderLookup(repositories.accounts, mailboxes);
-  const events = new MailboxEvents({
-    mailboxes,
-    labels: repositories.labels,
-    events: shared.events,
-  });
-  const gmailLabels = new GmailFolderLabels({
-    labels: repositories.labels,
-    threads: repositories.threads,
-    ids,
-  });
+  const events = new MailboxEvents({ mailboxes, labels, events: shared.events });
   const rescans = new LabelRescans({ pendingWork, syncStates, clock });
+  const copies = new TrashedCopies({
+    messages,
+    pendingWork,
+    merger: new MovedCopyMerger({ messages, unitOfWork, clock }),
+    clock,
+  });
   return new FolderService({
     lookup,
-    creator: new FolderCreator({ mailboxes, lookup, sessions, gmailLabels, events, ids }),
-    renamer: new FolderRenamer({ mailboxes, unitOfWork, lookup, sessions, gmailLabels, events }),
+    creator: new FolderCreator({ mailboxes, labels, lookup, sessions, events, ids }),
+    renamer: new FolderRenamer({ mailboxes, unitOfWork, lookup, sessions, events }),
     remover: new FolderRemover({
       mailboxes,
+      messages,
+      labels,
+      labelRemoval: new LabelRemoval({ unitOfWork, clock }),
       sessions,
       emptier: new FolderEmptier({
+        messages,
+        syncStates,
         roleMailboxes: shared.roleMailboxes,
-        copies: new TrashedCopies({
-          messages,
-          pendingWork,
-          merger: new MovedCopyMerger({ messages, unitOfWork, clock }),
-          clock,
-        }),
+        copies,
         logger: deps.logger,
       }),
       forgetter: new MailboxForgetter({ messages, syncStates, unitOfWork, rescans }),
-      gmailLabels,
       threads: new FolderThreadRefresher({
         mailboxes,
         pendingWork,
         unitOfWork,
         events: shared.events,
       }),
-      events,
+      mailboxEvents: events,
+      events: shared.events,
       clock,
     }),
   });

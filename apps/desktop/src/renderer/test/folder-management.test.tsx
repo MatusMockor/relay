@@ -37,6 +37,12 @@ const typeName = (input: HTMLElement, value: string) => {
   });
 };
 
+const toastText = () =>
+  screen
+    .getAllByRole('status')
+    .map((element) => element.textContent)
+    .join(' ');
+
 const paths = async (client: MailClient, account: string) =>
   (await client.listMailboxes(demoIds.account(account))).map((mailbox) => mailbox.path);
 
@@ -123,7 +129,7 @@ describe('managing folders from the sidebar', () => {
     await waitFor(() => {
       expect(within(efabrica).queryByRole('button', { name: /Beta/ })).toBeNull();
     });
-    expect(screen.getByRole('status').textContent).toContain('Priečinok „Beta“ je zmazaný');
+    expect(toastText()).toContain('Priečinok „Beta“ je zmazaný');
     const trash = await client.listThreads({ view: 'trash' });
     expect(trash.items.map((thread) => thread.subject)).toContain(
       'Beta: návrh architektúry na pripomienkovanie',
@@ -142,7 +148,7 @@ describe('managing folders from the sidebar', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toContain('obsahuje podpriečinky');
+      expect(toastText()).toContain('obsahuje podpriečinky');
     });
     expect(await paths(client, 'efa')).toContain('Projekty');
   });

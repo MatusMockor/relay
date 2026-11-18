@@ -1,22 +1,24 @@
 import type { MailAccount, Mailbox, ThreadId } from '@relay/shared/domain';
+import type { RemoteMailboxStatus } from '../../model/remote-mail';
 import type { Logger } from '../../ports/logger';
 import type { MailProvider } from '../../ports/mail-provider';
+import type { MessageRepository } from '../../ports/message-repository';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
-import type { TrashedCopies } from './trashed-copies';
+import { cachedMessages, type TrashedCopies } from './trashed-copies';
 
 export interface FolderEmptierDeps {
+  readonly messages: MessageRepository;
+  readonly syncStates: SyncStateRepository;
   readonly roleMailboxes: RoleMailboxEnsurer;
   readonly copies: TrashedCopies;
   readonly logger: Logger;
 }
 
-export interface EmptiedFolder {
-  readonly threadIds: readonly ThreadId[];
-  readonly deleted: boolean;
-}
-
 export const MAX_EMPTY_ROUNDS = 3;
+
+const FRESH = { fresh: true } as const;
 
 export class FolderEmptier {
   constructor(private readonly deps: FolderEmptierDeps) {}
@@ -25,48 +27,46 @@ export class FolderEmptier {
     account: MailAccount,
     provider: MailProvider,
     folder: Mailbox,
-  ): Promise<EmptiedFolder> {
+    touched: Set<ThreadId>,
+  ): Promise<boolean> {
     const trash = await this.deps.roleMailboxes.ensure(account, 'trash', provider);
-    const threadIds = new Set<ThreadId>();
     if (trash === null) {
-      return { threadIds: [], deleted: false };
-    }
-    for (let round = 0; round <= MAX_EMPTY_ROUNDS; round += 1) {
-      if (await this.confirmedEmpty(provider, folder)) {
-        await provider.deleteMailbox(folder.path);
-        return { threadIds: [...threadIds], deleted: true };
-      }
-      if (round === MAX_EMPTY_ROUNDS) {
-        break;
-      }
-      const moved = await this.moveRound(account, provider, folder, trash);
-      moved?.forEach((threadId) => threadIds.add(threadId));
-      if (moved === null) {
-        break;
-      }
-    }
-    return { threadIds: [...threadIds], deleted: false };
-  }
-
-  private async confirmedEmpty(provider: MailProvider, folder: Mailbox): Promise<boolean> {
-    const status = await provider.status(folder.path);
-    if (status.messages > 0) {
       return false;
     }
-    return (await provider.listUids(folder.path)).length === 0;
+    for (let round = 0; round <= MAX_EMPTY_ROUNDS; round += 1) {
+      const status = await provider.status(folder.path);
+      if (status.messages === 0 && (await provider.listUids(folder.path, FRESH)).length === 0) {
+        await provider.deleteMailbox(folder.path);
+        return true;
+      }
+      if (round === MAX_EMPTY_ROUNDS) {
+        return false;
+      }
+      const moved = await this.moveRound(account, provider, { folder, trash, status }, touched);
+      if (!moved) {
+        return false;
+      }
+    }
+    return false;
   }
 
   private async moveRound(
     account: MailAccount,
     provider: MailProvider,
-    folder: Mailbox,
-    trash: Mailbox,
-  ): Promise<ThreadId[] | null> {
-    const uids = await provider.listUids(folder.path);
+    round: {
+      readonly folder: Mailbox;
+      readonly trash: Mailbox;
+      readonly status: RemoteMailboxStatus;
+    },
+    touched: Set<ThreadId>,
+  ): Promise<boolean> {
+    const { folder, trash } = round;
+    const uids = await provider.listUids(folder.path, FRESH);
     if (uids.length === 0) {
-      return [];
+      return true;
     }
-    const messages = await this.deps.copies.cached(folder, uids);
+    const trusted = await this.trustsCachedUids(provider, round);
+    const messages = trusted ? await cachedMessages(this.deps.messages, folder, uids) : [];
     const result = await provider.move(folder.path, uids, trash.path).catch((error: unknown) => {
       this.deps.logger.warn('Moving the mail of a deleted folder to Trash failed', {
         accountId: account.id,
@@ -76,8 +76,32 @@ export class FolderEmptier {
       return null;
     });
     if (result === null) {
-      return null;
+      return false;
     }
-    return this.deps.copies.record(account, folder, trash, { messages, uidMap: result.uidMap });
+    const threadIds = await this.deps.copies.record(account, folder, trash, {
+      messages,
+      uidMap: result.uidMap,
+    });
+    threadIds.forEach((threadId) => touched.add(threadId));
+    return true;
+  }
+
+  private async trustsCachedUids(
+    provider: MailProvider,
+    round: {
+      readonly folder: Mailbox;
+      readonly trash: Mailbox;
+      readonly status: RemoteMailboxStatus;
+    },
+  ): Promise<boolean> {
+    const source = await this.deps.syncStates.find(round.folder.id);
+    const target = await this.deps.syncStates.find(round.trash.id);
+    if (source?.uidValidity !== round.status.uidValidity) {
+      return false;
+    }
+    return (
+      target === null ||
+      (await provider.status(round.trash.path)).uidValidity === target.uidValidity
+    );
   }
 }

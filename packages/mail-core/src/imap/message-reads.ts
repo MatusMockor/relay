@@ -1,14 +1,22 @@
-import type { RawMessage } from '@relay/engine';
+import type { RawMessage, UidListOptions } from '@relay/engine';
 import type { ImapConnection } from './imap-connection';
 import { labelReadingOf } from './gmail-labels';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
 import { searchUids } from './uid-batches';
 
-export const listUids = (connection: ImapConnection, path: string): Promise<number[]> =>
+export const listUids = (
+  connection: ImapConnection,
+  path: string,
+  options: UidListOptions = {},
+): Promise<number[]> =>
   connection.withMailbox(
     path,
     { operation: 'list uids', retryOnDisconnect: true },
     async (client, mailbox) => {
+      if (options.fresh === true) {
+        await client.noop();
+        return searchUids(client, { all: true });
+      }
       if (mailbox.exists === 0) {
         return [];
       }

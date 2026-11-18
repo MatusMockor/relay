@@ -12,6 +12,7 @@ import {
   type RemoteMailboxStatus,
   type RemoteSyncCursor,
   type RemoteThreadHeaders,
+  type UidListOptions,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
 import {
@@ -153,9 +154,9 @@ export class FakeMailProvider implements MailProvider {
     return this.withMailbox(path, (mailbox) => searchRelatedRecords(mailbox, uidValidity, ids));
   }
 
-  listUids(mailboxPath: string): Promise<number[]> {
+  listUids(mailboxPath: string, options: UidListOptions = {}): Promise<number[]> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
-      server.uidListings.push(mailboxPath);
+      server.uidListings.push(options.fresh === true ? `fresh:${mailboxPath}` : mailboxPath);
       return Promise.resolve([...mailbox.messages.keys()].sort((a, b) => a - b));
     });
   }

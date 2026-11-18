@@ -6,6 +6,21 @@ import type { MovedCopyMerger } from '../actions/moved-copy-merger';
 import { recordMoveOrigins } from '../shared/move-origins';
 import { PENDING_UID } from '../shared/pending-uid';
 
+export const cachedMessages = async (
+  messages: MessageRepository,
+  folder: Mailbox,
+  uids: readonly number[],
+): Promise<Message[]> => {
+  const found: Message[] = [];
+  for (const uid of uids) {
+    const message = await messages.findByLocation({ mailboxId: folder.id, uid });
+    if (message !== null) {
+      found.push(message);
+    }
+  }
+  return found;
+};
+
 export interface TrashedCopiesDeps {
   readonly messages: MessageRepository;
   readonly pendingWork: PendingWorkRepository;
@@ -15,17 +30,6 @@ export interface TrashedCopiesDeps {
 
 export class TrashedCopies {
   constructor(private readonly deps: TrashedCopiesDeps) {}
-
-  async cached(folder: Mailbox, uids: readonly number[]): Promise<Message[]> {
-    const messages: Message[] = [];
-    for (const uid of uids) {
-      const message = await this.deps.messages.findByLocation({ mailboxId: folder.id, uid });
-      if (message !== null) {
-        messages.push(message);
-      }
-    }
-    return messages;
-  }
 
   async record(
     account: MailAccount,
@@ -49,7 +53,7 @@ export class TrashedCopies {
       });
       await pendingWork.remove(pendingMove === null ? [] : [pendingMove]);
       const uid = moved.uidMap.get(message.uid) ?? PENDING_UID;
-      const twin = await this.deps.merger.twinOf(message, trash, uid);
+      const twin = await this.deps.merger.twinOf(account, message, trash, uid);
       if (twin !== null) {
         await this.deps.merger.merge(account, message, twin);
         continue;

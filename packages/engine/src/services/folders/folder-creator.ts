@@ -6,7 +6,8 @@ import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { MailboxEvents } from '../sync/mailbox-events';
 import type { FolderLookup, FolderScope } from './folder-lookup';
-import type { GmailFolderLabels } from './gmail-folder-labels';
+import type { LabelRepository } from '../../ports/label-repository';
+import { upsertGmailLabel } from '../labels/gmail-label-record';
 import { onMailServer } from './mail-server-call';
 import { accountDelimiter, assertFreePath, childPath, validFolderName } from './mailbox-path';
 
@@ -14,7 +15,7 @@ export interface FolderCreatorDeps {
   readonly mailboxes: MailboxRepository;
   readonly lookup: FolderLookup;
   readonly sessions: MailProviderSessions;
-  readonly gmailLabels: GmailFolderLabels;
+  readonly labels: LabelRepository;
   readonly events: MailboxEvents;
   readonly ids: IdGenerator;
 }
@@ -36,7 +37,7 @@ export class FolderCreator {
       }),
     );
     if (created.role === 'label') {
-      await this.deps.gmailLabels.adopt(created);
+      await upsertGmailLabel(this.deps.labels, this.deps.ids, scope.account.id, created.path, null);
       await this.deps.events.labelsChanged(scope);
     }
     await this.deps.events.mailboxesChanged(scope);

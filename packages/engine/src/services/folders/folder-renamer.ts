@@ -7,7 +7,7 @@ import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { MailboxEvents } from '../sync/mailbox-events';
 import { assertEditableTree } from './folder-guard';
 import type { EditableFolder, FolderLookup } from './folder-lookup';
-import type { GmailFolderLabels, PathRename } from './gmail-folder-labels';
+import { relocateLabelTree } from '../labels/gmail-label-tree';
 import { onMailServer } from './mail-server-call';
 import {
   accountDelimiter,
@@ -30,12 +30,8 @@ export interface FolderRenamerDeps {
   readonly unitOfWork: UnitOfWork;
   readonly lookup: FolderLookup;
   readonly sessions: MailProviderSessions;
-  readonly gmailLabels: GmailFolderLabels;
   readonly events: MailboxEvents;
 }
-
-const treeRenames = (tree: readonly Mailbox[], from: string, to: string): PathRename[] =>
-  tree.map((mailbox) => ({ from: mailbox.path, to: `${to}${mailbox.path.slice(from.length)}` }));
 
 export class FolderRenamer {
   constructor(private readonly deps: FolderRenamerDeps) {}
@@ -63,7 +59,7 @@ export class FolderRenamer {
         return provider.renameMailbox(mailbox.path, target);
       }),
     );
-    await this.relocate(folder, stored, remote);
+    await this.relocate(folder, remote);
     return this.reloaded(mailbox.id);
   }
 
@@ -77,19 +73,18 @@ export class FolderRenamer {
     return parentId === null ? null : this.deps.lookup.parent(folder, parentId);
   }
 
-  private async relocate(
-    folder: EditableFolder,
-    stored: readonly Mailbox[],
-    remote: RemoteMailbox,
-  ): Promise<void> {
+  private async relocate(folder: EditableFolder, remote: RemoteMailbox): Promise<void> {
     const { account, mailbox } = folder;
-    const tree = stored.filter((candidate) => isInTree(mailbox, candidate.path));
     const location = { path: remote.path, name: remote.name, delimiter: remote.delimiter };
     await this.deps.unitOfWork.run(async (repositories) => {
       await repositories.mailboxes.relocateTree(account.id, mailbox.path, location);
       if (mailbox.role === 'label') {
-        const renames = treeRenames(tree, mailbox.path, remote.path);
-        await this.deps.gmailLabels.rename(repositories.labels, account.id, renames);
+        const delimiter = mailbox.delimiter ?? remote.delimiter ?? '/';
+        await relocateLabelTree(repositories, account.id, {
+          from: mailbox.path,
+          to: remote.path,
+          delimiter,
+        });
       }
     });
     if (mailbox.role === 'label') {
