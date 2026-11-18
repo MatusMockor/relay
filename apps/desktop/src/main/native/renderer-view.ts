@@ -27,6 +27,10 @@ export class RendererView {
     return this.report.accounts;
   }
 
+  endSession(): void {
+    this.update({ ...this.report, session: null });
+  }
+
   update(report: TrayReport): void {
     if (sameReport(report, this.report)) {
       return;

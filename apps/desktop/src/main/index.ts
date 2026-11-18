@@ -8,6 +8,7 @@ import { createMainLogger } from './bootstrap/create-logger';
 import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platform';
 import { electronAppUpdates } from './bootstrap/electron-updates';
 import { MainWindowController } from './bootstrap/main-window-controller';
+import { trackRendererSession } from './native/track-renderer-session';
 import { electronMcpEntry } from './bootstrap/mcp-entry';
 import { startNativeShell } from './bootstrap/native-shell';
 import { createQuitGuard } from './bootstrap/quit-guard';
@@ -110,6 +111,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     });
     trackWindowState(window, windowState, logger);
     fullScreen.track(window);
+    trackRendererSession(window, rendererView);
     return window;
   });
   windowsRef.current = windows;

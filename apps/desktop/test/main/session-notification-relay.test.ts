@@ -139,6 +139,19 @@ describe('SessionNotificationRelay', () => {
     expect(opened).toEqual([]);
   });
 
+  it('ignores clicks after the renderer session ends but keeps the reported accounts', async () => {
+    const { view, center, opened, bridge } = setup();
+    const accounts: TrayReport['accounts'] = [];
+    view.update({ session: 'server-a', scope: 'all', accounts });
+    await bridge.invoke('app.notification.show', request('server-a', 'thr-a'));
+    view.endSession();
+    center.created[0]?.click();
+    expect(center.created[0]?.closed).toBe(true);
+    expect(opened).toEqual([]);
+    expect(view.session()).toBeNull();
+    expect(view.accounts()).toBe(accounts);
+  });
+
   it('drops notifications from another session or while notifications are paused', async () => {
     const { view, pause, center, bridge } = setup();
     view.update(report('server-b'));
