@@ -22,23 +22,27 @@ const bodyOf = (folder: Folder, scope: AccountScope): MarkFolderReadBody | null 
 const messageOf = (count: number): string =>
   count > 0 ? `Označené ako prečítané: ${count}` : 'Všetko je už prečítané';
 
+const inFlight = new Set<string>();
+
 export const useMarkFolderRead = (): ((folder: Folder) => Promise<void>) => {
   const client = useClient();
   const queryClient = useQueryClient();
   return async (folder) => {
     const body = bodyOf(folder, useUiStore.getState().scope);
-    if (body === null) {
+    const key = JSON.stringify(body);
+    if (body === null || inFlight.has(key)) {
       return;
     }
+    inFlight.add(key);
     try {
       const { count } = await client.markFolderRead(body);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.threadLists() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.allMailboxes() }),
-      ]);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.threadLists() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allMailboxes() });
       showToast(messageOf(count));
     } catch (error) {
       showToast(describeError(error));
+    } finally {
+      inFlight.delete(key);
     }
   };
 };

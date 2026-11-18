@@ -6,6 +6,7 @@ import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import { demoIds } from '../src/data/demo/seed/ids';
 import type { MailClient } from '../src/data/MailClient';
 import { setUi } from '../src/state/ui-store';
+import { gate } from './support/gate';
 import { renderApp, resetStores } from './support/render-app';
 
 const MARK_ALL = 'Označiť všetko ako prečítané';
@@ -127,6 +128,66 @@ describe('folder context menu', () => {
     expect(countOf(after, scoped)).toBe(0);
     expect(countOf(after, other)).toBe(countOf(before, other));
     expect(countOf(after, other)).toBeGreaterThan(0);
+  });
+
+  it('ignores a repeated mark all read while one is in flight', async () => {
+    const held = gate();
+    let calls = 0;
+    const gated: MailClient = {
+      ...client,
+      markFolderRead: async (folder) => {
+        calls += 1;
+        await held.wait();
+        return client.markFolderRead(folder);
+      },
+    };
+    renderApp({ demo: () => gated });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    const unread = total(await unreadByAccount(client));
+
+    rightClick(navButton(/Doručená pošta/));
+    await choose(MARK_ALL);
+    rightClick(navButton(/Doručená pošta/));
+    await choose(MARK_ALL);
+    await act(async () => {
+      held.open();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(toastText()).toContain(`Označené ako prečítané: ${unread}`);
+    });
+    expect(calls).toBe(1);
+    expect(toastText()).not.toContain('Všetko je už prečítané');
+  });
+
+  it('shows the count before the thread lists finish reloading', async () => {
+    const lists = gate();
+    let holdLists = false;
+    const gated: MailClient = {
+      ...client,
+      listThreads: async (query) => {
+        if (holdLists) {
+          await lists.wait();
+        }
+        return client.listThreads(query);
+      },
+    };
+    renderApp({ demo: () => gated });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    const unread = total(await unreadByAccount(client));
+    holdLists = true;
+
+    rightClick(navButton(/Doručená pošta/));
+    await choose(MARK_ALL);
+
+    await waitFor(() => {
+      expect(toastText()).toContain(`Označené ako prečítané: ${unread}`);
+    });
+    await act(async () => {
+      lists.open();
+      await Promise.resolve();
+    });
   });
 
   it('has no menu on drafts', async () => {
