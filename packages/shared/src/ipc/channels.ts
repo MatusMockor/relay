@@ -3,11 +3,12 @@ import { appInvokeChannels, appStreamChannels } from './app-channels';
 import { attachmentInvokeChannels } from './attachment-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
 import { menuStreamChannels } from './menu-channels';
-import { notificationStreamChannels } from './notification-channels';
+import { notificationInvokeChannels, notificationStreamChannels } from './notification-channels';
 import { calendarInvokeChannels } from './calendar-channels';
 import { googleCalendarInvokeChannels } from './google-calendar-channels';
 import { oauthInvokeChannels } from './oauth-channels';
 import { sessionInvokeChannels } from './session-channels';
+import { trayInvokeChannels } from './tray-channels';
 import { updateInvokeChannels, updateStreamChannels } from './update-channels';
 import { windowStreamChannels } from './window-channels';
 
@@ -20,6 +21,8 @@ export const ipcInvokeChannels = {
   ...localInvokeChannels,
   ...attachmentInvokeChannels,
   ...updateInvokeChannels,
+  ...trayInvokeChannels,
+  ...notificationInvokeChannels,
 };
 export const ipcStreamChannels = {
   ...appStreamChannels,

@@ -3,13 +3,16 @@ import { streamHub } from './hub-stream';
 
 export class LatestRequestFeed<Request> {
   private readonly hub = new EventHub<Request>();
-  private pending: Request | null = null;
+  private pending: Request[] = [];
 
-  constructor(private readonly maxBuffered: number) {}
+  constructor(
+    private readonly maxBuffered: number,
+    private readonly maxPending = 1,
+  ) {}
 
   request(request: Request): void {
     if (this.hub.listenerCount === 0) {
-      this.pending = request;
+      this.pending = [...this.pending, request].slice(-this.maxPending);
       return;
     }
     this.hub.publish(request);
@@ -21,7 +24,7 @@ export class LatestRequestFeed<Request> {
 
   private takePending(): readonly Request[] {
     const pending = this.pending;
-    this.pending = null;
-    return pending === null ? [] : [pending];
+    this.pending = [];
+    return pending;
   }
 }

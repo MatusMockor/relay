@@ -6,6 +6,7 @@ import { describeError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { MOD } from '../../lib/platform-keys';
 import { showToast } from '../../state/toast-store';
+import type { AccountScope } from '../../state/folders';
 import { type ComposeInit, setUi, useUiStore } from '../../state/ui-store';
 import { rectOf } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
@@ -29,9 +30,14 @@ import { useComposeDraft } from './use-compose-draft';
 import { composeShortcut } from './compose-shortcuts';
 import { usePublishRecipient } from './use-publish-recipient';
 
-function ComposeForm({ init }: { readonly init: ComposeInit }) {
+function ComposeForm({
+  init,
+  scope,
+}: {
+  readonly init: ComposeInit;
+  readonly scope: AccountScope;
+}) {
   const model = useAccountsModel();
-  const scope = useUiStore((state) => state.scope);
   const queryClient = useQueryClient();
   const actions = useMailActions();
   const fallback =
@@ -280,5 +286,5 @@ export function ComposeHost() {
   if (overlay?.kind !== 'compose') {
     return null;
   }
-  return <ComposeForm init={overlay.init} />;
+  return <ComposeForm init={overlay.init} scope={overlay.scope} />;
 }

@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import type { NotificationRequest } from '@relay/shared/ipc';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import appIcon from '../../resources/icon.png?asset';
 import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-supervisor';
@@ -7,6 +8,7 @@ import { createMainLogger } from './bootstrap/create-logger';
 import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platform';
 import { electronAppUpdates } from './bootstrap/electron-updates';
 import { MainWindowController } from './bootstrap/main-window-controller';
+import { trackRendererSession } from './native/track-renderer-session';
 import { electronMcpEntry } from './bootstrap/mcp-entry';
 import { startNativeShell } from './bootstrap/native-shell';
 import { createQuitGuard } from './bootstrap/quit-guard';
@@ -21,6 +23,7 @@ import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
 import { MenuCommandRequests } from './native/menu-command-requests';
+import { RendererView } from './native/renderer-view';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { ThreadOpenRequests } from './native/thread-open-requests';
@@ -28,6 +31,7 @@ import { WindowStateStore } from './native/window-state-store';
 import { systemTimers } from './platform/timers';
 import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
+import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
 import { hardenSession } from './window/harden-session';
 
@@ -67,6 +71,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const updates = electronAppUpdates(logger);
   const threadOpens = new ThreadOpenRequests();
   const menuCommands = new MenuCommandRequests();
+  const rendererView = new RendererView();
+  const rendererNotifications = new EventHub<NotificationRequest>();
   const fullScreen = new FullScreenState();
 
   const unregisterIpc = registerIpc(
@@ -84,6 +90,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       updates: updates.service,
       threadOpens,
       menuCommands,
+      rendererView,
+      rendererNotifications,
       fullScreen,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
@@ -103,6 +111,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     });
     trackWindowState(window, windowState, logger);
     fullScreen.track(window);
+    trackRendererSession(window, rendererView);
     return window;
   });
   windowsRef.current = windows;
@@ -125,6 +134,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     windows,
     threadOpens,
     menuCommands,
+    rendererView,
+    rendererNotifications,
     updates: updates.service,
     logger,
   });

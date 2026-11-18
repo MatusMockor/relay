@@ -1,20 +1,14 @@
-import type { MenuCommandKind } from '@relay/shared';
 import { useEffect } from 'react';
 import { useAppContext } from '../../data/hooks/services-context';
-import { openAboutWhenReady } from './open-about-when-ready';
-
-type MenuCommandHandler = () => () => void;
-
-const COMMANDS: Readonly<Record<MenuCommandKind, MenuCommandHandler>> = {
-  'open-about': openAboutWhenReady,
-};
+import { menuCommandAction } from './menu-command-actions';
+import { whenSessionReady } from './when-session-ready';
 
 export const useMenuCommands = (): void => {
   const { platform } = useAppContext();
   useEffect(() => {
     const cancels = new Set<() => void>();
     const unsubscribe = platform.subscribeToMenuCommands((command) => {
-      cancels.add(COMMANDS[command]());
+      cancels.add(whenSessionReady(menuCommandAction(command)));
     });
     return () => {
       unsubscribe();

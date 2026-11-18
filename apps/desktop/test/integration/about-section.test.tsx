@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import './support/node-abort-globals';
-import type { MenuCommandKind } from '@relay/shared';
+import type { MenuCommand } from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { composeIpc } from '../../src/main/composition/compose-ipc';
@@ -57,7 +57,7 @@ const startDesktop = (storage: KeyValueStorage = storageWith({ mode: 'local' }))
   );
   const desktop = createElectronPlatform(bridge);
   const opened: string[] = [];
-  const menuDeliveries: MenuCommandKind[] = [];
+  const menuDeliveries: MenuCommand[] = [];
   const platform: Platform = {
     ...createBrowserPlatform(storage),
     appInfo: () => desktop.appInfo(),
@@ -215,7 +215,7 @@ describe('about Relay and manual update checks', () => {
     const desktop = startDesktop();
     await renderDesktop(desktop);
     act(() => {
-      desktop.menuCommands.request('open-about');
+      desktop.menuCommands.request({ command: 'open-about' });
     });
     await waitFor(() => {
       expect(useUiStore.getState().overlay).toEqual(ABOUT_OVERLAY);
@@ -225,7 +225,7 @@ describe('about Relay and manual update checks', () => {
 
   it('opens the about section asked for before the new window was listening', async () => {
     const desktop = startDesktop();
-    desktop.menuCommands.request('open-about');
+    desktop.menuCommands.request({ command: 'open-about' });
     let finishBoot = (): void => undefined;
     const bootHeld = new Promise<void>((resolve) => {
       finishBoot = resolve;
@@ -239,7 +239,7 @@ describe('about Relay and manual update checks', () => {
     };
     renderApp({ platform, now: () => desktop.time.now() });
     await waitFor(() => {
-      expect(desktop.menuDeliveries).toEqual(['open-about']);
+      expect(desktop.menuDeliveries).toEqual([{ command: 'open-about' }]);
     });
     expect(useSessionStore.getState().phase).toBe('booting');
     expect(useUiStore.getState().overlay).toBeNull();
@@ -253,10 +253,10 @@ describe('about Relay and manual update checks', () => {
     renderApp({ platform: desktop.platform, now: () => desktop.time.now() });
     await screen.findByRole('button', { name: /Pripojiť k serveru/ });
     act(() => {
-      desktop.menuCommands.request('open-about');
+      desktop.menuCommands.request({ command: 'open-about' });
     });
     await waitFor(() => {
-      expect(desktop.menuDeliveries).toEqual(['open-about']);
+      expect(desktop.menuDeliveries).toEqual([{ command: 'open-about' }]);
     });
     expect(useSessionStore.getState().phase).toBe('onboarding');
     expect(useUiStore.getState().overlay).toBeNull();
@@ -269,10 +269,10 @@ describe('about Relay and manual update checks', () => {
       setUi({ overlay: { kind: 'settings', section: 'splits', adding: false } });
     });
     act(() => {
-      desktop.menuCommands.request('open-about');
+      desktop.menuCommands.request({ command: 'open-about' });
     });
     await waitFor(() => {
-      expect(desktop.menuDeliveries).toEqual(['open-about']);
+      expect(desktop.menuDeliveries).toEqual([{ command: 'open-about' }]);
     });
     expect(useUiStore.getState().overlay).toEqual({
       kind: 'settings',

@@ -1,12 +1,10 @@
-import { app, Menu, nativeImage, Tray } from 'electron';
+import { app, Menu, type MenuItemConstructorOptions, nativeImage, Tray } from 'electron';
 import trayIcon from '../../../resources/tray.png?asset';
 import trayTemplateIcon from '../../../resources/trayTemplate.png?asset';
-import type { UnreadView } from './unread-badge-updater';
 
-export interface TrayActions {
+export interface TrayViewOptions {
   readonly showWindow: () => void;
-  readonly syncNow: () => void;
-  readonly quit: () => void;
+  readonly template: () => MenuItemConstructorOptions[];
 }
 
 const tooltip = (count: number): string => {
@@ -16,26 +14,35 @@ const tooltip = (count: number): string => {
   return `Relay - neprečítané: ${String(count)}`;
 };
 
-export class ElectronTrayView implements UnreadView {
+export class ElectronTrayView {
   private readonly tray: Tray;
 
   constructor(
     private readonly platform: NodeJS.Platform,
-    actions: TrayActions,
+    private readonly options: TrayViewOptions,
   ) {
     const image = nativeImage.createFromPath(platform === 'darwin' ? trayTemplateIcon : trayIcon);
     image.setTemplateImage(platform === 'darwin');
     this.tray = new Tray(image);
     this.tray.setToolTip(tooltip(0));
-    this.tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: 'Otvoriť Relay', click: actions.showWindow },
-        { label: 'Synchronizovať teraz', click: actions.syncNow },
-        { type: 'separator' },
-        { label: 'Ukončiť', click: actions.quit },
-      ]),
-    );
-    this.tray.on('click', actions.showWindow);
+    if (platform === 'darwin') {
+      this.tray.on('click', () => {
+        this.popUp();
+      });
+      this.tray.on('right-click', () => {
+        this.popUp();
+      });
+      return;
+    }
+    this.refreshMenu();
+    this.tray.on('click', options.showWindow);
+  }
+
+  refreshMenu(): void {
+    if (this.platform === 'darwin' || this.tray.isDestroyed()) {
+      return;
+    }
+    this.tray.setContextMenu(Menu.buildFromTemplate(this.options.template()));
   }
 
   setUnread(count: number): void {
@@ -48,5 +55,9 @@ export class ElectronTrayView implements UnreadView {
 
   destroy(): void {
     this.tray.destroy();
+  }
+
+  private popUp(): void {
+    this.tray.popUpContextMenu(Menu.buildFromTemplate(this.options.template()));
   }
 }

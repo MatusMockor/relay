@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import { NO_UNSUBSCRIBE, type ThreadId, type UnsubscribeUrl } from '@relay/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -30,14 +31,11 @@ export const useUnsubscribe = (threadId: ThreadId, sender: string) => {
       return;
     }
     setUi({
-      overlay: {
-        kind: 'compose',
-        init: {
-          toEmail: plan.mailto.to,
-          subject: plan.mailto.subject ?? 'Odhlásiť',
-          body: plan.mailto.body ?? '',
-        },
-      },
+      overlay: composeOverlay({
+        toEmail: plan.mailto.to,
+        subject: plan.mailto.subject ?? 'Odhlásiť',
+        body: plan.mailto.body ?? '',
+      }),
     });
   };
   const sendOneClick = async (url: UnsubscribeUrl) => {

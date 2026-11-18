@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import { type Address, displaySubject, type Task, type ThreadSummary } from '@relay/shared';
 import { Button, Icon, Spark } from '@relay/ui';
 import { useTasks, useUserSettings } from '../../data/hooks/use-mail-queries';
@@ -35,7 +36,7 @@ function ContactActions({ person, name }: { readonly person: Address; readonly n
       <Button
         onClick={() => {
           setUi({
-            overlay: { kind: 'compose', init: { toEmail: person.email, toName: person.name } },
+            overlay: composeOverlay({ toEmail: person.email, toName: person.name }),
           });
         }}
       >

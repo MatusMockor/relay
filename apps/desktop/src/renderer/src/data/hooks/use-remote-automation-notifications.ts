@@ -1,32 +1,36 @@
+import type { NotificationRequest } from '@relay/shared';
 import { useEffect } from 'react';
+import { sessionKeyOf } from '../../session/session-key';
+import { showToast } from '../../state/toast-store';
 import { useClient } from './services-context';
 
 export interface AutomationNotificationSink {
-  show(title: string, body: string): void;
+  showNotification(notification: NotificationRequest): Promise<void>;
 }
 
-const browserNotifications: AutomationNotificationSink = {
-  show: (title, body) => {
-    if (typeof Notification === 'undefined' || Notification.permission === 'denied') {
-      return;
-    }
-    new Notification(title, { body });
-  },
-};
+export const NOTIFICATION_FAILED_MESSAGE = 'Notifikáciu automatizácie sa nepodarilo zobraziť';
 
-export const useRemoteAutomationNotifications = (
-  sink: AutomationNotificationSink = browserNotifications,
-): void => {
+export const useRemoteAutomationNotifications = (sink: AutomationNotificationSink): void => {
   const client = useClient();
   useEffect(() => {
     if (client.kind !== 'remote') {
       return undefined;
     }
+    const session = sessionKeyOf(client);
     return client.subscribe((event) => {
       if (event.type !== 'automation.notified') {
         return;
       }
-      sink.show(event.data.title, event.data.body);
+      sink
+        .showNotification({
+          title: event.data.title,
+          body: event.data.body,
+          threadId: event.data.threadId,
+          session,
+        })
+        .catch(() => {
+          showToast(NOTIFICATION_FAILED_MESSAGE);
+        });
     });
   }, [client, sink]);
 };
