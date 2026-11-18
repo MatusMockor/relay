@@ -7,6 +7,18 @@ const imagesOf = (html: string): HTMLImageElement[] => [
   ...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('img'),
 ];
 
+const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+const parse = (html: string): Document => new DOMParser().parseFromString(html, 'text/html');
+
+const visibilityOf = (document: Document): { style: string | null; blocked: string | null } => {
+  const image = document.querySelector('img');
+  return {
+    style: image?.getAttribute('style') ?? null,
+    blocked: image?.getAttribute('data-relay-blocked') ?? null,
+  };
+};
+
 const svgOf = (html: string): string => {
   const match = /src="data:image\/svg\+xml,([^"]*)"/.exec(html);
   expect(match).not.toBeNull();
@@ -14,7 +26,7 @@ const svgOf = (html: string): string => {
 };
 
 describe('blocked remote images', () => {
-  it('swaps a remote image for a neutral placeholder of the same size', () => {
+  it('swaps a remote image for an empty spacer of the same size', () => {
     const html = withBlockedImagePlaceholders(
       '<img src="https://cdn.example.com/banner.png" alt="Banner" width="560" height="120">',
     );
@@ -22,16 +34,18 @@ describe('blocked remote images', () => {
     expect(html).not.toContain('cdn.example.com');
     expect(html).toContain('alt="Banner"');
     expect(html).toContain('data-relay-blocked=""');
-    expect(svgOf(html)).toContain('width="560" height="120"');
+    expect(svgOf(html)).toBe('<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120"/>');
   });
 
-  it('drops a remote srcset and falls back to a default size', () => {
+  it('drops a remote srcset and hides an image without a known size', () => {
     const html = withBlockedImagePlaceholders(
-      "<img src='//cdn.example.com/a.png' srcset='https://cdn.example.com/a@2x.png 2x'>",
+      "<img src='//cdn.example.com/a.png' srcset='https://cdn.example.com/a@2x.png 2x' width='150' style='display:block!important'>",
     );
+    const [image] = imagesOf(html);
 
     expect(html).not.toContain('cdn.example.com');
-    expect(svgOf(html)).toContain('width="320" height="80"');
+    expect(image?.getAttribute('data-relay-blocked')).toBe('hidden');
+    expect(image?.getAttribute('style')).toBe('display:none!important');
   });
 
   it('keeps inline and attached images untouched', () => {
@@ -108,5 +122,108 @@ describe('blocked remote images', () => {
 
     expect(buildMailDocument(html, true)).toContain('https://cdn.example.com/a.png');
     expect(buildMailDocument(html, false)).not.toContain('https://cdn.example.com/a.png');
+  });
+
+  it('keeps an unsized image visible when it still has a permitted candidate', () => {
+    const fromSrcset = parse(
+      withBlockedImagePlaceholders(
+        `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} 1x">`,
+      ),
+    );
+    const fromPicture = parse(
+      withBlockedImagePlaceholders(
+        `<picture><source srcset="${PIXEL}"><img src="https://cdn.example.com/b.png"></picture>`,
+      ),
+    );
+
+    expect(fromSrcset.querySelector('img')?.getAttribute('srcset')).toBe(`${PIXEL} 1x`);
+    expect(fromPicture.querySelector('picture > source')?.getAttribute('srcset')).toBe(PIXEL);
+    expect(visibilityOf(fromSrcset)).toEqual({ style: null, blocked: '' });
+    expect(visibilityOf(fromPicture)).toEqual({ style: null, blocked: '' });
+  });
+
+  it('keeps the image of a picture whose permitted source is media-conditional', () => {
+    const document = parse(
+      withBlockedImagePlaceholders(
+        `<picture><source media="(min-width: 1px)" srcset="${PIXEL}"><img src="https://cdn.example.com/b.png"></picture>`,
+      ),
+    );
+
+    expect(document.querySelector('picture > source')?.getAttribute('srcset')).toBe(PIXEL);
+    expect(document.querySelector('img')?.getAttribute('src')).toMatch(/^data:image\/svg\+xml,/);
+    expect(visibilityOf(document)).toEqual({ style: null, blocked: '' });
+  });
+
+  it('keeps the image of a picture source with a loosely written image type', () => {
+    const documents = ['image/jpg', 'image/jpeg; charset=utf-8'].map((type) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<picture><source type="${type}" srcset="${PIXEL}"><img src="https://cdn.example.com/b.png"></picture>`,
+        ),
+      ),
+    );
+
+    expect(documents.map(visibilityOf)).toEqual([
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+    ]);
+  });
+
+  it('keeps an unsized image whose permitted candidate uses a lenient descriptor', () => {
+    const documents = ['.5x', '100w 100h', '2.5e0x'].map((descriptor) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} ${descriptor}">`,
+        ),
+      ),
+    );
+
+    expect(documents.map(visibilityOf)).toEqual([
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+    ]);
+  });
+
+  it('hides an unsized fallback whose only candidates have a zero or negative size', () => {
+    const documents = ['0x', '-5w', '0w'].map((descriptor) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} ${descriptor}">`,
+        ),
+      ),
+    );
+
+    expect(documents.map((document) => visibilityOf(document).blocked)).toEqual([
+      'hidden',
+      'hidden',
+      'hidden',
+    ]);
+  });
+
+  it('counts only srcset candidates the browser can select', () => {
+    const invalid = parse(
+      withBlockedImagePlaceholders(
+        `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} 0w">`,
+      ),
+    );
+    const valid = parse(
+      withBlockedImagePlaceholders(
+        `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} 1x">`,
+      ),
+    );
+
+    expect(visibilityOf(invalid)).toEqual({ style: 'display:none!important', blocked: 'hidden' });
+    expect(visibilityOf(valid)).toEqual({ style: null, blocked: '' });
+  });
+
+  it('does not count a candidate the blocked-mail policy cannot load', () => {
+    const document = parse(
+      withBlockedImagePlaceholders(
+        '<img src="https://cdn.example.com/a.png" srcset="ftp://example.com/logo.png 1x">',
+      ),
+    );
+
+    expect(visibilityOf(document)).toEqual({ style: 'display:none!important', blocked: 'hidden' });
   });
 });
