@@ -46,6 +46,18 @@ describe('buildAppMenuTemplate', () => {
     return submenu.map((item) => item.role).filter((role) => role !== undefined);
   };
 
+  it('keeps Cmd+0 free for selecting all accounts', () => {
+    const template = buildAppMenuTemplate({
+      platform: 'darwin',
+      appName: 'Relay',
+      isDevelopment: false,
+      onCheckForUpdates: () => undefined,
+    });
+    const items = template.flatMap((item) => (Array.isArray(item.submenu) ? item.submenu : []));
+    const resetZoom = items.find((item) => item.role === 'resetZoom');
+    expect(resetZoom?.accelerator).toBe('CmdOrCtrl+Shift+0');
+  });
+
   it('starts with the app menu on macOS and has the standard edit shortcuts', () => {
     const template = buildAppMenuTemplate({
       platform: 'darwin',
