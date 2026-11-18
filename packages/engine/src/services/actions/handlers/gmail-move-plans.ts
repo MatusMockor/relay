@@ -103,7 +103,10 @@ export const gmailMove =
       target: ALL_MAIL,
       sources,
       remember: recorded.flatMap((located) =>
-        placementOf(located, added.has(located.message.id) ? labelId : undefined),
+        placementOf(
+          moved.has(located.message.id) ? located : { ...located, heldOrigins: [] },
+          added.has(located.message.id) ? labelId : undefined,
+        ),
       ),
       labels: addedLabel(copies, labelId, unlabelled, owned),
     });

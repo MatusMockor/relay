@@ -61,6 +61,21 @@ describe('undoing a move', () => {
     },
   );
 
+  it('keeps both the trash and the spam origin of a message through a move and its undo', async () => {
+    const engine = createTestEngine();
+    const { server, mailboxId, act } = await setup(engine, [['Faktúry', { id: 'f1', date: DATE }]]);
+    await act({ type: 'reportSpam' });
+    await act({ type: 'trash' });
+    await act({ type: 'move', mailboxId: await mailboxId('Archive') });
+
+    expect((await act({ type: 'undoMove' })).state).toBe('trash');
+    expect((await act({ type: 'restore' })).state).toBe('spam');
+    expect((await act({ type: 'notSpam' })).state).toBe('done');
+
+    expect(server.mailbox('Faktúry').messages.size).toBe(1);
+    expect(server.mailbox('INBOX').messages.size).toBe(0);
+  });
+
   it('does nothing once the one-hour undo window is over', async () => {
     const engine = createTestEngine();
     const { server, mailboxId, act } = await setup(engine, [['INBOX', { id: 'm1', date: DATE }]]);

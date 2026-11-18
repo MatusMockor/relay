@@ -8,7 +8,7 @@ export interface MoveOrigin {
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
-  readonly held?: HeldOriginWork;
+  readonly held?: readonly HeldOriginWork[];
 }
 
 export const moveOrigins = async (

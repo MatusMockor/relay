@@ -7,13 +7,16 @@ import type { Clock } from '../../ports/clock';
 import type { DraftRepository } from '../../ports/draft-repository';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { Logger } from '../../ports/logger';
+import type { MessageRepository } from '../../ports/message-repository';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { EngineEvents } from '../shared/engine-events';
 import type { DraftReferenceGuard } from './draft-reference-guard';
 import type { DraftThreadFlag } from './draft-thread-flag';
+import { withoutStaleReplyReference } from './stale-reply-reference';
 
 export interface DraftServiceDeps {
   readonly drafts: DraftRepository;
+  readonly messages: MessageRepository;
   readonly references: DraftReferenceGuard;
   readonly blobs: Pick<AttachmentSweeper, 'release'>;
   readonly referenceLock: AttachmentReferenceLock;
@@ -69,7 +72,12 @@ export class DraftService {
     patchOf: (current: Draft) => UpdateDraftBody,
   ): Promise<Draft> {
     const current = await this.require(userId, draftId);
-    const patch = patchOf(current);
+    const patch = await withoutStaleReplyReference(
+      this.deps.messages,
+      userId,
+      current,
+      patchOf(current),
+    );
     await this.deps.references.assert(userId, draftId, { ...current, ...patch });
     const draft = await this.deps.referenceLock.shared(() =>
       this.deps.drafts.update(userId, draftId, patch, {

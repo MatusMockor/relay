@@ -1,5 +1,5 @@
 import type { LabelId, MailboxRole, Message, ThreadState } from '@relay/shared/domain';
-import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work';
+import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
 import { receivedIn } from './physical-messages';
 import {
@@ -21,29 +21,19 @@ export const isAt = (located: LocatedMessage, target: MoveTarget): boolean =>
 export const physicalKeyOf = (copies: MailCopies, message: Message): string =>
   message.emailId ?? copies.identityOf(message);
 
-const heldOf = ({ role, origin }: LocatedMessage): HeldOriginWork | undefined => {
-  if (origin === undefined || (role !== 'trash' && role !== 'spam')) {
-    return undefined;
-  }
-  const kind = role === 'spam' ? 'spam-origin' : 'trash-origin';
-  return origin.mailboxId === undefined
-    ? { kind, role: origin.role }
-    : { kind, role: origin.role, mailboxId: origin.mailboxId };
-};
-
 export const placementOf = (located: LocatedMessage, labelId?: LabelId): MoveOriginWork[] => {
   const { message, role, mailboxId } = located;
   if (role === undefined) {
     return [];
   }
-  const held = heldOf(located);
+  const held = located.heldOrigins ?? [];
   return [
     {
       messageId: message.id,
       role,
       ...(mailboxId === undefined ? {} : { mailboxId }),
       ...(labelId === undefined ? {} : { labelId }),
-      ...(held === undefined ? {} : { held }),
+      ...(held.length === 0 ? {} : { held }),
     },
   ];
 };

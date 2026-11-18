@@ -7,7 +7,7 @@ import type {
   ThreadState,
   ThreadSummary,
 } from '@relay/shared/domain';
-import type { MoveOriginWork } from '../../../model/pending-work';
+import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin, MoveOriginKind } from '../../shared/move-origins';
 
@@ -19,6 +19,7 @@ export interface LocatedMessage {
   readonly mailboxId: MailboxId | undefined;
   readonly origin: MoveOrigin | undefined;
   readonly moveOrigin?: MoveOrigin;
+  readonly heldOrigins?: readonly HeldOriginWork[];
   readonly moving: boolean;
 }
 

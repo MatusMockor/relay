@@ -57,6 +57,21 @@ describe('Gmail move edge cases', () => {
     expect(server.labelWrites.flatMap(({ uids }) => uids)).toHaveLength(2);
   });
 
+  it('settles an undone move per email id when two messages share a Message-ID', async () => {
+    const engine = createTestEngine();
+    const { server, target, act } = await gmailMoveThread(engine, (gmail) => {
+      deliverMail(gmail, 'Spam', GMAIL_FIRST);
+      deliverMail(gmail, 'INBOX', { ...GMAIL_FIRST, emailId: 'gm-3', body: 'Iná kópia' });
+    });
+    await act({ type: 'move', mailboxId: target.id });
+
+    const undone = await act({ type: 'undoMove' });
+
+    expect(undone.state).toBe('inbox');
+    expect(server.mailbox('Spam').messages.size).toBe(1);
+    expect(server.mailbox('INBOX').messages.size).toBe(1);
+  });
+
   it('points a reply draft at the surviving copy when archiving merges the INBOX row', async () => {
     const engine = createTestEngine();
     const { account, thread, act } = await gmailMoveThread(engine, inboxAndAllMail);
@@ -80,6 +95,11 @@ describe('Gmail move edge cases', () => {
     const [survivor] = await engine.repositories.messages.listByThread(USER_ID, thread.id);
     const kept = await engine.services.compose.getDraft(USER_ID, draft.id);
     expect(kept.inReplyToMessageId).toBe(present(survivor).id);
+    const saved = await engine.services.compose.updateDraft(USER_ID, draft.id, {
+      body: 'Ďakujem, posielam podklady',
+      inReplyToMessageId: inboxRow.id,
+    });
+    expect(saved.inReplyToMessageId).toBe(present(survivor).id);
     const sent = await engine.services.compose.send(USER_ID, {
       source: 'draft',
       draftId: draft.id,

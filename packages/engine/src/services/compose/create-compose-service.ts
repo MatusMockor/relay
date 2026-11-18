@@ -38,6 +38,7 @@ export const createComposeService = (
   const { events } = shared;
   const drafts = new DraftService({
     drafts: repositories.drafts,
+    messages: repositories.messages,
     references: new DraftReferenceGuard(
       repositories.drafts,
       repositories.accounts,

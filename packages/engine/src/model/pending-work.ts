@@ -46,7 +46,7 @@ export interface MoveOriginWork {
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
-  readonly held?: HeldOriginWork;
+  readonly held?: readonly HeldOriginWork[];
 }
 
 export interface MessageEffectsWork {

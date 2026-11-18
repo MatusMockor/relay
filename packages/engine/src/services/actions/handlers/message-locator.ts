@@ -1,4 +1,5 @@
-import type { MailboxId, MailboxRole } from '@relay/shared/domain';
+import type { MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type { HeldOriginWork } from '../../../model/pending-work';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import { type MoveOrigin, moveOrigins } from '../../shared/move-origins';
@@ -19,6 +20,25 @@ const liveMoveOrigin = (origin: MoveOrigin | undefined, mailboxes: LiveMailboxes
     ? { role: 'inbox' as const }
     : { role: 'inbox' as const, labelId: origin.labelId };
 };
+
+const HELD_KINDS = ['trash-origin', 'spam-origin'] as const;
+
+const heldOriginsOf = (
+  messageId: MessageId,
+  origins: Readonly<Record<(typeof HELD_KINDS)[number], ReadonlyMap<MessageId, MoveOrigin>>>,
+  mailboxes: LiveMailboxes,
+): HeldOriginWork[] =>
+  HELD_KINDS.flatMap((kind) => {
+    const origin = liveOrigin(origins[kind].get(messageId), mailboxes);
+    if (origin === undefined) {
+      return [];
+    }
+    return [
+      origin.mailboxId === undefined
+        ? { kind, role: origin.role }
+        : { kind, role: origin.role, mailboxId: origin.mailboxId },
+    ];
+  });
 
 export class MessageLocator {
   constructor(
@@ -46,6 +66,11 @@ export class MessageLocator {
         mailboxId,
         origin: liveOrigin(origins.get(message.id), roles),
         moveOrigin: liveMoveOrigin(moved.get(message.id), roles),
+        heldOrigins: heldOriginsOf(
+          message.id,
+          { 'trash-origin': trashed, 'spam-origin': reported },
+          roles,
+        ),
         moving: pending.has(message.id),
       };
     });

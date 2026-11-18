@@ -1,7 +1,7 @@
 import type { LabelId, MailboxRole, ThreadState } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin } from '../../shared/move-origins';
-import { isAt } from './folder-move-plans';
+import { isAt, physicalKeyOf } from './folder-move-plans';
 import { labelChange } from './gmail-move-plans';
 import { rolesAfter } from './physical-messages';
 import {
@@ -53,17 +53,15 @@ const HELD_KINDS = ['trash-origin', 'spam-origin'] as const;
 const heldOrigins = (recorded: readonly LocatedMessage[]): OriginChanges[] =>
   HELD_KINDS.map((kind) => ({
     kind,
-    remember: recorded.flatMap(({ message, moveOrigin }) => {
-      const held = moveOrigin?.held;
-      if (held?.kind !== kind) {
-        return [];
-      }
-      return [
-        held.mailboxId === undefined
-          ? { messageId: message.id, role: held.role }
-          : { messageId: message.id, role: held.role, mailboxId: held.mailboxId },
-      ];
-    }),
+    remember: recorded.flatMap(({ message, moveOrigin }) =>
+      (moveOrigin?.held ?? [])
+        .filter((held) => held.kind === kind)
+        .map((held) =>
+          held.mailboxId === undefined
+            ? { messageId: message.id, role: held.role }
+            : { messageId: message.id, role: held.role, mailboxId: held.mailboxId },
+        ),
+    ),
     forget: [],
   }));
 
@@ -82,7 +80,12 @@ export const undoMove: StateMovePlanner = (messages, thread, copies) => {
   }
   const moves = returnMoves(recorded);
   return {
-    ...plan(returnedState(rolesAfter(copies, messages, moves)), moves),
+    ...plan(
+      returnedState(
+        rolesAfter(copies, messages, moves, (message) => physicalKeyOf(copies, message)),
+      ),
+      moves,
+    ),
     origins: [
       {
         kind: 'move-origin',
