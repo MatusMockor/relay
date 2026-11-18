@@ -94,6 +94,19 @@
 .a-row .snip.ai {
   color: var(--ai-ink);
 }
+.a-row .line:has(.snip) .subj {
+  max-width: 62%;
+}
+.a-row:hover .snip,
+.a-row.sel .snip,
+.a-row:hover .snip.ai,
+.a-row.sel .snip.ai {
+  color: var(--muted);
+}
+.a-row.unread:hover .snip,
+.a-row.unread.sel .snip {
+  color: var(--fg3);
+}
 .a-row .st {
   margin-left: auto;
   flex: none;

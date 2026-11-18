@@ -1,4 +1,4 @@
-import { ResizeHandle } from '@relay/ui';
+import { cx, ResizeHandle } from '@relay/ui';
 import { type CSSProperties, useEffect } from 'react';
 import { useRealtimeSync } from '../../data/hooks/use-realtime-sync';
 import { useRemoteAutomationNotifications } from '../../data/hooks/use-remote-automation-notifications';
@@ -26,13 +26,14 @@ function Shell() {
   const commit = useLayoutPersistence();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);
+  const composing = useUiStore((state) => state.overlay?.kind === 'compose');
   const settings = useUserSettings();
   useEffect(() => {
     document.body.classList.toggle('dense', settings.data?.density === 'compact');
   }, [settings.data?.density]);
   return (
     <div
-      className="app"
+      className={cx('app', composing && 'composing')}
       style={
         {
           '--side-w': `${String(layout.rightPanel)}px`,

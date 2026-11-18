@@ -41,6 +41,8 @@ describe('contact pane while composing', () => {
     press('c', {}, document.body);
     const dialog = screen.getByRole('dialog', { name: 'Nová správa' });
     expect(contactHeading()?.textContent).toBe('Tomáš Baláž');
+    expect(sidePane().closest('.app')?.classList.contains('composing')).toBe(true);
+    expect(dialog.contains(sidePane())).toBe(false);
     act(() => {
       fireEvent.change(within(dialog).getByRole('textbox', { name: 'Komu' }), {
         target: { value: 'Lucia Hrubá <lucia.hruba@firma.sk>, ' },
@@ -78,6 +80,7 @@ describe('contact pane while composing', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Nová správa' })).toBeNull();
     });
+    expect(sidePane().closest('.app')?.classList.contains('composing')).toBe(false);
     await waitFor(() => {
       expect(contactHeading()?.textContent).toBe('Tomáš Baláž');
     });
