@@ -28,6 +28,7 @@ import { WindowStateStore } from './native/window-state-store';
 import { systemTimers } from './platform/timers';
 import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
+import { FullScreenState } from './window/full-screen-state';
 import { hardenSession } from './window/harden-session';
 
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
@@ -66,6 +67,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const updates = electronAppUpdates(logger);
   const threadOpens = new ThreadOpenRequests();
   const menuCommands = new MenuCommandRequests();
+  const fullScreen = new FullScreenState();
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -82,6 +84,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       updates: updates.service,
       threadOpens,
       menuCommands,
+      fullScreen,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
@@ -99,6 +102,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       icon: appIcon,
     });
     trackWindowState(window, windowState, logger);
+    fullScreen.track(window);
     return window;
   });
   windowsRef.current = windows;

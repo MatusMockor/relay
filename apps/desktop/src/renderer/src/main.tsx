@@ -7,14 +7,14 @@ import { getRelayBridge } from './bridge';
 import { IS_MAC } from './lib/platform-keys';
 import { createBrowserPlatform } from './platform/BrowserPlatform';
 import { createPlatform } from './platform/ElectronPlatform';
+import { applyWindowChrome } from './platform/window-chrome';
 import { SessionController } from './session/SessionController';
 
 const container = document.getElementById('root');
 
 if (container !== null) {
-  const bridge = getRelayBridge();
-  document.documentElement.classList.toggle('mac-inset', IS_MAC && bridge !== null);
-  const platform = createPlatform(bridge, () => createBrowserPlatform());
+  const platform = createPlatform(getRelayBridge(), () => createBrowserPlatform());
+  applyWindowChrome(document.documentElement, platform, IS_MAC);
   const session = new SessionController(platform);
   createRoot(container).render(
     <StrictMode>

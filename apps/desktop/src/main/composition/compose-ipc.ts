@@ -34,6 +34,7 @@ import {
   createUpdateInvokeHandlers,
   createUpdateStreamHandlers,
 } from '../handlers/update-handlers';
+import { createWindowStreamHandlers } from '../handlers/window-handlers';
 import { type IpcInvokeHandlers, IpcInvokeRouter } from '../ipc/invoke-router';
 import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
@@ -46,6 +47,7 @@ import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oa
 import type { SecretStore } from '../secure/secret-store';
 import type { DeviceSettingsStore } from '../settings/device-settings-store';
 import type { UpdateService } from '../updates/update-service';
+import type { FullScreenState } from '../window/full-screen-state';
 
 export interface LocalIpcDeps {
   readonly userId: UserId;
@@ -68,6 +70,7 @@ export interface MainProcessContext {
   readonly updates?: UpdateService;
   readonly threadOpens?: ThreadOpenRequests;
   readonly menuCommands?: MenuCommandRequests;
+  readonly fullScreen?: FullScreenState;
 }
 
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
@@ -124,6 +127,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.updates, createUpdateStreamHandlers),
       optional(context.threadOpens, createNotificationStreamHandlers),
       optional(context.menuCommands, createMenuCommandStreamHandlers),
+      optional(context.fullScreen, createWindowStreamHandlers),
     ),
     errorReporter(context.logger),
   ),

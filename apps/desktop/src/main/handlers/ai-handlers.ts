@@ -30,6 +30,6 @@ export const createAiStreamHandlers = (deps: AiHandlerDeps): IpcStreamHandlers =
     return {};
   }
   return {
-    'ai.run': ({ input, runner }, signal) => gatedRun(deps, runs, { input, runner, signal }),
+    'ai.run': (request, signal) => gatedRun(deps, runs, { ...request, signal }),
   };
 };

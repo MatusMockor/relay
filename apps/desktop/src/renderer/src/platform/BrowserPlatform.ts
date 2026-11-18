@@ -105,5 +105,6 @@ export const createBrowserPlatform = (
     installUpdate: () => Promise.resolve(),
     subscribeToThreadOpens: () => () => undefined,
     subscribeToMenuCommands: () => () => undefined,
+    subscribeToFullScreen: () => () => undefined,
   };
 };

@@ -7,6 +7,7 @@ export const STROKE_ICONS = {
   back: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
   forward: '<path d="M6 3.5L10.5 8 6 12.5"/>',
   up: '<path d="M4 10l4-4 4 4"/>',
+  arrowUp: '<path d="M8 13V3.5M4.2 7.3L8 3.5l3.8 3.8"/>',
   down: '<path d="M4 6l4 4 4-4"/>',
   search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
   inbox: '<path d="M2.5 9.5h3l1 2h3l1-2h3"/><path d="M2.5 9.5L4 3.5h8l1.5 6v3h-11z"/>',

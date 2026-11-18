@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ModelChoice } from '../src/features/settings/automations/model-choice';
+import type { ModelChoice } from '../src/features/ai/model-choice/model-choice';
 import { ModelPicker } from '../src/features/settings/automations/ModelPicker';
 
 const choices: ModelChoice[] = [];
@@ -75,7 +75,7 @@ describe('ModelPicker', () => {
       { runner: 'codex', model: 'gpt-6-astra', effort: null },
       { runner: 'codex', model: 'gpt-6-astra', effort: 'high' },
     ]);
-    expect(trigger().textContent).toBe('OGPT-6 AstraVysoký');
+    expect(trigger().textContent).toBe('GPT-6 AstraVysoký');
   });
 
   it('keeps a supported effort and drops an unsupported one when the provider changes', () => {

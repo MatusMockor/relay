@@ -92,6 +92,36 @@ describe('Popover placement', () => {
   });
 });
 
+describe('Popover preferred side', () => {
+  it('opens above the anchor when asked and falls back below when there is no room', () => {
+    window.innerHeight = 800;
+    const { rerender } = render(
+      <Popover anchor={ANCHOR} side="above" label="Výber" onClose={() => undefined}>
+        obsah
+      </Popover>,
+    );
+    const pop = document.querySelector<HTMLElement>('.pop');
+    Object.defineProperty(pop, 'offsetHeight', { configurable: true, value: 200 });
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(pop?.style.top).toBe('294px');
+
+    rerender(
+      <Popover
+        anchor={{ left: 100, right: 160, top: 40, bottom: 70 }}
+        side="above"
+        label="Výber"
+        onClose={() => undefined}
+      >
+        obsah
+      </Popover>,
+    );
+
+    expect(pop?.style.top).toBe('76px');
+  });
+});
+
 describe('Popover on window resize', () => {
   const initialWidth = window.innerWidth;
 
