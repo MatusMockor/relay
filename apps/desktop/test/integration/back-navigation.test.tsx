@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import './support/node-abort-globals';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { composeIpc } from '../../src/main/composition/compose-ipc';
 import { MenuCommandRequests } from '../../src/main/native/menu-command-requests';
@@ -12,7 +12,7 @@ import { createRelayBridge } from '../../src/preload/create-bridge';
 import { createBrowserPlatform } from '../../src/renderer/src/platform/BrowserPlatform';
 import { createElectronPlatform } from '../../src/renderer/src/platform/ElectronPlatform';
 import type { Platform } from '../../src/renderer/src/platform/Platform';
-import { useUiStore } from '../../src/renderer/src/state/ui-store';
+import { setUi, useUiStore } from '../../src/renderer/src/state/ui-store';
 import { openThreadBySubject } from '../../src/renderer/test/features-support';
 import { renderApp, resetStores, storageWith } from '../../src/renderer/test/support/render-app';
 import { InMemoryIpc } from '../main/in-memory-ipc';
@@ -39,6 +39,14 @@ class FakeWindow implements AppCommandWindow {
 }
 
 let streams = 0;
+
+const settle = async () => {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+  });
+};
 
 const startDesktop = async () => {
   const window = new FakeWindow();
@@ -84,15 +92,28 @@ describe('window back command', () => {
     expect(await screen.findByRole('listbox', { name: 'Konverzácie' })).toBeDefined();
   });
 
+  it('steps back once when the same press arrives as a mouse button and a window command', async () => {
+    const window = await startDesktop();
+    await openThreadBySubject('Obed v piatok?');
+    act(() => {
+      setUi({ searchOpen: true, query: 'obed' });
+    });
+    act(() => {
+      fireEvent.mouseUp(globalThis.window, { button: 3 });
+      window.command('browser-backward');
+    });
+    await settle();
+    expect(useUiStore.getState().openThreadId).toBeNull();
+    expect(useUiStore.getState().searchOpen).toBe(true);
+  });
+
   it('ignores other window commands', async () => {
     const window = await startDesktop();
     await openThreadBySubject('Obed v piatok?');
     act(() => {
       window.command('browser-forward');
     });
-    await new Promise<void>((resolve) => {
-      setImmediate(resolve);
-    });
+    await settle();
     expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 });

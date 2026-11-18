@@ -36,7 +36,9 @@ export const menuCommandAction = (command: MenuCommand): (() => void) => {
     };
   }
   if (command.command === 'navigate-back') {
-    return navigateBack;
+    return () => {
+      navigateBack('command');
+    };
   }
   return openAboutUnlessBusy;
 };

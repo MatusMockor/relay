@@ -8,6 +8,7 @@ import { useSplits, useTasks } from '../../data/hooks/use-mail-queries';
 import { undoLast } from '../../state/toast-store';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import { centerRect, rectOf } from '../folders/rect';
+import { runBackGuards } from '../mail/back-guards';
 import { useMailActions } from '../mail/MailActionsProvider';
 import {
   goBack,
@@ -149,7 +150,10 @@ export const useKeyboard = (): void => {
           openItem(current);
         }
       },
-      Escape: goBack,
+      Escape: () => {
+        runBackGuards();
+        goBack();
+      },
       e: () => {
         actions.thread.markDone(current);
       },
