@@ -40,3 +40,147 @@
     transform: translateY(0);
   }
 }
+.upd {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+.upd-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.upd-btn[aria-disabled='true'],
+.upd-btn:disabled {
+  cursor: default;
+}
+.upd-btn.check:hover,
+.upd-btn.error:hover,
+.upd-btn.checking {
+  background: var(--hover);
+}
+.upd-btn.check:hover {
+  color: var(--fg2);
+}
+.upd-btn.checking > svg {
+  animation: upd-spin 0.9s linear infinite;
+}
+.upd-btn.checked {
+  color: var(--ok);
+}
+.upd-btn.downloading {
+  background: var(--hover);
+  color: var(--fg);
+}
+.upd-btn.ready,
+.upd-btn.installing {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.upd-btn.ready:hover {
+  background: var(--accent-hover);
+}
+.upd-btn.installing {
+  opacity: 0.7;
+}
+.upd-btn.error {
+  color: var(--warn);
+}
+.upd-btn:focus-visible {
+  outline-offset: 2px;
+}
+.upd-ring {
+  position: absolute;
+  inset: 0;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.upd-ring-track {
+  stroke-opacity: 0.2;
+}
+.upd-ring-bar {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s linear;
+}
+.upd-badge {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  color: var(--accent);
+}
+.upd-tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 30;
+  width: max-content;
+  max-width: 100cqi;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  box-shadow:
+    var(--shadow-pop),
+    inset 0 0 0 1px var(--line);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--fg);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(2px);
+  transition:
+    opacity 0.12s ease-out,
+    transform 0.12s ease-out,
+    visibility 0.12s;
+}
+.upd-tip::after {
+  content: '';
+  position: absolute;
+  right: 11px;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--raised);
+  box-shadow: 1px 1px 0 var(--line);
+  transform: rotate(45deg);
+}
+.upd-tip-detail {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-2xs);
+}
+.upd:hover .upd-tip,
+.upd-btn:focus-visible + .upd-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+@keyframes upd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upd-btn.checking > svg {
+    animation: none;
+    opacity: 0.6;
+  }
+  .upd-tip,
+  .upd-ring-bar {
+    transition: none;
+  }
+}

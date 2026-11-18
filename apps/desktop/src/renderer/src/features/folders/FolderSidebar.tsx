@@ -8,7 +8,8 @@ import { AccountFolders } from './AccountFolders';
 import { SystemFolders } from './SystemFolders';
 import { rectOf } from './rect';
 import { accountCount } from '../../lib/text';
-import { AppVersionStatus } from '../updates/AppVersionStatus';
+import { SidebarUpdateControl } from '../updates/SidebarUpdateControl';
+import { VersionButton } from '../updates/VersionButton';
 
 function ModeStatus() {
   const services = useSessionStore((state) => state.services);
@@ -103,8 +104,11 @@ export function FolderSidebar({ width }: { readonly width: number }) {
       <SystemFolders showTasks={openTasks} />
       <AccountFolders labels={scopedLabels} />
       <div className="fold-foot">
-        <ModeStatus />
-        <AppVersionStatus />
+        <div className="fold-foot-meta">
+          <ModeStatus />
+          <VersionButton />
+        </div>
+        <SidebarUpdateControl />
       </div>
     </nav>
   );

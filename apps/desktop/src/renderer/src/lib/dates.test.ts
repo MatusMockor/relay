@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { dayGroupOf } from './dates';
+import { agoLabel, dayGroupOf } from './dates';
 import { truncate } from './text';
 
 describe('dayGroupOf across a daylight saving change', () => {
@@ -25,5 +25,17 @@ describe('truncate', () => {
     expect(truncate('abcdef', 0)).toBe('');
     expect(truncate('abcdef', -3)).toBe('');
     expect(truncate('abcdef', 4)).toBe('abc…');
+  });
+});
+
+describe('agoLabel', () => {
+  const now = new Date('2026-11-18T12:00:00.000Z');
+
+  it('tells how long ago something happened in Slovak', () => {
+    expect(agoLabel('2026-11-18T11:59:30.000Z', now)).toBe('pred chvíľou');
+    expect(agoLabel('2026-11-18T11:48:00.000Z', now)).toBe('pred 12 min');
+    expect(agoLabel('2026-11-18T09:00:00.000Z', now)).toBe('pred 3 h');
+    expect(agoLabel('2026-11-17T10:00:00.000Z', now)).toBe('pred dňom');
+    expect(agoLabel('2026-11-15T12:00:00.000Z', now)).toBe('pred 3 dňami');
   });
 });

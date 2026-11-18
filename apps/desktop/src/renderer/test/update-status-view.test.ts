@@ -8,7 +8,6 @@ describe('describeUpdateStatus', () => {
     expect(describeUpdateStatus(null, NOW)).toMatchObject({
       title: 'Zisťujem stav aktualizácií…',
       canCheck: false,
-      compact: null,
     });
   });
 
@@ -26,19 +25,17 @@ describe('describeUpdateStatus', () => {
       title: 'Nie je dostupná žiadna aktualizácia',
       announcement: 'Nie je dostupná žiadna aktualizácia',
       detail: 'Naposledy skontrolované: 9:30',
-      compact: null,
       canCheck: true,
       canInstall: false,
     });
   });
 
-  it('gives a compact progress label for the sidebar while downloading', () => {
+  it('shows the download progress', () => {
     expect(
       describeUpdateStatus({ kind: 'downloading', version: '0.2.0', percent: 42 }, NOW),
     ).toMatchObject({
       title: 'Sťahujem verziu 0.2.0 (42 %)',
       announcement: 'Sťahujem verziu 0.2.0',
-      compact: 'Sťahujem 42 %',
       canCheck: false,
     });
   });
@@ -53,7 +50,6 @@ describe('describeUpdateStatus', () => {
   it('offers the install once the update is ready', () => {
     expect(describeUpdateStatus({ kind: 'ready', version: '0.2.0' }, NOW)).toMatchObject({
       title: 'Verzia 0.2.0 je pripravená',
-      compact: 'Aktualizovať',
       canInstall: true,
       canCheck: false,
     });

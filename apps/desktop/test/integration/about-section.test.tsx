@@ -175,14 +175,19 @@ describe('about Relay and manual update checks', () => {
       'disabled',
       true,
     );
-    expect(within(footer()).getByRole('button', { name: 'Sťahujem 43 %' })).toBeDefined();
+    expect(
+      within(footer()).getByRole('button', {
+        name: 'Sťahujem verziu 0.2.0',
+        description: '43 %',
+      }),
+    ).toBeDefined();
     act(() => {
       desktop.updater.completeDownload();
     });
     await expectAnnounced(about, 'Verzia 0.2.0 je pripravená');
     expect(within(about).getByRole('status').querySelector('button')).toBeNull();
-    const update = within(footer()).getByRole('button', { name: 'Aktualizovať' });
-    expect(update.className).toContain('accent');
+    const update = within(footer()).getByRole('button', { name: 'Reštartovať a aktualizovať' });
+    expect(update.className).toContain('ready');
     act(() => {
       fireEvent.click(within(about).getByRole('button', { name: 'Reštartovať a aktualizovať' }));
     });
@@ -204,7 +209,7 @@ describe('about Relay and manual update checks', () => {
       await checking;
     });
     act(() => {
-      fireEvent.click(within(footer()).getByRole('button', { name: 'Aktualizovať' }));
+      fireEvent.click(within(footer()).getByRole('button', { name: 'Reštartovať a aktualizovať' }));
     });
     await waitFor(() => {
       expect(desktop.updater.installs).toBe(1);
