@@ -102,7 +102,7 @@ const settle = () =>
   });
 
 describe('native context menu', () => {
-  it('builds the template from the requested items and pops up at the point', async () => {
+  it('builds the template from the requested items and pops up at the cursor', async () => {
     const factory = new RecordingMenuFactory();
     const choice = showContextMenu(WINDOW, REQUEST, factory);
     const menu = factory.last();
@@ -112,9 +112,10 @@ describe('native context menu', () => {
         item.type === 'separator' ? 'separator' : `${item.label}:${String(item.enabled)}`,
       ),
     ).toEqual(['Označiť ako prečítané:true', 'separator', 'Presunúť do koša:false']);
-    expect(menu.popups.map(({ window, x, y }) => ({ window, x, y }))).toEqual([
-      { window: WINDOW, x: 120, y: 48 },
-    ]);
+    expect(menu.popups).toHaveLength(1);
+    expect(menu.popups[0]?.window).toBe(WINDOW);
+    expect(menu.popups[0]).not.toHaveProperty('x');
+    expect(menu.popups[0]).not.toHaveProperty('y');
     menu.close();
     expect(await choice).toBeNull();
   });

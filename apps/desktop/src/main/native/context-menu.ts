@@ -13,8 +13,6 @@ export type ContextMenuTemplateItem =
 
 export interface ContextMenuPopupOptions<Window> {
   readonly window: Window;
-  readonly x: number;
-  readonly y: number;
   readonly callback: () => void;
 }
 
@@ -57,8 +55,6 @@ export const showContextMenu = <Window = BrowserWindow>(
     const template = request.items.map((item) => templateItem(item, resolve));
     factory.build(template).popup({
       window,
-      x: request.x,
-      y: request.y,
       callback: () => {
         setImmediate(() => {
           resolve(null);
