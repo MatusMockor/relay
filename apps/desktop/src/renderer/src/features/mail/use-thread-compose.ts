@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import type { MessageId, ThreadDetail, ThreadId } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../data/errors';
@@ -23,7 +24,7 @@ export const useThreadCompose = () => {
       .then((detail) => {
         const init = build(detail);
         if (init !== null) {
-          setUi({ reply: null, overlay: { kind: 'compose', init } });
+          setUi({ reply: null, overlay: composeOverlay(init) });
         }
       })
       .catch((error: unknown) => {

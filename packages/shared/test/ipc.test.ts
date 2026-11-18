@@ -113,17 +113,25 @@ describe('ipc channel map', () => {
       status: 'connected',
       lastSyncedAt: '2026-11-18T09:30:00.000Z',
     };
-    expect(input.safeParse({ scope: 'all', accounts: [] }).success).toBe(true);
-    expect(input.safeParse({ scope: 'acc_1', accounts: [account] }).success).toBe(true);
-    expect(input.safeParse({ scope: '', accounts: [] }).success).toBe(false);
-    expect(input.safeParse({ scope: 42, accounts: [] }).success).toBe(false);
+    expect(input.safeParse({ session: null, scope: 'all', accounts: [] }).success).toBe(true);
+    expect(input.safeParse({ scope: 'all', accounts: [] }).success).toBe(false);
+    expect(input.safeParse({ session: 'a b', scope: 'all', accounts: [] }).success).toBe(false);
+    expect(
+      input.safeParse({ session: 'session-1', scope: 'acc_1', accounts: [account] }).success,
+    ).toBe(true);
+    expect(input.safeParse({ session: null, scope: '', accounts: [] }).success).toBe(false);
+    expect(input.safeParse({ session: null, scope: 42, accounts: [] }).success).toBe(false);
     expect(input.safeParse({ scope: 'all' }).success).toBe(false);
     expect(
-      input.safeParse({ scope: 'all', accounts: [{ ...account, color: 'red' }] }).success,
+      input.safeParse({ session: null, scope: 'all', accounts: [{ ...account, color: 'red' }] })
+        .success,
     ).toBe(false);
     expect(
-      input.safeParse({ scope: 'all', accounts: Array.from({ length: 101 }, () => account) })
-        .success,
+      input.safeParse({
+        session: null,
+        scope: 'all',
+        accounts: Array.from({ length: 101 }, () => account),
+      }).success,
     ).toBe(false);
     expect(input.safeParse(undefined).success).toBe(false);
     expect(output.safeParse({ ok: true }).success).toBe(true);
@@ -131,15 +139,14 @@ describe('ipc channel map', () => {
 
   it('accepts only bounded notifications from the renderer', () => {
     const { input } = ipcInvokeChannels['app.notification.show'];
-    expect(input.safeParse({ title: 'Tibor', body: 'Ponuka', threadId: 'thr_1' }).success).toBe(
-      true,
-    );
-    expect(input.safeParse({ title: 'Relay', body: '', threadId: null }).success).toBe(true);
-    expect(input.safeParse({ title: '', body: 'x', threadId: null }).success).toBe(false);
-    expect(input.safeParse({ title: 'x'.repeat(201), body: '', threadId: null }).success).toBe(
-      false,
-    );
-    expect(input.safeParse({ title: 'Relay', body: '' }).success).toBe(false);
+    const valid = { title: 'Tibor', body: 'Ponuka', threadId: 'thr_1', session: 'session-1' };
+    expect(input.safeParse(valid).success).toBe(true);
+    expect(input.safeParse({ ...valid, body: '', threadId: null }).success).toBe(true);
+    expect(input.safeParse({ ...valid, title: '' }).success).toBe(false);
+    expect(input.safeParse({ ...valid, title: 'x'.repeat(201) }).success).toBe(false);
+    expect(input.safeParse({ ...valid, body: 'x'.repeat(2_001) }).success).toBe(false);
+    expect(input.safeParse({ ...valid, session: '' }).success).toBe(false);
+    expect(input.safeParse({ title: 'Relay', body: '', threadId: null }).success).toBe(false);
   });
 
   it('accepts only boolean full screen statuses from the main process', () => {

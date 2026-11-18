@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ServicesProvider } from '../src/data/hooks/services-context';
 import {
   type AutomationNotificationSink,
+  NOTIFICATION_FAILED_MESSAGE,
   useRemoteAutomationNotifications,
 } from '../src/data/hooks/use-remote-automation-notifications';
+import { resetToasts, useToastStore } from '../src/state/toast-store';
 import type { MailClient } from '../src/data/MailClient';
 import type { AppServices } from '../src/session/services';
 import { HttpApi } from '../src/data/remote/HttpApi';
@@ -43,9 +45,22 @@ const recordingSink = (): AutomationNotificationSink & { shown: string[] } => {
   const shown: string[] = [];
   return {
     shown,
-    showNotification: ({ title, body, threadId }) =>
-      shown.push(`${title}: ${body} (${threadId ?? 'bez vlákna'})`),
+    showNotification: ({ title, body, threadId }) => {
+      shown.push(`${title}: ${body} (${threadId ?? 'bez vlákna'})`);
+      return Promise.resolve();
+    },
   };
+};
+
+const failingSink = (): AutomationNotificationSink & { attempts: number } => {
+  const sink = {
+    attempts: 0,
+    showNotification: () => {
+      sink.attempts += 1;
+      return Promise.reject(new Error('IPC odmietlo notifikáciu'));
+    },
+  };
+  return sink;
 };
 
 const render = (services: AppServices, sink: AutomationNotificationSink) =>
@@ -84,6 +99,7 @@ describe('automation notifications in synced mode', () => {
 
   afterEach(async () => {
     cleanup();
+    resetToasts();
     client.dispose();
     await server.close();
   });
@@ -97,5 +113,17 @@ describe('automation notifications in synced mode', () => {
 
     await waitUntil(() => sink.shown.length === 1);
     expect(sink.shown).toEqual(['Tibor Hrasko: Nová ponuka (thread-1)']);
+  });
+
+  it('tells the user in the app when the notification could not be shown', async () => {
+    const sink = failingSink();
+    render({ mode: 'synced', client, server: null, serverUrl: server.url }, sink);
+    await waitUntil(() => server.sockets[0]?.messages.length === 1);
+
+    server.sockets[0]?.send(JSON.stringify({ type: 'event', event: notified('Nová ponuka') }));
+
+    await waitUntil(() => useToastStore.getState().toast !== null);
+    expect(sink.attempts).toBe(1);
+    expect(useToastStore.getState().toast?.message).toBe(NOTIFICATION_FAILED_MESSAGE);
   });
 });

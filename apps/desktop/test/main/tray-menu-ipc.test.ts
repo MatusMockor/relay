@@ -3,11 +3,8 @@ import type { MenuCommand } from '@relay/shared/ipc';
 import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it } from 'vitest';
 import { composeIpc } from '../../src/main/composition/compose-ipc';
-import { EventHub } from '../../src/main/events/event-hub';
 import { MenuCommandRequests } from '../../src/main/native/menu-command-requests';
-import type { MailNotification } from '../../src/main/native/new-mail-notifier';
 import { NotificationPause } from '../../src/main/native/notification-pause';
-import { PausableNotificationPresenter } from '../../src/main/native/pausable-notification-presenter';
 import { RendererView } from '../../src/main/native/renderer-view';
 import { createTrayActionHandler } from '../../src/main/native/tray-actions';
 import { TrayMenu } from '../../src/main/native/tray-menu';
@@ -25,6 +22,8 @@ const appMetadata = {
   platform: 'darwin',
   electronVersion: '45.3.2',
 };
+
+const SESSION = 'session-1';
 
 const work = accountOverview({ unread: 3 });
 const home = accountOverview({
@@ -46,11 +45,8 @@ const setup = () => {
   const view = new RendererView();
   const pause = new NotificationPause(time, time);
   const menuCommands = new MenuCommandRequests();
-  const rendererNotifications = new EventHub<MailNotification>();
   const bridge = createRelayBridge(
-    new InMemoryIpc(
-      composeIpc({ app: appMetadata, menuCommands, rendererView: view, rendererNotifications }),
-    ),
+    new InMemoryIpc(composeIpc({ app: appMetadata, menuCommands, rendererView: view })),
     () => {
       streams += 1;
       return `tray-${String(streams)}`;
@@ -78,7 +74,11 @@ const setup = () => {
   menu.changes.subscribe(() => {
     changes += 1;
   });
-  view.update({ scope: 'all', accounts: [reportedAccount(work), reportedAccount(home)] });
+  view.update({
+    session: SESSION,
+    scope: 'all',
+    accounts: [reportedAccount(work), reportedAccount(home)],
+  });
   menu.show([work, home]);
   return {
     time,
@@ -89,7 +89,6 @@ const setup = () => {
     template,
     effects,
     menuCommands,
-    rendererNotifications,
     changes: () => changes,
   };
 };
@@ -136,14 +135,16 @@ describe('tray menu over IPC', () => {
     expect(checkedLabels(template())).toEqual(['Všetky účty']);
     const accounts = [reportedAccount(work), reportedAccount(home)];
 
-    expect(await bridge.invoke('app.tray.report', { scope: home.id, accounts })).toEqual({
+    expect(
+      await bridge.invoke('app.tray.report', { session: SESSION, scope: home.id, accounts }),
+    ).toEqual({
       ok: true,
       data: { ok: true },
     });
 
     expect(checkedLabels(template())).toEqual(['Domov']);
     expect(changes()).toBe(3);
-    await bridge.invoke('app.tray.report', { scope: home.id, accounts });
+    await bridge.invoke('app.tray.report', { session: SESSION, scope: home.id, accounts });
     expect(changes()).toBe(3);
   });
 
@@ -156,6 +157,7 @@ describe('tray menu over IPC', () => {
       status: 'syncing',
     });
     await bridge.invoke('app.tray.report', {
+      session: SESSION,
       scope: 'all',
       accounts: [reportedAccount(work), reportedAccount(server)],
     });
@@ -171,42 +173,21 @@ describe('tray menu over IPC', () => {
 
   it('hides the account picker when the renderer reports no accounts', async () => {
     const { bridge, template } = setup();
-    await bridge.invoke('app.tray.report', { scope: 'all', accounts: [] });
+    await bridge.invoke('app.tray.report', { session: SESSION, scope: 'all', accounts: [] });
     expect(find(template(), 'Otvoriť s účtom')).toBeUndefined();
     expect(template()[0]?.label).toBe('Žiadny pripojený účet');
   });
 
   it('rejects a malformed tray report and keeps the current view', async () => {
     const { bridge, view } = setup();
-    const result = await bridge.invoke('app.tray.report', { scope: '../etc', accounts: [] });
+    const result = await bridge.invoke('app.tray.report', {
+      session: SESSION,
+      scope: '../etc',
+      accounts: [],
+    });
     expect(result).toMatchObject({ ok: false, error: { code: 'validation_failed' } });
     expect(view.scope()).toBe('all');
     expect(view.accounts()).toHaveLength(2);
-  });
-
-  it('shows renderer notifications only while notifications are not paused', async () => {
-    const { bridge, pause, rendererNotifications } = setup();
-    const shown: MailNotification[] = [];
-    const presenter = new PausableNotificationPresenter(
-      { show: (notification) => shown.push(notification) },
-      pause,
-    );
-    rendererNotifications.subscribe((notification) => {
-      presenter.show(notification);
-    });
-    const notification = { title: 'Tibor', body: 'Ponuka', threadId: null };
-
-    pause.pause('indefinite');
-    expect(await bridge.invoke('app.notification.show', notification)).toEqual({
-      ok: true,
-      data: { ok: true },
-    });
-    pause.resume();
-    await bridge.invoke('app.notification.show', notification);
-    const invalid = await bridge.invoke('app.notification.show', { ...notification, title: '' });
-
-    expect(shown).toEqual([notification]);
-    expect(invalid).toMatchObject({ ok: false, error: { code: 'validation_failed' } });
   });
 
   it('delivers commands asked for before the renderer listens in order', async () => {

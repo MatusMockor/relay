@@ -167,7 +167,7 @@ describe('opening a thread from a desktop notification', () => {
     if (thread === undefined) {
       return;
     }
-    const compose = { kind: 'compose', init: { subject: 'Rozpísané' } } as const;
+    const compose = { kind: 'compose', init: { subject: 'Rozpísané' }, scope: 'all' } as const;
     const accountForm = { kind: 'settings', section: 'accounts', adding: true } as const;
     for (const overlay of [compose, accountForm]) {
       act(() => {

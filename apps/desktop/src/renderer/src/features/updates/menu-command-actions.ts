@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import type { MenuCommand, SettingsSection } from '@relay/shared';
 import { selectScope } from '../mail/navigation';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -16,7 +17,7 @@ const composeUnlessComposing = (): void => {
   if (composing()) {
     return;
   }
-  setUi({ overlay: { kind: 'compose', init: {} } });
+  setUi({ overlay: composeOverlay({}) });
 };
 
 export const menuCommandAction = (command: MenuCommand): (() => void) => {

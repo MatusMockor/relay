@@ -1,7 +1,7 @@
+import type { NotificationRequest } from '@relay/shared/ipc';
 import type { EventHub } from '../events/event-hub';
 import type { IpcInvokeHandlers } from '../ipc/invoke-router';
 import type { IpcStreamHandlers } from '../ipc/stream-router';
-import type { MailNotification } from '../native/new-mail-notifier';
 import type { ThreadOpenRequests } from '../native/thread-open-requests';
 
 export const createNotificationStreamHandlers = (
@@ -11,7 +11,7 @@ export const createNotificationStreamHandlers = (
 });
 
 export const createNotificationInvokeHandlers = (
-  notifications: EventHub<MailNotification>,
+  notifications: EventHub<NotificationRequest>,
 ): IpcInvokeHandlers => ({
   'app.notification.show': (input) => {
     notifications.publish(input);

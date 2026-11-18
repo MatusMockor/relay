@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import { AccountSquare, FolderIcon, Icon, Kbd, Status } from '@relay/ui';
 import { useLabels, useTasks } from '../../data/hooks/use-mail-queries';
 import { useSessionStore } from '../../session/session-store';
@@ -91,7 +92,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
         type="button"
         className="compose"
         onClick={() => {
-          setUi({ overlay: { kind: 'compose', init: {} } });
+          setUi({ overlay: composeOverlay({}) });
         }}
       >
         <FolderIcon name="pen" />

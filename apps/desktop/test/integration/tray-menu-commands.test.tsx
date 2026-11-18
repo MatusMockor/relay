@@ -121,13 +121,13 @@ describe('tray menu commands in the renderer', () => {
       menuCommands.request({ command: 'compose' });
     });
     await waitFor(() => {
-      expect(useUiStore.getState().overlay).toEqual({ kind: 'compose', init: {} });
+      expect(useUiStore.getState().overlay).toEqual({ kind: 'compose', init: {}, scope: 'all' });
     });
   });
 
   it('keeps a message being written when the tray asks for settings or compose', async () => {
     const { menuCommands, delivered } = await renderDesktop(startDesktop());
-    const writing = { kind: 'compose', init: { subject: 'Rozpísané' } } as const;
+    const writing = { kind: 'compose', init: { subject: 'Rozpísané' }, scope: 'all' } as const;
     act(() => {
       setUi({ overlay: writing });
     });
@@ -175,5 +175,18 @@ describe('tray menu commands in the renderer', () => {
     });
     expect(useUiStore.getState().scope).toBe(FREELANCE);
     expect(await sender()).toBe('Od: Freelance, meno@studio.sk. Zmeniť účet');
+  });
+
+  it('keeps the sender picked when compose was asked even if the account changes before boot ends', async () => {
+    const desktop = startDesktop();
+    desktop.menuCommands.request({ command: 'select-scope', scope: WORK });
+    desktop.menuCommands.request({ command: 'compose' });
+    desktop.menuCommands.request({ command: 'select-scope', scope: FREELANCE });
+    await renderDesktop(desktop);
+    await waitFor(() => {
+      expect(desktop.delivered).toHaveLength(3);
+    });
+    expect(useUiStore.getState().scope).toBe(FREELANCE);
+    expect(await sender()).toBe('Od: eFabrica, meno@efabrica.sk. Zmeniť účet');
   });
 });

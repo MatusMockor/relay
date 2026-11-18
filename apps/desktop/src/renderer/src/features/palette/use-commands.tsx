@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import { AccountSquare, FolderIcon, Icon, Spark } from '@relay/ui';
 import type { ReactNode } from 'react';
 import { useSplits } from '../../data/hooks/use-mail-queries';
@@ -114,7 +115,7 @@ export const useCommands = (): Command[] => {
       icon: <Icon name="pen" />,
       alias: 'compose nova sprava mail napisat',
       run: () => {
-        setUi({ overlay: { kind: 'compose', init: {} } });
+        setUi({ overlay: composeOverlay({}) });
       },
     },
     ...contextual,

@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import type { Draft } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../data/errors';
@@ -27,20 +28,17 @@ export const useOpenItem = () => {
       return;
     }
     setUi({
-      overlay: {
-        kind: 'compose',
-        init: {
-          draftId: draft.id,
-          to: draft.to,
-          cc: draft.cc,
-          bcc: draft.bcc,
-          subject: draft.subject,
-          body: draft.body,
-          accountId: draft.accountId,
-          inReplyToThreadId: draft.inReplyToThreadId ?? undefined,
-          inReplyToMessageId: draft.inReplyToMessageId ?? undefined,
-        },
-      },
+      overlay: composeOverlay({
+        draftId: draft.id,
+        to: draft.to,
+        cc: draft.cc,
+        bcc: draft.bcc,
+        subject: draft.subject,
+        body: draft.body,
+        accountId: draft.accountId,
+        inReplyToThreadId: draft.inReplyToThreadId ?? undefined,
+        inReplyToMessageId: draft.inReplyToMessageId ?? undefined,
+      }),
     });
   };
   return (item: ListItem | null) => {

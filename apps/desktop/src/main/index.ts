@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import type { NotificationRequest } from '@relay/shared/ipc';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import appIcon from '../../resources/icon.png?asset';
 import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-supervisor';
@@ -21,7 +22,6 @@ import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
 import { MenuCommandRequests } from './native/menu-command-requests';
-import type { MailNotification } from './native/new-mail-notifier';
 import { RendererView } from './native/renderer-view';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
@@ -71,7 +71,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const threadOpens = new ThreadOpenRequests();
   const menuCommands = new MenuCommandRequests();
   const rendererView = new RendererView();
-  const rendererNotifications = new EventHub<MailNotification>();
+  const rendererNotifications = new EventHub<NotificationRequest>();
   const fullScreen = new FullScreenState();
 
   const unregisterIpc = registerIpc(

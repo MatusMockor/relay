@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import type {
   AccountId,
   DraftContent,
@@ -160,19 +161,16 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
       undo: () => {
         if (pending.cancel()) {
           setUi({
-            overlay: {
-              kind: 'compose',
-              init: {
-                ...init,
-                to: content.to,
-                cc: content.cc,
-                bcc: content.bcc,
-                forward: undefined,
-                subject: content.subject,
-                body: content.body,
-                accountId: content.accountId,
-              },
-            },
+            overlay: composeOverlay({
+              ...init,
+              to: content.to,
+              cc: content.cc,
+              bcc: content.bcc,
+              forward: undefined,
+              subject: content.subject,
+              body: content.body,
+              accountId: content.accountId,
+            }),
           });
         }
       },

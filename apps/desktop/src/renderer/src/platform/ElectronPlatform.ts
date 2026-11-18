@@ -7,6 +7,7 @@ import {
 import { MailClientError } from '../data/errors';
 import { MainProcessSession } from '../data/remote/MainProcessSession';
 import type { Platform } from './Platform';
+import { fitNotification } from './fit-notification';
 import { saveBlobAs } from './save-file';
 import { ThreadOpenFeed } from './thread-open-feed';
 
@@ -62,8 +63,8 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
     reportTray: (report) => {
       void bridge.invoke('app.tray.report', report);
     },
-    showNotification: (notification) => {
-      void bridge.invoke('app.notification.show', notification);
+    showNotification: async (notification) => {
+      await unwrap(bridge.invoke('app.notification.show', fitNotification(notification)));
     },
     subscribeToFullScreen: (listener) =>
       bridge.subscribe('app.window.fullScreen', {

@@ -45,7 +45,7 @@ export interface Platform {
   subscribeToThreadOpens(listener: (threadId: ThreadId) => void): () => void;
   subscribeToMenuCommands(listener: (command: MenuCommand) => void): () => void;
   reportTray(report: TrayReport): void;
-  showNotification(notification: NotificationRequest): void;
+  showNotification(notification: NotificationRequest): Promise<void>;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
 }
 

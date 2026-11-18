@@ -1,3 +1,4 @@
+import { composeOverlay } from '../../state/compose-overlay';
 import type { ThreadDetail } from '@relay/shared';
 import { hasOpenLayer } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
@@ -197,7 +198,7 @@ export const useKeyboard = (): void => {
         setUi({ overlay: { kind: 'shortcuts' } });
       },
       c: () => {
-        setUi({ overlay: { kind: 'compose', init: {} } });
+        setUi({ overlay: composeOverlay({}) });
       },
       '#': () => {
         actions.thread.trash(current);

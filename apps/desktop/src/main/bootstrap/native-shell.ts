@@ -1,4 +1,5 @@
 import type { Logger } from '@relay/engine';
+import type { NotificationRequest } from '@relay/shared/ipc';
 import type { EventHub } from '../events/event-hub';
 import { app } from 'electron';
 import type { LocalRuntime } from '../composition/local-runtime';
@@ -7,10 +8,11 @@ import { AutomationNotifier } from '../native/automation-notifier';
 import type { MenuCommandRequests } from '../native/menu-command-requests';
 import { electronNotifications } from '../native/electron-notification-factory';
 import { installAppMenu } from '../native/install-app-menu';
-import { type MailNotification, NewMailNotifier } from '../native/new-mail-notifier';
+import { NewMailNotifier } from '../native/new-mail-notifier';
 import { NotificationPause } from '../native/notification-pause';
 import { PausableNotificationPresenter } from '../native/pausable-notification-presenter';
 import type { RendererView } from '../native/renderer-view';
+import { SessionNotificationRelay } from '../native/session-notification-relay';
 import { SystemNotificationPresenter } from '../native/system-notification-presenter';
 import type { ThreadOpenRequests } from '../native/thread-open-requests';
 import { createUpdateCheckCommand, type UpdateChecker } from '../native/update-check-command';
@@ -28,7 +30,7 @@ export interface NativeShellDeps {
   readonly threadOpens: ThreadOpenRequests;
   readonly menuCommands: MenuCommandRequests;
   readonly rendererView: RendererView;
-  readonly rendererNotifications: EventHub<MailNotification>;
+  readonly rendererNotifications: EventHub<NotificationRequest>;
   readonly updates: UpdateChecker;
   readonly logger: Logger;
 }
@@ -90,14 +92,25 @@ export const startNativeShell = (deps: NativeShellDeps): NativeShell => {
   const automations = new AutomationNotifier(hub, presenter);
   notifier.start();
   automations.start();
-  const stopRelaying = deps.rendererNotifications.subscribe((notification) => {
-    presenter.show(notification);
+  const relay = new SessionNotificationRelay({
+    view: deps.rendererView,
+    gate: pause,
+    createPresenter: (openThread) =>
+      new SystemNotificationPresenter(electronNotifications, focus, openThread),
+    openThread: (threadId) => {
+      threadOpens.request(threadId);
+    },
+  });
+  relay.start();
+  const stopRelaying = deps.rendererNotifications.subscribe((request) => {
+    relay.show(request);
   });
   return {
     dispose: () => {
       notifier.stop();
       automations.stop();
       stopRelaying();
+      relay.stop();
       system.dispose();
       pause.dispose();
       tray.dispose();
