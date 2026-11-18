@@ -161,16 +161,47 @@ describe('default Jira tasks automation', () => {
     ]);
   });
 
-  it('can be turned off but not removed or scoped to one account', async () => {
+  it('can be scoped to one account', async () => {
     const engine = createTestEngine();
     const { account } = await seedAccount(engine);
     const current = await preset(engine);
 
-    await expect(
-      engine.services.automations.replace(USER_ID, {
-        automations: [{ ...current, accountId: account.id }],
-      }),
-    ).rejects.toMatchObject({ code: 'validation_failed' });
+    const saved = await engine.services.automations.replace(USER_ID, {
+      automations: [{ ...current, accountId: account.id }],
+    });
+
+    expect(saved).toEqual([{ ...current, accountId: account.id }]);
+    expect(await engine.services.automations.list(USER_ID)).toEqual(saved);
+  });
+
+  it('only creates Jira tasks for mail on the account it is scoped to', async () => {
+    const engine = createTestEngine();
+    const scoped = await seedAccount(engine);
+    const other = await seedAccount(engine, { email: 'bob@example.com', isPrimary: false });
+    await updatePreset(engine, { accountId: scoped.account.id });
+    const assigned = { 'X-Jira-Event': 'assigned' };
+    deliverMail(scoped.server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[EF-6] Na mojom účte',
+      headers: assigned,
+    });
+    deliverMail(other.server, 'INBOX', {
+      id: 'j2',
+      from: JIRA,
+      subject: '[EF-7] Na inom účte',
+      headers: assigned,
+    });
+
+    await engine.services.sync.syncAccount(USER_ID, scoped.account.id);
+    await engine.services.sync.syncAccount(USER_ID, other.account.id);
+
+    expect((await tasks(engine)).map((task) => task.jiraKey)).toEqual(['EF-6']);
+  });
+
+  it('can be turned off but not removed', async () => {
+    const engine = createTestEngine();
+    await preset(engine);
 
     await expect(
       engine.services.automations.replace(USER_ID, { automations: [automationInput()] }),

@@ -149,6 +149,26 @@ describe('Nastavenia > Automatizácie', () => {
     expect(within(sheet).queryByRole('region', { name: 'Pravidlo Tibor' })).toBeNull();
   });
 
+  it('scopes the default Jira rule to one account', async () => {
+    const client = demoClient();
+    const sheet = await openSection(client);
+    const efabrica = (await client.listAccounts()).find((item) => item.displayName === 'eFabrica');
+    const token = within(card(sheet, 'Jira tasky')).getByRole('button', {
+      name: 'Účet: všetky účty',
+    });
+
+    expect(token.hasAttribute('disabled')).toBe(false);
+    click(token);
+    click(within(popover('Účet')).getByRole('button', { name: 'eFabrica' }));
+    await settle();
+
+    expect(efabrica).toBeDefined();
+    expect(await stored(client, 'Jira tasky')).toMatchObject({
+      preset: 'jiraTasks',
+      accountId: efabrica?.id,
+    });
+  });
+
   it('keeps a new rule unsaved until it has a condition', async () => {
     const client = demoClient();
     const sheet = await openSection(client);

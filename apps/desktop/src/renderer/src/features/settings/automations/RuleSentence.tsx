@@ -47,7 +47,7 @@ export function RuleSentence({
                 <Icon name="down" size={12} />
               </>
             }
-            disabled={disabled || rule.preset !== null}
+            disabled={disabled}
             onOpen={onEngage}
           >
             {(close) => (
