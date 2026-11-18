@@ -44,7 +44,7 @@ const viewMenu = (isDevelopment: boolean): MenuItemConstructorOptions => ({
           { type: 'separator' },
         ] as const)
       : []),
-    { role: 'resetZoom', label: 'Skutočná veľkosť' },
+    { role: 'resetZoom', label: 'Skutočná veľkosť', accelerator: 'CmdOrCtrl+Shift+0' },
     { role: 'zoomIn', label: 'Priblížiť' },
     { role: 'zoomOut', label: 'Oddialiť' },
     { type: 'separator' },

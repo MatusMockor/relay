@@ -80,7 +80,7 @@ export const useKeyboard = (): void => {
       });
       return;
     }
-    if (mod && !event.altKey && !event.shiftKey && /^Digit[1-9]$/.test(event.code)) {
+    if (mod && !event.altKey && !event.shiftKey && /^Digit[0-9]$/.test(event.code)) {
       const target = scopeForDigit(
         Number(event.code.slice(5)),
         model.accounts.map((account) => account.id),

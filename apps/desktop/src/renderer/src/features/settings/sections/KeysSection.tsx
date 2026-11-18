@@ -10,6 +10,7 @@ const ROWS: readonly (readonly [string, readonly string[]])[] = [
   ['Spýtať sa AI v pravom paneli', ['A']],
   ['Hotovo / Pripomenúť / Odpovedať', ['E', 'H', 'R']],
   ['Prepnúť účet', [`${MOD}1`, '…', `${MOD}9`]],
+  ['Všetky účty', [`${MOD}0`]],
   ['Prejsť na Doručenú poštu', ['G', 'I']],
   ['Prejsť na Hotovo', ['G', 'E']],
   ['Skryť priečinky / pravý panel', ['[', 'I']],

@@ -57,7 +57,7 @@ export const trayAccountItems = (
   return [
     { kind: 'separator' },
     { kind: 'header', label: 'Otvoriť s účtom' },
-    ...allAccountsChoice(accounts, checked),
     ...accounts.map((account) => accountChoice(account, checked)),
+    ...allAccountsChoice(accounts, checked),
   ];
 };

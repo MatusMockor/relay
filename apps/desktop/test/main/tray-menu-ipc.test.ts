@@ -163,9 +163,9 @@ describe('tray menu over IPC', () => {
     });
     const radios = template().filter((item) => item.type === 'radio');
     expect(radios.map((item) => [item.label, item.sublabel])).toEqual([
-      ['Všetky účty', undefined],
       ['Práca', 'jana@firma.sk - 3'],
       ['Server', 'jana@server.sk'],
+      ['Všetky účty', undefined],
     ]);
     expect(find(template(), 'Domov')).toBeUndefined();
     expect(template()[0]?.label).toBe('Synchronizuje sa…');
