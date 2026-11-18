@@ -10,7 +10,7 @@ import {
 } from './automation-presets';
 
 export interface JiraTaskApplier {
-  applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task>;
+  applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task | null>;
 }
 
 export interface JiraTaskAutomationDeps {

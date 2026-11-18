@@ -17,6 +17,9 @@ export const mergeUserSettings = (
     defaultRunner: patch.ai?.defaultRunner ?? current.ai.defaultRunner,
     features: { ...current.ai.features, ...patch.ai?.features },
   },
+  jira: {
+    taskEvents: patch.jira?.taskEvents ?? current.jira.taskEvents,
+  },
 });
 
 const MAX_SAVE_ATTEMPTS = 5;

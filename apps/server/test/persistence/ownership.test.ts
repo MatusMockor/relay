@@ -168,6 +168,7 @@ describe('references to rows of another user', () => {
           order: 0,
           rules: [{ type: 'fromDomain', domain: 'x.sk' }],
           exclusive: false,
+          hideTasks: false,
         },
       ]),
     ).rejects.toBeInstanceOf(NotFoundError);

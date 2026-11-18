@@ -60,7 +60,7 @@ describe('default Jira tasks automation', () => {
       id: 'j2',
       from: JIRA,
       subject: '[EF-1] Platby padajú',
-      headers: { 'X-Jira-Event': 'comment' },
+      headers: { 'X-Jira-Event': 'mention' },
     });
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
@@ -71,7 +71,12 @@ describe('default Jira tasks automation', () => {
   it('stops creating Jira tasks when it is turned off', async () => {
     const setup = await syncedSetup();
     await updatePreset(setup.engine, { enabled: false });
-    deliverMail(setup.server, 'INBOX', { id: 'j1', from: JIRA, subject: '[EF-2] Nový bug' });
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[EF-2] Nový bug',
+      headers: { 'X-Jira-Event': 'mention' },
+    });
 
     await sync(setup);
 
@@ -81,8 +86,19 @@ describe('default Jira tasks automation', () => {
   it('only creates Jira tasks for the projects in its conditions', async () => {
     const setup = await syncedSetup();
     await updatePreset(setup.engine, { conditions: [{ type: 'jira', projectKeys: ['EF'] }] });
-    deliverMail(setup.server, 'INBOX', { id: 'j1', from: JIRA, subject: '[EF-3] Áno' });
-    deliverMail(setup.server, 'INBOX', { id: 'j2', from: JIRA, subject: '[OPS-3] Nie' });
+    const mention = { 'X-Jira-Event': 'mention' };
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[EF-3] Áno',
+      headers: mention,
+    });
+    deliverMail(setup.server, 'INBOX', {
+      id: 'j2',
+      from: JIRA,
+      subject: '[OPS-3] Nie',
+      headers: mention,
+    });
 
     await sync(setup);
 

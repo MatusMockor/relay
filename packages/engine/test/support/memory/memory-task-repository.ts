@@ -11,7 +11,6 @@ import { type MemoryDatabase, offsetPage } from './memory-database';
 
 export class MemoryTaskRepository implements TaskRepository {
   failUpsert: string | null = null;
-  beforeUpdate: (() => void) | null = null;
 
   constructor(private readonly db: MemoryDatabase) {}
 
@@ -64,9 +63,6 @@ export class MemoryTaskRepository implements TaskRepository {
   }
 
   update(userId: UserId, taskId: TaskId, changes: TaskChanges): Promise<Task | null> {
-    const concurrent = this.beforeUpdate;
-    this.beforeUpdate = null;
-    concurrent?.();
     const task = this.db.tables.tasks.get(taskId);
     if (task?.userId !== userId) {
       return Promise.resolve(null);

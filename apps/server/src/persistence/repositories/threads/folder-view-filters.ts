@@ -19,7 +19,7 @@ const outsideExclusiveSplits = sql`not exists(
   where ${threadSplits.threadId} = ${threads.id} and ${splits.exclusive}
 )`;
 
-const hasOpenTask = sql`exists(
+export const hasOpenTask = sql`exists(
   select 1 from ${tasks}
   where ${tasks.threadId} = ${threads.id} and ${tasks.state} <> 'done'
 )`;

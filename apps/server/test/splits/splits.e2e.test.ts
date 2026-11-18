@@ -31,6 +31,7 @@ describe('splits', () => {
               name: 'Jira',
               order: 0,
               exclusive: true,
+              hideTasks: true,
               rules: [{ type: 'jira', projectKeys: ['REL'] }],
             },
             {
@@ -45,9 +46,9 @@ describe('splits', () => {
       },
       session.accessToken,
     );
-    expect(saved.map((split) => [split.name, split.userId])).toEqual([
-      ['Jira', session.user.id],
-      ['Faktúry', session.user.id],
+    expect(saved.map((split) => [split.name, split.userId, split.hideTasks])).toEqual([
+      ['Jira', session.user.id, true],
+      ['Faktúry', session.user.id, false],
     ]);
     expect(await app.api.ok(api.splits.list, {}, session.accessToken)).toEqual(saved);
     expect(await app.api.ok(api.splits.list, {}, other.accessToken)).toEqual([]);

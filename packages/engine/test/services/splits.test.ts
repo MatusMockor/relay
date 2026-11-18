@@ -12,6 +12,7 @@ const partners: SplitInput = {
   order: 0,
   rules: [{ type: 'fromDomain', domain: 'partner.test' }],
   exclusive: false,
+  hideTasks: false,
 };
 
 const jira: SplitInput = {
@@ -20,6 +21,7 @@ const jira: SplitInput = {
   order: 1,
   rules: [{ type: 'jira', projectKeys: ['REL'] }],
   exclusive: true,
+  hideTasks: false,
 };
 
 const syncedInbox = async (engine: TestEngine) => {
