@@ -13,6 +13,7 @@ import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
+import { useMouseBack } from './use-mouse-back';
 import { OverlayHost } from './OverlayHost';
 import { TopBar } from './TopBar';
 import { useTrayReporter } from '../updates/use-tray-reporter';
@@ -24,6 +25,7 @@ const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
 
 function Shell() {
   useKeyboard();
+  useMouseBack();
   const { platform } = useAppContext();
   useRealtimeSync();
   useRemoteAutomationNotifications(platform);

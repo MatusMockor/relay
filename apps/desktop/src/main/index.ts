@@ -33,6 +33,7 @@ import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
 import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
+import { trackBackNavigation } from './window/track-back-navigation';
 import { hardenSession } from './window/harden-session';
 
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
@@ -111,6 +112,9 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     });
     trackWindowState(window, windowState, logger);
     fullScreen.track(window);
+    trackBackNavigation(window, (command) => {
+      menuCommands.request(command);
+    });
     trackRendererSession(window, rendererView);
     return window;
   });

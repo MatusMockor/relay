@@ -10,8 +10,7 @@ import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import { centerRect, rectOf } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
 import {
-  backToList,
-  closeSearch,
+  goBack,
   moveSelection,
   openRight,
   openSearch,
@@ -150,13 +149,7 @@ export const useKeyboard = (): void => {
           openItem(current);
         }
       },
-      Escape: () => {
-        if (inThread) {
-          backToList();
-          return;
-        }
-        closeSearch();
-      },
+      Escape: goBack,
       e: () => {
         actions.thread.markDone(current);
       },
