@@ -96,4 +96,20 @@ describe('local AI results over IPC', () => {
     const [call] = await claude.calls();
     expect(call?.stdin).toContain('do piatka');
   });
+
+  it('passes the chosen model and effort of a local run to the CLI', async () => {
+    const { bridge } = harness;
+    const threadId = await syncedThread();
+    const run = await runAi(bridge, {
+      input: { kind: 'summary', threadId },
+      runner: 'claude',
+      model: 'claude-sonnet-5-5',
+      effort: 'high',
+    });
+    expect(run.error).toBeNull();
+    const [call] = await claude.calls();
+    const args = call?.args ?? [];
+    expect(args[args.indexOf('--model') + 1]).toBe('claude-sonnet-5-5');
+    expect(args[args.indexOf('--effort') + 1]).toBe('high');
+  });
 });

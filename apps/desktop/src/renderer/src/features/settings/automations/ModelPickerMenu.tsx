@@ -1,15 +1,14 @@
 import { AI_EFFORT_LABELS, AI_MODEL_CATALOG, effortsFor } from '@relay/shared';
-import { type AnchorRect, Popover } from '@relay/ui';
+import { type AnchorRect, Popover, ProviderLogo } from '@relay/ui';
 import {
   effectiveModel,
   type ModelChoice,
-  RUNNER_LABELS,
   RUNNERS,
   withEffort,
   withModel,
   withRunner,
-} from './model-choice';
-import { ProviderIcon } from './ProviderIcon';
+} from '../../ai/model-choice/model-choice';
+import { RUNNER_LABELS } from '../../ai/model-choice/model-labels';
 
 export interface ModelPickerMenuProps {
   readonly anchor: AnchorRect;
@@ -42,7 +41,7 @@ export function ModelPickerMenu({ anchor, value, onChange, onClose }: ModelPicke
               onChange(withRunner(value, runner));
             }}
           >
-            <ProviderIcon runner={runner} small />
+            <ProviderLogo runner={runner} size={14} />
             {RUNNER_LABELS[runner]}
           </button>
         ))}

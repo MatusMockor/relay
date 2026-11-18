@@ -1,14 +1,15 @@
-import type { AiRunnerKind } from '@relay/shared';
-import { Icon, Kbd, Spark } from '@relay/ui';
+import { Icon } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useThreadDetail, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
+import { defaultChoice, type ModelChoice } from '../ai/model-choice/model-choice';
+import { RUNNER_LABELS } from '../ai/model-choice/model-labels';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
+import { ChatComposer } from './chat-composer/ChatComposer';
 import { setChatDraft, useChat } from './chat-store';
-import { RUNNERS, runnerLabelOf } from './runner-labels';
 import { finishedStepLabel } from './step-labels';
 import { useChatRuns } from './use-chat-runs';
 
@@ -18,15 +19,20 @@ export function AiChatPane() {
   const openThreadId = useUiStore((state) => state.openThreadId);
   const settings = useUserSettings();
   const { turns, queued, draft: question } = useChat();
-  const [runner, setRunner] = useState<AiRunnerKind | null>(null);
+  const [override, setOverride] = useState<ModelChoice | null>(null);
   const log = useRef<HTMLDivElement>(null);
-  const activeRunner = runner ?? settings.data?.ai.defaultRunner ?? 'claude';
+  const choice = override ?? defaultChoice(settings.data?.ai.defaultRunner ?? 'claude');
   const thread = current?.kind === 'thread' ? current.thread : null;
   const threadId = openThreadId ?? thread?.id ?? null;
   const openDetail = useThreadDetail(openThreadId);
   const subject = openThreadId === null ? thread?.subject : openDetail.data?.thread.subject;
-  const runnerLabel = runnerLabelOf(activeRunner);
-  const runs = useChatRuns({ runner: activeRunner, runnerLabel, threadId });
+  const runs = useChatRuns({ choice, runnerLabel: RUNNER_LABELS[choice.runner], threadId });
+  const changeChoice = (next: ModelChoice) => {
+    setOverride(next);
+    if (next.runner !== choice.runner) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
+    }
+  };
   const submit = (text: string) => {
     if (runs.ask(text)) {
       setChatDraft('');
@@ -63,23 +69,6 @@ export function AiChatPane() {
         >
           <Icon name="inbox" size={13} />
           <b>{threadId === null ? 'Celá schránka' : (subject ?? 'Vlákno')}</b>
-        </span>
-        <span className="runner" role="group" aria-label="Spustiť cez">
-          {RUNNERS.map(([kind, label]) => (
-            <button
-              key={kind}
-              type="button"
-              className={kind === activeRunner ? 'on' : undefined}
-              aria-pressed={kind === activeRunner}
-              title={`Spustiť cez ${label}`}
-              onClick={() => {
-                setRunner(kind);
-                void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
-              }}
-            >
-              {label}
-            </button>
-          ))}
         </span>
       </div>
       <div className="chat-log" ref={log}>
@@ -140,31 +129,16 @@ export function AiChatPane() {
           </button>
         )}
       </div>
-      <label className="chat-in">
-        <Spark />
-        <input
-          id="chat-q"
-          placeholder="Spýtaj sa na poštu…"
-          autoComplete="off"
-          spellCheck={false}
-          aria-label="Otázka pre AI"
-          value={question}
-          onChange={(event) => {
-            setChatDraft(event.target.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.currentTarget.blur();
-              return;
-            }
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              submit(question);
-            }
-          }}
-        />
-        <Kbd keys={['A']} />
-      </label>
+      <ChatComposer
+        question={question}
+        running={runs.running}
+        choice={choice}
+        onQuestion={setChatDraft}
+        onSubmit={() => {
+          submit(question);
+        }}
+        onChoice={changeChoice}
+      />
     </div>
   );
 }

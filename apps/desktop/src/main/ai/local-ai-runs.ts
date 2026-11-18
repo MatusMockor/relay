@@ -1,8 +1,7 @@
-import type { AiEvent, AiJobInput, AiRunnerKind } from '@relay/shared/domain';
+import type { AiEvent } from '@relay/shared/domain';
+import type { AiRunRequest } from '@relay/shared/ipc';
 
-export interface LocalAiRunRequest {
-  readonly input: AiJobInput;
-  readonly runner: AiRunnerKind | undefined;
+export interface LocalAiRunRequest extends AiRunRequest {
   readonly signal: AbortSignal;
 }
 

@@ -1,13 +1,9 @@
 import { z } from 'zod';
-import {
-  AiEventSchema,
-  AiJobInputSchema,
-  AiRunnerInfoSchema,
-  AiRunnerKindSchema,
-} from '../domain/ai';
+import { AiEventSchema, AiRunnerInfoSchema } from '../domain/ai';
 import { DevicePlatformSchema } from '../domain/device';
 import { DeviceSettingsPatchSchema, DeviceSettingsSchema } from '../domain/settings';
 import { OkResponseSchema } from '../api/common';
+import { CreateAiJobBodySchema } from '../api/endpoints/ai';
 import { invokeChannel, streamChannel } from './define';
 
 export const AppInfoSchema = z.object({
@@ -26,10 +22,7 @@ export const SecureKeySchema = z
   .regex(/^[a-z0-9][a-z0-9._:-]*$/);
 export type SecureKey = z.infer<typeof SecureKeySchema>;
 
-export const AiRunRequestSchema = z.object({
-  input: AiJobInputSchema,
-  runner: AiRunnerKindSchema.optional(),
-});
+export const AiRunRequestSchema = CreateAiJobBodySchema;
 export type AiRunRequest = z.infer<typeof AiRunRequestSchema>;
 
 export const appInvokeChannels = {

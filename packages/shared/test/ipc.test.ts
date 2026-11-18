@@ -29,6 +29,25 @@ describe('ipc channel map', () => {
     expect(ipcInvokeChannels['app.getInfo'].input.safeParse(undefined).success).toBe(true);
   });
 
+  it('validates the model and effort of a local AI run against the catalog', () => {
+    const { input } = ipcStreamChannels['ai.run'];
+    const question = { kind: 'chatAnswer', question: 'Čo dnes?', threadId: null, history: [] };
+    expect(
+      input.safeParse({ input: question, runner: 'codex', model: 'gpt-6-astra', effort: 'high' })
+        .success,
+    ).toBe(true);
+    expect(
+      input.safeParse({ input: question, runner: 'claude', model: null, effort: null }).success,
+    ).toBe(true);
+    expect(
+      input.safeParse({ input: question, runner: 'claude', model: 'gpt-6-astra' }).success,
+    ).toBe(false);
+    expect(input.safeParse({ input: question, runner: 'codex', effort: 'max' }).success).toBe(
+      false,
+    );
+    expect(input.safeParse({ input: question, effort: 'low' }).success).toBe(false);
+  });
+
   it('accepts only http server URLs for session channels', () => {
     const { input } = ipcInvokeChannels['session.getAccessToken'];
     expect(input.safeParse({ serverUrl: 'https://mail.example' }).success).toBe(true);

@@ -16,6 +16,10 @@
   .chat-in {
     margin: 0 16px 12px;
   }
+  .cbar .ctl:not(.xs) .lb,
+  .cbar .cend .kbd {
+    display: none;
+  }
   .chat-ctx,
   .chat-ex {
     padding-left: 16px;

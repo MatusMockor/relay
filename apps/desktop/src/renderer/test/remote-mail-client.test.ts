@@ -220,10 +220,18 @@ describe('RemoteMailClient', () => {
           threadId: null,
           history: [],
         },
+        runner: 'claude',
+        model: 'claude-sonnet-5-5',
+        effort: 'high',
       },
       (event) => events.push(event),
     );
     await waitFor(() => events.length === 1 && server.sockets[0]?.messages.length === 1);
+    expect(server.requests.find((item) => item.key === 'ai.createJob')?.body).toMatchObject({
+      runner: 'claude',
+      model: 'claude-sonnet-5-5',
+      effort: 'high',
+    });
     const done = {
       ...job,
       status: 'done',

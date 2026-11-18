@@ -1,9 +1,9 @@
 import {
   type AiEffort,
   type AiRunnerKind,
+  DEFAULT_AI_EFFORT,
   defaultAiModel,
   effortsFor,
-  findAiModel,
 } from '@relay/shared';
 
 export interface ModelChoice {
@@ -12,19 +12,26 @@ export interface ModelChoice {
   readonly effort: AiEffort | null;
 }
 
-export const RUNNER_LABELS: Readonly<Record<AiRunnerKind, string>> = {
-  claude: 'Claude Code',
-  codex: 'Codex',
-};
-
 export const RUNNERS: readonly AiRunnerKind[] = ['claude', 'codex'];
+
+export const defaultChoice = (runner: AiRunnerKind): ModelChoice => ({
+  runner,
+  model: null,
+  effort: null,
+});
 
 export const effectiveModel = (choice: ModelChoice): string =>
   choice.model ?? defaultAiModel(choice.runner).id;
 
-export const modelLabel = (choice: ModelChoice): string => {
-  const id = effectiveModel(choice);
-  return findAiModel(choice.runner, id)?.label ?? id;
+export const choiceEfforts = (choice: ModelChoice): readonly AiEffort[] =>
+  effortsFor(choice.runner, effectiveModel(choice));
+
+export const effectiveEffort = (choice: ModelChoice): AiEffort | null => {
+  const efforts = choiceEfforts(choice);
+  if (choice.effort !== null && efforts.includes(choice.effort)) {
+    return choice.effort;
+  }
+  return efforts.includes(DEFAULT_AI_EFFORT) ? DEFAULT_AI_EFFORT : null;
 };
 
 const supportedEffort = (
@@ -47,6 +54,12 @@ export const withModel = (choice: ModelChoice, model: string): ModelChoice => ({
   model,
   effort: supportedEffort(choice.runner, model, choice.effort),
 });
+
+export const withSelection = (
+  choice: ModelChoice,
+  runner: AiRunnerKind,
+  model: string,
+): ModelChoice => withModel(withRunner(choice, runner), model);
 
 export const withEffort = (choice: ModelChoice, effort: AiEffort): ModelChoice => ({
   ...choice,
