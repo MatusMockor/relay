@@ -35,7 +35,7 @@ export const storageWith = (settings: Partial<DeviceSettings>) =>
     [DEVICE_SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_DEVICE_SETTINGS, ...settings }),
   });
 
-export const resetStores = (): void => {
+export const resetMemoryStores = (): void => {
   cleanup();
   resetLayers();
   resetBackPresses();
@@ -44,6 +44,11 @@ export const resetStores = (): void => {
   useChat.setState({ turns: [], queued: null });
   resetToasts();
   setFolderEdit(null);
+};
+
+export const resetStores = (): void => {
+  resetMemoryStores();
+  window.localStorage.clear();
 };
 
 export const testQueryClient = (): QueryClient =>

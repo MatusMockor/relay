@@ -15,6 +15,7 @@ import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
 import { useMouseBack } from './use-mouse-back';
 import { OverlayHost } from './OverlayHost';
+import { useScopeValidation } from './scope-validation';
 import { TopBar } from './TopBar';
 import { useTrayReporter } from '../updates/use-tray-reporter';
 import { LIMITS, useLayout } from './use-layout';
@@ -32,6 +33,7 @@ function Shell() {
   useTrayReporter();
   useNotificationNavigation();
   const commit = useLayoutPersistence();
+  useScopeValidation();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);
   const composing = useUiStore((state) => state.overlay?.kind === 'compose');
