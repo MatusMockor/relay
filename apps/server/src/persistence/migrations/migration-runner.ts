@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import pg from 'pg';
 import { backfillNormalizedSubjects } from './backfill-normalized-subjects';
+import { repairLabelNameKeys } from './repair-label-name-keys';
 
 export const DEFAULT_MIGRATIONS_FOLDER = fileURLToPath(
   new URL('../../../drizzle', import.meta.url),
@@ -24,6 +25,7 @@ export const runMigrations = async (options: MigrationOptions): Promise<void> =>
       migrationsFolder: options.migrationsFolder ?? DEFAULT_MIGRATIONS_FOLDER,
     });
     await backfillNormalizedSubjects(client);
+    await repairLabelNameKeys(client);
   } finally {
     await client
       .query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY])

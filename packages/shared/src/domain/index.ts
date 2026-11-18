@@ -18,6 +18,7 @@ export * from './ids';
 export * from './jira-event';
 export * from './jira-subject';
 export * from './label';
+export * from './label-name-keys';
 export * from './mailbox';
 export * from './message';
 export * from './primitives';

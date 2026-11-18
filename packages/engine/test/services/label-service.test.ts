@@ -58,6 +58,7 @@ describe('LabelService for keyword labels', () => {
 
     await expect(create('   ')).rejects.toMatchObject({ code: 'validation_failed' });
     await expect(create('x'.repeat(101))).rejects.toMatchObject({ code: 'validation_failed' });
+    await expect(create('a\u0001b')).rejects.toMatchObject({ code: 'validation_failed' });
     await expect(create('$Work')).rejects.toMatchObject(reserved);
     await expect(create('Junk')).rejects.toMatchObject(reserved);
     await expect(create('NonJunk')).rejects.toMatchObject(reserved);
@@ -65,6 +66,25 @@ describe('LabelService for keyword labels', () => {
       code: 'conflict',
       message: 'Štítok s týmto názvom už existuje.',
     });
+  });
+
+  it('rejects new keyword labels whose encoded keyword is too long for the server', async () => {
+    const engine = createTestEngine();
+    const { account } = await syncedThread(engine, ['clients']);
+    const create = (name: string) =>
+      engine.services.labelAdmin.create(USER_ID, { accountId: account.id, name });
+    const tooLong = {
+      code: 'validation_failed',
+      message: 'Názov štítka je pre server príliš dlhý.',
+    };
+
+    await expect(create('日'.repeat(100))).rejects.toMatchObject(tooLong);
+    await expect(create('a'.repeat(51))).rejects.toMatchObject(tooLong);
+    await expect(create('a'.repeat(50))).resolves.toMatchObject({ remoteName: 'a'.repeat(50) });
+    const label = present((await labelsOf(engine, account.id)).find((l) => l.name === 'clients'));
+    await expect(
+      engine.services.labelAdmin.update(USER_ID, label.id, { name: '日'.repeat(100) }),
+    ).resolves.toMatchObject({ remoteName: 'clients' });
   });
 
   it('keeps a label named like a system flag across syncs because it is encoded', async () => {

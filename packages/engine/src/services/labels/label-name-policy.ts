@@ -11,6 +11,8 @@ export interface LabelNameCandidate {
   readonly newIdentity: boolean;
 }
 
+export const KEYWORD_MAX_LENGTH = 50;
+
 export const LABEL_NAME_TAKEN = 'Štítok s týmto názvom už existuje.';
 
 const GMAIL_RESERVED_PREFIX = '[gmail]';
@@ -32,16 +34,24 @@ const clashes = (candidate: LabelNameCandidate, name: string): boolean => {
   );
 };
 
+const CONTROL_CHARACTER = /\p{Cc}/u;
+
 const requireAllowed = (candidate: LabelNameCandidate, name: string): void => {
+  if (CONTROL_CHARACTER.test(name)) {
+    throw new ValidationError('Názov štítka nesmie obsahovať riadiace znaky.');
+  }
   if (candidate.kind === 'gmail' && isReservedGmailName(name)) {
     throw new ValidationError('Názov Gmail štítka nesmie začínať „[Gmail]“ ani obsahovať „\\“.');
   }
-  if (
-    candidate.kind === 'keyword' &&
-    candidate.newIdentity &&
-    !isUserKeyword(encodeKeyword(name))
-  ) {
+  if (candidate.kind !== 'keyword' || !candidate.newIdentity) {
+    return;
+  }
+  const keyword = encodeKeyword(name);
+  if (!isUserKeyword(keyword)) {
     throw new ValidationError('Tento názov je vyhradený serverom.');
+  }
+  if (keyword.length > KEYWORD_MAX_LENGTH) {
+    throw new ValidationError('Názov štítka je pre server príliš dlhý.');
   }
 };
 
