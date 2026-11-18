@@ -11,8 +11,8 @@ const OneLinerResponseSchema = z.strictObject({ text: z.string().min(1).max(240)
 type OneLinerResponse = z.infer<typeof OneLinerResponseSchema>;
 
 const TASK: Localized<string> = {
-  sk: 'Úloha: Napíš jednu krátku vetu (najviac 20 slov), čo odosielateľ chce od používateľa. Ak nič nechce, napíš to stručne, napríklad „Len informuje o ...“.',
-  en: 'Task: Write one short sentence (at most 20 words) saying what the sender wants from the user. If they want nothing, say so briefly, for example "Just informs about ...".',
+  sk: 'Úloha: Napíš jeden krátky riadok (najviac 12 slov), ktorý rovno povie podstatu mailu: čo sa stalo alebo čo má používateľ urobiť, s konkrétnymi číslami, sumami, termínmi a názvami. Začni samotnou vecou. Nezačínaj odosielateľom ani slovami ako „Len informuje“, „Potvrdzuje“, „Pýta sa“ či „Posiela“. Bez bodky na konci. Príklady: „Objednávka 2646184332 zaplatená, 742,90 €“, „Review MR !412 potrebné ešte dnes“, „Stretnutie presunuté na štvrtok 14:00“.',
+  en: 'Task: Write one short line (at most 12 words) that states the substance of the mail directly: what happened or what the user has to do, with concrete numbers, amounts, dates and names. Start with the thing itself. Do not start with the sender or with filler like "Just informs", "Confirms", "Asks" or "Sends". No trailing period. Examples: "Order 2646184332 paid, 742.90 €", "Review of MR !412 needed today", "Meeting moved to Thursday 14:00".',
 };
 
 export const oneLinerPrompt: PromptSpec<OneLinerInput, OneLinerResponse, AiOutputOf<'oneLiner'>> = {

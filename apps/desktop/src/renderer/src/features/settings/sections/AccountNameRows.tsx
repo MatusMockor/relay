@@ -10,11 +10,7 @@ export interface AccountNameRowsProps {
 export function AccountNameRows({ account, onPatch }: AccountNameRowsProps) {
   return (
     <>
-      <SettingRow
-        title="Meno odosielateľa"
-        scope="synced"
-        description="Príjemcovia ho uvidia v poli Od"
-      >
+      <SettingRow title="Meno odosielateľa" description="Príjemcovia ho uvidia v poli Od">
         <AccountNameInput
           label={`Meno odosielateľa pre ${account.email}`}
           value={account.senderName ?? ''}
@@ -24,7 +20,7 @@ export function AccountNameRows({ account, onPatch }: AccountNameRowsProps) {
           }}
         />
       </SettingRow>
-      <SettingRow title="Názov účtu" scope="synced" description="Len pre teba v aplikácii">
+      <SettingRow title="Názov účtu" description="Len pre teba v aplikácii">
         <AccountNameInput
           label={`Názov účtu ${account.email}`}
           value={account.displayName}

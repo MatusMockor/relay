@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 
-export type StatusTone = 'ok' | 'off' | 'busy' | 'bad';
+export type StatusTone = 'ok' | 'off' | 'busy' | 'bad' | 'warn';
 
 export function Status({ tone, label }: { readonly tone: StatusTone; readonly label: string }) {
   return (

@@ -23,7 +23,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .ev-form-times {
   display: grid;
@@ -43,7 +43,7 @@
 .ev-acts .btn {
   height: 24px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .gcal-panel {
   display: grid;
@@ -52,7 +52,7 @@
 }
 .gcal-panel h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
 }
 .gcal {
   border: 1px solid var(--line-soft);
@@ -71,6 +71,6 @@
   border: 1px solid var(--line);
   background: var(--raised);
   color: var(--warn);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
 }

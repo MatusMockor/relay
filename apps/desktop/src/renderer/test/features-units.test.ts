@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_ACCOUNT_FORM,
@@ -19,15 +20,15 @@ describe('account form autofill', () => {
       smtpHost: 'smtp.example.org',
       smtpPort: '587',
     };
-    const next = withGuessedServers(typed, 'meno@gmail.co');
+    const next = withGuessedServers(typed, new Set(['smtpHost', 'smtpPort']));
     expect(next.smtpHost).toBe('smtp.example.org');
     expect(next.smtpPort).toBe('587');
     expect(next.imapHost).toBe('imap.gmail.com');
   });
 
   it('replaces fields that still hold the previous guess', () => {
-    const first = withGuessedServers({ ...EMPTY_ACCOUNT_FORM, email: 'meno@gmail.com' }, '');
-    const second = withGuessedServers({ ...first, email: 'meno@outlook.com' }, 'meno@gmail.com');
+    const first = withGuessedServers({ ...EMPTY_ACCOUNT_FORM, email: 'meno@gmail.com' }, new Set());
+    const second = withGuessedServers({ ...first, email: 'meno@outlook.com' }, new Set());
     expect(second.imapHost).not.toBe('imap.gmail.com');
     expect(second.smtpHost).not.toBe('smtp.gmail.com');
   });
@@ -123,6 +124,8 @@ describe('hasRemoteImages', () => {
     '<img srcset="https://cdn.example.org/a.png 1x">',
     '<img src="cid:logo" srcset="/local.png 1x, https://cdn.example.org/a.png 2x">',
     '<picture><source srcset="//cdn.example.org/a.webp"><img src="cid:a"></picture>',
+    '<img alt="A > B" src="https://cdn.example.org/a.png">',
+    '<img title="src=cid:x" src=\'https://cdn.example.org/a.png\'>',
   ])('detects remote candidates in %s', (html) => {
     expect(hasRemoteImages(html)).toBe(true);
   });
@@ -131,6 +134,7 @@ describe('hasRemoteImages', () => {
     '<img src="cid:logo">',
     '<img data-src="https://cdn.example.org/a.png" src="data:image/png;base64,AA">',
     '<video><source src="https://cdn.example.org/a.mp4"></video>',
+    '<img alt="src=https://cdn.example.org/a.png" src="cid:logo">',
   ])('ignores %s', (html) => {
     expect(hasRemoteImages(html)).toBe(false);
   });

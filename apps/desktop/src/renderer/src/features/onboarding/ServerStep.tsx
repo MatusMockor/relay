@@ -69,8 +69,14 @@ export function ServerStep() {
           </p>
         )}
         <div className="btns">
-          <Button variant="primary" type="submit" disabled={busy}>
-            {busy ? 'Overujem…' : 'Pokračovať'} <Kbd keys={['↵']} />
+          <Button variant="primary" type="submit" disabled={busy} title="Pokračovať (Enter)">
+            {busy ? (
+              'Overujem…'
+            ) : (
+              <>
+                Pokračovať <Kbd keys={['↵']} />
+              </>
+            )}
           </Button>
         </div>
       </form>

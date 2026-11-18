@@ -72,6 +72,16 @@ describe('task prompts', () => {
     expect(prompt.tools).toContain('get_thread');
   });
 
+  it('asks for a one-liner that states the substance without filler openers', () => {
+    const sk = prepareTaskPrompt({ kind: 'oneLiner', threadId }, context).text;
+    const en = prepareTaskPrompt({ kind: 'oneLiner', threadId }, { ...context, language: 'en' });
+
+    expect(sk).toContain('rovno povie podstatu mailu');
+    expect(sk).toContain('Nezačínaj odosielateľom ani slovami ako „Len informuje“');
+    expect(sk).toContain('„Objednávka 2646184332 zaplatená, 742,90 €“');
+    expect(en.text).toContain('states the substance of the mail directly');
+  });
+
   it('supports English prompts', () => {
     const prompt = prepareTaskPrompt({ kind: 'summary', threadId }, { ...context, language: 'en' });
 

@@ -17,6 +17,11 @@ describe('provider presets', () => {
       'pobox',
       'centrum',
       'atlas',
+      'aol',
+      'gmx',
+      'gmxcom',
+      'zoho',
+      'volny',
     ]);
     for (const preset of listProviderPresets()) {
       expect(
@@ -55,12 +60,27 @@ describe('provider presets', () => {
     ['jan@me.com', 'icloud', 'imap', 'imap.mail.me.com'],
     ['jan@ymail.com', 'yahoo', 'imap', 'imap.mail.yahoo.com'],
     ['jan@email.cz', 'seznam', 'imap', 'imap.seznam.cz'],
+    ['jan@yahoo.co.uk', 'yahoo', 'imap', 'imap.mail.yahoo.com'],
+    ['jan@aol.com', 'aol', 'imap', 'imap.aol.com'],
+    ['jan@gmx.de', 'gmx', 'imap', 'imap.gmx.net'],
+    ['jan@gmx.com', 'gmxcom', 'imap', 'imap.gmx.com'],
+    ['jan@zohomail.com', 'zoho', 'imap', 'imap.zoho.com'],
+    ['jan@volny.cz', 'volny', 'imap', 'imap.volny.cz'],
   ])('uses the preset for %s', (email, presetId, provider, imapHost) => {
     const guess = guessSettings(email);
 
     expect(guess).toMatchObject({ presetId, provider, confidence: 'preset' });
     expect(guess?.settings.imap.host).toBe(imapHost);
     expect(guess?.settings.username).toBe(email);
+  });
+
+  it('sends GMX.com mail through mail.gmx.com and keeps mail.gmx.net for the other GMX domains', () => {
+    expect(guessSettings('jana@gmx.com')?.settings.smtp).toEqual({
+      host: 'mail.gmx.com',
+      port: 587,
+      secure: false,
+    });
+    expect(guessSettings('jana@gmx.de')?.settings.smtp.host).toBe('mail.gmx.net');
   });
 
   it('maps pobox.sk to its own IMAP host and the Centrum SMTP host', () => {

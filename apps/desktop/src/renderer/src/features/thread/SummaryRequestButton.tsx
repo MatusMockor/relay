@@ -1,10 +1,19 @@
 import { Spark } from '@relay/ui';
 
-export function SummaryRequestButton({ onRequest }: { readonly onRequest: () => void }) {
+export interface SummaryRequestButtonProps {
+  readonly onRequest: () => void;
+  readonly detailed: boolean;
+}
+
+export function SummaryRequestButton({ onRequest, detailed }: SummaryRequestButtonProps) {
   return (
-    <button type="button" className="btn sum-ask" onClick={onRequest}>
+    <button
+      type="button"
+      className={detailed ? 'btn ghost sum-ask more' : 'btn sum-ask'}
+      onClick={onRequest}
+    >
       <Spark />
-      Zhrnúť vlákno
+      {detailed ? 'Podrobné zhrnutie' : 'Zhrnúť vlákno'}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { MailClient } from '../src/data/MailClient';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import { renderApp, resetStores } from './support/render-app';
 
@@ -74,5 +75,33 @@ describe('AI panel', () => {
     ).toBeDefined();
     const tasks = await client.listTasks({ state: 'open' });
     expect(tasks.items[0]).toMatchObject({ title: 'Skontrolovať platobnú bránu', source: 'ai' });
+  });
+
+  it('does not claim a draft exists after a draft call the run never confirmed', async () => {
+    const base = createDemoMailClient({ aiStepMs: 0 });
+    const client: MailClient = {
+      ...base,
+      runAi: (_request, listener) => {
+        listener({ type: 'started', runner: 'claude' });
+        listener({ type: 'toolCall', name: 'create_draft' });
+        listener({
+          type: 'completed',
+          output: { kind: 'chatAnswer', text: 'Koncept sa nepodarilo uložiť.', references: [] },
+        });
+        return () => {};
+      },
+    };
+    renderApp({ demo: () => client });
+    await openThreadBySubject(REVIEW);
+    const pane = openAiTab();
+    const input = within(pane).getByRole('textbox', { name: 'Otázka pre AI' });
+    fireEvent.change(input, { target: { value: 'Priprav odpoveď' } });
+    act(() => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+
+    expect(await within(pane).findByText('Koncept sa nepodarilo uložiť.')).toBeDefined();
+    expect(within(pane).getByText('Príprava konceptu')).toBeDefined();
+    expect(within(pane).queryByText('Koncept pripravený')).toBeNull();
   });
 });

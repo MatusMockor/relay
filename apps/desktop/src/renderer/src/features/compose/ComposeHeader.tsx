@@ -1,5 +1,5 @@
 import type { MailAccount } from '@relay/shared';
-import { AccountSquare, Icon, IconButton } from '@relay/ui';
+import { AccountSquare, Icon, IconButton, Kbd } from '@relay/ui';
 import { accountLike } from '../mail/use-accounts-model';
 
 export interface ComposeHeaderProps {
@@ -15,7 +15,9 @@ export function ComposeHeader({ title, account, onClose, onPickAccount }: Compos
       <div className="nm-h">
         <b>{title}</b>
         <span className="sp" />
-        <span className="mono">Esc uloží do Konceptov</span>
+        <span className="nm-hint">
+          <Kbd keys={['Esc']} /> uloží do Konceptov
+        </span>
         <IconButton label="Zavrieť a uložiť" onClick={onClose}>
           <Icon name="x" />
         </IconButton>

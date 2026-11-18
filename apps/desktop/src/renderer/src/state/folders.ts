@@ -40,6 +40,7 @@ export interface ViewMeta {
   readonly icon: 'inbox' | 'task' | 'clock' | 'check' | 'send' | 'file' | 'calendar' | 'trash';
   readonly g: string;
   readonly sub: string;
+  readonly hint?: string;
 }
 
 export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
@@ -51,13 +52,19 @@ export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
     g: 'H',
     sub: 'Vrátia sa do Doručenej pošty v nastavený čas',
   },
-  done: { label: 'Hotovo', icon: 'check', g: 'E', sub: 'Vybavené konverzácie, E vráti späť' },
+  done: {
+    label: 'Hotovo',
+    icon: 'check',
+    g: 'E',
+    sub: 'Vybavené konverzácie',
+    hint: '[E] vráti vybranú späť',
+  },
   sent: { label: 'Odoslané', icon: 'send', g: 'T', sub: 'Tvoje odpovede a nové správy' },
   drafts: {
     label: 'Koncepty',
     icon: 'file',
     g: 'D',
-    sub: 'Rozpísané odpovede a správy, Esc ich uloží sem',
+    sub: 'Rozpísané odpovede a správy, [Esc] ich uloží sem',
   },
   scheduled: {
     label: 'Naplánované',
@@ -65,7 +72,13 @@ export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
     g: 'N',
     sub: 'Odošlú sa automaticky v nastavený čas',
   },
-  trash: { label: 'Kôš', icon: 'trash', g: 'K', sub: 'E obnoví vybranú konverzáciu' },
+  trash: {
+    label: 'Kôš',
+    icon: 'trash',
+    g: 'K',
+    sub: 'Zmazané konverzácie',
+    hint: '[E] obnoví vybranú',
+  },
 };
 
 export const NAV_VIEWS: readonly FolderView[] = [

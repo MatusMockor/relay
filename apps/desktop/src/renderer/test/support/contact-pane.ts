@@ -48,14 +48,17 @@ export const showContactOf = (threadId: ThreadId): void => {
   });
 };
 
-export const sectionRows = (title: string): string[] => {
+export const sectionOf = (title: string): HTMLElement => {
   const heading = within(sidePane()).getByRole('heading', { level: 4, name: title });
   const section = heading.parentElement;
   expect(section).not.toBeNull();
-  return [...(section?.querySelectorAll('.mini > *') ?? [])].map(
+  return section ?? heading;
+};
+
+export const sectionRows = (title: string): string[] =>
+  [...sectionOf(title).querySelectorAll('.mini > *')].map(
     (row) => row.querySelector('span')?.textContent ?? '',
   );
-};
 
 export const cloneThread = (
   state: DemoState,

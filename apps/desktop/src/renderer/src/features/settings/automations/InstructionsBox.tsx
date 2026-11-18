@@ -20,7 +20,7 @@ export function InstructionsBox({ value, disabled, onSave, onEngage }: Instructi
         rows={2}
         maxLength={2_000}
         disabled={disabled}
-        placeholder="Napríklad: Task vytvor iba ak odo mňa niekto niečo chce."
+        placeholder="Napríklad: Úlohu vytvor, len ak odo mňa niekto niečo chce."
         onFocus={onEngage}
         onChange={(event) => {
           setText(event.target.value);

@@ -54,12 +54,15 @@ describe('checklist ticks in synced mode', () => {
     }));
     const summary = await openThread();
     const item = within(summary).getByRole('button', { name: /Prejsť checklist/ });
+    expect(within(summary).getByText('Ďalšie kroky')).toBeDefined();
+    expect(within(summary).getByText('Dokončené 0 z 2')).toBeDefined();
     act(() => {
       fireEvent.click(item);
     });
     await waitFor(() => {
       expect(item.getAttribute('aria-pressed')).toBe('true');
     });
+    expect(within(summary).getByText('Dokončené 1 z 2')).toBeDefined();
     await waitFor(() => {
       expect(
         server.requests.find((request) => request.key === 'threads.updateChecklist'),

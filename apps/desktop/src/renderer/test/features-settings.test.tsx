@@ -102,6 +102,29 @@ describe('settings in synced mode', () => {
     expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server', 'Lokálne']);
   });
 
+  it('tells the user to sign in to a server runner on the Relay server', async () => {
+    server.handle('ai.runners', () => ({
+      body: [
+        {
+          runner: 'claude',
+          location: 'server',
+          installed: true,
+          authenticated: false,
+          version: null,
+          executablePath: '/usr/bin/claude',
+        },
+      ],
+    }));
+    renderApp({ platform: await syncedPlatform() });
+    await waitForSync();
+    const sheet = openSection('ai');
+
+    expect(
+      await within(sheet).findByText(/Prihlás sa v termináli na serveri Relay príkazom/),
+    ).toBeDefined();
+    expect(within(sheet).getByRole('heading', { level: 3, name: 'Na serveri' })).toBeDefined();
+  });
+
   it('sends settings changes one at a time', async () => {
     const firstSave = gate();
     const updates = () => server.requests.filter((request) => request.key === 'settings.update');
@@ -152,14 +175,14 @@ describe('split settings', () => {
     renderApp({ demo: () => client });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
     const sheet = openSection('splits');
-    const removes = await within(sheet).findAllByRole('button', { name: 'Odstrániť' });
+    const removes = await within(sheet).findAllByRole('button', { name: /^Odstrániť split/ });
     expect(removes.length).toBeGreaterThan(1);
     act(() => {
       fireEvent.click(removes[0] ?? document.body);
     });
     act(() => {
       fireEvent.click(
-        within(sheet).getAllByRole('button', { name: 'Odstrániť' })[1] ?? document.body,
+        within(sheet).getAllByRole('button', { name: /^Odstrániť split/ })[1] ?? document.body,
       );
     });
     expect(saves).toHaveLength(1);

@@ -4,7 +4,7 @@ import { capitalize } from '../../lib/text';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { openThread, selectScope } from '../mail/navigation';
 import { useAccountsModel } from '../mail/use-accounts-model';
-import { AccountDot } from '@relay/ui';
+import { AccountSquare, Icon } from '@relay/ui';
 import { accountLike } from '../mail/use-accounts-model';
 import { MiniSection } from './Mini';
 
@@ -16,28 +16,32 @@ export function IdlePane() {
   const inbox = useThreadList({ view: 'inbox' });
   const tasks = useTasks();
   const open = (tasks.data?.items ?? []).filter((task) => task.state !== 'done');
-  const lead =
-    items.length > 0 || open.length > 0
-      ? 'Toto ťa ešte čaká neskôr.'
-      : 'Dnes už nič nečaká. Pekný zvyšok dňa.';
   const unreadOf = (id: string) =>
     (inbox.data?.items ?? []).filter((thread) => thread.accountId === id && thread.unread).length;
   return (
     <>
-      <div className="a-prof">
-        <span className="av lg c1">JA</span>
-        <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
-        <p>{model.unified ? `Všetky účty · ${lead}` : lead}</p>
+      <div className="day-h">
+        <span className="day-ic" aria-hidden="true">
+          <Icon name="calendar" size={16} />
+        </span>
+        <div>
+          <small>{model.unified ? 'Prehľad dňa, všetky účty' : 'Prehľad dňa'}</small>
+          <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
+        </div>
       </div>
+      {items.length > 0 || open.length > 0 ? null : (
+        <p className="day-lead">Dnes už nič nečaká. Pekný zvyšok dňa.</p>
+      )}
       {model.unified ? (
         <MiniSection
           title="Neprečítané podľa účtu"
           rows={model.accounts.map((account) => ({
             key: account.id,
             left: (
-              <>
-                <AccountDot account={accountLike(account)} /> {account.displayName}
-              </>
+              <span className="dot-l">
+                <AccountSquare account={accountLike(account)} small />
+                {account.displayName}
+              </span>
             ),
             right: String(unreadOf(account.id)),
             onClick: () => {
@@ -58,6 +62,7 @@ export function IdlePane() {
         }))}
       />
       <MiniSection
+        stacked
         title="Otvorené úlohy"
         rows={open.slice(0, 5).map((task) => ({
           key: task.id,

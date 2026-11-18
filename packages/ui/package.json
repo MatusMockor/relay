@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fontsource/inter": "5.2.8",
+    "@fontsource-variable/inter": "5.2.8",
     "@fontsource/jetbrains-mono": "5.2.8",
     "@relay/shared": "workspace:*",
     "clsx": "2.1.1"

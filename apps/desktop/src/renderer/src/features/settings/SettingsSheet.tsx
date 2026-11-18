@@ -1,6 +1,5 @@
-import { Sheet } from '@relay/ui';
-import type { ReactNode } from 'react';
-import { useSessionStore } from '../../session/session-store';
+import { Icon, IconButton, Kbd, Sheet } from '@relay/ui';
+import { type ReactNode, useRef } from 'react';
 import { type SettingsSection, setUi } from '../../state/ui-store';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
@@ -14,21 +13,8 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
 import { SplitsSection } from './sections/SplitsSection';
 import { SyncSection } from './sections/SyncSection';
-
-const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
-  ['server', 'Server'],
-  ['account', 'Účet'],
-  ['devices', 'Zariadenia'],
-  ['accounts', 'Účty'],
-  ['splits', 'Split Inbox'],
-  ['automations', 'Automatizácie'],
-  ['sync', 'Synchronizácia'],
-  ['calendars', 'Kalendáre'],
-  ['notifications', 'Notifikácie'],
-  ['ai', 'AI'],
-  ['look', 'Vzhľad'],
-  ['keys', 'Klávesové skratky'],
-];
+import { SETTINGS_PANEL_ID, SettingsNav, settingsTabId } from './SettingsNav';
+import { useHeaderClearance } from './use-header-clearance';
 
 const render = (section: SettingsSection, adding: boolean): ReactNode => {
   const map: Record<SettingsSection, () => ReactNode> = {
@@ -55,9 +41,8 @@ export function SettingsSheet({
   readonly section: SettingsSection;
   readonly adding: boolean;
 }) {
-  const synced = useSessionStore((state) => state.services?.mode === 'synced');
-  const mode = useSessionStore((state) => state.services?.mode);
-  const visible = SECTIONS.filter(([key]) => key !== 'devices' || synced);
+  const main = useRef<HTMLDivElement>(null);
+  useHeaderClearance(main, `${section}:${String(adding)}`);
   const go = (next: SettingsSection) => {
     setUi({ overlay: { kind: 'settings', section: next, adding: false } });
   };
@@ -80,24 +65,22 @@ export function SettingsSheet({
   };
   return (
     <Sheet label="Nastavenia" className="sheet" onClose={close} onKey={onKey}>
-      <nav className="sh-nav" aria-label="Sekcie nastavení">
-        <h3>Nastavenia</h3>
-        {visible.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={key === section ? 'on' : undefined}
-            aria-current={key === section ? 'page' : undefined}
-            onClick={() => {
-              go(key);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-        {mode === 'demo' ? <span className="proto">Ukážkové dáta</span> : null}
-      </nav>
-      <div className="sh-main">{render(section, adding)}</div>
+      <SettingsNav section={section} onSelect={go} />
+      <div className="sh-close">
+        {adding ? null : <Kbd keys={['Esc']} />}
+        <IconButton label="Zavrieť nastavenia" onClick={close}>
+          <Icon name="x" />
+        </IconButton>
+      </div>
+      <div
+        ref={main}
+        className="sh-main"
+        id={SETTINGS_PANEL_ID}
+        role="tabpanel"
+        aria-labelledby={settingsTabId(section)}
+      >
+        {render(section, adding)}
+      </div>
     </Sheet>
   );
 }

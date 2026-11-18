@@ -28,9 +28,20 @@ describe('right panel', () => {
       setUi({ openThreadId: done?.id ?? null, rightOpen: true, rightTab: 'ai' });
     });
     await waitFor(() => {
-      expect(within(pane()).getByText(/^Kontext:/).textContent).toBe(
-        `Kontext: ${done?.subject ?? ''}`,
-      );
+      expect(
+        within(pane()).getByRole('group', { name: `Kontext: ${done?.subject ?? ''}` }),
+      ).toBeDefined();
+    });
+  });
+
+  it('labels the AI context with the whole mailbox when no thread is open', async () => {
+    renderApp({ demo: () => demoClient() });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    act(() => {
+      setUi({ openThreadId: null, rightOpen: true, rightTab: 'ai' });
+    });
+    await waitFor(() => {
+      expect(within(pane()).getByRole('group', { name: /^Kontext: / })).toBeDefined();
     });
   });
 

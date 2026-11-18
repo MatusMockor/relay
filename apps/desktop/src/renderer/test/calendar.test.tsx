@@ -134,6 +134,8 @@ describe('calendar in synced mode', () => {
     expect(within(pane).getByText(/Dunaj · čaká na odpoveď/)).toBeTruthy();
     const rows = pane.querySelectorAll('.agenda .ev b');
     expect([...rows].map((row) => row.textContent)).toEqual(['Plánovanie Q1', 'Obed s rodinou']);
+    const today = within(pane).getByRole('button', { pressed: true, name: /, 2 udalosti$/ });
+    expect(today.className).toContain('today');
     act(() => {
       fireEvent.click(invite);
     });

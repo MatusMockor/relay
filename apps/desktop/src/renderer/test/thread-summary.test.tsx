@@ -14,6 +14,8 @@ import {
 } from './support/thread-ai-session';
 import { serverDetail, serverThread } from './support/thread-fixtures';
 
+const SUMMARY_ASK = /^(Zhrnúť vlákno|Podrobné zhrnutie)$/;
+
 const SUMMARY = 'Jana posiela zmluvu na podpis.';
 const CHECKLIST = [{ id: 'check-1', text: 'Podpísať do piatku', done: false }];
 
@@ -42,7 +44,7 @@ describe('thread summary on demand', () => {
   };
 
   const askForSummary = async () => {
-    const ask = await screen.findByRole('button', { name: 'Zhrnúť vlákno' });
+    const ask = await screen.findByRole('button', { name: SUMMARY_ASK });
     act(() => {
       fireEvent.click(ask);
     });
@@ -57,7 +59,7 @@ describe('thread summary on demand', () => {
     const summary = await screen.findByRole('region', { name: 'Zhrnutie' });
     expect(within(summary).getByText(SUMMARY)).toBeDefined();
     expect(within(summary).getByRole('button', { name: /Podpísať do piatku/ })).toBeDefined();
-    expect(screen.queryByRole('button', { name: 'Zhrnúť vlákno' })).toBeNull();
+    expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
     expect(requestCount(server, 'threads.requestSummary')).toBe(0);
   });
 
@@ -66,14 +68,14 @@ describe('thread summary on demand', () => {
     const served = serveDetail(serverDetail(thread, []));
 
     await openFirstThread(server, [thread]);
-    expect(await screen.findByRole('button', { name: 'Zhrnúť vlákno' })).toBeDefined();
+    expect(await screen.findByRole('button', { name: SUMMARY_ASK })).toBeDefined();
     expect(requestCount(server, 'threads.requestSummary')).toBe(0);
 
     await askForSummary();
 
     const summary = await screen.findByRole('region', { name: 'Zhrnutie' });
     expect(await within(summary).findByText('AI pripravuje zhrnutie…')).toBeDefined();
-    expect(screen.queryByRole('button', { name: 'Zhrnúť vlákno' })).toBeNull();
+    expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
     await waitFor(() => {
       const request = server.requests.find((entry) => entry.key === 'threads.requestSummary');
       expect(request?.method).toBe('POST');
@@ -88,7 +90,7 @@ describe('thread summary on demand', () => {
     expect(await screen.findByText(SUMMARY)).toBeDefined();
     expect(screen.getByRole('button', { name: /Podpísať do piatku/ })).toBeDefined();
     expect(screen.queryByText('AI pripravuje zhrnutie…')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Zhrnúť vlákno' })).toBeNull();
+    expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
     expect(requestCount(server, 'threads.requestSummary')).toBe(1);
   });
 
@@ -119,7 +121,7 @@ describe('thread summary on demand', () => {
 
     expect(await screen.findByText('Jana posiela zmluvu.')).toBeDefined();
     await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
-    expect(screen.queryByRole('button', { name: 'Zhrnúť vlákno' })).toBeNull();
+    expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
   });
 
   it('offers the summary again when the job fails', async () => {
@@ -133,7 +135,7 @@ describe('thread summary on demand', () => {
       pushJob(server, jobOf('summary', thread.id, 'error'));
     });
 
-    expect(await screen.findByRole('button', { name: 'Zhrnúť vlákno' })).toBeDefined();
+    expect(await screen.findByRole('button', { name: SUMMARY_ASK })).toBeDefined();
     expect(screen.queryByText('AI pripravuje zhrnutie…')).toBeNull();
   });
 

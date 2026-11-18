@@ -34,7 +34,12 @@ function Shell() {
   return (
     <div
       className={cx('app', composing && 'composing')}
-      style={{ '--side-w': `${String(layout.rightPanel)}px` } as CSSProperties}
+      style={
+        {
+          '--side-w': `${String(layout.rightPanel)}px`,
+          '--fold-w': `${String(layout.leftVisible ? layout.sidebar : 0)}px`,
+        } as CSSProperties
+      }
     >
       {layout.leftVisible ? (
         <>

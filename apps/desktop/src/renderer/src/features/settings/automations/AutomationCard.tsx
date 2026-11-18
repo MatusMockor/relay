@@ -26,7 +26,6 @@ export function AutomationCard({
   onEngage,
 }: AutomationCardProps) {
   const { input } = rule;
-  const account = accounts.find((item) => item.id === input.accountId) ?? null;
   return (
     <section className={editing ? 'au ed' : 'au'} aria-label={`Pravidlo ${input.name}`}>
       <div className="au-h">
@@ -39,17 +38,21 @@ export function AutomationCard({
               onChange({ name });
             }}
           />
-          {rule.preset !== null ? <span className="scope">predvolené</span> : null}
-          {account === null ? null : <span className="scope synced">{account.displayName}</span>}
+          {rule.preset !== null ? <span className="scope">Predvolené</span> : null}
         </b>
-        <ModelPicker
-          value={input.ai}
-          disabled={disabled}
-          onOpen={onEngage}
-          onChange={(choice) => {
-            onChange({ ai: { ...input.ai, ...choice } });
-          }}
-        />
+        {rule.preset === null ? (
+          <IconButton
+            label={`Odstrániť pravidlo ${input.name}`}
+            disabled={disabled}
+            onClick={onRemove}
+          >
+            <Icon name="trash" />
+          </IconButton>
+        ) : (
+          <span className="au-slot" title="Predvolené pravidlo sa nedá odstrániť, len vypnúť">
+            <Icon name="lock" />
+          </span>
+        )}
         <Switch
           checked={input.enabled}
           label={`Pravidlo ${input.name} zapnuté`}
@@ -59,15 +62,6 @@ export function AutomationCard({
             onChange({ enabled });
           }}
         />
-        {rule.preset === null ? (
-          <IconButton
-            label={`Odstrániť pravidlo ${input.name}`}
-            disabled={disabled}
-            onClick={onRemove}
-          >
-            <Icon name="trash" />
-          </IconButton>
-        ) : null}
       </div>
       <RuleSentence
         rule={rule}
@@ -84,6 +78,17 @@ export function AutomationCard({
           onChange({ ai: { ...input.ai, instructions } });
         }}
       />
+      <div className="au-f">
+        <span>Model</span>
+        <ModelPicker
+          value={input.ai}
+          disabled={disabled}
+          onOpen={onEngage}
+          onChange={(choice) => {
+            onChange({ ai: { ...input.ai, ...choice } });
+          }}
+        />
+      </div>
       {isComplete(rule) ? null : (
         <p className="au-hint" role="status">
           Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.

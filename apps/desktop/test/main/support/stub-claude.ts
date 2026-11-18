@@ -20,7 +20,7 @@ const configIndex = args.indexOf('--mcp-config');
 const mcpConfig = configIndex >= 0 ? fs.readFileSync(args[configIndex + 1], 'utf8') : null;
 const answer = stdin.includes('Prepíš')
   ? { text: 'Dobrý deň, ďakujem za správu.' }
-  : stdin.includes('jednu krátku vetu')
+  : stdin.includes('rovno povie podstatu mailu')
     ? { text: 'Jana posiela faktúru za október.' }
     : stdin.includes('vytvor jednu úlohu')
       ? { title: 'Skontrolovať faktúru', what: 'Skontrolovať faktúru za október do piatka.' }

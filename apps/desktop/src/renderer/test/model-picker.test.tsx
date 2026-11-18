@@ -52,7 +52,9 @@ describe('ModelPicker', () => {
 
   it('shows only the models of the chosen provider and the efforts of the chosen model', () => {
     render(<Harness initial={{ runner: 'claude', model: null, effort: null }} />);
-    expect(trigger().getAttribute('aria-label')).toBe('Model AI: Claude Code, Claude Opus 5.5');
+    expect(trigger().getAttribute('aria-label')).toBe(
+      'Model AI: Claude Code, Claude Opus 5.5, Predvolené',
+    );
 
     const menu = open();
     expect(optionsOf(menu, 'Model')).toEqual([
@@ -73,7 +75,7 @@ describe('ModelPicker', () => {
       { runner: 'codex', model: 'gpt-6-astra', effort: null },
       { runner: 'codex', model: 'gpt-6-astra', effort: 'high' },
     ]);
-    expect(trigger().textContent).toBe('⌘GPT-6 AstraVysoký');
+    expect(trigger().textContent).toBe('OGPT-6 AstraVysoký');
   });
 
   it('keeps a supported effort and drops an unsupported one when the provider changes', () => {

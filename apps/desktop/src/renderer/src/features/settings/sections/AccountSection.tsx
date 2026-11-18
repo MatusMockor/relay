@@ -5,6 +5,7 @@ import { useSessionStore } from '../../../session/session-store';
 import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
+import { SectionHeader } from '../SectionHeader';
 
 export function AccountSection() {
   const { session } = useAppContext();
@@ -13,10 +14,9 @@ export function AccountSection() {
   if (services?.mode !== 'synced') {
     return (
       <>
-        <h2>Účet</h2>
-        <p className="lead">
+        <SectionHeader title="Relay účet">
           Používaš Relay bez účtu. Pošta aj nastavenia ostávajú len na tomto zariadení.
-        </p>
+        </SectionHeader>
         <SettingRow
           title="Zaregistrovať sa"
           description="Registrácia na tvojom serveri zapne synchronizáciu medzi zariadeniami a AI na serveri."
@@ -36,8 +36,9 @@ export function AccountSection() {
   }
   return (
     <>
-      <h2>Účet</h2>
-      <p className="lead">Prihlásený používateľ na serveri {services.serverUrl}.</p>
+      <SectionHeader title="Relay účet">
+        Prihlásený používateľ na serveri {services.serverUrl}.
+      </SectionHeader>
       <SettingRow title={user?.displayName ?? 'Používateľ'} description={user?.email ?? ''}>
         <Avatar name={user?.displayName ?? '?'} seed={user?.email} />
       </SettingRow>
