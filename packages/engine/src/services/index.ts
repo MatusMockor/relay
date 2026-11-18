@@ -24,6 +24,7 @@ export * from './sync/calendar-parts-sink';
 export * from './compose/compose-service';
 export * from './compose/scheduled-send-service';
 export * from './compose/send-service';
+export * from './folders/folder-service';
 export * from './inbox/inbox-query-service';
 export * from './inbox/label-query-service';
 export * from './labels/label-service';

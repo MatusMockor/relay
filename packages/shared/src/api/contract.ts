@@ -8,6 +8,7 @@ import { calendarEndpoints } from './endpoints/calendar';
 import { composeEndpoints } from './endpoints/compose';
 import { devicesEndpoints } from './endpoints/devices';
 import { draftAttachmentsEndpoints } from './endpoints/draft-attachments';
+import { foldersEndpoints } from './endpoints/folders';
 import { googleCalendarEndpoints } from './endpoints/google-calendar';
 import { healthEndpoints } from './endpoints/health';
 import { labelsEndpoints } from './endpoints/labels';
@@ -25,6 +26,7 @@ export const api = {
   oauth: oauthEndpoints,
   threads: threadsEndpoints,
   labels: labelsEndpoints,
+  folders: foldersEndpoints,
   compose: composeEndpoints,
   attachments: attachmentsEndpoints,
   draftAttachments: draftAttachmentsEndpoints,

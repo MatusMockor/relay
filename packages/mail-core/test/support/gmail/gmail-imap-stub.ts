@@ -10,7 +10,7 @@ import {
 } from './gmail-responses';
 import { GMAIL_CAPABILITIES, gmailMailboxes, type StubMailbox } from './gmail-stub-data';
 import { type ParsedCommand, parseCommand } from './imap-wire';
-import { deleteMailbox, renameMailboxes } from './gmail-mailbox-admin';
+import { createMailbox, deleteMailbox, renameMailboxes } from './gmail-mailbox-admin';
 
 export interface GmailImapStub {
   readonly port: number;
@@ -57,6 +57,7 @@ const handlers = (
       session.selected === null ? [] : searchResponse(session.selected, command.args),
     'UID FETCH': (_command, line, session) =>
       session.selected === null ? [] : fetchResponse(session.selected, line),
+    CREATE: (command) => createMailbox(mailboxes, command.args[0] ?? ''),
     RENAME: (command) => renameMailboxes(mailboxes, command.args[0] ?? '', command.args[1] ?? ''),
     DELETE: (command) => deleteMailbox(mailboxes, command.args[0] ?? ''),
   };

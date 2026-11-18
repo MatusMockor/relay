@@ -1,7 +1,7 @@
 import type { MailboxCounts, MailboxLocation, MailboxRepository } from '@relay/engine';
 import type { AccountId, Mailbox, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
 import { MailboxIdSchema } from '@relay/shared/domain';
-import { and, asc, eq, notInArray } from 'drizzle-orm';
+import { and, asc, eq, notInArray, or, sql } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toMailbox } from '../mappers/mailbox-mapper';
@@ -106,6 +106,23 @@ export class SqliteMailboxRepository implements MailboxRepository {
       db.update(mailboxes)
         .set({ path: location.path, name: location.name, delimiter: location.delimiter })
         .where(eq(mailboxes.id, mailboxId))
+        .run();
+    });
+  }
+
+  relocateTree(accountId: AccountId, fromPath: string, target: MailboxLocation): Promise<void> {
+    const root = eq(mailboxes.path, fromPath);
+    const prefix = target.delimiter === null ? null : fromPath + target.delimiter;
+    const descendants =
+      prefix === null ? sql`0` : sql`substr(${mailboxes.path}, 1, length(${prefix})) = ${prefix}`;
+    return this.executor.execute((db) => {
+      db.update(mailboxes)
+        .set({
+          path: sql`case when ${root} then ${target.path} else ${target.path} || substr(${mailboxes.path}, length(${fromPath}) + 1) end`,
+          name: sql`case when ${root} then ${target.name} else ${mailboxes.name} end`,
+          delimiter: sql`case when ${root} then ${target.delimiter} else ${mailboxes.delimiter} end`,
+        })
+        .where(and(eq(mailboxes.accountId, accountId), or(root, descendants)))
         .run();
     });
   }

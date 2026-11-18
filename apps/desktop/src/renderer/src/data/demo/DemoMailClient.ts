@@ -13,6 +13,7 @@ import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
+import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
 import { DemoMoves } from './demo-moves';
 import { queryThreads } from './demo-query';
@@ -185,6 +186,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     ...createDemoAttachments(state, now),
     ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted)),
+    ...createDemoFolders(state, now, emit),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
       Promise.resolve(state.scheduled.filter((item) => item.status === 'pending')),

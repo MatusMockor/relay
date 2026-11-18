@@ -32,7 +32,7 @@ export const clientNamespace = (client: ImapFlow): MailboxNamespace | null => {
     : null;
 };
 
-const findListed = async (client: ImapFlow, path: string): Promise<RemoteMailbox | null> => {
+export const findListed = async (client: ImapFlow, path: string): Promise<RemoteMailbox | null> => {
   const listed = (await client.list()).find((mailbox) => mailbox.path === path);
   if (listed === undefined) {
     return null;
@@ -60,8 +60,29 @@ const createListed = async (client: ImapFlow, path: string): Promise<RemoteMailb
   return listed;
 };
 
-export const createMailbox = (connection: ImapConnection, name: string): Promise<RemoteMailbox> =>
+const childPath = async (client: ImapFlow, name: string, parentPath: string): Promise<string> => {
+  const parent = (await client.list()).find((mailbox) => mailbox.path === parentPath);
+  if (parent === undefined) {
+    throw new Error(`Parent mailbox ${parentPath} does not exist`);
+  }
+  const delimiter = parent.delimiter || clientNamespace(client)?.delimiter || null;
+  if (delimiter === null) {
+    throw new Error(`Mailbox ${parentPath} cannot hold subfolders`);
+  }
+  return `${parentPath}${delimiter}${name}`;
+};
+
+const targetPath = (client: ImapFlow, name: string, parentPath: string | undefined) =>
+  parentPath === undefined
+    ? Promise.resolve(namespacedPath(name, clientNamespace(client)))
+    : childPath(client, name, parentPath);
+
+export const createMailbox = (
+  connection: ImapConnection,
+  name: string,
+  parentPath?: string,
+): Promise<RemoteMailbox> =>
   connection.run({ operation: 'create mailbox', retryOnDisconnect: true }, async (client) => {
-    const path = namespacedPath(name, clientNamespace(client));
+    const path = await targetPath(client, name, parentPath);
     return (await findListed(client, path)) ?? createListed(client, path);
   });

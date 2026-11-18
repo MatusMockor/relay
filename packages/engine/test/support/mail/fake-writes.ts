@@ -120,6 +120,7 @@ export const moveRecords = (
       uidMap.set(uid, newUid);
     }
   });
+  server.afterMove?.(mailbox.path);
   if (server.partialMoves) {
     return Promise.reject(new PartialMoveError(mailbox.path, targetPath, uidMap));
   }

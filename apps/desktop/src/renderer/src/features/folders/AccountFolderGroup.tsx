@@ -1,13 +1,15 @@
 import type { Label, MailAccount, Mailbox } from '@relay/shared';
-import { FolderIcon, Icon } from '@relay/ui';
-import { useMemo } from 'react';
+import { Icon } from '@relay/ui';
+import { type ElementType, useMemo } from 'react';
 import { toggleCollapsed, useUiStore } from '../../state/ui-store';
 import { accountHue } from '../colors/name-colors';
-import { useLabelColor } from '../labels/use-label-color';
-import { selectFolder } from '../mail/navigation';
+import { FOLDER_COPY } from './edit/folder-copy';
+import { setFolderEdit } from './edit/folder-edit-store';
+import { CreateEditor } from './edit/FolderEditors';
+import { useFolderLeaves } from './edit/use-folder-leaves';
 import { labelEntries, mailboxEntries } from './folder-sections';
 import { buildFolderTree } from './folder-tree';
-import { FolderTreeRows, type TreeLeaf } from './FolderTreeRows';
+import { FolderTreeRows } from './FolderTreeRows';
 
 interface AccountFolderGroupProps {
   readonly account: MailAccount;
@@ -39,49 +41,65 @@ function AccountHeader({
   );
 }
 
+function FoldersHeading({
+  Heading,
+  account,
+}: {
+  readonly Heading: ElementType;
+  readonly account: MailAccount;
+}) {
+  const label = `${FOLDER_COPY.folder.newTop} v ${account.displayName}`;
+  return (
+    <div className="ft-head">
+      <Heading>Priečinky</Heading>
+      <button
+        type="button"
+        className="ft-add"
+        title={FOLDER_COPY.folder.newTop}
+        aria-label={label}
+        onClick={() => {
+          setFolderEdit({ kind: 'create', accountId: account.id, parent: null });
+        }}
+      >
+        <Icon name="plus" size={12} />
+      </button>
+    </div>
+  );
+}
+
+const keepsFolders = (account: MailAccount, mailboxes: readonly Mailbox[]): boolean =>
+  mailboxes.length > 0 &&
+  account.provider !== 'gmail' &&
+  !mailboxes.some((mailbox) => mailbox.role === 'label');
+
 export function AccountFolderGroup({
   account,
   mailboxes,
   labels,
   grouped,
 }: AccountFolderGroupProps) {
-  const folder = useUiStore((state) => state.folder);
   const collapsed = useUiStore((state) => state.collapsed[`acct:${account.id}`] === true);
   const shut = grouped && collapsed;
-  const colorOf = useLabelColor();
+  const leaves = useFolderLeaves(account, mailboxes);
   const folders = useMemo(() => buildFolderTree(mailboxEntries(mailboxes)), [mailboxes]);
   const labelTree = useMemo(() => buildFolderTree(labelEntries(labels)), [labels]);
-  if (folders.length === 0 && labelTree.length === 0) {
+  const withFolders = keepsFolders(account, mailboxes);
+  if (!withFolders && labelTree.length === 0) {
     return null;
   }
-  const mailboxLeaf = (mailbox: Mailbox): TreeLeaf => ({
-    icon: <FolderIcon name="folder" />,
-    on: folder.kind === 'mailbox' && folder.mailboxId === mailbox.id,
-    count: mailbox.unreadCount,
-    title: mailbox.path,
-    onSelect: () => {
-      selectFolder({ kind: 'mailbox', mailboxId: mailbox.id, accountId: account.id });
-    },
-  });
-  const labelLeaf = (label: Label): TreeLeaf => ({
-    icon: <span className="lbl-dot" style={{ ['--d' as string]: colorOf(label) }} />,
-    on: folder.kind === 'label' && folder.labelId === label.id,
-    count: 0,
-    title: label.name,
-    onSelect: () => {
-      selectFolder({ kind: 'label', labelId: label.id });
-    },
-  });
   const Heading = grouped ? 'h6' : 'h5';
   return (
     <section className="ft-group" aria-label={grouped ? account.displayName : undefined}>
       {grouped ? <AccountHeader account={account} shut={shut} /> : null}
       {shut ? null : (
         <>
-          {folders.length === 0 ? null : <Heading>Priečinky</Heading>}
-          <FolderTreeRows nodes={folders} scope={`mbx:${account.id}`} leafOf={mailboxLeaf} />
+          {withFolders ? <FoldersHeading Heading={Heading} account={account} /> : null}
+          {leaves.creatingTop ? (
+            <CreateEditor accountId={account.id} parent={null} kind="folder" depth={0} />
+          ) : null}
+          <FolderTreeRows nodes={folders} scope={`mbx:${account.id}`} leafOf={leaves.mailboxLeaf} />
           {labelTree.length === 0 ? null : <Heading>Štítky</Heading>}
-          <FolderTreeRows nodes={labelTree} scope={`lbl:${account.id}`} leafOf={labelLeaf} />
+          <FolderTreeRows nodes={labelTree} scope={`lbl:${account.id}`} leafOf={leaves.labelLeaf} />
         </>
       )}
     </section>

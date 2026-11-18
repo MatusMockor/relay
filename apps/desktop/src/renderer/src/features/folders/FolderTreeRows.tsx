@@ -1,5 +1,5 @@
-import { FolderIcon, Icon } from '@relay/ui';
-import type { CSSProperties, ReactNode } from 'react';
+import { type AnchorRect, FolderIcon, Icon } from '@relay/ui';
+import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { toggleCollapsed, useUiStore } from '../../state/ui-store';
 import type { FolderTreeNode } from './folder-tree';
 
@@ -9,6 +9,9 @@ export interface TreeLeaf {
   readonly count: number;
   readonly title: string;
   readonly onSelect: () => void;
+  readonly onMenu?: (anchor: AnchorRect) => void;
+  readonly editor?: (depth: number) => ReactNode;
+  readonly childEditor?: (depth: number) => ReactNode;
 }
 
 interface FolderTreeRowsProps<Value> {
@@ -19,6 +22,13 @@ interface FolderTreeRowsProps<Value> {
 }
 
 const depthStyle = (depth: number): CSSProperties => ({ ['--depth' as string]: depth });
+
+const pointAt = (event: MouseEvent): AnchorRect => ({
+  left: event.clientX,
+  right: event.clientX,
+  top: event.clientY,
+  bottom: event.clientY,
+});
 
 function Toggle({
   name,
@@ -58,6 +68,13 @@ function Leaf({ name, leaf }: { readonly name: string; readonly leaf: TreeLeaf |
       title={leaf.title}
       aria-current={leaf.on ? 'page' : undefined}
       onClick={leaf.onSelect}
+      onContextMenu={(event) => {
+        if (leaf.onMenu === undefined) {
+          return;
+        }
+        event.preventDefault();
+        leaf.onMenu(pointAt(event));
+      }}
     >
       {leaf.icon}
       <span className="fl">{name}</span>
@@ -79,22 +96,28 @@ export function FolderTreeRows<Value>({
         const key = `${scope}:${node.key}`;
         const shut = collapsed[key] === true;
         const hasChildren = node.children.length > 0;
+        const leaf = node.value === null ? null : leafOf(node.value);
         return (
           <div key={key} className="ft-node">
-            <div className="ft-row" style={depthStyle(depth)}>
-              {hasChildren ? (
-                <Toggle
-                  name={node.name}
-                  collapsed={shut}
-                  onToggle={() => {
-                    toggleCollapsed(key);
-                  }}
-                />
-              ) : (
-                <span className="ft-tw" aria-hidden="true" />
-              )}
-              <Leaf name={node.name} leaf={node.value === null ? null : leafOf(node.value)} />
-            </div>
+            {leaf?.editor === undefined ? (
+              <div className="ft-row" style={depthStyle(depth)}>
+                {hasChildren ? (
+                  <Toggle
+                    name={node.name}
+                    collapsed={shut}
+                    onToggle={() => {
+                      toggleCollapsed(key);
+                    }}
+                  />
+                ) : (
+                  <span className="ft-tw" aria-hidden="true" />
+                )}
+                <Leaf name={node.name} leaf={leaf} />
+              </div>
+            ) : (
+              leaf.editor(depth)
+            )}
+            {leaf?.childEditor?.(depth + 1) ?? null}
             {hasChildren && !shut ? (
               <FolderTreeRows
                 nodes={node.children}

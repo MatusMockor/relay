@@ -13,11 +13,22 @@ const relabel = (server: FakeMailServer, from: string, to: string | null): void 
   });
 };
 
-export const createFakeMailbox = (server: FakeMailServer, name: string): RemoteMailbox => {
-  server.createdMailboxes.push(name);
+export const createFakeMailbox = (
+  server: FakeMailServer,
+  name: string,
+  parentPath?: string,
+): Promise<RemoteMailbox> => {
+  if (parentPath !== undefined && server.find(parentPath) === null) {
+    return missing(`Parent mailbox ${parentPath}`);
+  }
+  const path = parentPath === undefined ? name : `${parentPath}/${name}`;
+  server.createdMailboxes.push(path);
+  server.folderCommands.push(`CREATE ${path}`);
   const fallback = server.gmail ? 'label' : 'custom';
-  const existing = server.find(name);
-  return toRemote(existing ?? server.addMailbox(name, CREATED_ROLES.get(name) ?? fallback));
+  const existing = server.find(path);
+  return Promise.resolve(
+    toRemote(existing ?? server.addMailbox(path, CREATED_ROLES.get(path) ?? fallback)),
+  );
 };
 
 const within = (path: string, root: string): boolean =>
@@ -42,12 +53,15 @@ export const renameFakeMailbox = (
     return missing(`Mailbox ${path}`);
   }
   server.renamedMailboxes.push({ path, newPath });
+  server.folderCommands.push(`RENAME ${path} ${newPath}`);
   [...server.mailboxes.values()]
     .filter((mailbox) => within(mailbox.path, path))
     .forEach((mailbox) => {
       moveMailbox(server, mailbox, `${newPath}${mailbox.path.slice(path.length)}`);
     });
-  return Promise.resolve(toRemote(server.mailbox(newPath)));
+  const renamed = server.mailbox(newPath);
+  renamed.subscribed = true;
+  return Promise.resolve(toRemote(renamed));
 };
 
 export const deleteFakeMailbox = (server: FakeMailServer, path: string): Promise<void> => {
@@ -55,6 +69,7 @@ export const deleteFakeMailbox = (server: FakeMailServer, path: string): Promise
     return missing(`Mailbox ${path}`);
   }
   server.deletedMailboxes.push(path);
+  server.folderCommands.push(`DELETE ${path}`);
   server.removeMailbox(path);
   if (server.gmail) {
     relabel(server, path, null);

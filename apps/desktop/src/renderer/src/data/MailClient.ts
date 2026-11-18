@@ -9,6 +9,7 @@ import type {
   AutomationId,
   AutomationInput,
   ChecklistResponse,
+  CreateFolderBody,
   AiRunnerInfo,
   AiRunRequest,
   CreateAccountBody,
@@ -22,6 +23,7 @@ import type {
   LabelId,
   MailAccount,
   Mailbox,
+  MailboxId,
   MessageId,
   Draft,
   RealtimeEvent,
@@ -48,6 +50,7 @@ import type {
   UpdateChecklistItemBody,
   UpdateDraftBody,
   UpdateLabelBody,
+  UpdateFolderBody,
   UnsubscribeOptions,
   UnsubscribeUrl,
   UpdateTaskBody,
@@ -103,6 +106,12 @@ export interface AccountManager {
   syncNow(accountId?: AccountId): Promise<void>;
 }
 
+export interface FolderManager {
+  createFolder(accountId: AccountId, body: CreateFolderBody): Promise<Mailbox>;
+  updateFolder(mailboxId: MailboxId, patch: UpdateFolderBody): Promise<Mailbox>;
+  deleteFolder(mailboxId: MailboxId): Promise<void>;
+}
+
 export interface Composer {
   listDrafts(): Promise<Draft[]>;
   createDraft(content: CreateDraftInput): Promise<Draft>;
@@ -144,6 +153,7 @@ export interface AiAssistant {
 export interface MailClient
   extends ThreadReader,
     AccountManager,
+    FolderManager,
     Composer,
     Organizer,
     AiAssistant,

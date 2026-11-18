@@ -10,6 +10,7 @@ export * from './endpoints/calendar';
 export * from './endpoints/compose';
 export * from './endpoints/devices';
 export * from './endpoints/draft-attachments';
+export * from './endpoints/folders';
 export * from './endpoints/google-calendar';
 export * from './endpoints/health';
 export * from './endpoints/labels';

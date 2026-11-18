@@ -42,8 +42,11 @@ describe('mailbox management against a scripted Gmail IMAP server', () => {
     const renamed = await provider.renameMailbox('Projekty', 'Práca');
 
     expect(sent(stub, 'RENAME')).toEqual(['RENAME Projekty Pr&AOE-ca']);
-    expect(sent(stub, 'SUBSCRIBE')).toEqual(['SUBSCRIBE Pr&AOE-ca']);
-    expect(sent(stub, 'UNSUBSCRIBE')).toEqual(['UNSUBSCRIBE Projekty']);
+    expect(sent(stub, 'SUBSCRIBE')).toEqual(['SUBSCRIBE Pr&AOE-ca', 'SUBSCRIBE Pr&AOE-ca/Alfa']);
+    expect(sent(stub, 'UNSUBSCRIBE')).toEqual([
+      'UNSUBSCRIBE Projekty',
+      'UNSUBSCRIBE Projekty/Alfa',
+    ]);
     expect(renamed).toMatchObject({
       path: 'Práca',
       name: 'Práca',
@@ -53,12 +56,23 @@ describe('mailbox management against a scripted Gmail IMAP server', () => {
     expect(stub.mailboxes.map((mailbox) => mailbox.path)).toContain('Pr&AOE-ca/Alfa');
   });
 
+  it('creates a nested label', async () => {
+    await start();
+
+    const created = await provider.createMailbox('Beta', 'Projekty');
+
+    expect(created).toMatchObject({ path: 'Projekty/Beta', role: 'label' });
+    expect(sent(stub, 'CREATE')).toEqual(['CREATE Projekty/Beta']);
+    expect(stub.mailboxes.map((mailbox) => mailbox.path)).toContain('Projekty/Beta');
+  });
+
   it('deletes a label mailbox', async () => {
     await start();
 
     await provider.deleteMailbox('Faktúry');
 
     expect(sent(stub, 'DELETE')).toEqual(['DELETE Fakt&APo-ry']);
+    expect(sent(stub, 'UNSUBSCRIBE')).toEqual(['UNSUBSCRIBE Fakt&APo-ry']);
     expect(stub.mailboxes.map((mailbox) => mailbox.path)).not.toContain('Fakt&APo-ry');
   });
 

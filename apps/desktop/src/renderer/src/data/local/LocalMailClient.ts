@@ -50,6 +50,11 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
       attachmentFileOf(await unwrap(bridge.invoke('local.attachments.content', { attachmentId }))),
     listAccounts: () => unwrap(bridge.invoke('local.accounts.list')),
     listMailboxes: (accountId) => unwrap(bridge.invoke('local.accounts.mailboxes', { accountId })),
+    createFolder: (accountId, body) =>
+      unwrap(bridge.invoke('local.mailboxes.create', { accountId, body })),
+    updateFolder: (mailboxId, patch) =>
+      unwrap(bridge.invoke('local.mailboxes.update', { mailboxId, patch })),
+    deleteFolder: (mailboxId) => ignore(bridge.invoke('local.mailboxes.delete', { mailboxId })),
     createAccount: (body) => unwrap(bridge.invoke('local.accounts.create', body)),
     updateAccount: (accountId, patch) =>
       unwrap(bridge.invoke('local.accounts.update', { accountId, patch })),

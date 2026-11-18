@@ -68,6 +68,24 @@ export class MemoryMailboxRepository implements MailboxRepository {
     return Promise.resolve();
   }
 
+  relocateTree(accountId: AccountId, fromPath: string, target: MailboxLocation): Promise<void> {
+    const prefix = target.delimiter === null ? null : fromPath + target.delimiter;
+    this.all()
+      .filter((mailbox) => mailbox.accountId === accountId)
+      .forEach((mailbox) => {
+        if (mailbox.path === fromPath) {
+          this.db.tables.mailboxes.set(mailbox.id, { ...mailbox, ...target });
+          return;
+        }
+        if (prefix === null || !mailbox.path.startsWith(prefix)) {
+          return;
+        }
+        const path = target.path + mailbox.path.slice(fromPath.length);
+        this.db.tables.mailboxes.set(mailbox.id, { ...mailbox, path });
+      });
+    return Promise.resolve();
+  }
+
   saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void> {
     const mailbox = this.db.tables.mailboxes.get(mailboxId);
     if (mailbox !== undefined) {

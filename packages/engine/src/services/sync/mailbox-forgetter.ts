@@ -15,7 +15,7 @@ export interface MailboxForgetterDeps {
 export class MailboxForgetter {
   constructor(private readonly deps: MailboxForgetterDeps) {}
 
-  async forget(context: SyncContext, mailbox: Mailbox): Promise<void> {
+  async forget(context: Pick<SyncContext, 'journal'>, mailbox: Mailbox): Promise<void> {
     const uids = await this.deps.messages.listUids(mailbox.id);
     await this.deps.unitOfWork.run(async (repositories) => {
       const threadIds = await repositories.messages.deleteByUids(mailbox.id, uids);

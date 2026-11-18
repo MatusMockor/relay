@@ -55,6 +55,11 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   downloadAttachment: (id) => http.download(api.attachments.content, { params: { id } }),
   listAccounts: () => http.call(api.accounts.list, {}),
   listMailboxes: (id) => http.call(api.accounts.mailboxes, { params: { id } }),
+  createFolder: (id, body) => http.call(api.folders.create, { params: { id }, body }),
+  updateFolder: (id, body) => http.call(api.folders.update, { params: { id }, body }),
+  deleteFolder: async (id) => {
+    await http.call(api.folders.remove, { params: { id } });
+  },
   createAccount: (body) => http.call(api.accounts.create, { body }),
   updateAccount: (id: AccountId, body) => http.call(api.accounts.update, { params: { id }, body }),
   removeAccount: async (id) => {

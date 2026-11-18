@@ -14,10 +14,14 @@ import type {
 } from '../model/remote-mail';
 import type { MessageFlags } from '@relay/shared/domain';
 
+export interface UidListOptions {
+  readonly fresh?: boolean;
+}
+
 export interface MailProvider {
   connect(): Promise<void>;
   listMailboxes(): Promise<RemoteMailbox[]>;
-  createMailbox(name: string): Promise<RemoteMailbox>;
+  createMailbox(name: string, parentPath?: string): Promise<RemoteMailbox>;
   renameMailbox(path: string, newPath: string): Promise<RemoteMailbox>;
   deleteMailbox(path: string): Promise<void>;
   status(mailboxPath: string): Promise<RemoteMailboxStatus>;
@@ -37,7 +41,7 @@ export interface MailProvider {
     sinceModseq: string,
     uids?: readonly number[],
   ): AsyncIterable<RemoteFlagChange>;
-  listUids(mailboxPath: string): Promise<number[]>;
+  listUids(mailboxPath: string, options?: UidListOptions): Promise<number[]>;
   searchRelated(
     mailboxPath: string,
     uidValidity: number,
