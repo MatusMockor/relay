@@ -1,5 +1,6 @@
 import { ConflictError, ForbiddenError } from '@relay/engine';
 import type { AiJob, Split, UserId } from '@relay/shared/domain';
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { at, buildUser, defaultSettings, newId, seedAccount, seedThread } from './support/fixtures';
 import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
@@ -17,6 +18,23 @@ describe('PgSettingsRepository', () => {
     await expect(context.repositories.settings.save(user.id, changed)).resolves.toEqual(changed);
     await expect(context.repositories.settings.find(user.id)).resolves.toEqual(changed);
   });
+
+  it('fills the Jira defaults into settings stored before they existed', async () => {
+    const user = await context.repositories.users.create(buildUser(), 'hash');
+    const legacy = { notifications: 'urgent', density: 'compact', ai: defaultSettings().ai };
+    await context.db.execute(
+      sql`insert into user_settings (user_id, settings) values (${user.id}, ${JSON.stringify(legacy)}::jsonb)`,
+    );
+
+    const stored = await context.repositories.settings.find(user.id);
+
+    expect(stored).toEqual({ ...legacy, jira: { taskEvents: ['mention', 'assigned'] } });
+    const next = { ...defaultSettings(), jira: { taskEvents: ['comment' as const] } };
+    await expect(
+      context.repositories.settings.saveIfUnchanged(user.id, stored, next),
+    ).resolves.toBe(true);
+    await expect(context.repositories.settings.find(user.id)).resolves.toEqual(next);
+  });
 });
 
 describe('PgSplitRepository', () => {
@@ -30,6 +48,7 @@ describe('PgSplitRepository', () => {
     order: 0,
     rules: [{ type: 'subjectRegex', pattern: '^\\[JIRA\\]', caseSensitive: false }],
     exclusive: false,
+    hideTasks: false,
     ...overrides,
   });
 

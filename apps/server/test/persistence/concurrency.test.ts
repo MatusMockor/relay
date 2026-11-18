@@ -50,6 +50,7 @@ describe('concurrent writes', () => {
       order: 0,
       rules: [{ type: 'fromDomain', domain: `${name}.sk` }],
       exclusive: false,
+      hideTasks: false,
     });
     for (let round = 0; round < ROUNDS; round += 1) {
       const left = [split(user.id, 'a')];

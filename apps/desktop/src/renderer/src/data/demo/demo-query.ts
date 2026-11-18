@@ -1,10 +1,18 @@
-import type { ThreadPage, ThreadSummary } from '@relay/shared';
+import type { SplitId, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import { foldText } from '../../lib/text';
 import type { ThreadListParams } from '../MailClient';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 const ownEmails = (state: DemoState): Set<string> =>
   new Set(state.accounts.map((account) => account.email));
+
+const hasOpenTask = (state: DemoState, threadId: ThreadId): boolean =>
+  state.tasks.some((task) => task.threadId === threadId && task.state !== 'done');
+
+const inSplit = (state: DemoState, thread: ThreadSummary, splitId: SplitId): boolean => {
+  const hidesTasks = state.splits.some((split) => split.id === splitId && split.hideTasks);
+  return thread.splitIds.includes(splitId) && !(hidesTasks && hasOpenTask(state, thread.id));
+};
 
 const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListParams): boolean => {
   const thread = record.summary;
@@ -17,13 +25,10 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
     }
     return params.splitId === undefined
       ? thread.splitIds.length === 0
-      : thread.splitIds.includes(params.splitId);
+      : inSplit(state, thread, params.splitId);
   }
   if (params.view === 'tasks') {
-    return (
-      thread.state === 'inbox' &&
-      state.tasks.some((task) => task.threadId === thread.id && task.state !== 'done')
-    );
+    return thread.state === 'inbox' && hasOpenTask(state, thread.id);
   }
   if (params.view === 'reminders') {
     return thread.state === 'reminder';

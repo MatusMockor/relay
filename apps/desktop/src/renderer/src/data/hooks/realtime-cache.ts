@@ -37,6 +37,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   }
   if (event.type === 'splits.updated') {
     client.setQueryData(queryKeys.splits(), event.data.splits);
+    invalidate(client, queryKeys.threadLists());
     return;
   }
   if (event.type === 'automations.updated') {
@@ -49,6 +50,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   }
   if (event.type === 'task.upserted') {
     invalidate(client, queryKeys.taskLists());
+    invalidate(client, queryKeys.threadLists());
     return;
   }
   if (event.type === 'draft.upserted' || event.type === 'draft.removed') {

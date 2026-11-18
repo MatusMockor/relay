@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import {
   type RealtimeEvent,
+  TaskIdSchema,
   ThreadIdSchema,
   type ThreadPage,
   type ThreadSummary,
+  UserIdSchema,
 } from '@relay/shared';
 import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query';
 import { cleanup, renderHook } from '@testing-library/react';
@@ -41,6 +43,31 @@ const upserted = (thread: ThreadSummary): RealtimeEvent => ({
   at: '2026-11-15T08:00:00.000Z',
   data: { thread },
 });
+
+const taskUpserted: RealtimeEvent = {
+  type: 'task.upserted',
+  at: '2026-11-15T08:00:00.000Z',
+  data: {
+    task: {
+      id: TaskIdSchema.parse('task-1'),
+      userId: UserIdSchema.parse('user-1'),
+      threadId: THREAD_ID,
+      jiraKey: null,
+      title: 'Pozrieť texty',
+      aiWhat: null,
+      state: 'open',
+      source: 'manual',
+      createdAt: '2026-11-15T08:00:00.000Z',
+      updatedAt: '2026-11-15T08:00:00.000Z',
+    },
+  },
+};
+
+const splitsUpdated: RealtimeEvent = {
+  type: 'splits.updated',
+  at: '2026-11-15T08:00:00.000Z',
+  data: { splits: [] },
+};
 
 describe('realtime cache sync', () => {
   let server: ContractServer;
@@ -131,5 +158,24 @@ describe('realtime cache sync', () => {
     await vi.advanceTimersByTimeAsync(INVALIDATION_WINDOW_MS);
     unsubscribe();
     expect(fetches).toBe(2);
+  });
+
+  it.each([
+    ['task.upserted', taskUpserted],
+    ['splits.updated', splitsUpdated],
+  ])('refetches thread lists after %s', async (_name, event) => {
+    let fetches = 0;
+    const observer = new QueryObserver<ThreadPage>(queryClient, {
+      queryKey: queryKeys.threadList({ view: 'inbox' }),
+      queryFn: () => {
+        fetches += 1;
+        return Promise.resolve({ items: [], nextCursor: null });
+      },
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await waitUntil(() => fetches === 1);
+    applyRealtimeEvent(queryClient, event);
+    await waitUntil(() => fetches === 2);
+    unsubscribe();
   });
 });

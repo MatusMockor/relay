@@ -81,6 +81,7 @@ describe('thread refresh racing a concurrent thread write (Postgres)', () => {
       order: 0,
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
+      hideTasks: false,
     };
     await context.repositories.splits.replaceAll(seeded.user.id, [split]);
 

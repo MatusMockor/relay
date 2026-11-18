@@ -1,0 +1,39 @@
+.win-drag,
+.fold-bar {
+  display: none;
+}
+.mac-inset .win-drag {
+  display: block;
+  flex: none;
+  height: 40px;
+  -webkit-app-region: drag;
+}
+.mac-inset .fold {
+  padding-top: 0;
+}
+.mac-inset .fold-bar {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  height: 60px;
+  margin: 0 -10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line-soft);
+  -webkit-app-region: drag;
+}
+.mac-inset .acct {
+  margin-top: 0;
+}
+.mac-inset .a-top,
+.mac-inset .stabs {
+  -webkit-app-region: drag;
+}
+.mac-inset .a-top:has(> .lt-btn) {
+  padding-left: 80px;
+}
+.mac-inset :is(.a-top, .stabs) :is(button, input, label, .a-tabs),
+.mac-inset :is(.ov, .pop, .rz) {
+  -webkit-app-region: no-drag;
+}

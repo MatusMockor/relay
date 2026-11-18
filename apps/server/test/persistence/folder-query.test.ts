@@ -49,6 +49,7 @@ describe('PgThreadRepository.queryFolder', () => {
       order: 0,
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
+      hideTasks: false,
     };
     await context.repositories.splits.replaceAll(work.user.id, [split]);
     label = { id: newId('label'), accountId: work.account.id, name: 'VIP', color: null };

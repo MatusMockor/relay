@@ -3,6 +3,7 @@ import { useThreadScan, useThreadScans } from '../../data/hooks/thread-scan';
 import { useSplits } from '../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { newestFirst } from './contact-model';
+import { inboxThreadsOf, senderInboxScans, uniqueThreads } from './sender-inbox-scans';
 
 export type ContactMatcher = (item: ThreadSummary, own: ReadonlySet<string>) => boolean;
 
@@ -16,28 +17,16 @@ export const useOwnAddresses = (): ReadonlySet<string> => {
   return new Set(model.accounts.map((account) => account.email.toLowerCase()));
 };
 
-const useExclusiveSplitInboxes = (): ThreadSummary[] => {
-  const splits = (useSplits().data ?? []).filter((split) => split.exclusive);
-  const results = useThreadScans(
-    splits.map((split) => ({ view: 'inbox' as const, splitId: split.id })),
-  );
-  return results.flatMap((result) => result.data?.items ?? []);
+const useInboxThreads = (): ThreadSummary[] => {
+  const results = useThreadScans(senderInboxScans(useSplits().data ?? []));
+  return inboxThreadsOf(results.flatMap((result) => result.data?.items ?? []));
 };
-
-const unique = (threads: readonly ThreadSummary[]): ThreadSummary[] => [
-  ...new Map(threads.map((thread) => [thread.id, thread])).values(),
-];
 
 export const useContactThreads = (matches: ContactMatcher): ContactThreads => {
   const own = useOwnAddresses();
-  const inbox = useThreadScan({ view: 'inbox' });
+  const inbox = useInboxThreads();
   const done = useThreadScan({ view: 'done' });
-  const splitInboxes = useExclusiveSplitInboxes();
-  const threads = unique([
-    ...(inbox.data?.items ?? []),
-    ...splitInboxes,
-    ...(done.data?.items ?? []),
-  ])
+  const threads = uniqueThreads([...inbox, ...(done.data?.items ?? [])])
     .filter((item) => matches(item, own))
     .sort(newestFirst);
   return { own, threads };

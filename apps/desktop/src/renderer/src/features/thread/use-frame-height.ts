@@ -1,4 +1,5 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { createFrameHeightSettler } from './frame-height-settler';
 import { measureMailFrame } from './measure-mail-frame';
 
 const INITIAL_HEIGHT = 160;
@@ -22,8 +23,9 @@ export function useFrameHeight(ref: RefObject<HTMLIFrameElement | null>) {
     if (frame === null || document === null || document === undefined) {
       return;
     }
+    const settle = createFrameHeightSettler();
     const measure = () => {
-      setHeight(measureMailFrame(frame, document));
+      setHeight(settle(frame.clientWidth, measureMailFrame(frame, document)));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') {

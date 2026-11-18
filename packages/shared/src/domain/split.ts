@@ -47,5 +47,6 @@ export const SplitSchema = z.object({
   order: z.number().int().nonnegative(),
   rules: z.array(SplitRuleSchema).min(1),
   exclusive: z.boolean(),
+  hideTasks: z.boolean().default(false),
 });
 export type Split = z.infer<typeof SplitSchema>;

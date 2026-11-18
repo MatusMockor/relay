@@ -29,6 +29,7 @@ describe('domain schemas', () => {
       name: 'Jira',
       order: 0,
       exclusive: true,
+      hideTasks: false,
       rules: [
         { type: 'fromDomain', domain: 'atlassian.net' },
         { type: 'fromAddress', address: 'jira@firma.sk' },
@@ -52,6 +53,33 @@ describe('domain schemas', () => {
   it('accepts partial settings patches', () => {
     const patch = UserSettingsPatchSchema.parse({ ai: { features: { jiraTriage: false } } });
     expect(patch).toEqual({ ai: { features: { jiraTriage: false } } });
+    expect(UserSettingsPatchSchema.parse({ jira: { taskEvents: ['comment'] } })).toEqual({
+      jira: { taskEvents: ['comment'] },
+    });
+  });
+
+  it('fills defaults for settings and splits stored before Jira routing existed', () => {
+    const legacy = { notifications: 'off', density: 'normal', ai: DEFAULT_USER_SETTINGS.ai };
+    expect(UserSettingsSchema.parse(legacy)).toEqual(DEFAULT_USER_SETTINGS);
+    expect(DEFAULT_USER_SETTINGS.jira.taskEvents).toEqual(['mention', 'assigned']);
+    const split = SplitSchema.parse({
+      id: 'spl_1',
+      userId: 'usr_1',
+      accountId: null,
+      name: 'Jira',
+      order: 0,
+      exclusive: true,
+      rules: [{ type: 'jira', projectKeys: [] }],
+    });
+    expect(split.hideTasks).toBe(false);
+  });
+
+  it('rejects unknown or repeated Jira event kinds', () => {
+    const parse = (taskEvents: unknown) =>
+      UserSettingsPatchSchema.safeParse({ jira: { taskEvents } }).success;
+    expect(parse(['mention', 'mention'])).toBe(false);
+    expect(parse(['sprint'])).toBe(false);
+    expect(parse([])).toBe(true);
   });
 
   it('rejects empty ids', () => {
