@@ -8,6 +8,7 @@ import type { MailboxEvents } from '../sync/mailbox-events';
 import type { FolderLookup, FolderScope } from './folder-lookup';
 import type { LabelRepository } from '../../ports/label-repository';
 import { upsertGmailLabel } from '../labels/gmail-label-record';
+import { assertGmailLabelPaths } from './gmail-label-paths';
 import { onMailServer } from './mail-server-call';
 import { accountDelimiter, assertFreePath, childPath, validFolderName } from './mailbox-path';
 
@@ -26,12 +27,17 @@ export class FolderCreator {
   async create(scope: FolderScope, rawName: string, parentId: MailboxId | null): Promise<Mailbox> {
     const parent = parentId === null ? null : await this.deps.lookup.parent(scope, parentId);
     const stored = await this.deps.mailboxes.listForSync(scope.account.id);
+    const gmailLabels = await this.deps.labels.list(scope.userId, scope.account.id);
     const role = parent?.role ?? null;
     const created = await onMailServer('create', role, () =>
       this.deps.sessions.with(scope.account, async (provider) => {
         const listed = [...stored, ...(await provider.listMailboxes())];
         const name = validFolderName(rawName, parent?.delimiter ?? accountDelimiter(listed));
-        assertFreePath(childPath(name, parent, listed), listed);
+        const path = childPath(name, parent, listed);
+        assertFreePath(path, listed);
+        if (listed.some((mailbox) => mailbox.role === 'label')) {
+          assertGmailLabelPaths([path], gmailLabels);
+        }
         const remote = await provider.createMailbox(name, parent?.path);
         return this.store(scope, provider, remote);
       }),

@@ -39,7 +39,7 @@ export const createFolderService = (
   return new FolderService({
     lookup,
     creator: new FolderCreator({ mailboxes, labels, lookup, sessions, events, ids }),
-    renamer: new FolderRenamer({ mailboxes, unitOfWork, lookup, sessions, events }),
+    renamer: new FolderRenamer({ mailboxes, labels, unitOfWork, lookup, sessions, events }),
     remover: new FolderRemover({
       mailboxes,
       messages,

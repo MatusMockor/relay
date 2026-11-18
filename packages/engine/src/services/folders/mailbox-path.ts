@@ -52,6 +52,9 @@ export const validFolderName = (raw: string, delimiter: string | null): string =
   if (name === '') {
     throw new ValidationError('Názov priečinka nemôže byť prázdny.');
   }
+  if (/\p{Cc}/u.test(name)) {
+    throw new ValidationError('Názov priečinka nesmie obsahovať riadiace znaky.');
+  }
   const forbidden = [...WILDCARDS, ...(delimiter === null ? [] : [delimiter])];
   if (forbidden.some((character) => name.includes(character))) {
     const listed = forbidden.map((character) => `„${character}“`).join(', ');

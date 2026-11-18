@@ -86,4 +86,19 @@ describe('FolderService on Gmail labels', () => {
       }),
     ).rejects.toThrow('vyhradený');
   });
+
+  it('applies the Gmail label name rules to label folders', async () => {
+    const engine = createTestEngine();
+    const seeded = await gmailFolders(engine);
+    const parent = await storedFolder(engine, seeded, 'Klienti');
+    const create = (name: string) =>
+      engine.services.folders.create(USER_ID, seeded.account.id, { name, parentId: parent.id });
+
+    await expect(create('a\\b')).rejects.toThrow('nesmie začínať');
+    await expect(create('Nový\u0007')).rejects.toThrow('riadiace znaky');
+    await expect(
+      engine.services.folders.update(USER_ID, parent.id, { name: 'x'.repeat(99) }),
+    ).rejects.toThrow('1 až 100 znakov');
+    expect(seeded.server.folderCommands).toEqual([]);
+  });
 });

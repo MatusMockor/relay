@@ -1,11 +1,13 @@
 import type { Mailbox, MailboxId } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { RemoteMailbox } from '../../model/remote-mail';
+import type { LabelRepository } from '../../ports/label-repository';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { MailboxEvents } from '../sync/mailbox-events';
 import { assertEditableTree } from './folder-guard';
+import { assertGmailLabelPaths } from './gmail-label-paths';
 import type { EditableFolder, FolderLookup } from './folder-lookup';
 import { relocateLabelTree } from '../labels/gmail-label-tree';
 import { onMailServer } from './mail-server-call';
@@ -27,6 +29,7 @@ export interface FolderChange {
 
 export interface FolderRenamerDeps {
   readonly mailboxes: MailboxRepository;
+  readonly labels: LabelRepository;
   readonly unitOfWork: UnitOfWork;
   readonly lookup: FolderLookup;
   readonly sessions: MailProviderSessions;
@@ -51,6 +54,9 @@ export class FolderRenamer {
     if (target === mailbox.path) {
       return mailbox;
     }
+    if (mailbox.role === 'label') {
+      await this.assertLabelTree(folder, stored, target);
+    }
     const remote = await onMailServer('rename', mailbox.role, () =>
       this.deps.sessions.with(folder.account, async (provider) => {
         const listed = [...stored, ...(await provider.listMailboxes())];
@@ -61,6 +67,25 @@ export class FolderRenamer {
     );
     await this.relocate(folder, remote);
     return this.reloaded(mailbox.id);
+  }
+
+  private async assertLabelTree(
+    folder: EditableFolder,
+    stored: readonly Mailbox[],
+    target: string,
+  ): Promise<void> {
+    const { mailbox } = folder;
+    const moved = stored
+      .filter((candidate) => isInTree(mailbox, candidate.path))
+      .map((candidate) => candidate.path);
+    const labels = await this.deps.labels.list(folder.userId, folder.account.id);
+    const others = labels.filter(
+      (label) => label.kind !== 'gmail' || !moved.includes(label.remoteName),
+    );
+    assertGmailLabelPaths(
+      moved.map((path) => `${target}${path.slice(mailbox.path.length)}`),
+      others,
+    );
   }
 
   private async parent(
