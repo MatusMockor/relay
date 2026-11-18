@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AiRunnerKindSchema, AiRunnerLocationSchema } from './ai';
 import { AccountIdSchema } from './ids';
+import { type JiraEventKind, JiraTaskEventsSchema } from './jira-event';
 import { ServerUrlSchema } from './primitives';
 
 export const NotificationModeSchema = z.enum(['off', 'digest', 'urgent']);
@@ -24,10 +25,20 @@ export const AiSettingsSchema = z.object({
 });
 export type AiSettings = z.infer<typeof AiSettingsSchema>;
 
+export const JiraSettingsSchema = z.object({
+  taskEvents: JiraTaskEventsSchema,
+});
+export type JiraSettings = z.infer<typeof JiraSettingsSchema>;
+
+export const DEFAULT_JIRA_TASK_EVENTS: readonly JiraEventKind[] = ['mention', 'assigned'];
+
+const defaultJiraSettings = (): JiraSettings => ({ taskEvents: [...DEFAULT_JIRA_TASK_EVENTS] });
+
 export const UserSettingsSchema = z.object({
   notifications: NotificationModeSchema,
   density: DensitySchema,
   ai: AiSettingsSchema,
+  jira: JiraSettingsSchema.default(defaultJiraSettings),
 });
 export type UserSettings = z.infer<typeof UserSettingsSchema>;
 
@@ -41,6 +52,7 @@ export const UserSettingsPatchSchema = z.object({
       features: AiFeaturesSchema.partial().optional(),
     })
     .optional(),
+  jira: JiraSettingsSchema.partial().optional(),
 });
 export type UserSettingsPatch = z.infer<typeof UserSettingsPatchSchema>;
 
@@ -52,6 +64,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     defaultRunner: 'claude',
     features: { oneLiners: true, summaries: true, replySuggestions: true, jiraTriage: true },
   },
+  jira: defaultJiraSettings(),
 };
 
 export const SavedServerSchema = z.object({

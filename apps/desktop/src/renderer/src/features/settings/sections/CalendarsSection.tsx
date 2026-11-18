@@ -12,6 +12,7 @@ import { CalendarFeedForm } from './CalendarFeedForm';
 import { FailedInvitations } from './FailedInvitations';
 import { GoogleCalendarPanel } from './google/GoogleCalendarPanel';
 import { nextColor } from './calendar-colors';
+import { SectionHeader } from '../SectionHeader';
 
 const describe = (subscription: CalendarSubscription): string => {
   if (subscription.status === 'error') {
@@ -38,7 +39,7 @@ function SubscriptionRow({ subscription }: { readonly subscription: CalendarSubs
       });
   };
   return (
-    <SettingRow title={subscription.name} description={describe(subscription)} scope="synced">
+    <SettingRow title={subscription.name} description={describe(subscription)}>
       <button
         type="button"
         className="cal-swatch on"
@@ -91,8 +92,9 @@ export function CalendarsSection() {
   const subscriptions = useCalendarSubscriptions();
   return (
     <>
-      <h2>Kalendáre</h2>
-      <p className="lead">Pozvánky z mailov sa do kalendára pridávajú samé.</p>
+      <SectionHeader title="Kalendáre">
+        Pozvánky z mailov sa do kalendára pridávajú samé.
+      </SectionHeader>
       <FailedInvitations />
       {demo ? null : <GoogleCalendarPanel />}
       <h3>Kalendáre cez iCal adresu</h3>

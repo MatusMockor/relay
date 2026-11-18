@@ -20,6 +20,8 @@ import {
 import type { TestSocket } from './support/ws-server';
 import { serverDetail, serverThread } from './support/thread-fixtures';
 
+const SUMMARY_ASK = /^(Zhrnúť vlákno|Podrobné zhrnutie)$/;
+
 const REPLIES: ReplySuggestion[] = [
   { id: 'reply-1', label: 'Podpíšem', body: 'Podpíšem do piatku.' },
   { id: 'reply-2', label: 'Mám otázku', body: 'Mám jednu otázku.' },
@@ -85,7 +87,7 @@ describe('thread AI in synced mode', () => {
 
     await openFirstThread(server, [thread]);
 
-    expect(await screen.findByRole('button', { name: 'Zhrnúť vlákno' })).toBeDefined();
+    expect(await screen.findByRole('button', { name: SUMMARY_ASK })).toBeDefined();
     await waitFor(() => {
       expect(requestCount(server, 'threads.prepareAi')).toBe(1);
     });
@@ -143,7 +145,7 @@ describe('thread AI in synced mode', () => {
 
     const row = within(list).getAllByRole('option')[0] ?? document.body;
     expect(within(row).getByText('Peter Novák')).toBeDefined();
-    expect(within(row).getByText('Jira')).toBeDefined();
+    expect(within(row).getByTitle('Cez Jira').textContent).toBe('Peter Novák');
     expect(within(row).getByText('Editor stráca obrázky')).toBeDefined();
     expect(within(row).queryByText(/\[JIRA\]/)).toBeNull();
     expect(await screen.findByRole('heading', { name: 'Editor stráca obrázky' })).toBeDefined();

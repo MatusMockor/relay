@@ -1,0 +1,29 @@
+@container side (max-width: 300px) {
+  .stabs {
+    padding: 12px 10px;
+    gap: 2px;
+  }
+  .stabs .stab {
+    padding: 0 8px;
+    gap: 5px;
+  }
+  .sbody {
+    padding: 20px 16px;
+  }
+  .chat-log {
+    padding: 14px 16px 12px;
+  }
+  .chat-in {
+    margin: 0 16px 12px;
+  }
+  .chat-ctx,
+  .chat-ex {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@container side (max-width: 275px) {
+  .stab svg:not(.spark) {
+    display: none;
+  }
+}

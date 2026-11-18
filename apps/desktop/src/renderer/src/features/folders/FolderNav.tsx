@@ -3,18 +3,9 @@ import { FolderIcon } from '@relay/ui';
 import { type Folder, NAV_VIEWS, VIEW_META } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { selectFolder } from '../mail/navigation';
+import { folderIconOf } from './folder-icons';
+import { useNameColors } from '../colors/use-name-colors';
 import { useFolderCounts } from './use-folder-counts';
-
-const ICONS = {
-  inbox: 'inbox',
-  task: 'task',
-  clock: 'clock',
-  check: 'check',
-  send: 'send',
-  file: 'file',
-  calendar: 'calendar',
-  trash: 'trash',
-} as const;
 
 const isOn = (folder: Folder, view: FolderView): boolean => {
   if (view === 'inbox') {
@@ -35,6 +26,7 @@ export function FolderNav({
 }) {
   const folder = useUiStore((state) => state.folder);
   const counts = useFolderCounts();
+  const colors = useNameColors();
   return (
     <>
       {NAV_VIEWS.filter((view) => view !== 'tasks' || showTasks).map((view) => {
@@ -51,7 +43,7 @@ export function FolderNav({
               selectFolder(folderFor(view));
             }}
           >
-            <FolderIcon name={ICONS[meta.icon]} />
+            <FolderIcon name={folderIconOf(view)} />
             <span className="fl">{meta.label}</span>
             {count > 0 ? <span className="n">{count}</span> : null}
           </button>
@@ -67,7 +59,7 @@ export function FolderNav({
             selectFolder({ kind: 'label', labelId: label.id });
           }}
         >
-          <span className="lbl-dot" style={{ ['--d' as string]: label.color ?? 'var(--accent)' }} />
+          <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label.name) }} />
           <span className="fl">{label.name}</span>
         </button>
       ))}

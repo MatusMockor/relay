@@ -10,9 +10,11 @@ export interface MiniRow {
 export function MiniSection({
   title,
   rows,
+  stacked = false,
 }: {
   readonly title: string;
   readonly rows: readonly MiniRow[];
+  readonly stacked?: boolean;
 }) {
   if (rows.length === 0) {
     return null;
@@ -20,7 +22,7 @@ export function MiniSection({
   return (
     <div className="sec">
       <h4>{title}</h4>
-      <div className="mini">
+      <div className={stacked ? 'mini stack' : 'mini'}>
         {rows.map((row) =>
           row.onClick === undefined ? (
             <div key={row.key}>

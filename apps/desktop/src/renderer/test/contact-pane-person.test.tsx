@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cloneThread,
   demoTask,
+  sectionOf,
   sectionRows,
   seededClient,
   showContactOf,
@@ -43,15 +44,19 @@ describe('contact pane for a person', () => {
       expect(within(sidePane()).getByRole('heading', { level: 3 }).textContent).toBe('Lucia Hrubá');
     });
     await waitFor(() => {
-      expect(within(sidePane()).getByText(/^lucia\.hruba@firma\.sk · /).textContent).toBe(
-        'lucia.hruba@firma.sk · 2 konverzácie',
-      );
+      expect(within(sidePane()).getByText('lucia.hruba@firma.sk')).toBeDefined();
+      expect(within(sidePane()).getByText('2 konverzácie')).toBeDefined();
     });
     expect(within(sidePane()).queryByRole('heading', { name: 'Kontakt' })).toBeNull();
     expect(within(sidePane()).getByRole('button', { name: /Napísať/ })).toBeDefined();
     expect(within(sidePane()).getByRole('button', { name: /Opýtať sa AI/ })).toBeDefined();
     await waitFor(() => {
-      expect(sectionRows('Otvorené tasky')).toEqual(['Úloha newest', 'Úloha newer', 'Úloha older']);
+      const tasks = sectionOf('Otvorené úlohy');
+      expect(within(tasks).getAllByRole('button')).toEqual(
+        ['Úloha newest', 'Úloha newer', 'Úloha older'].map((name) =>
+          within(tasks).getByRole('button', { name: new RegExp(`^${name}`) }),
+        ),
+      );
     });
     expect(sectionRows('Posledné konverzácie')).toEqual([ONBOARDING]);
 
@@ -77,7 +82,7 @@ describe('contact pane for a person', () => {
     await waitFor(() => {
       expect(sectionRows('Posledné konverzácie')).toEqual([ONBOARDING]);
     });
-    expect(within(sidePane()).queryByRole('heading', { name: 'Otvorené tasky' })).toBeNull();
+    expect(within(sidePane()).queryByRole('heading', { name: 'Otvorené úlohy' })).toBeNull();
   });
 
   it('follows the thread list cursor to find older conversations with the contact', async () => {

@@ -26,9 +26,9 @@ button.ev:focus-visible {
   align-items: center;
   padding: 0 8px;
   color: var(--accent);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--w-semibold);
 }
 .now span {
   text-align: right;
@@ -51,7 +51,7 @@ button.ev:focus-visible {
 }
 .cal-foot {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   margin: 4px 0 0;
 }
 .link {
@@ -79,7 +79,7 @@ button.ev:focus-visible {
   padding: 12px 14px;
   display: grid;
   gap: 3px;
-  font-size: 13.5px;
+  font-size: var(--fs-base);
 }
 .inv.cancelled {
   border-left-color: var(--bad);
@@ -93,15 +93,15 @@ button.ev:focus-visible {
   align-items: center;
   gap: 6px;
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--w-semibold);
 }
 .inv.cancelled .h {
   color: var(--bad);
 }
 .inv-t {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--w-semibold);
   color: var(--fg);
 }
 .inv-l {
@@ -109,11 +109,11 @@ button.ev:focus-visible {
 }
 .inv-l.muted {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .inv-warn {
   color: var(--warn);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .inv-acts {
   display: flex;
@@ -153,6 +153,6 @@ button.ev:focus-visible {
 }
 .cal-err {
   color: var(--bad);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   margin: 0;
 }

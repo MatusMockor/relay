@@ -6,13 +6,15 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { TaskChanges, TaskRepository } from '../../ports/task-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { EngineEvents } from '../shared/engine-events';
+import type { UserSettingsReader } from '../shared/user-settings-reader';
 import type { JiraTaskEvent } from '../sync/jira-task-sink';
 import { AiTaskBuilder, type AiTaskInput } from './ai-task-builder';
-import { jiraTaskStateChange, jiraTaskTitle } from './jira-task-planner';
+import { jiraTaskTitle, routesJiraEventToTasks } from './jira-task-planner';
 
 export interface TaskServiceDeps {
   readonly tasks: TaskRepository;
   readonly threads: ThreadRepository;
+  readonly settings: UserSettingsReader;
   readonly events: EngineEvents;
   readonly clock: Clock;
   readonly ids: IdGenerator;
@@ -41,7 +43,11 @@ export class TaskService {
     });
   }
 
-  async applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task> {
+  async applyJiraEvent(userId: UserId, event: JiraTaskEvent): Promise<Task | null> {
+    const settings = await this.deps.settings.read(userId);
+    if (!routesJiraEventToTasks(settings.jira, event)) {
+      return null;
+    }
     const now = this.now();
     const { task, created } = await this.deps.tasks.createOrGetByJiraKey({
       id: this.deps.ids.generate('task'),
@@ -61,7 +67,7 @@ export class TaskService {
     }
     return this.change(userId, task.id, {
       threadId: event.threadId,
-      ...jiraTaskStateChange(event),
+      state: 'open',
       updatedAt: now,
     });
   }

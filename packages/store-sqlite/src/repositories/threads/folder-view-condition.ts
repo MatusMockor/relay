@@ -15,7 +15,7 @@ const notTrashed = ne(threads.state, 'trash');
 
 const withoutExclusiveSplits = sql`not exists (select 1 from ${threadSplits} inner join ${splits} on ${splits.id} = ${threadSplits.splitId} where ${threadSplits.threadId} = ${threads.id} and ${splits.exclusive} = 1)`;
 
-const hasOpenTask = sql`exists (select 1 from ${tasks} where ${tasks.threadId} = ${threads.id} and ${tasks.userId} = ${threads.userId} and ${tasks.state} <> 'done')`;
+export const hasOpenTask = sql`exists (select 1 from ${tasks} where ${tasks.threadId} = ${threads.id} and ${tasks.userId} = ${threads.userId} and ${tasks.state} <> 'done')`;
 
 const hasSentMessage = sql`exists (select 1 from ${messages} inner join ${mailboxes} on ${mailboxes.id} = ${messages.mailboxId} where ${messages.threadId} = ${threads.id} and ${mailboxes.role} = 'sent')`;
 

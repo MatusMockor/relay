@@ -17,7 +17,9 @@ export function AiSummary({ detail, pending }: AiSummaryProps) {
   const waiting = (pending || summaryRequest.requesting) && detail.aiSummary === null;
   const offered =
     !waiting && detail.aiSummary === null && settings.data?.ai.features.summaries === true;
-  const ask = offered ? <SummaryRequestButton onRequest={summaryRequest.request} /> : null;
+  const ask = offered ? (
+    <SummaryRequestButton onRequest={summaryRequest.request} detailed={summary !== null} />
+  ) : null;
   if (summary === null && !waiting) {
     return ask;
   }

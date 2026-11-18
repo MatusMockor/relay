@@ -1,9 +1,10 @@
 import type { MailAccount, ThreadDetail } from '@relay/shared';
-import { AccountDot, type AnchorRect, Button, ConfirmDialog, Kbd, Spark } from '@relay/ui';
+import { AccountSquare, type AnchorRect, Avatar, Button, ConfirmDialog, Spark } from '@relay/ui';
 import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { useClient } from '../../data/hooks/services-context';
 import { MOD } from '../../lib/platform-keys';
+import { SendHint } from '../compose/SendHint';
 import { showToast } from '../../state/toast-store';
 import { type ReplyState, setUi } from '../../state/ui-store';
 import { rewriteText } from '../ai/run-ai';
@@ -99,7 +100,12 @@ export function ReplyComposer({
     <div className={`cmp${reply.busy ? ' busy' : ''}`} id="cmp">
       <div className="cmp-h">
         <span>Pre</span>
-        <b>{recipientName}</b>
+        <span className="to-chip">
+          <Avatar name={recipientName} seed={recipient?.email} size="sm" />
+          <span className="to-n" title={recipientName}>
+            {recipientName}
+          </span>
+        </span>
         {model.multi && account !== undefined ? (
           <button
             type="button"
@@ -109,7 +115,7 @@ export function ReplyComposer({
               setFromAnchor(rectOf(event.currentTarget));
             }}
           >
-            <AccountDot account={accountLike(account)} />
+            <AccountSquare account={accountLike(account)} small />
             <span>z {account.email}</span>
           </button>
         ) : null}
@@ -169,11 +175,12 @@ export function ReplyComposer({
           Upraviť s AI
         </Button>
         <span className="sp" />
-        <Button variant="ghost" title="Uložiť ako koncept (Esc)" onClick={save}>
+        <Button title="Uložiť ako koncept (Esc)" onClick={save}>
           Zavrieť
         </Button>
-        <Button variant="primary" onClick={askSend}>
-          Odoslať <Kbd keys={[`${MOD}↵`]} />
+        <Button variant="primary" onClick={askSend} title={`Odoslať (${MOD}Enter)`}>
+          Odoslať
+          <SendHint />
         </Button>
       </div>
       {confirming && account !== undefined ? (

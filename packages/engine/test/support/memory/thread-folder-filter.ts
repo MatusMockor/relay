@@ -1,4 +1,4 @@
-import type { FolderView, ThreadSummary, UserId } from '@relay/shared/domain';
+import type { FolderView, SplitId, ThreadSummary, UserId } from '@relay/shared/domain';
 import type { ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
@@ -15,7 +15,7 @@ export class ThreadFolderFilter {
       done: (_userId, thread) => thread.state === 'done',
       trash: (_userId, thread) => thread.state === 'trash',
       reminders: (_userId, thread) => thread.state === 'reminder',
-      tasks: (_userId, thread) => thread.jiraKey !== null || this.hasTask(thread),
+      tasks: (_userId, thread) => thread.state !== 'trash' && this.hasOpenTask(thread),
       sent: (_userId, thread) => this.hasSentMessage(thread),
       drafts: (_userId, thread) => thread.hasDraft,
       scheduled: (_userId, thread) => this.hasScheduledSend(thread),
@@ -29,7 +29,7 @@ export class ThreadFolderFilter {
     if (query.accountId !== null && thread.accountId !== query.accountId) {
       return false;
     }
-    if (query.splitId !== null && !thread.splitIds.includes(query.splitId)) {
+    if (query.splitId !== null && !this.visibleInSplit(userId, thread, query.splitId)) {
       return false;
     }
     if (query.labelId !== null && !thread.labelIds.includes(query.labelId)) {
@@ -56,8 +56,18 @@ export class ThreadFolderFilter {
     return splits.some((split) => split.exclusive && thread.splitIds.includes(split.id));
   }
 
-  private hasTask(thread: ThreadSummary): boolean {
-    return [...this.db.tables.tasks.values()].some((task) => task.threadId === thread.id);
+  private visibleInSplit(userId: UserId, thread: ThreadSummary, splitId: SplitId): boolean {
+    if (!thread.splitIds.includes(splitId)) {
+      return false;
+    }
+    const split = (this.db.tables.splits.get(userId) ?? []).find((item) => item.id === splitId);
+    return split?.hideTasks !== true || !this.hasOpenTask(thread);
+  }
+
+  private hasOpenTask(thread: ThreadSummary): boolean {
+    return [...this.db.tables.tasks.values()].some(
+      (task) => task.threadId === thread.id && task.state !== 'done',
+    );
   }
 
   private hasSentMessage(thread: ThreadSummary): boolean {

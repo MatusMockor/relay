@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { setUi } from '../src/state/ui-store';
@@ -49,7 +49,11 @@ describe('account label and sender name', () => {
   it('prefills the sender name of the primary account for a new account', async () => {
     const client = demoClient();
     const sheet = await openAccounts(client, true);
-    expect(within(sheet).getByLabelText<HTMLInputElement>('Meno odosielateľa').value).toBe('Ty');
+    await waitFor(() => {
+      expect(within(sheet).getByLabelText<HTMLInputElement>('Meno odosielateľa').value).toBe(
+        'Ján Adamec',
+      );
+    });
 
     fill(sheet, 'E-mail', 'meno@firma.sk');
     fill(sheet, 'Heslo', 'heslo');
@@ -117,6 +121,6 @@ describe('account label and sender name', () => {
     held.open();
     await settle();
 
-    expect(field().value).toBe('Ty');
+    expect(field().value).toBe('Ján Adamec');
   });
 });

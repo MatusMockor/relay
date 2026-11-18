@@ -1,9 +1,9 @@
 import { type Address, displaySubject, type Task, type ThreadSummary } from '@relay/shared';
 import { Button, Icon, Spark } from '@relay/ui';
-import { useTasks } from '../../data/hooks/use-mail-queries';
+import { useTasks, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { listTimeLabel } from '../../lib/dates';
 import { plural } from '../../lib/text';
-import { setUi } from '../../state/ui-store';
+import { setUi, useUiStore } from '../../state/ui-store';
 import { jiraActorOf } from '../mail/jira-display';
 import { openRight, openThread } from '../mail/navigation';
 import { useChat } from './chat-store';
@@ -73,18 +73,23 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
     new Set([thread.id, ...related.map((item) => item.id)]),
     jira,
   );
-  const address = actor === null ? person.email : `Jira · ${person.email}`;
+  const inThread = useUiStore((state) => state.openThreadId === thread.id);
+  const inList = useUserSettings().data?.ai.features.oneLiners ?? true;
+  const summaryShown = inThread || inList;
   return (
     <>
       <ContactHeader
         name={name}
         seed={actor ?? person.email}
-        subtitle={`${address} · ${conversations(related.length + 1)}`}
+        subtitle={person.email}
+        meta={[actor === null ? null : 'cez Jira', conversations(related.length + 1)]
+          .filter((part) => part !== null)
+          .join(' · ')}
         accountId={thread.accountId}
       >
         {actions ? <ContactActions person={person} name={name} /> : null}
       </ContactHeader>
-      {thread.aiOneLiner === null ? null : (
+      {thread.aiOneLiner === null || summaryShown ? null : (
         <div className="ai-card">
           <span className="h">
             <Spark />
@@ -94,6 +99,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
         </div>
       )}
       <MiniSection
+        stacked
         title="Súvisí v Jire"
         rows={jira.map((task) => ({
           key: task.id,
@@ -118,7 +124,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
         }))}
       />
       <MiniSection
-        title="Otvorené tasky"
+        title="Otvorené úlohy"
         rows={open.map((task) => ({
           key: task.id,
           left: task.title,

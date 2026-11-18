@@ -23,41 +23,34 @@ export const EMPTY_ACCOUNT_FORM: AccountFormValues = {
   smtpPort: '465',
 };
 
-type ServerField = 'imapHost' | 'imapPort' | 'smtpHost' | 'smtpPort';
+export type ServerField = 'imapHost' | 'imapPort' | 'smtpHost' | 'smtpPort';
 
-const DEFAULTS: Partial<Record<ServerField, string>> = {
-  imapPort: EMPTY_ACCOUNT_FORM.imapPort,
-  smtpPort: EMPTY_ACCOUNT_FORM.smtpPort,
-};
+export const SERVER_FIELDS: readonly ServerField[] = [
+  'imapHost',
+  'imapPort',
+  'smtpHost',
+  'smtpPort',
+];
 
-const serverFieldsOf = (settings: ImapSmtpSettings): Record<ServerField, string> => ({
+export const serverFieldsOf = (settings: ImapSmtpSettings): Record<ServerField, string> => ({
   imapHost: settings.imap.host,
   imapPort: String(settings.imap.port),
   smtpHost: settings.smtp.host,
   smtpPort: String(settings.smtp.port),
 });
 
-const isUntouched = (
-  field: ServerField,
-  value: string,
-  previous: Record<ServerField, string> | null,
-): boolean => value === '' || value === previous?.[field] || value === DEFAULTS[field];
-
 export const withGuessedServers = (
   values: AccountFormValues,
-  previousEmail: string,
+  touched: ReadonlySet<ServerField>,
 ): AccountFormValues => {
   const guessed = guessSettings(values.email);
   if (guessed === null) {
     return values;
   }
-  const previousGuess = guessSettings(previousEmail);
-  const previous = previousGuess === null ? null : serverFieldsOf(previousGuess);
   const next = serverFieldsOf(guessed);
-  const fields: readonly ServerField[] = ['imapHost', 'imapPort', 'smtpHost', 'smtpPort'];
-  return fields.reduce<AccountFormValues>(
+  return SERVER_FIELDS.reduce<AccountFormValues>(
     (form, field) =>
-      isUntouched(field, values[field], previous) ? { ...form, [field]: next[field] } : form,
+      touched.has(field) && values[field] !== '' ? form : { ...form, [field]: next[field] },
     values,
   );
 };

@@ -5,7 +5,9 @@ import { queryKeys } from '../../../data/hooks/query-keys';
 import { useAppContext, useServices } from '../../../data/hooks/services-context';
 import { useAiRunners, useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { SettingRow } from '../SettingRow';
+import { SettingsGroup } from '../SettingsGroup';
 import { useUpdateSettings } from '../use-update-settings';
+import { SectionHeader } from '../SectionHeader';
 
 const RUNNER_LABEL: Readonly<Record<AiRunnerKind, string>> = {
   claude: 'Claude Code',
@@ -23,7 +25,7 @@ const runnerStatus = (info: AiRunnerInfo | undefined) => {
     return <Status tone="off" label="Nenainštalované" />;
   }
   if (info.authenticated === false) {
-    return <Status tone="bad" label="Neprihlásené" />;
+    return <Status tone="warn" label="Čaká na prihlásenie" />;
   }
   return (
     <Status
@@ -33,23 +35,39 @@ const runnerStatus = (info: AiRunnerInfo | undefined) => {
   );
 };
 
+const SIGN_IN_PLACE: Readonly<Record<AiRunnerLocation, string>> = {
+  server: 'v termináli na serveri Relay',
+  local: 'v termináli na tomto počítači',
+};
+
 function RunnerRows({
   title,
+  where,
   runners,
 }: {
   readonly title: string;
+  readonly where: AiRunnerLocation;
   readonly runners: readonly AiRunnerInfo[];
 }) {
   return (
     <>
-      <h4 className="acc-g">{title}</h4>
+      <SettingsGroup title={title} />
       {(['claude', 'codex'] as const).map((kind) => {
         const info = runners.find((runner) => runner.runner === kind);
         return (
           <SettingRow
             key={kind}
             title={RUNNER_LABEL[kind]}
-            description={info?.executablePath ?? (kind === 'claude' ? 'claude CLI' : 'codex CLI')}
+            description={
+              info?.installed === true && info.authenticated === false ? (
+                <>
+                  Prihlás sa {SIGN_IN_PLACE[where]} príkazom <code>{kind}</code>, potom Nastavenia
+                  zavri a znova otvor
+                </>
+              ) : (
+                <code>{info?.executablePath ?? `${kind} CLI`}</code>
+              )
+            }
           >
             {runnerStatus(info)}
           </SettingRow>
@@ -79,14 +97,12 @@ export function AiSection() {
     : 'Na počítači s aplikáciou Relay. V prehliadači lokálne AI nebeží.';
   return (
     <>
-      <h2>AI</h2>
-      <p className="lead">
+      <SectionHeader title="AI">
         AI spúšťa Claude Code alebo Codex CLI na tvojom predplatnom. Obsah mailov je nedôveryhodný
         vstup a odoslanie vždy potvrdzuješ ty.
-      </p>
+      </SectionHeader>
       <SettingRow
         title="Kde beží AI"
-        scope="synced"
         description={
           location === 'server' ? 'Na serveri, aj keď je tento počítač vypnutý' : localDescription
         }
@@ -109,11 +125,7 @@ export function AiSection() {
           <Status tone="ok" label="Lokálne" />
         )}
       </SettingRow>
-      <SettingRow
-        title="Predvolený runner"
-        scope="synced"
-        description="Dá sa prepnúť aj priamo v paneli AI"
-      >
+      <SettingRow title="Predvolený runner" description="Dá sa prepnúť aj priamo v paneli AI">
         <Segmented<AiRunnerKind>
           label="Predvolený runner"
           value={ai?.defaultRunner ?? 'claude'}
@@ -126,13 +138,17 @@ export function AiSection() {
           }}
         />
       </SettingRow>
-      <RunnerRows title={synced ? 'Na serveri' : 'Na tomto počítači'} runners={remote.data ?? []} />
+      <RunnerRows
+        title={synced ? 'Na serveri' : 'Na tomto počítači'}
+        where={synced ? 'server' : 'local'}
+        runners={remote.data ?? []}
+      />
       {synced && platform.kind === 'electron' ? (
-        <RunnerRows title="Na tomto počítači" runners={local.data ?? []} />
+        <RunnerRows title="Na tomto počítači" where="local" runners={local.data ?? []} />
       ) : null}
-      <h4 className="acc-g">Funkcie</h4>
+      <SettingsGroup title="Funkcie" />
       {FEATURES.map(([key, title, description]) => (
-        <SettingRow key={key} title={title} description={description} scope="synced">
+        <SettingRow key={key} title={title} description={description}>
           <Switch
             checked={ai?.features[key] ?? true}
             label={title}

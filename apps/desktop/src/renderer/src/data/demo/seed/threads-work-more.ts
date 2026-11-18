@@ -9,7 +9,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     split: 'jira',
     labels: ['jira'],
     subj: 'Priradené tebe',
-    ai: 'Priradila ti bug, repro kroky sú v popise',
+    ai: 'Nový bug: editor stráca obrázky po uložení',
     sum: 'Jana ti priradila bug od klienta Denník Juh. Editor po uložení konceptu stratí vložené obrázky, repro kroky sú v popise.',
     list: ['Zreprodukovať podľa krokov', 'Skontrolovať ukladanie príloh v DraftService'],
     task: { title: 'Editor stráca obrázky po uložení', what: 'nové', state: 'open' },
@@ -30,7 +30,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     unread: true,
     labels: ['jira'],
     subj: 'Stav: In QA → Reopened',
-    ai: 'QA vrátila, Excel zobrazuje diakritiku v CSV zle',
+    ai: 'Vrátené z QA: zlá diakritika v CSV exporte',
     sum: 'Eva vrátila WEB-479 z QA: CSV export otvorený v Exceli zobrazuje diakritiku ako otázniky. Pravdepodobne chýba UTF-8 BOM.',
     list: ['Pridať BOM na začiatok CSV', 'Otestovať v Exceli a Numbers', 'Vrátiť Eve do QA'],
     task: { title: 'Export CSV: zlé kódovanie diakritiky', what: 'vrátené z QA', state: 'waiting' },
@@ -56,12 +56,12 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     key: 'API-74',
     split: 'jira',
     labels: ['jira'],
-    subj: 'Stav: In Progress → In Review',
+    subj: 'Stav zmenený na Na kontrole',
     msgs: [
       [
         'mh',
         [0, 8, 2],
-        'Martin zmenil stav: In Progress → In Review\n\nDokumentácia OAuth pre partnerov',
+        'Martin zmenil stav z Rozpracované na Na kontrole\n\nDokumentácia OAuth pre partnerov',
       ],
     ],
   },
@@ -72,7 +72,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     split: 'other',
     unread: true,
     subj: 'Pipeline zlyhala: main #2291',
-    ai: 'Padá OrderExportTest po merge MR !409',
+    ai: 'Pipeline #2291 padá na OrderExportTest po MR !409',
     msgs: [
       [
         'gl',
@@ -111,7 +111,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
         'Ahoj, tento týždeň sa pozrieme na CSS anchor positioning v praxi, nové View Transitions a päť tipov, ako zrýchliť build.',
       ],
     ],
-    html: '<div style="font-family:Georgia,serif;max-width:560px"><img src="https://frontend-tyzdennik.sk/banner-212.png" alt="Frontend týždenník" width="560" height="120"><h2 style="color:#1d2a5b">Č. 212: CSS anchor positioning v praxi</h2><p>Ahoj,</p><p>tento týždeň sa pozrieme na <b>CSS anchor positioning</b> v praxi, nové <i>View Transitions</i> medzi stránkami a päť tipov, ako zrýchliť build vo veľkých projektoch.</p><p><a href="https://frontend-tyzdennik.sk/212">Čítať celé číslo</a></p><p style="color:#888;font-size:12px">Príjemné čítanie, redakcia</p></div>',
+    html: '<div style="font-family:Helvetica,Arial,sans-serif;max-width:560px"><img src="https://frontend-tyzdennik.sk/banner-212.png" alt="Frontend týždenník" width="560" height="120"><h2 style="color:#1d2a5b">Č. 212: CSS anchor positioning v praxi</h2><p>Ahoj,</p><p>tento týždeň sa pozrieme na <b>CSS anchor positioning</b> v praxi, nové <i>View Transitions</i> medzi stránkami a päť tipov, ako zrýchliť build vo veľkých projektoch.</p><p><a href="https://frontend-tyzdennik.sk/212">Čítať celé číslo</a></p><p style="color:#888;font-size:12px">Príjemné čítanie, redakcia</p></div>',
   },
   {
     id: 'z-release',

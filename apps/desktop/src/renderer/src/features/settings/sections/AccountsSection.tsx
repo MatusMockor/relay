@@ -13,6 +13,7 @@ import { AddAccountForm } from '../../accounts/AddAccountForm';
 import { accountLike } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
 import { AccountNameRows } from './AccountNameRows';
+import { SectionHeader } from '../SectionHeader';
 
 export const SYNC_OPTIONS = [
   { value: '60', label: '1 min' },
@@ -81,7 +82,6 @@ function AccountCard({
       </SettingRow>
       <SettingRow
         title="Interval synchronizácie"
-        scope="synced"
         description={`Každých ${String(Math.round(account.syncIntervalSeconds / 60))} min`}
       >
         <Segmented
@@ -95,7 +95,6 @@ function AccountCard({
       </SettingRow>
       <SettingRow
         title="Hlavný účet"
-        scope="synced"
         description="Predvolený odosielateľ, keď píšeš zo zobrazenia Všetky účty"
       >
         <Switch
@@ -110,11 +109,7 @@ function AccountCard({
           }}
         />
       </SettingRow>
-      <SettingRow
-        title="Farba"
-        scope="synced"
-        description="Bodka pri mailoch v zobrazení Všetky účty"
-      >
+      <SettingRow title="Farba" description="Bodka pri mailoch v zobrazení Všetky účty">
         <span className="swatches">
           {COLORS.map((color) => (
             <button
@@ -151,8 +146,17 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
   if (adding) {
     return (
       <>
-        <h2>Pridať účet</h2>
-        <p className="lead">Relay sa pripojí k schránke a stiahne posledných 30 dní pošty.</p>
+        <SectionHeader
+          title="Pridať účet"
+          back={{
+            label: 'Účty',
+            onBack: () => {
+              setAdding(false);
+            },
+          }}
+        >
+          Relay sa pripojí k schránke a stiahne posledných 30 dní pošty.
+        </SectionHeader>
         <AddAccountForm
           onDone={() => {
             setAdding(false);
@@ -166,11 +170,10 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
   }
   return (
     <>
-      <h2>Účty</h2>
-      <p className="lead">
+      <SectionHeader title="Účty">
         Každý účet sa synchronizuje samostatne. Heslá a tokeny ostávajú na serveri alebo v
         zabezpečenom úložisku zariadenia.
-      </p>
+      </SectionHeader>
       {(accounts.data ?? []).map((account) => (
         <AccountCard
           key={account.id}

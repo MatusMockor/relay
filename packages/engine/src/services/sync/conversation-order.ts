@@ -66,10 +66,8 @@ const groupsOf = (items: readonly Positioned[]): number[][] => {
     .map((group) => parentsFirst(group, parents, compare));
 };
 
-export const conversationOrder = (windows: readonly MailboxWindow[]): WindowEntry[] => {
-  const items = windows.flatMap((window, mailbox) =>
-    window.entries.map((entry) => ({ entry, mailbox })),
-  );
+export const orderEntries = (groups: readonly (readonly WindowEntry[])[]): WindowEntry[] => {
+  const items = groups.flatMap((entries, mailbox) => entries.map((entry) => ({ entry, mailbox })));
   return groupsOf(items).flatMap((group) =>
     group.flatMap((index) => {
       const item = items[index];
@@ -77,3 +75,6 @@ export const conversationOrder = (windows: readonly MailboxWindow[]): WindowEntr
     }),
   );
 };
+
+export const conversationOrder = (windows: readonly MailboxWindow[]): WindowEntry[] =>
+  orderEntries(windows.map((window) => window.entries));

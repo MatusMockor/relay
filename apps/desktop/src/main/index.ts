@@ -92,6 +92,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       state: await restoreWindowState(windowState),
       opener: platform.opener,
       isAppUrl,
+      platform: process.platform,
       icon: appIcon,
     });
     trackWindowState(window, windowState, logger);

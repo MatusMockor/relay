@@ -1,6 +1,5 @@
 import type { AccountCredentials, MessageFlags } from '@relay/shared/domain';
 import {
-  UidValidityChangedError,
   type AppendResult,
   type Disposer,
   type FlagMutation,
@@ -18,7 +17,9 @@ import { asyncItems, failingItems } from './async-items';
 import { calendarHeaders, CREATED_ROLES, missing, toRaw, toRemote } from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
+import { searchRelatedRecords } from './fake-related-search';
 import { threadHeadersOf } from './fake-thread-headers';
+import { uidValidityMismatch } from './fake-uid-validity';
 import { applyKeywords, type KeywordMutation, moveRecords } from './fake-writes';
 
 type ChangeListener = (change: MailboxChange) => void;
@@ -143,6 +144,10 @@ export class FakeMailProvider implements MailProvider {
     );
   }
 
+  searchRelated(path: string, uidValidity: number, ids: readonly string[]): Promise<number[]> {
+    return this.withMailbox(path, (mailbox) => searchRelatedRecords(mailbox, uidValidity, ids));
+  }
+
   listUids(mailboxPath: string): Promise<number[]> {
     return this.withMailbox(mailboxPath, (mailbox) =>
       Promise.resolve([...mailbox.messages.keys()].sort((a, b) => a - b)),
@@ -256,11 +261,7 @@ export class FakeMailProvider implements MailProvider {
     if (opened instanceof Error) {
       return opened;
     }
-    const actual = opened.mailbox.uidValidity;
-    if (uidValidity !== null && uidValidity !== actual) {
-      return new UidValidityChangedError(path, uidValidity, actual);
-    }
-    return opened;
+    return uidValidityMismatch(opened.mailbox, uidValidity) ?? opened;
   }
 
   private streamMailbox(path: string, failure: string): OpenedMailbox | Error {

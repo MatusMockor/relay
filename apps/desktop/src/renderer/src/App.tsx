@@ -39,12 +39,23 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   slots.current.set(owner, slot);
   if (phase === 'booting') {
     return (
-      <div className="loading" role="status">
-        Načítavam…
-      </div>
+      <>
+        <div className="win-drag" />
+        <div className="loading" role="status">
+          Načítavam…
+        </div>
+      </>
     );
   }
-  const content = phase === 'ready' && services !== null ? <AppShell /> : <OnboardingScreen />;
+  const content =
+    phase === 'ready' && services !== null ? (
+      <AppShell />
+    ) : (
+      <>
+        <div className="win-drag" />
+        <OnboardingScreen />
+      </>
+    );
   return (
     <QueryClientProvider key={slot.key} client={slot.client}>
       {services === null ? (

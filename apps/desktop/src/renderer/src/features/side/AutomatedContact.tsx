@@ -33,7 +33,8 @@ export function AutomatedContact({ thread, sender }: AutomatedContactProps) {
       <ContactHeader
         name={name}
         seed={sender.email}
-        subtitle={subtitleOf(all)}
+        subtitle={sender.email}
+        meta={subtitleOf(all)}
         accountId={thread.accountId}
         tag="automatický"
       >

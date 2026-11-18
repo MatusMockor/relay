@@ -3,6 +3,7 @@ export const STROKE_ICONS = {
   check: '<path d="M3 8.5l3.2 3L13 4.5"/>',
   clock: '<circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.6"/>',
   reply: '<path d="M6.5 4L3 7.5 6.5 11"/><path d="M3.5 7.5H9a4 4 0 014 4V13"/>',
+  forwardMail: '<path d="M9.5 4L13 7.5 9.5 11"/><path d="M12.5 7.5H7a4 4 0 00-4 4V13"/>',
   back: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
   forward: '<path d="M6 3.5L10.5 8 6 12.5"/>',
   up: '<path d="M4 10l4-4 4 4"/>',
@@ -19,6 +20,14 @@ export const STROKE_ICONS = {
   trash: '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/>',
   x: '<path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/>',
   panelLeft: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/>',
+  info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 5h.01"/>',
+  lock: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/>',
+  sun: '<circle cx="8" cy="8" r="2.8"/><path d="M8 1.8v1.4M8 12.8v1.4M1.8 8h1.4M12.8 8h1.4M3.6 3.6l1 1M11.4 11.4l1 1M3.6 12.4l1-1M11.4 4.6l1-1"/>',
+  columns: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M8 3v10"/>',
+  bell: '<path d="M4.5 11V7.5a3.5 3.5 0 017 0V11l1 1.5h-9z"/><path d="M6.8 14a1.3 1.3 0 002.4 0"/>',
+  bolt: '<path d="M9 1.8L3.8 9h4l-1 5.2L12.2 7h-4z"/>',
+  palette:
+    '<path d="M8 2.5a5.5 5.5 0 100 11c.9 0 1.2-.6 1.2-1.2 0-.8-.6-1-.6-1.7 0-.6.5-1 1.1-1h1.4a2.4 2.4 0 002.4-2.4C13.5 4.6 11 2.5 8 2.5z"/><circle cx="5.3" cy="7" r=".7"/><circle cx="7.6" cy="5" r=".7"/><circle cx="10.4" cy="5.6" r=".7"/>',
   panelRight: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M10 3v10"/>',
   user: '<circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.4 2.7-3.6 5-3.6s4.2 1.2 5 3.6"/>',
   calendar:

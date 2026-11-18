@@ -4,6 +4,7 @@ import { messageTimeLabel } from '../../lib/dates';
 import { AttachmentList } from './AttachmentList';
 import { HtmlMailFrame } from './HtmlMailFrame';
 import { MessageCopies } from './MessageCopies';
+import { MeAvatar } from '../shell/MeAvatar';
 import { TextBody } from './TextBody';
 
 export interface MessageViewProps {
@@ -24,7 +25,14 @@ export function MessageView({
   const name = mine ? 'Ty' : (message.from?.name ?? message.from?.email ?? 'Neznámy');
   const header = (
     <>
-      <Avatar name={message.from?.name ?? message.from?.email ?? '?'} seed={message.from?.email} />
+      {mine ? (
+        <MeAvatar name={message.from?.name ?? message.from?.email} />
+      ) : (
+        <Avatar
+          name={message.from?.name ?? message.from?.email ?? '?'}
+          seed={message.from?.email}
+        />
+      )}
       <div>
         <b>{name}</b>
         <small>{mine ? `pre ${recipientName}` : 'pre teba'}</small>
@@ -45,7 +53,7 @@ export function MessageView({
         )}
         {onForward === undefined ? null : (
           <IconButton label="Preposlať túto správu" onClick={onForward}>
-            <Icon name="forward" />
+            <Icon name="forwardMail" />
           </IconButton>
         )}
       </div>
@@ -70,11 +78,15 @@ export function CollapsedMessage({
 }) {
   return (
     <button type="button" className="m-c" onClick={onExpand}>
-      <Avatar
-        name={message.from?.name ?? message.from?.email ?? '?'}
-        seed={message.from?.email}
-        size="sm"
-      />
+      {mine ? (
+        <MeAvatar size="sm" name={message.from?.name ?? message.from?.email} />
+      ) : (
+        <Avatar
+          name={message.from?.name ?? message.from?.email ?? '?'}
+          seed={message.from?.email}
+          size="sm"
+        />
+      )}
       <b>{mine ? 'Ty' : (message.from?.name ?? message.from?.email)}</b>
       <span className="s">{message.snippet}</span>
       <time>{messageTimeLabel(message.date, new Date())}</time>

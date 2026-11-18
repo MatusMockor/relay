@@ -8,7 +8,7 @@ export const WORK_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['efa'],
     subj: 'Code review: refaktor platobnej brány',
-    ai: 'Čaká na tvoje review MR !412, potrebuje do dnes',
+    ai: 'Review MR !412 potrebné ešte dnes',
     sum: 'Martin čaká na tvoje review MR !412 (refaktor PaymentGateway, hlavne retry a idempotency). Potrebuje ho do dnes, ide do piatkového release spolu s WEB-482.',
     list: ['Pozrieť MR !412 (retry logika, idempotency kľúče)', 'Odpovedať Martinovi do konca dňa'],
     msgs: [
@@ -47,12 +47,12 @@ export const WORK_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['jira', 'efa'],
     subj: 'Filtrovanie objednávok v API',
-    ai: 'Pýta sa, či /orders vracia aj zmazané položky',
+    ai: '/orders vracia aj zmazané objednávky, bug či zámer?',
     sum: 'Peter v komentári na WEB-482 zistil, že /orders?status=all vracia aj soft-deleted objednávky a frontend ich zobrazuje. Chce vedieť, či je to zámer, ešte pred piatkovým release.',
     list: ['Overiť scope withTrashed v OrderRepository', 'Odpovedať Petrovi v Jire'],
     task: { title: 'Filtrovanie objednávok v API', what: 'čaká na teba', state: 'waiting' },
     msgs: [
-      ['mh', [-3, 14, 10], 'Martin zmenil stav: In Progress → In Review'],
+      ['mh', [-3, 14, 10], 'Martin zmenil stav z Rozpracované na Na kontrole'],
       [
         'pn',
         [0, 8, 31],
@@ -133,7 +133,7 @@ export const WORK_THREADS: readonly DemoThread[] = [
     unread: true,
     labels: ['jira', 'efa'],
     subj: 'Rate limit pre verejné API partnerov',
-    ai: 'Chce riešenie 429 pre partnerov ešte dnes',
+    ai: 'Partneri dostávajú 429, riešenie ešte dnes',
     sum: 'Partneri dostávajú na produkcii 429, lebo rate limit 600 za minútu je spoločný pre všetkých. Tomáš zvýšil prioritu na Highest a hľadá niekoho, kto to dnes vyrieši.',
     list: [
       'Dočasne zvýšiť limit pre partnerské kľúče',

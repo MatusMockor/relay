@@ -25,16 +25,26 @@ function ThreadContact({ thread }: { readonly thread: ThreadSummary }) {
   return <PersonContact thread={thread} person={person} actions={!automated} />;
 }
 
-function ContactBody() {
+const useContactSubject = () => {
   const { current } = useMailActions();
   const openThreadId = useUiStore((state) => state.openThreadId);
   const composing = useUiStore((state) => state.overlay?.kind === 'compose');
   const recipient = useComposeRecipient((state) => state.recipient);
   const detail = useThreadDetail(openThreadId);
-  if (composing && recipient !== null) {
+  const thread = current?.kind === 'thread' ? current.thread : (detail.data?.thread ?? null);
+  return { recipient: composing ? recipient : null, thread };
+};
+
+export const useContactIdle = (): boolean => {
+  const { recipient, thread } = useContactSubject();
+  return recipient === null && thread === null;
+};
+
+function ContactBody() {
+  const { recipient, thread } = useContactSubject();
+  if (recipient !== null) {
     return <ComposeContact recipient={recipient} />;
   }
-  const thread = current?.kind === 'thread' ? current.thread : (detail.data?.thread ?? null);
   return thread === null ? <IdlePane /> : <ThreadContact thread={thread} />;
 }
 

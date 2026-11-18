@@ -1,5 +1,5 @@
-import type { Split, SplitInput, SplitRule } from '@relay/shared';
-import { AccountDot, Button, Field, Switch } from '@relay/ui';
+import type { Split, SplitInput } from '@relay/shared';
+import { Button, Field } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
@@ -7,24 +7,10 @@ import { queryKeys } from '../../../data/hooks/query-keys';
 import { useClient } from '../../../data/hooks/services-context';
 import { useSplits } from '../../../data/hooks/use-mail-queries';
 import { showToast } from '../../../state/toast-store';
-import { accountLike, useAccountsModel } from '../../mail/use-accounts-model';
-import { SettingRow } from '../SettingRow';
-
-export const describeRule = (rule: SplitRule): string => {
-  if (rule.type === 'fromDomain') {
-    return `from:@${rule.domain}`;
-  }
-  if (rule.type === 'fromAddress') {
-    return `from:${rule.address}`;
-  }
-  if (rule.type === 'subjectRegex') {
-    return `subject:/${rule.pattern}/${rule.caseSensitive ? '' : 'i'}`;
-  }
-  if (rule.type === 'header') {
-    return `header:${rule.name}~${rule.pattern}`;
-  }
-  return `jira:${rule.projectKeys.join(',') || '*'}`;
-};
+import { useNameColors } from '../../colors/use-name-colors';
+import { useAccountsModel } from '../../mail/use-accounts-model';
+import { SectionHeader } from '../SectionHeader';
+import { SplitRow } from './SplitRow';
 
 const toInput = (split: Split): SplitInput => ({
   id: split.id,
@@ -33,6 +19,7 @@ const toInput = (split: Split): SplitInput => ({
   order: split.order,
   rules: split.rules,
   exclusive: split.exclusive,
+  hideTasks: split.hideTasks,
 });
 
 export function SplitsSection() {
@@ -40,10 +27,15 @@ export function SplitsSection() {
   const client = useClient();
   const queryClient = useQueryClient();
   const model = useAccountsModel();
+  const colors = useNameColors();
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('');
   const [saving, setSaving] = useState(false);
   const list = [...(splits.data ?? [])].sort((a, b) => a.order - b.order);
+  const scopeOf = (split: Split): string =>
+    split.accountId === null
+      ? 'Všetky účty'
+      : `Účet ${model.byId.get(split.accountId)?.displayName ?? ''}`;
   const locked = saving || splits.data === undefined;
   const save = (next: SplitInput[]) => {
     if (locked) {
@@ -78,6 +70,7 @@ export function SplitsSection() {
         name: name.trim(),
         order: list.length,
         exclusive: true,
+        hideTasks: false,
         rules: [{ type: 'fromDomain', domain: domain.trim().replace(/^@/, '') }],
       },
     ]);
@@ -86,82 +79,50 @@ export function SplitsSection() {
   };
   return (
     <>
-      <h2>Split Inbox</h2>
-      <p className="lead">
+      <SectionHeader title="Split Inbox">
         Splity rozdelia Doručenú poštu na tematické záložky. Pravidlá bežia pri každej
         synchronizácii, zhora nadol. Všetko ostatné ostáva v Dôležitých.
-      </p>
-      {list.map((split) => {
-        const account = split.accountId === null ? null : model.byId.get(split.accountId);
-        return (
-          <div className="rule" key={split.id}>
-            <b>
-              {account === null || account === undefined ? null : (
-                <AccountDot account={accountLike(account)} />
-              )}{' '}
-              {split.name}
-            </b>
-            <p>
-              {split.accountId === null ? 'Všetky účty' : `Účet ${account?.displayName ?? ''}`}
-              {split.exclusive ? ' · vyberie maily z Dôležitých' : ''}
-            </p>
-            <span className="mono">{split.rules.map(describeRule).join(' OR ')}</span>
-            <span className="cnt">
-              <Switch
-                checked={split.exclusive}
-                label={`Výlučný split ${split.name}`}
-                disabled={locked}
-                onChange={(exclusive) => {
-                  save(
-                    list.map((item) =>
-                      item.id === split.id ? { ...toInput(item), exclusive } : toInput(item),
-                    ),
-                  );
-                }}
-              />
-              <Button
-                variant="danger"
-                disabled={locked}
-                onClick={() => {
-                  save(list.filter((item) => item.id !== split.id).map(toInput));
-                }}
-              >
-                Odstrániť
-              </Button>
-            </span>
-          </div>
-        );
-      })}
-      <div className="form">
-        <div className="fld-2">
-          <Field
-            label="Nový split"
-            placeholder="napr. Klienti"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-            }}
-          />
-          <Field
-            label="Doména"
-            placeholder="firma.sk"
-            value={domain}
-            onChange={(event) => {
-              setDomain(event.target.value);
-            }}
-          />
-        </div>
-        <div className="btns">
-          <Button onClick={add} disabled={locked}>
-            Pridať split
-          </Button>
-        </div>
+      </SectionHeader>
+      {list.map((split) => (
+        <SplitRow
+          key={split.id}
+          split={split}
+          scope={scopeOf(split)}
+          color={colors.of(split.name)}
+          locked={locked}
+          onRemove={() => {
+            save(list.filter((item) => item.id !== split.id).map(toInput));
+          }}
+          onChange={(flags) => {
+            save(
+              list.map((item) =>
+                item.id === split.id ? { ...toInput(item), ...flags } : toInput(item),
+              ),
+            );
+          }}
+        />
+      ))}
+      <div className="split-add">
+        <Field
+          label="Nový split"
+          placeholder="napr. Klienti"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
+        />
+        <Field
+          label="Doména"
+          placeholder="firma.sk"
+          value={domain}
+          onChange={(event) => {
+            setDomain(event.target.value);
+          }}
+        />
+        <Button onClick={add} disabled={locked}>
+          Pridať split
+        </Button>
       </div>
-      <SettingRow
-        title="Pravidlá sa synchronizujú"
-        scope="synced"
-        description="Rovnaké splity uvidíš na všetkých zariadeniach."
-      />
     </>
   );
 }

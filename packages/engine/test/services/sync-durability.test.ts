@@ -6,6 +6,7 @@ import { MemoryThreadRepository } from '../support/memory/memory-thread-reposito
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const JIRA = { name: 'Jira', email: 'jira@company.test' };
+const MENTION = { 'X-Jira-Event': 'mention' };
 
 const memoryThreads = (engine: TestEngine): MemoryThreadRepository => {
   expect(engine.repositories.threads).toBeInstanceOf(MemoryThreadRepository);
@@ -29,7 +30,12 @@ describe('sync side effects survive failures', () => {
   it('retries a Jira task that could not be created on the next sync', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
-    deliverMail(server, 'INBOX', { id: 'j1', from: JIRA, subject: '[REL-4] Fix export' });
+    deliverMail(server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[REL-4] Fix export',
+      headers: MENTION,
+    });
     memoryTasks(engine).failUpsert = 'database is locked';
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
@@ -76,7 +82,12 @@ describe('sync side effects survive failures', () => {
     const engine = createTestEngine({ ai: { oneLinersPerSync: 5 } });
     const { account, server } = await seedAccount(engine);
     await engine.services.sync.syncAccount(USER_ID, account.id);
-    deliverMail(server, 'INBOX', { id: 'j2', from: JIRA, subject: '[REL-5] Deploy' });
+    deliverMail(server, 'INBOX', {
+      id: 'j2',
+      from: JIRA,
+      subject: '[REL-5] Deploy',
+      headers: MENTION,
+    });
     memoryThreads(engine).failUpsert = 'disk full';
 
     const failed = await engine.services.sync.syncAccount(USER_ID, account.id);

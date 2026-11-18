@@ -11,6 +11,7 @@ export const splits = sqliteTable(
     position: integer('position').notNull(),
     rules: text('rules', { mode: 'json' }).notNull(),
     exclusive: integer('exclusive', { mode: 'boolean' }).notNull(),
+    hideTasks: integer('hide_tasks', { mode: 'boolean' }).notNull().default(false),
   },
   (table) => [index('splits_user_position_idx').on(table.userId, table.position)],
 );

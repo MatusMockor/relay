@@ -1,0 +1,116 @@
+.cal-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cal-h h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--w-semibold);
+}
+.cal-h span {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: -6px;
+}
+.wd {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.wd b {
+  font-size: var(--fs-base);
+  color: var(--fg2);
+  font-weight: var(--w-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.wd:hover {
+  background: var(--hover);
+}
+.wd.on {
+  background: var(--sel);
+}
+.wd.on b {
+  color: var(--fg);
+}
+.wd.today b {
+  color: var(--accent);
+}
+.wd i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.wd i.none {
+  visibility: hidden;
+}
+.agenda {
+  display: grid;
+  gap: 2px;
+  margin: -6px -8px 0;
+}
+.ev {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  width: 100%;
+  text-align: left;
+}
+.ev time {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 1px;
+}
+.ev .eb {
+  border-left: 2px solid var(--c, var(--line));
+  padding-left: 10px;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.ev .eb b {
+  font-weight: var(--w-medium);
+  color: var(--fg);
+  font-size: var(--fs-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev .eb span {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev.past time,
+.ev.past .eb span {
+  color: var(--muted);
+}
+.ev.past .eb b {
+  color: var(--fg3);
+  font-weight: var(--w-regular);
+}
+.ev.past .eb {
+  border-left-color: color-mix(in srgb, var(--c, var(--line)) 40%, transparent);
+}
+.ev-empty {
+  color: var(--muted);
+  font-size: var(--fs-base);
+  padding: 6px 8px 8px;
+}

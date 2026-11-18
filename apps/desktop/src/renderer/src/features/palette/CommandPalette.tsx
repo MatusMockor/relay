@@ -3,6 +3,7 @@ import { Avatar, Icon, Kbd, Overlay } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
+import { listTimeLabel } from '../../lib/dates';
 import { fuzzyScore } from '../../lib/text';
 import { setUi } from '../../state/ui-store';
 import { isControlTarget } from '../keyboard/focus-target';
@@ -125,8 +126,11 @@ export function CommandPalette() {
               <span className="key">{item.thread.jiraKey} </span>
             )}
             <Highlight text={item.thread.subject} query={query} />
-            <small>{item.thread.participants[0]?.name ?? ''}</small>
+            <small>
+              <Highlight text={item.thread.participants[0]?.name ?? ''} query={query} />
+            </small>
           </span>
+          <span className="wh">{listTimeLabel(item.thread.lastMessageAt, new Date())}</span>
         </>
       )}
     </button>

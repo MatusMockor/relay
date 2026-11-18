@@ -1,19 +1,13 @@
 import { Icon } from '@relay/ui';
 import { useRef, useState } from 'react';
 import { buildMailDocument, hasRemoteImages } from './html-mail';
+import { useFrameHeight } from './use-frame-height';
 
 export function HtmlMailFrame({ html, title }: { readonly html: string; readonly title: string }) {
   const [allowRemote, setAllowRemote] = useState(false);
-  const [height, setHeight] = useState(160);
   const ref = useRef<HTMLIFrameElement>(null);
+  const { height, onLoad } = useFrameHeight(ref);
   const remote = hasRemoteImages(html);
-  const measure = () => {
-    const body = ref.current?.contentDocument?.body;
-    if (body === undefined) {
-      return;
-    }
-    setHeight(Math.max(80, body.scrollHeight + 4));
-  };
   return (
     <div className="html-mail">
       {remote && !allowRemote ? (
@@ -39,7 +33,7 @@ export function HtmlMailFrame({ html, title }: { readonly html: string; readonly
         referrerPolicy="no-referrer"
         srcDoc={buildMailDocument(html, allowRemote)}
         style={{ height }}
-        onLoad={measure}
+        onLoad={onLoad}
       />
     </div>
   );

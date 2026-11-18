@@ -1,7 +1,7 @@
 import type { AiRunnerKind } from '@relay/shared';
-import { Kbd, Spark } from '@relay/ui';
+import { Icon, Kbd, Spark } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useThreadDetail, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
@@ -9,6 +9,7 @@ import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
 import { setChatDraft, useChat } from './chat-store';
 import { RUNNERS, runnerLabelOf } from './runner-labels';
+import { finishedStepLabel } from './step-labels';
 import { useChatRuns } from './use-chat-runs';
 
 export function AiChatPane() {
@@ -49,30 +50,35 @@ export function AiChatPane() {
   }, [turns]);
   const examples =
     threadId === null
-      ? ['Čo mám dnes vybaviť?', 'Zhrň neprečítané']
-      : ['Zhrň toto vlákno', 'Priprav odpoveď', 'Čo mám dnes vybaviť?'];
+      ? ['Čo dnes vybaviť?', 'Zhrň neprečítané']
+      : ['Zhrň toto vlákno', 'Priprav odpoveď', 'Čo dnes vybaviť?'];
   return (
     <div className="spane chatpane" role="tabpanel" aria-label="AI">
       <div className="chat-ctx">
-        <span className="ctx">
-          Kontext: <b>{threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}</b>
+        <span
+          className="ctx"
+          role="group"
+          title={threadId === null ? undefined : subject}
+          aria-label={`Kontext: ${threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}`}
+        >
+          <Icon name="inbox" size={13} />
+          <b>{threadId === null ? 'Celá schránka' : (subject ?? 'Vlákno')}</b>
         </span>
-        <span className="runner">
-          {RUNNERS.map(([kind, label], index) => (
-            <Fragment key={kind}>
-              {index > 0 ? <span className="dt">·</span> : null}
-              <button
-                type="button"
-                className={kind === activeRunner ? 'on' : undefined}
-                title={`Spustiť cez ${label}`}
-                onClick={() => {
-                  setRunner(kind);
-                  void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
-                }}
-              >
-                {label}
-              </button>
-            </Fragment>
+        <span className="runner" role="group" aria-label="Spustiť cez">
+          {RUNNERS.map(([kind, label]) => (
+            <button
+              key={kind}
+              type="button"
+              className={kind === activeRunner ? 'on' : undefined}
+              aria-pressed={kind === activeRunner}
+              title={`Spustiť cez ${label}`}
+              onClick={() => {
+                setRunner(kind);
+                void queryClient.invalidateQueries({ queryKey: queryKeys.runners() });
+              }}
+            >
+              {label}
+            </button>
           ))}
         </span>
       </div>
@@ -88,16 +94,14 @@ export function AiChatPane() {
           <div className="turn" key={turn.id}>
             <div className="bub">{turn.question}</div>
             <div className="steps">
-              {turn.steps.map((step, index) => (
-                <div
-                  key={index}
-                  className={
-                    turn.status === 'running' && index === turn.steps.length - 1 ? 'run' : undefined
-                  }
-                >
-                  {step}
-                </div>
-              ))}
+              {turn.steps.map((step, index) => {
+                const running = turn.status === 'running' && index === turn.steps.length - 1;
+                return (
+                  <div key={index} className={running ? 'run' : undefined}>
+                    {running ? step : finishedStepLabel(step, turn.status)}
+                  </div>
+                );
+              })}
             </div>
             {turn.answer === '' ? null : (
               <ChatAnswer
@@ -116,6 +120,7 @@ export function AiChatPane() {
             key={example}
             type="button"
             className="chipb"
+            title={example}
             onClick={() => {
               submit(example);
             }}

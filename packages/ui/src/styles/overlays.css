@@ -6,7 +6,9 @@
   justify-content: center;
   align-items: flex-start;
   padding: 13vh 16px 0;
-  background: rgba(6, 7, 10, 0.58);
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   animation: ovin 0.12s ease-out;
 }
 .ov.mid {
@@ -15,6 +17,8 @@
 }
 .ov.clear {
   background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   animation: none;
 }
 .surface {
@@ -40,7 +44,7 @@
 }
 .pop .pi {
   min-height: 36px;
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   padding: 0 10px;
 }
 .pop .grp {
@@ -52,12 +56,12 @@
   margin: 4px;
 }
 .grp {
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
   padding: 12px 12px 6px;
-  font-weight: 600;
+  font-weight: var(--w-semibold);
 }
 .pi {
   display: flex;
@@ -99,7 +103,7 @@
 .pi .lb small {
   color: var(--muted);
   margin-left: 8px;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .pi .wh {
   color: var(--muted);
@@ -120,13 +124,13 @@
 }
 .cf h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  font-weight: var(--w-semibold);
 }
 .cf p {
   margin: 0 0 14px;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -141,7 +145,7 @@
 }
 .toast {
   position: fixed;
-  left: 50%;
+  left: calc(var(--fold-w, 0px) + (100% - var(--fold-w, 0px) - var(--side-w, 0px)) / 2);
   bottom: 28px;
   transform: translateX(-50%);
   z-index: 70;
@@ -153,17 +157,17 @@
   background: var(--raised);
   border: 1px solid var(--line);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   color: var(--fg);
   animation: toastin 0.18s ease-out;
   white-space: nowrap;
 }
 .toast .dt {
-  color: var(--faint);
+  color: var(--muted);
 }
 .toast .u {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--w-semibold);
   display: inline-flex;
   gap: 7px;
   align-items: center;

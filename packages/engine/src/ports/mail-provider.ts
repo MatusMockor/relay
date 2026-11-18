@@ -31,6 +31,11 @@ export interface MailProvider {
   ): Promise<RemoteThreadHeaders[]>;
   fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange>;
   listUids(mailboxPath: string): Promise<number[]>;
+  searchRelated(
+    mailboxPath: string,
+    uidValidity: number,
+    messageIds: readonly string[],
+  ): Promise<number[]>;
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null>;
   fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null>;
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void>;

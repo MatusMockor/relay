@@ -26,6 +26,7 @@ import { mailboxStatus } from './mailbox-status';
 import { fetchCalendarParts } from './calendar-part-reads';
 import { fetchMessage, listUids } from './message-reads';
 import { appendMessage, moveMessages, setFlags, storeFlags } from './message-writes';
+import { searchRelated } from './search-related';
 import { requireBatchSize } from './uid-batches';
 
 export interface ImapMailProviderOptions {
@@ -95,6 +96,14 @@ export class ImapMailProvider implements MailProvider {
 
   listUids(mailboxPath: string): Promise<number[]> {
     return listUids(this.connection, mailboxPath);
+  }
+
+  searchRelated(
+    mailboxPath: string,
+    uidValidity: number,
+    messageIds: readonly string[],
+  ): Promise<number[]> {
+    return searchRelated(this.connection, mailboxPath, uidValidity, messageIds);
   }
 
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {

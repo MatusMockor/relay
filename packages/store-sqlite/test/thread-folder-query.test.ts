@@ -219,6 +219,7 @@ describe('SqliteThreadRepository.queryFolder', () => {
         name: 'Jira',
         order: 0,
         exclusive: true,
+        hideTasks: false,
         rules: [{ type: 'jira', projectKeys: [] }],
       },
       {
@@ -228,6 +229,7 @@ describe('SqliteThreadRepository.queryFolder', () => {
         name: 'VIP',
         order: 1,
         exclusive: false,
+        hideTasks: false,
         rules: [{ type: 'fromDomain', domain: 'klient.sk' }],
       },
     ]);

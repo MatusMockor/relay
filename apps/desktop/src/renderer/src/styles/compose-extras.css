@@ -18,8 +18,8 @@
   padding-left: 8px;
 }
 .to-chip .bad-ic {
-  font-weight: 700;
-  font-size: 12px;
+  font-weight: var(--w-bold);
+  font-size: var(--fs-sm);
 }
 .rcp-more {
   display: inline-flex;
@@ -31,7 +31,7 @@
   padding: 0 8px;
   border-radius: 6px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .rcp-more button:hover {
   background: var(--hover);
@@ -57,7 +57,7 @@
   border-radius: 8px;
   background: var(--raised);
   color: var(--fg);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   overflow: hidden;
 }
 .att-chip > svg {
@@ -123,7 +123,7 @@
   border-radius: 12px;
   background: rgba(13, 15, 20, 0.86);
   color: var(--fg);
-  font-size: 14px;
+  font-size: var(--fs-base);
   pointer-events: none;
   z-index: 5;
 }
@@ -141,4 +141,14 @@
     width: 100%;
     opacity: 0.5;
   }
+}
+.cmp-h .to-chip > .av {
+  flex: none;
+}
+.cmp-h .to-n,
+.cmp-h .from > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

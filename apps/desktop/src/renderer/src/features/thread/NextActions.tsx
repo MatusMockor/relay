@@ -44,7 +44,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         }}
       >
         <Kbd keys={['H']} />
-        Pripomenúť neskôr
+        Pripomenúť
       </button>
       <button
         type="button"
@@ -68,10 +68,10 @@ export function NextActions({ detail, pending }: NextActionsProps) {
       </button>
     </>
   );
-  const own = (
+  const own = (ghost: boolean) => (
     <button
       type="button"
-      className="sug own"
+      className={ghost ? 'sug ghost' : 'sug'}
       onClick={() => {
         reply();
       }}
@@ -94,7 +94,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         </span>
         <div className="sugs">
           {quick}
-          {own}
+          {own(false)}
         </div>
       </div>
     );
@@ -103,8 +103,9 @@ export function NextActions({ detail, pending }: NextActionsProps) {
     return (
       <div className="t-next">
         <div className="sugs">
+          {bot ? own(false) : null}
           {quick}
-          {own}
+          {bot ? null : own(false)}
         </div>
       </div>
     );
@@ -115,22 +116,24 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         <Spark />
         Navrhnuté odpovede
       </h4>
-      <div className="sugs">
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={suggestion.id}
-            type="button"
-            className="sug"
-            title={suggestion.body}
-            onClick={() => {
-              reply(suggestion.body);
-            }}
-          >
-            <Kbd keys={[String(index + 1)]} />
-            {suggestion.label}
-          </button>
-        ))}
-        {own}
+      <div className="sugs split">
+        <div className="sugs">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              className="sug"
+              title={suggestion.body}
+              onClick={() => {
+                reply(suggestion.body);
+              }}
+            >
+              <Kbd keys={[String(index + 1)]} />
+              <span className="sug-l">{suggestion.label}</span>
+            </button>
+          ))}
+        </div>
+        {own(true)}
       </div>
     </div>
   );

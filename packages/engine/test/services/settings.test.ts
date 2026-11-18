@@ -20,11 +20,31 @@ describe('SettingsService', () => {
         defaultRunner: 'claude',
         features: { oneLiners: true, summaries: false, replySuggestions: true, jiraTriage: true },
       },
+      jira: { taskEvents: ['mention', 'assigned'] },
     });
     expect(await engine.services.settings.get(USER_ID)).toEqual(updated);
     expect(await engine.services.settings.get(OTHER_USER_ID)).toEqual(DEFAULT_USER_SETTINGS);
     expect(engine.events.published.map((entry) => [entry.userId, entry.event.type])).toEqual([
       [USER_ID, 'settings.updated'],
+    ]);
+  });
+
+  it('replaces the Jira event kinds that create tasks and keeps the rest', async () => {
+    const engine = createTestEngine();
+    await engine.services.settings.update(USER_ID, { density: 'compact' });
+
+    const updated = await engine.services.settings.update(USER_ID, {
+      jira: { taskEvents: ['comment', 'status'] },
+    });
+
+    expect(updated).toEqual({
+      ...DEFAULT_USER_SETTINGS,
+      density: 'compact',
+      jira: { taskEvents: ['comment', 'status'] },
+    });
+    expect((await engine.services.settings.get(USER_ID)).jira.taskEvents).toEqual([
+      'comment',
+      'status',
     ]);
   });
 });

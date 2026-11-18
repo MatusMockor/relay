@@ -1,5 +1,5 @@
 import { displaySubject, type Message, type ThreadDetail } from '@relay/shared';
-import { AccountDot } from '@relay/ui';
+import { AccountSquare } from '@relay/ui';
 import { Fragment } from 'react';
 import { useThreadDetail } from '../../data/hooks/use-mail-queries';
 import { useThreadAiPending } from '../../data/hooks/use-thread-ai';
@@ -63,7 +63,7 @@ function ThreadMeta({
         <>
           <span>·</span>
           <span className="acc-in" title={`Účet ${account.displayName}`}>
-            <AccountDot account={accountLike(account)} />
+            <AccountSquare account={accountLike(account)} small />
             {`Prijaté na ${account.email}`}
           </span>
         </>
@@ -104,7 +104,7 @@ export function ThreadView() {
         <ThreadMeta detail={detail} own={own} />
         <AiSummary detail={detail} pending={pending.includes('summary')} />
         <InvitationCards threadId={detail.thread.id} />
-        <div className="t-earlier">
+        <div className="t-stack">
           {earlier.map((message) => {
             const key = `${detail.thread.id}:${message.id}`;
             return expanded[key] === true ? (
@@ -129,16 +129,16 @@ export function ThreadView() {
               />
             );
           })}
+          {last === undefined ? null : (
+            <MessageView
+              key={last.id}
+              message={last}
+              mine={isMine(last, own)}
+              recipientName={recipient}
+              onForward={forward(last)}
+            />
+          )}
         </div>
-        {last === undefined ? null : (
-          <MessageView
-            key={last.id}
-            message={last}
-            mine={isMine(last, own)}
-            recipientName={recipient}
-            onForward={forward(last)}
-          />
-        )}
         {reply?.threadId === detail.thread.id ? (
           <ReplyComposer detail={detail} reply={reply} />
         ) : (

@@ -4,15 +4,9 @@ import { type RightTab, useUiStore } from '../../state/ui-store';
 import { openRight } from '../mail/navigation';
 import { AiChatPane } from './AiChatPane';
 import { CalendarPane } from './CalendarPane';
-import { ContactPane } from './ContactPane';
+import { ContactPane, useContactIdle } from './ContactPane';
 
 const TABS = [
-  {
-    key: 'contact' as const,
-    label: 'Kontakt',
-    icon: <Icon name="user" />,
-    hint: `Kontakt (${ALT}1)`,
-  },
   { key: 'ai' as const, label: 'AI', icon: <Spark />, hint: `AI (${ALT}2)` },
   {
     key: 'calendar' as const,
@@ -22,19 +16,28 @@ const TABS = [
   },
 ];
 
+const firstTab = (idle: boolean) => ({
+  key: 'contact' as const,
+  label: idle ? 'Prehľad' : 'Kontakt',
+  icon: <Icon name={idle ? 'sun' : 'user'} />,
+  hint: `${idle ? 'Prehľad' : 'Kontakt'} (${ALT}1)`,
+});
+
 export function RightPanel({ width }: { readonly width: number }) {
   const tab = useUiStore((state) => state.rightTab);
+  const idle = useContactIdle();
+  const first = firstTab(idle);
   return (
     <aside className="side" id="side" aria-label="Pravý panel" style={{ width }}>
       <Tabs<RightTab>
         className="stabs"
         label="Pravý panel"
-        items={TABS}
+        items={[first, ...TABS]}
         active={tab}
         onSelect={openRight}
       />
       {tab === 'contact' ? (
-        <div className="spane" role="tabpanel" aria-label="Kontakt">
+        <div className="spane" role="tabpanel" aria-label={first.label}>
           <ContactPane />
         </div>
       ) : null}

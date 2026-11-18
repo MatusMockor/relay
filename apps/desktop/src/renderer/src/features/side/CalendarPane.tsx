@@ -1,6 +1,6 @@
 import { useOccurrences } from '../../data/hooks/use-calendar';
 import { dm, WEEKDAYS, WEEKDAYS_SHORT } from '../../lib/dates';
-import { capitalize } from '../../lib/text';
+import { capitalize, plural } from '../../lib/text';
 import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { onDay, startOfDay, weekWindow } from '../calendar/calendar-time';
@@ -55,13 +55,17 @@ export function CalendarPane() {
         <div className="week">
           {[0, 1, 2, 3, 4, 5, 6].map((offset) => {
             const cell = startOfDay(base, offset);
-            const has = occurrences.some((occurrence) => onDay(occurrence, base, offset));
+            const count = occurrences.filter((occurrence) =>
+              onDay(occurrence, base, offset),
+            ).length;
+            const has = count > 0;
+            const countLabel = `${String(count)} ${plural(count, 'udalosť', 'udalosti', 'udalostí')}`;
             return (
               <button
                 key={offset}
                 type="button"
                 className={`wd${offset === day ? ' on' : ''}${offset === 0 ? ' today' : ''}`}
-                aria-label={`${capitalize(WEEKDAYS[cell.getDay()] ?? '')} ${dm(cell)}`}
+                aria-label={`${capitalize(WEEKDAYS[cell.getDay()] ?? '')} ${dm(cell)}, ${countLabel}`}
                 aria-pressed={offset === day}
                 onClick={() => {
                   setUi({ calendarDay: offset });
@@ -69,7 +73,7 @@ export function CalendarPane() {
               >
                 {WEEKDAYS_SHORT[cell.getDay()]}
                 <b>{cell.getDate()}</b>
-                <i className={has ? undefined : 'none'} />
+                <i className={has ? undefined : 'none'} title={countLabel} />
               </button>
             );
           })}
@@ -92,7 +96,7 @@ export function CalendarPane() {
           <AgendaList occurrences={events} base={base} offset={day} now={now} />
         )}
         {demo ? (
-          <p className="mono">Ukážková agenda</p>
+          <p className="cal-foot">Ukážková agenda</p>
         ) : (
           <p className="cal-foot">
             Pozvánky z mailov sa pridávajú samé.{' '}

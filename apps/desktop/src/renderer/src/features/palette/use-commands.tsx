@@ -159,7 +159,7 @@ export const useCommands = (): Command[] => {
       id: 'accounts',
       label: 'Spravovať účty',
       keys: [],
-      icon: <Icon name="gear" />,
+      icon: <Icon name="user" />,
       alias: 'ucty nastavenia odpojit hlavny ucet interval',
       run: settings('accounts'),
     },

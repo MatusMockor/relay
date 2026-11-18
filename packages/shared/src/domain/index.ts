@@ -13,6 +13,7 @@ export * from './draft';
 export * from './failed-invitation';
 export * from './folder-view';
 export * from './ids';
+export * from './jira-event';
 export * from './jira-subject';
 export * from './label';
 export * from './mailbox';

@@ -17,7 +17,7 @@ const buildAccounts = (now: Date): MailAccount[] =>
     userId: demoIds.user,
     provider: seed.provider,
     displayName: seed.name,
-    senderName: 'Ty',
+    senderName: 'Ján Adamec',
     email: seed.email,
     color: seed.color,
     isPrimary: seed.isPrimary,
@@ -41,6 +41,7 @@ const buildSplits = (): Split[] => [
     name: 'Jira',
     order: 0,
     exclusive: true,
+    hideTasks: false,
     rules: [{ type: 'jira', projectKeys: ['WEB', 'API', 'CMS'] }],
   },
   {
@@ -50,6 +51,7 @@ const buildSplits = (): Split[] => [
     name: 'Klienti',
     order: 1,
     exclusive: true,
+    hideTasks: false,
     rules: [
       { type: 'fromDomain', domain: 'kaviaren-zrnko.sk' },
       { type: 'fromDomain', domain: 'atelier-brezina.sk' },
@@ -62,6 +64,7 @@ const buildSplits = (): Split[] => [
     name: 'Ostatné',
     order: 2,
     exclusive: true,
+    hideTasks: false,
     rules: [
       { type: 'header', name: 'List-Unsubscribe', pattern: '.+' },
       { type: 'fromDomain', domain: 'firma.sk' },

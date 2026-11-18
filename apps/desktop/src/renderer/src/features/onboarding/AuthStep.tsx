@@ -1,5 +1,5 @@
 import { EmailAddressSchema, PASSWORD_MIN_LENGTH } from '@relay/shared';
-import { Button, Field, Kbd, Segmented } from '@relay/ui';
+import { Button, Field, Segmented } from '@relay/ui';
 import { useState } from 'react';
 import { MailClientError } from '../../data/errors';
 import { useAppContext } from '../../data/hooks/services-context';
@@ -130,9 +130,8 @@ export function AuthStep() {
           </p>
         )}
         <div className="btns">
-          <Button variant="primary" type="submit" disabled={busy}>
-            {busy ? 'Moment…' : mode === 'login' ? 'Prihlásiť sa' : 'Zaregistrovať sa'}{' '}
-            <Kbd keys={['↵']} />
+          <Button variant="primary" type="submit" disabled={busy} title="Potvrdiť (Enter)">
+            {busy ? 'Moment…' : mode === 'login' ? 'Prihlásiť sa' : 'Zaregistrovať sa'}
           </Button>
         </div>
       </form>
