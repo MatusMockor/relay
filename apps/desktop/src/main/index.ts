@@ -22,6 +22,7 @@ import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
+import { ThreadOpenRequests } from './native/thread-open-requests';
 import { WindowStateStore } from './native/window-state-store';
 import { systemTimers } from './platform/timers';
 import { createAppDocumentPredicate } from './window/app-document';
@@ -62,6 +63,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   });
   hardenSession(session.defaultSession);
   const updates = electronAppUpdates(logger);
+  const threadOpens = new ThreadOpenRequests();
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -76,6 +78,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       ...runtime.ipc,
       attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
       updates: updates.service,
+      threadOpens,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
@@ -110,7 +113,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     timers: systemTimers,
     logger,
   });
-  const shell = startNativeShell(runtime, windows, logger);
+  const shell = startNativeShell(runtime, windows, threadOpens, logger);
   await runtime.start();
   await windows.open();
   await background.start();

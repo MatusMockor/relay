@@ -9,6 +9,7 @@ import { ElectronTrayView } from '../native/electron-tray';
 import { installAppMenu } from '../native/install-app-menu';
 import { NewMailNotifier } from '../native/new-mail-notifier';
 import { SystemNotificationPresenter } from '../native/system-notification-presenter';
+import type { ThreadOpenRequests } from '../native/thread-open-requests';
 import { UnreadBadgeUpdater } from '../native/unread-badge-updater';
 import { systemTimers } from '../platform/timers';
 import type { MainWindowController } from './main-window-controller';
@@ -20,6 +21,7 @@ export interface NativeShell {
 export const startNativeShell = (
   runtime: LocalRuntime,
   windows: MainWindowController,
+  threadOpens: ThreadOpenRequests,
   logger: Logger,
 ): NativeShell => {
   const focus = () => {
@@ -51,7 +53,9 @@ export const startNativeShell = (
     timers: systemTimers,
     logger,
   });
-  const presenter = new SystemNotificationPresenter(electronNotifications, focus);
+  const presenter = new SystemNotificationPresenter(electronNotifications, focus, (threadId) => {
+    threadOpens.request(threadId);
+  });
   const notifier = new NewMailNotifier({
     hub,
     presenter,

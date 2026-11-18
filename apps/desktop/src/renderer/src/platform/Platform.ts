@@ -9,6 +9,7 @@ import type {
   GoogleCalendarAuthorizeInput,
   GoogleCalendarAuthorizeOutput,
   RelayBridge,
+  ThreadId,
   UpdateStatus,
 } from '@relay/shared';
 import type { FetchLike } from '../data/remote/HttpApi';
@@ -37,6 +38,7 @@ export interface Platform {
   ): Promise<GoogleCalendarAuthorizeOutput>;
   subscribeToUpdates(listener: (status: UpdateStatus) => void): () => void;
   installUpdate(): Promise<void>;
+  subscribeToThreadOpens(listener: (threadId: ThreadId) => void): () => void;
 }
 
 const PLATFORM_LABEL: Readonly<Record<AppInfo['platform'], string>> = {

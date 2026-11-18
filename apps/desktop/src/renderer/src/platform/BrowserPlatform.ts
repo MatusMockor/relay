@@ -97,5 +97,6 @@ export const createBrowserPlatform = (
     cancelGoogleAuthorization: () => Promise.resolve(),
     subscribeToUpdates: () => () => undefined,
     installUpdate: () => Promise.resolve(),
+    subscribeToThreadOpens: () => () => undefined,
   };
 };

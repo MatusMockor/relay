@@ -1,3 +1,4 @@
+import type { ThreadId } from '@relay/shared/domain';
 import type { MailNotification, NotificationPresenter } from './new-mail-notifier';
 
 export interface ShownNotification {
@@ -18,6 +19,7 @@ export class SystemNotificationPresenter implements NotificationPresenter {
   constructor(
     private readonly notifications: NotificationFactory,
     private readonly focusApp: () => void,
+    private readonly openThread: (threadId: ThreadId) => void,
   ) {}
 
   show(notification: MailNotification): void {
@@ -32,12 +34,20 @@ export class SystemNotificationPresenter implements NotificationPresenter {
     this.active.add(native);
     native.onClick(() => {
       this.active.delete(native);
-      this.focusApp();
+      this.activate(notification.threadId);
     });
     native.onDismiss(() => {
       this.active.delete(native);
     });
     native.show();
+  }
+
+  private activate(threadId: ThreadId | null): void {
+    this.focusApp();
+    if (threadId === null) {
+      return;
+    }
+    this.openThread(threadId);
   }
 
   dispose(): void {

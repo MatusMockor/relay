@@ -6,6 +6,7 @@ export * from './channels';
 export * from './define';
 export * from './google-calendar-channels';
 export * from './local-channels';
+export * from './notification-channels';
 export * from './oauth-channels';
 export * from './protocol';
 export * from './session-channels';
