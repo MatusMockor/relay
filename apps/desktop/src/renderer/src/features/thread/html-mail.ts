@@ -33,7 +33,7 @@ const escapeAttribute = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
 const BASE_STYLE = [
-  'html{margin:0;padding:0;background:#f3f4f6;overflow-y:hidden}',
+  'html{margin:0;padding:0;background:#f3f4f6;overflow:hidden!important}',
   'body{display:flow-root;margin:0;padding:16px;color:#1b1d23;font:14px/1.5 -apple-system,"Segoe UI",Inter,sans-serif;overflow-wrap:anywhere}',
   'img{max-width:100%;height:auto}',
   'a{color:#3d4fc7;text-decoration-thickness:1px;text-underline-offset:2px}',
