@@ -13,7 +13,7 @@ import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
 import { threadComposeCommands } from './thread-compose-commands';
-import { threadSpamCommand } from './thread-spam-command';
+import { threadActionCommands } from './thread-action-commands';
 import { accountCount } from '../../lib/text';
 
 export interface Command {
@@ -103,7 +103,7 @@ export const useCommands = (): Command[] => {
                   },
                 },
                 ...threadComposeCommands(thread.id, ctx, actions.compose),
-                ...threadSpamCommand(thread, ctx, actions.thread),
+                ...threadActionCommands(thread, ctx, actions.thread),
               ]),
           {
             id: 'trash',

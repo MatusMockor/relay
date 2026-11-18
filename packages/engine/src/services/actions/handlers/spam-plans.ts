@@ -24,7 +24,7 @@ export const reportSpam: StateMovePlanner = (messages, thread, copies) => {
   }
   return {
     ...moveTo('spam', sources, 'spam'),
-    origins: { kind: 'spam-origin', remember: originsOf(sources), forget: [] },
+    origins: [{ kind: 'spam-origin', remember: originsOf(sources), forget: [] }],
   };
 };
 
@@ -38,6 +38,6 @@ export const notSpam: StateMovePlanner = (messages, thread, copies) => {
   }
   return {
     ...plan(settledState(rolesAfter(copies, messages, moves)), moves),
-    origins: { kind: 'spam-origin', remember: [], forget: moves.map((move) => move.messageId) },
+    origins: [{ kind: 'spam-origin', remember: [], forget: moves.map((move) => move.messageId) }],
   };
 };

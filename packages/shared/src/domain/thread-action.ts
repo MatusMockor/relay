@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LabelIdSchema } from './ids';
+import { LabelIdSchema, MailboxIdSchema } from './ids';
 import { IsoDateTimeSchema } from './primitives';
 
 export const ThreadActionSchema = z.discriminatedUnion('type', [
@@ -15,6 +15,8 @@ export const ThreadActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('cancelReminder') }),
   z.object({ type: z.literal('addLabel'), labelId: LabelIdSchema }),
   z.object({ type: z.literal('removeLabel'), labelId: LabelIdSchema }),
+  z.object({ type: z.literal('move'), mailboxId: MailboxIdSchema }),
+  z.object({ type: z.literal('undoMove') }),
 ]);
 export type ThreadAction = z.infer<typeof ThreadActionSchema>;
 export type ThreadActionType = ThreadAction['type'];

@@ -3,7 +3,6 @@ import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
-import { projectThreadAction } from '../thread-projection';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomations } from './demo-automations';
@@ -13,6 +12,7 @@ import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
 import { demoMailboxesOf } from './demo-mailboxes';
+import { DemoMoves } from './demo-moves';
 import { queryThreads } from './demo-query';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
 import type { DemoState } from './demo-state';
@@ -41,6 +41,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
   const state = options.state ?? buildDemoState(now());
   const bus = new EventBus<RealtimeEvent>();
   const aiRuns = new Set<Unsubscribe>();
+  const moves = new DemoMoves(state);
   const emit = (event: RealtimeEvent) => {
     queueMicrotask(() => {
       bus.emit(event);
@@ -98,11 +99,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     requestThreadSummary: (threadId) => run(() => requestDemoSummary(state, record(threadId))),
     applyThreadAction: (threadId, action) =>
-      run(() => {
-        const found = record(threadId);
-        found.summary = projectThreadAction(found.summary, action);
-        return upserted(found.summary);
-      }),
+      run(() => upserted(moves.apply(record(threadId), action))),
     getUnsubscribeOptions: (threadId) =>
       run(() => demoUnsubscribeOptions(record(threadId).summary)),
     unsubscribe: (threadId, url) =>

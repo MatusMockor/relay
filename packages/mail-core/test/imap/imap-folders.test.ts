@@ -1,4 +1,4 @@
-import type { RemoteMailbox } from '@relay/engine';
+import { NotImplementedError, type RemoteMailbox } from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { collect } from '../support/collect';
 import { createProviderHarness, type ProviderHarness } from '../support/provider-harness';
@@ -100,5 +100,22 @@ describe('ImapMailProvider folders against GreenMail', () => {
       { uid: 3, labels: null },
     ]);
     expect(await collect(harness.provider.fetchFlagChanges('Priecinok', '0', []))).toEqual([]);
+  });
+
+  it('moves mail into a nested folder and rejects Gmail label writes', async () => {
+    const delimiter = await delimiterOf();
+    const folder = `Klienti${delimiter}Faktúry`;
+    const admin = await harness.admin();
+    await admin.mailboxCreate(['Klienti', 'Faktúry']);
+    await harness.provider.append('INBOX', rawMail({ to: harness.user.email, subject: 'f' }), {});
+
+    const moved = await harness.provider.move('INBOX', [1], folder);
+
+    expect(moved.uidMap.get(1)).toBe(1);
+    expect(await harness.provider.listUids('INBOX')).toEqual([]);
+    expect(await harness.provider.listUids(folder)).toEqual([1]);
+    await expect(
+      harness.provider.setLabels(folder, [1], { add: ['Klienti'], remove: [] }),
+    ).rejects.toBeInstanceOf(NotImplementedError);
   });
 });

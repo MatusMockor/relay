@@ -7,6 +7,7 @@ import type { ReminderScheduler } from '../reminders/reminder-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { ThreadReadMarker } from '../threads/thread-query-service';
 import type { LabelHandler } from './handlers/label-handler';
+import type { MoveHandler } from './handlers/move-handler';
 import type { PinHandler } from './handlers/pin-handler';
 import type { ReadStateHandler } from './handlers/read-state-handler';
 import type { StateMoveHandler } from './handlers/state-move-handler';
@@ -17,6 +18,7 @@ export interface MessageActionsServiceDeps {
   readonly messages: MessageRepository;
   readonly accounts: AccountRepository;
   readonly stateMoves: StateMoveHandler;
+  readonly moves: MoveHandler;
   readonly readState: ReadStateHandler;
   readonly pins: PinHandler;
   readonly labels: LabelHandler;
@@ -70,6 +72,10 @@ export class MessageActionsService implements ThreadReadMarker {
         return this.deps.labels.add(context, action.labelId);
       case 'removeLabel':
         return this.deps.labels.remove(context, action.labelId);
+      case 'move':
+        return this.deps.moves.move(context, action.mailboxId);
+      case 'undoMove':
+        return this.deps.moves.undo(context);
     }
   }
 

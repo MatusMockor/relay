@@ -1,40 +1,33 @@
-import type { AccountId, MailboxId, MailboxRole, ThreadSummary } from '@relay/shared/domain';
+import type { AccountId, ThreadSummary } from '@relay/shared/domain';
 import { NotFoundError } from '../../../errors';
 import type { Clock } from '../../../ports/clock';
-import type { MailboxRepository } from '../../../ports/mailbox-repository';
+import type { LabelRepository } from '../../../ports/label-repository';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
 import { MailCopies } from '../../shared/mail-copies';
-import {
-  forgetMoveOrigins,
-  type MoveOrigin,
-  moveOrigins,
-  recordMoveOrigins,
-} from '../../shared/move-origins';
-import { pendingMoveTargets, recordProviderOps } from '../../shared/provider-ops';
+import { forgetMoveOrigins, recordMoveOrigins } from '../../shared/move-origins';
+import { recordProviderOps } from '../../shared/provider-ops';
+import { refreshThread } from '../../shared/thread-refresh';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
+import { resolveLabelChanges, writeLabelChanges } from './label-change-writer';
+import type { MessageLocator } from './message-locator';
+import { requireUpserted } from './require-upserted';
 import type {
-  LocatedMessage,
   OriginChanges,
   PlannedMove,
   StateMoveAction,
+  StateMovePlanner,
 } from './state-move-plan';
 import { planStateMove } from './state-move-plans';
 
 export interface StateMoveHandlerDeps {
-  readonly mailboxes: MailboxRepository;
-  readonly pendingWork: PendingWorkRepository;
+  readonly locator: MessageLocator;
+  readonly labels: LabelRepository;
   readonly unitOfWork: UnitOfWork;
   readonly mirror: ProviderMirror;
   readonly clock: Clock;
 }
-
-const liveOrigin = (
-  origin: MoveOrigin | undefined,
-  mailboxes: ReadonlyMap<MailboxId, MailboxRole>,
-): MoveOrigin | undefined =>
-  origin?.mailboxId === undefined || mailboxes.has(origin.mailboxId) ? origin : undefined;
 
 const moveChange = (move: PlannedMove) =>
   move.mailboxId === undefined
@@ -44,26 +37,31 @@ const moveChange = (move: PlannedMove) =>
 const applyOrigins = async (
   pendingWork: PendingWorkRepository,
   accountId: AccountId,
-  origins: OriginChanges | null,
+  origins: readonly OriginChanges[],
   now: string,
 ): Promise<void> => {
-  if (origins === null) {
-    return;
+  for (const origin of origins) {
+    await forgetMoveOrigins(pendingWork, accountId, origin.kind, origin.forget);
+    await recordMoveOrigins(pendingWork, accountId, origin.kind, origin.remember, now);
   }
-  await recordMoveOrigins(pendingWork, accountId, origins.kind, origins.remember, now);
-  await forgetMoveOrigins(pendingWork, accountId, origins.kind, origins.forget);
 };
 
 export class StateMoveHandler {
   constructor(private readonly deps: StateMoveHandlerDeps) {}
 
-  async handle(context: ThreadActionContext, action: StateMoveAction): Promise<ThreadSummary> {
-    const plan = planStateMove(
-      action,
-      await this.located(context),
+  handle(context: ThreadActionContext, action: StateMoveAction): Promise<ThreadSummary> {
+    return this.execute(context, (messages, thread, copies) =>
+      planStateMove(action, messages, thread, copies),
+    );
+  }
+
+  async execute(context: ThreadActionContext, planner: StateMovePlanner): Promise<ThreadSummary> {
+    const plan = planner(
+      await this.deps.locator.locate(context),
       context.thread,
       MailCopies.of(context.account),
     );
+    const labels = await resolveLabelChanges(this.deps.labels, context.userId, plan.labels);
     const accountId = context.account.id;
     const now = this.deps.clock.now().toISOString();
     const { thread, ops } = await this.deps.unitOfWork.run(async (repositories) => {
@@ -74,39 +72,24 @@ export class StateMoveHandler {
       if (updated === null) {
         throw new NotFoundError('Thread', context.thread.id);
       }
-      const recorded = await recordProviderOps(
+      const labelOps = await writeLabelChanges(repositories, accountId, labels, now);
+      const moveOps = await recordProviderOps(
         repositories.pendingWork,
         accountId,
         plan.moves.map((move) => ({ messageId: move.messageId, change: moveChange(move) })),
         now,
       );
       await applyOrigins(repositories.pendingWork, accountId, plan.origins, now);
-      return { thread: updated, ops: recorded };
+      if (labels.length === 0) {
+        return { thread: updated, ops: [...labelOps, ...moveOps] };
+      }
+      const refreshed = await refreshThread(repositories, context.userId, accountId, updated.id);
+      return {
+        thread: requireUpserted(refreshed, updated.id),
+        ops: [...labelOps, ...moveOps],
+      };
     });
     await this.deps.mirror.apply(context.account, ops);
     return thread;
-  }
-
-  private async located(context: ThreadActionContext): Promise<LocatedMessage[]> {
-    const accountId = context.account.id;
-    const { pendingWork } = this.deps;
-    const mailboxes = await this.deps.mailboxes.listForSync(accountId);
-    const roles = new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.role]));
-    const pending = await pendingMoveTargets(pendingWork, accountId);
-    const trashed = await moveOrigins(pendingWork, accountId, 'trash-origin');
-    const reported = await moveOrigins(pendingWork, accountId, 'spam-origin');
-    return context.messages.map((message) => {
-      const target = pending.get(message.id);
-      const role = target?.role ?? roles.get(message.mailboxId);
-      const mailboxId = target === undefined ? message.mailboxId : target.mailboxId;
-      const origins = role === 'spam' ? reported : trashed;
-      return {
-        message,
-        role,
-        mailboxId,
-        origin: liveOrigin(origins.get(message.id), roles),
-        moving: pending.has(message.id),
-      };
-    });
   }
 }

@@ -28,7 +28,7 @@ import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
 import { threadHeadersOf } from './fake-thread-headers';
 import { uidValidityMismatch } from './fake-uid-validity';
-import { applyKeywords, type KeywordMutation, moveRecords } from './fake-writes';
+import { applyKeywords, type KeywordMutation, moveRecords, writeLabels } from './fake-writes';
 
 type ChangeListener = (change: MailboxChange) => void;
 
@@ -192,15 +192,17 @@ export class FakeMailProvider implements MailProvider {
     });
   }
 
-  setKeywords(
-    mailboxPath: string,
-    uids: readonly number[],
-    mutation: KeywordMutation,
-  ): Promise<void> {
-    return this.withMailbox(mailboxPath, (mailbox, server) => {
+  setKeywords(path: string, uids: readonly number[], mutation: KeywordMutation): Promise<void> {
+    return this.withMailbox(path, (mailbox, server) => {
       applyKeywords(mailbox, server, uids, mutation);
       return Promise.resolve();
     });
+  }
+
+  setLabels(path: string, uids: readonly number[], mutation: KeywordMutation): Promise<void> {
+    return this.withMailbox(path, (mailbox, server) =>
+      writeLabels(mailbox, server, uids, mutation),
+    );
   }
 
   move(mailboxPath: string, uids: readonly number[], targetPath: string): Promise<MoveResult> {

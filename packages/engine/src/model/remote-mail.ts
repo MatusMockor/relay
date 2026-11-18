@@ -56,6 +56,11 @@ export interface RemoteFlagChange {
 
 export type MailFlag = keyof MessageFlags;
 
+export interface LabelMutation {
+  readonly add: readonly string[];
+  readonly remove: readonly string[];
+}
+
 export interface FlagMutation {
   readonly add: readonly MailFlag[];
   readonly remove: readonly MailFlag[];

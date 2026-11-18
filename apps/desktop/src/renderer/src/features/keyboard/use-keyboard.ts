@@ -173,6 +173,11 @@ export const useKeyboard = (): void => {
           },
         });
       },
+      v: () => {
+        if (thread !== null) {
+          setUi({ overlay: { kind: 'move', threadId: thread.id } });
+        }
+      },
       r: () => {
         if (thread !== null) {
           actions.compose.startReply(thread.id, thread.accountId);

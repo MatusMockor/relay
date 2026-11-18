@@ -39,6 +39,13 @@ export interface DeliveryOptions {
   readonly internalDate?: string;
 }
 
+export interface LabelWrite {
+  readonly path: string;
+  readonly uids: readonly number[];
+  readonly add: readonly string[];
+  readonly remove: readonly string[];
+}
+
 const NO_FLAGS: MessageFlags = { seen: false, flagged: false, answered: false };
 const DEFAULT_INTERNAL_DATE = '2026-11-15T08:00:00.000Z';
 
@@ -53,6 +60,7 @@ export class FakeMailServer {
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
   readonly flagScans: { path: string; uids: number[] | null }[] = [];
+  readonly labelWrites: LabelWrite[] = [];
   readonly statusCalls: string[] = [];
   readonly uidListings: string[] = [];
   failFetchUid: number | null = null;

@@ -1,6 +1,6 @@
-import { PartialMoveError, type MoveResult } from '../../../src';
+import { NotImplementedError, PartialMoveError, type MoveResult } from '../../../src';
 import { missing } from './fake-records';
-import type { FakeMailbox, FakeMailServer } from './fake-mail-server';
+import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 
 export interface KeywordMutation {
   readonly add: readonly string[];
@@ -20,6 +20,38 @@ export const applyKeywords = (
     );
     server.updateKeywords(mailbox.path, uid, next);
   });
+};
+
+const sameMessage = (server: FakeMailServer, emailId: string) =>
+  [...server.mailboxes.values()].flatMap((candidate) =>
+    [...candidate.messages.values()]
+      .filter((record) => record.emailId === emailId)
+      .map((record) => ({ path: candidate.path, record })),
+  );
+
+export const writeLabels = (
+  mailbox: FakeMailbox,
+  server: FakeMailServer,
+  uids: readonly number[],
+  mutation: KeywordMutation,
+): Promise<void> => {
+  if (!server.gmail) {
+    return Promise.reject(new NotImplementedError('Gmail labels'));
+  }
+  server.labelWrites.push({ path: mailbox.path, uids: [...uids], ...mutation });
+  uids.forEach((uid) => {
+    const record = mailbox.messages.get(uid);
+    if (record?.emailId === null || record === undefined) {
+      return;
+    }
+    const next = [...new Set([...(record.labels ?? []), ...mutation.add])].filter(
+      (label) => !mutation.remove.includes(label),
+    );
+    sameMessage(server, record.emailId).forEach(({ path, record: copy }) => {
+      server.updateLabels(path, copy.uid, next);
+    });
+  });
+  return Promise.resolve();
 };
 
 const GMAIL_HELD_ROLES: ReadonlySet<string> = new Set(['trash', 'spam']);
@@ -43,6 +75,28 @@ const dropGmailLabels = (server: FakeMailServer, targetPath: string, source: Uin
     });
 };
 
+const gmailTwin = (server: FakeMailServer, targetPath: string, emailId: string | null) => {
+  if (!server.gmail || emailId === null) {
+    return null;
+  }
+  const target = server.find(targetPath);
+  return (
+    [...(target?.messages.values() ?? [])].find((record) => record.emailId === emailId) ?? null
+  );
+};
+
+const copyRecord = (
+  server: FakeMailServer,
+  targetPath: string,
+  record: RemoteMessageRecord | undefined,
+): number | null => {
+  if (record === undefined) {
+    return null;
+  }
+  const twin = gmailTwin(server, targetPath, record.emailId);
+  return twin === null ? server.tryDeliver(targetPath, record.source, record) : twin.uid;
+};
+
 export const moveRecords = (
   mailbox: FakeMailbox,
   server: FakeMailServer,
@@ -55,8 +109,7 @@ export const moveRecords = (
   const uidMap = new Map<number, number>();
   uids.forEach((uid) => {
     const record = mailbox.messages.get(uid);
-    const newUid =
-      record === undefined ? null : server.tryDeliver(targetPath, record.source, record);
+    const newUid = copyRecord(server, targetPath, record);
     if (newUid !== null && !server.partialMoves) {
       server.expunge(mailbox.path, uid);
     }

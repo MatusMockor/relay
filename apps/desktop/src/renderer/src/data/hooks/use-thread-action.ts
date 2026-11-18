@@ -1,6 +1,6 @@
 import type { ThreadAction, ThreadDetail, ThreadId, ThreadSummary } from '@relay/shared';
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectThreadAction } from '../thread-projection';
+import { type ProjectionHint, projectThreadAction } from '../thread-projection';
 import { queryKeys } from './query-keys';
 import { serializedThreadAction } from './thread-action-queue';
 import { useClient } from './services-context';
@@ -41,6 +41,7 @@ const track = (ledger: ActionLedger, threadId: ThreadId, delta: number): number 
 export interface ThreadActionInput {
   readonly threadId: ThreadId;
   readonly action: ThreadAction;
+  readonly hint?: ProjectionHint;
 }
 
 interface ActionContext {
@@ -82,13 +83,16 @@ const reconcileDetail = (queryClient: QueryClient, threadId: ThreadId): void => 
   void queryClient.invalidateQueries({ queryKey: key });
 };
 
-const applyOptimistic = (queryClient: QueryClient, threadId: ThreadId, action: ThreadAction) => {
+const applyOptimistic = (
+  queryClient: QueryClient,
+  { threadId, action, hint }: ThreadActionInput,
+) => {
   const detail = queryClient.getQueryData<ThreadDetail>(queryKeys.thread(threadId));
   const current = findCachedThread(queryClient, threadId) ?? detail?.thread ?? null;
   if (current === null) {
     return;
   }
-  const next = projectThreadAction(current, action);
+  const next = projectThreadAction(current, action, hint);
   writeThreadToLists(queryClient, next);
   if (detail !== undefined) {
     queryClient.setQueryData<ThreadDetail>(queryKeys.thread(threadId), { ...detail, thread: next });
@@ -101,7 +105,8 @@ export const useThreadAction = (onError?: (error: unknown) => void) => {
   return useMutation({
     mutationFn: ({ threadId, action }: ThreadActionInput) =>
       serializedThreadAction(client, threadId, () => client.applyThreadAction(threadId, action)),
-    onMutate: async ({ threadId, action }): Promise<ActionContext> => {
+    onMutate: async (input): Promise<ActionContext> => {
+      const { threadId } = input;
       const ledger = ledgerOf(queryClient);
       const overlapped = track(ledger, threadId, 1) > 1;
       if (queryClient.isFetching({ queryKey: queryKeys.thread(threadId) }) > 0) {
@@ -113,7 +118,7 @@ export const useThreadAction = (onError?: (error: unknown) => void) => {
       ]);
       const lists = snapshotThreadLists(queryClient);
       const detail = queryClient.getQueryData<ThreadDetail>(queryKeys.thread(threadId));
-      applyOptimistic(queryClient, threadId, action);
+      applyOptimistic(queryClient, input);
       return { lists, detail, overlapped };
     },
     onError: (error, { threadId }, context) => {
