@@ -1,14 +1,13 @@
 import type { UpdateStatus } from '@relay/shared';
 import { useEffect, useState } from 'react';
 import type { Platform } from '../../platform/Platform';
-import { checkFeedback } from './check-feedback';
 import { reportUpdateFailure } from './report-update-failure';
-import { advanceCheck, IDLE_CHECK, PENDING_CHECK } from './update-check-state';
+import { advanceCheck, IDLE_CHECK, PENDING_CHECK, type SettledCheck } from './update-check-state';
 
-export const UPDATE_CHECK_FEEDBACK_MS = 4000;
+export const UPDATE_CHECK_FEEDBACK_MS = 3000;
 
 export interface UpdateCheck {
-  readonly feedback: string | null;
+  readonly settled: SettledCheck | null;
   readonly check: () => void;
 }
 
@@ -38,5 +37,5 @@ export const useUpdateCheck = (platform: Platform, status: UpdateStatus | null):
       reportUpdateFailure(error);
     });
   };
-  return { feedback: checkFeedback(settled), check };
+  return { settled, check };
 };

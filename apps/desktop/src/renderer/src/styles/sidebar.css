@@ -88,11 +88,21 @@
 }
 .fold-foot {
   margin: auto -10px -12px;
-  padding: 12px 20px 14px;
+  padding: 12px 12px 14px 20px;
   border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fold-foot-meta {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 4px;
   justify-items: start;
+}
+.fold-foot-meta > * {
+  max-width: 100%;
 }
 .fold-foot .stat {
   font-size: var(--fs-xs);
@@ -102,66 +112,16 @@
   color: var(--fg2);
 }
 .fold-foot .app-ver {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--fs-2xs);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .fold-foot .app-ver:hover {
   color: var(--fg2);
-}
-.fold-foot .app-ver.accent {
-  color: var(--accent);
-  font-weight: var(--w-semibold);
-}
-.fold-foot .app-ver.accent:hover {
-  color: var(--accent-hover);
-}
-.fold-foot .app-ver-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-}
-.fold-foot .app-ver-row .app-ver {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fold-foot .app-ver-check {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  color: var(--muted);
-}
-.fold-foot .app-ver-check:hover:not(:disabled) {
-  color: var(--fg2);
-  background: var(--hover);
-}
-.fold-foot .app-ver-check:focus-visible {
-  outline-offset: 1px;
-}
-.fold-foot .app-ver-check:disabled {
-  cursor: default;
-}
-.fold-foot .app-ver-check.spinning svg {
-  animation: app-ver-spin 0.9s linear infinite;
-}
-@keyframes app-ver-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fold-foot .app-ver-check.spinning svg {
-    animation: none;
-    opacity: 0.6;
-  }
 }
 .fold-foot .proto {
   font-size: var(--fs-xs);

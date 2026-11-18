@@ -55,6 +55,25 @@ export const listTimeLabel = (iso: string, now: Date): string => {
   return dm(date);
 };
 
+const MINUTE_MS = 60_000;
+
+const daysAgo = (days: number): string => (days === 1 ? 'pred dňom' : `pred ${String(days)} dňami`);
+
+export const agoLabel = (iso: string, now: Date): string => {
+  const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / MINUTE_MS);
+  if (minutes < 1) {
+    return 'pred chvíľou';
+  }
+  if (minutes < 60) {
+    return `pred ${String(minutes)} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `pred ${String(hours)} h`;
+  }
+  return daysAgo(Math.floor(hours / 24));
+};
+
 export const messageTimeLabel = (iso: string, now: Date): string => {
   const date = new Date(iso);
   const diff = dayDiff(date, now);

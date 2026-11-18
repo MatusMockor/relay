@@ -5,7 +5,6 @@ export interface UpdateStatusView {
   readonly title: string;
   readonly announcement: string;
   readonly detail: string | null;
-  readonly compact: string | null;
   readonly canCheck: boolean;
   readonly canInstall: boolean;
 }
@@ -37,7 +36,6 @@ const view = (
   title,
   announcement: title,
   detail,
-  compact: null,
   canCheck: false,
   canInstall: false,
   ...rest,
@@ -76,20 +74,14 @@ export const describeUpdateStatus = (status: UpdateStatus | null, now: Date): Up
       return view(
         `Sťahujem verziu ${status.version} (${String(status.percent)} %)`,
         'Po stiahnutí ju nainštaluješ reštartom aplikácie.',
-        {
-          announcement: `Sťahujem verziu ${status.version}`,
-          compact: `Sťahujem ${String(status.percent)} %`,
-        },
+        { announcement: `Sťahujem verziu ${status.version}` },
       );
     case 'ready':
       return view(`Verzia ${status.version} je pripravená`, 'Nainštaluje sa po reštarte.', {
-        compact: 'Aktualizovať',
         canInstall: true,
       });
     case 'installing':
-      return view(`Inštalujem verziu ${status.version}…`, 'Relay sa o chvíľu reštartuje.', {
-        compact: 'Reštartujem…',
-      });
+      return view(`Inštalujem verziu ${status.version}…`, 'Relay sa o chvíľu reštartuje.');
     case 'error':
       return describeFailure(status);
   }
