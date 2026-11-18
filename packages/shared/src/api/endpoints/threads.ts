@@ -49,7 +49,9 @@ export const ThreadListQuerySchema = CursorPaginationQuerySchema.extend({
 }).superRefine(requireFolderTarget);
 export type ThreadListQuery = z.infer<typeof ThreadListQuerySchema>;
 
-export const MarkFolderReadBodySchema = FolderScopeSchema.superRefine(requireFolderTarget);
+export const MarkFolderReadBodySchema = FolderScopeSchema.extend({
+  view: FolderViewSchema.exclude(['drafts', 'scheduled']),
+}).superRefine(requireFolderTarget);
 export type MarkFolderReadBody = z.infer<typeof MarkFolderReadBodySchema>;
 
 export const MarkFolderReadResponseSchema = z.object({ count: z.number().int().nonnegative() });

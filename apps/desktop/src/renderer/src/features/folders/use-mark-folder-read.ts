@@ -1,4 +1,4 @@
-import type { MarkFolderReadBody } from '@relay/shared';
+import { type MarkFolderReadBody, MarkFolderReadBodySchema } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
@@ -7,9 +7,16 @@ import { type AccountScope, type Folder, listParamsOf } from '../../state/folder
 import { showToast } from '../../state/toast-store';
 import { useUiStore } from '../../state/ui-store';
 
-const bodyOf = (folder: Folder, scope: AccountScope): MarkFolderReadBody => {
+const bodyOf = (folder: Folder, scope: AccountScope): MarkFolderReadBody | null => {
   const { view, accountId, splitId, labelId, mailboxId } = listParamsOf(folder, scope, '');
-  return { view, accountId, splitId, labelId, mailboxId };
+  const parsed = MarkFolderReadBodySchema.safeParse({
+    view,
+    accountId,
+    splitId,
+    labelId,
+    mailboxId,
+  });
+  return parsed.success ? parsed.data : null;
 };
 
 const messageOf = (count: number): string =>
@@ -19,8 +26,12 @@ export const useMarkFolderRead = (): ((folder: Folder) => Promise<void>) => {
   const client = useClient();
   const queryClient = useQueryClient();
   return async (folder) => {
+    const body = bodyOf(folder, useUiStore.getState().scope);
+    if (body === null) {
+      return;
+    }
     try {
-      const { count } = await client.markFolderRead(bodyOf(folder, useUiStore.getState().scope));
+      const { count } = await client.markFolderRead(body);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.threadLists() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allMailboxes() }),
