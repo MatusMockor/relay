@@ -33,6 +33,7 @@
 ### Task 1: Engine use case `FolderReadService`
 
 **Files:**
+
 - Modify: `packages/shared/src/api/endpoints/threads.ts` (schémy + endpoint)
 - Modify: `packages/engine/src/services/actions/handlers/flag-writer.ts` (vyčleniť stage)
 - Create: `packages/engine/src/services/actions/folder-read-service.ts`
@@ -40,6 +41,7 @@
 - Test: `packages/engine/test/services/folder-read.test.ts`
 
 **Interfaces:**
+
 - Produces (shared): `MarkFolderReadBodySchema` = `{ view: FolderView, accountId?: AccountId, splitId?: SplitId, labelId?: LabelId, mailboxId?: MailboxId }` s rovnakým `superRefine` ako `ThreadListQuerySchema` (mailbox/label vyžadujú id); `MarkFolderReadResponseSchema = z.object({ count: z.number().int().nonnegative() })`; endpoint `threadsEndpoints.markFolderRead`: `POST /threads/mark-read`, `auth: 'user'`.
 - Produces (engine): `class FolderReadService { markAllRead(userId: UserId, folder: MarkFolderReadBody): Promise<MarkFolderReadResponse> }`, dostupná ako `EngineServices.folderRead`. Deps obsahujú `pageSize: number` (factory default 200).
 - Produces: `FlagWriter.stage(repositories, context, targets, flag, value): Promise<{ thread: ThreadSummary; ops: PendingProviderOp[] }>` (beží vnútri unit of work); `write` ju používa.
@@ -59,6 +61,7 @@
 ### Task 2: Napojenie `markFolderRead` v oboch režimoch
 
 **Files:**
+
 - Modify: `packages/shared/src/ipc/local-channels.ts` (`'local.threads.markFolderRead': invokeChannel(MarkFolderReadBodySchema, MarkFolderReadResponseSchema)`)
 - Modify: `apps/desktop/src/main/handlers/local/thread-handlers.ts` (+ `folderRead` v `ThreadServices`)
 - Modify: `apps/server/src/threads/threads.controller.ts` (`@ApiRoute(api.threads.markFolderRead)`)
@@ -66,6 +69,7 @@
 - Test: `apps/server/test/mail/mark-folder-read.e2e.test.ts`, `apps/desktop/test/main/local-mark-folder-read.e2e.test.ts`, `apps/desktop/src/renderer/test/demo-mail-client.test.ts`, `apps/desktop/src/renderer/test/remote-mail-client.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 schémy, endpoint a `EngineServices.folderRead`.
 - Produces: `MailClient.markFolderRead(folder)` pre Task 5.
 
@@ -78,6 +82,7 @@
 ### Task 3: Kontextové menu infraštruktúra (natívne + Popover záloha)
 
 **Files:**
+
 - Create: `packages/shared/src/ipc/context-menu-channels.ts`, registrovať v `channels.ts`
 - Create: `apps/desktop/src/main/native/context-menu.ts` (`ContextMenuFactory` port + Electron adaptér + `showContextMenu`)
 - Create: `apps/desktop/src/main/handlers/context-menu-handlers.ts`, wiring v `apps/desktop/src/main/composition/compose-ipc.ts`
@@ -86,6 +91,7 @@
 - Test: `apps/desktop/test/main/context-menu.test.ts`, `apps/desktop/src/renderer/test/context-menu.test.tsx`
 
 **Interfaces:**
+
 - Produces (shared): `ContextMenuItemSchema = z.discriminatedUnion('type', [z.object({ type: z.literal('item'), id: z.string().min(1).max(64), label: z.string().min(1).max(120), enabled: z.boolean() }), z.object({ type: z.literal('separator') })])`; `ContextMenuRequestSchema = z.object({ items: z.array(ContextMenuItemSchema).min(1).max(30), x: z.number().int(), y: z.number().int() })`; kanál `'app.contextMenu.show': invokeChannel(ContextMenuRequestSchema, z.object({ id: z.string().nullable() }))`.
 - Produces (main): `showContextMenu(window: BrowserWindow, request: ContextMenuRequest, factory: ContextMenuFactory): Promise<string | null>`; resolve pri kliku na položku, `null` v `callback` po zatvorení bez výberu (resolve len raz).
 - Produces (renderer): `Platform.showContextMenu(request: ContextMenuRequest): Promise<string | null>`; `useContextMenu(): (event: React.MouseEvent, items: readonly ContextMenuItem[]) => Promise<string | null>` (volá `preventDefault`, berie `clientX/clientY`).
@@ -99,6 +105,7 @@
 ### Task 4: Menu konverzácie v zozname
 
 **Files:**
+
 - Create: `apps/desktop/src/renderer/src/features/list/thread-menu-items.ts`
 - Create: `apps/desktop/src/renderer/src/features/list/use-thread-menu.ts`
 - Modify: `apps/desktop/src/renderer/src/features/list/ListRow.tsx` (`onContextMenu` len pre `item.kind === 'thread'`)
@@ -106,6 +113,7 @@
 - Test: `apps/desktop/src/renderer/test/thread-context-menu.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useContextMenu`, `ContextMenuItem` (Task 3); `useMailActions().thread` (`markDone`, `trash`, `toggleSpam`, `markRead`, nový `markUnread`); `selectKey` zo `features/mail/selection`; remind overlay `setUi({ overlay: { kind: 'remind', threadId, anchor } })` s anchor = bod kliku.
 - Produces: `threadMenuItems(view: string, thread: ThreadSummary): ContextMenuItem[]`, kde `view` je výsledok `actionView`. Id: `read`, `unread`, `done`, `remind`, `spam`, `trash`. Mapovanie: default (inbox/tasks/reminders) = toggle, Hotovo, Pripomenúť…, separator, Presunúť do koša; `done` = toggle, Vrátiť do Doručenej pošty, Pripomenúť…, separator, Presunúť do koša; `trash` = toggle, Obnoviť; `spam` = toggle, Nie je spam, separator, Presunúť do koša; `sent` = toggle, separator, Presunúť do koša.
 
@@ -118,6 +126,7 @@
 ### Task 5: Menu priečinkov + migrácia `FolderMenu`
 
 **Files:**
+
 - Create: `apps/desktop/src/renderer/src/features/folders/folder-menu-items.ts`
 - Create: `apps/desktop/src/renderer/src/features/folders/use-mark-folder-read.ts`
 - Create: `apps/desktop/src/renderer/src/features/folders/use-folder-menu.ts`
@@ -126,6 +135,7 @@
 - Test: `apps/desktop/src/renderer/test/folder-context-menu.test.tsx`; upraviť `folder-management.test.tsx` a `custom-folders.test.tsx`, ak otvárajú menu
 
 **Interfaces:**
+
 - Consumes: `useContextMenu` (Task 3), `MailClient.markFolderRead` (Task 2), `listParamsOf` zo `state/folders.ts` (bez `q`), `queryKeys` na invalidáciu zoznamov vlákien a mailboxov, `showToast`.
 - Produces: `folderMenuItems(target: FolderTarget | null): ContextMenuItem[]` = `mark-all-read`, a ak `target !== null`: separator, `create` (`FOLDER_COPY[kind].newChild`), `rename` ("Premenovať"), `move` ("Presunúť do…"), `delete` ("Zmazať"). `move` otvorí `FolderMovePicker` s anchor = bod kliku. `useMarkFolderRead(): (folder: Folder) => Promise<void>` posiela scope z `useUiStore`.
 
