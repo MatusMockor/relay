@@ -1,17 +1,24 @@
 import type { MailboxId } from '@relay/shared/domain';
+import type { RawMessage } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { completedSyncState } from './completed-sync-state';
-import { conversationOrder } from './conversation-order';
+import { conversationOrder, orderEntries } from './conversation-order';
 import { entryKey, fetchChunk } from './initial-chunk';
 import { InitialProgress } from './initial-progress';
-import { type InitialWindowDeps, type MailboxWindow, mailboxWindow } from './initial-window';
+import {
+  type InitialWindowDeps,
+  type MailboxWindow,
+  mailboxWindow,
+  type WindowEntry,
+} from './initial-window';
 import { mailboxOrder } from './mailbox-order';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { MessageFetchSteps, SyncMark } from './message-fetch-steps';
 import type { SyncContext } from './sync-context';
+import type { TrashRelatives } from './trash-relatives';
 import { skipOnUidValidityChange } from './uid-validity-guard';
 
 export interface SyncRound {
@@ -21,10 +28,13 @@ export interface SyncRound {
 
 export interface InitialSyncDeps extends InitialWindowDeps {
   readonly steps: MessageFetchSteps;
+  readonly relatives: TrashRelatives;
   readonly syncStates: SyncStateRepository;
   readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
 }
+
+const BACKLOG = { publish: false, live: false, holdCalendar: true } as const;
 
 const chunked = <Item>(items: readonly Item[], size: number): Item[][] =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
@@ -38,6 +48,18 @@ const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): S
     highestModseq: state === null ? status.highestModseq : state.highestModseq,
     initialWindow,
   };
+};
+
+const allFetched = (
+  entries: ReadonlySet<WindowEntry>,
+  fetched: ReadonlyMap<string, RawMessage>,
+): boolean =>
+  [...entries].every((entry) => fetched.has(entryKey(entry.pass.mailbox.id, entry.uid)));
+
+const deferTrash = (chunk: readonly WindowEntry[], failed: Set<MailboxId>): void => {
+  chunk
+    .filter((entry) => entry.pass.role === 'trash')
+    .forEach((entry) => failed.add(entry.pass.mailbox.id));
 };
 
 export class InitialSync {
@@ -63,7 +85,7 @@ export class InitialSync {
       await steps.save(context, window.pass, mark(window, window.frozen));
     }
     const progress = new InitialProgress(windows);
-    const failed = await this.ingest(context, windows, progress);
+    const failed = await this.ingest(context, windows, progress, round.passes);
     await steps.flush(context);
     const completed = progress.all().filter(({ window }) => !failed.has(window.pass.mailbox.id));
     for (const { window, processed } of completed) {
@@ -114,23 +136,26 @@ export class InitialSync {
     context: SyncContext,
     windows: readonly MailboxWindow[],
     progress: InitialProgress,
+    passes: readonly MailboxPass[],
   ): Promise<Set<MailboxId>> {
-    const { steps, options, logger } = this.deps;
+    const { steps, relatives, options, logger } = this.deps;
     const failed = new Set<MailboxId>();
     const wanted = conversationOrder(windows).filter((entry) => entry.wanted);
     for (const chunk of chunked(wanted, options.batchSize)) {
-      const fetched = await fetchChunk(context, logger, chunk, failed);
-      for (const entry of chunk) {
+      const found = await relatives.find(context, chunk, passes);
+      const related = new Set(found.entries);
+      const ordered = related.size === 0 ? chunk : orderEntries([chunk, [...related]]);
+      const fetched = await fetchChunk(context, logger, ordered, failed);
+      if (!found.complete || !allFetched(related, fetched)) {
+        deferTrash(chunk, failed);
+      }
+      for (const entry of ordered) {
         const mailboxId = entry.pass.mailbox.id;
         const raw = fetched.get(entryKey(mailboxId, entry.uid));
-        if (raw !== undefined) {
-          await steps.ingest(context, entry.pass, raw, {
-            publish: false,
-            live: false,
-            holdCalendar: true,
-          });
+        if (raw !== undefined && !failed.has(mailboxId)) {
+          await steps.ingest(context, entry.pass, raw, BACKLOG);
         }
-        if (!failed.has(mailboxId)) {
+        if (!failed.has(mailboxId) && !related.has(entry)) {
           progress.advance(mailboxId);
         }
       }

@@ -20,10 +20,3 @@ export interface SyncContext {
   readonly arrivals: InboxArrival[];
   readonly arrivalWork: PendingWork<'message-effects'>[];
 }
-
-export const inboxMailboxIds = (context: SyncContext): Set<MailboxId> =>
-  new Set(
-    [...context.mailboxRoles.entries()]
-      .filter(([, role]) => role === 'inbox')
-      .map(([mailboxId]) => mailboxId),
-  );

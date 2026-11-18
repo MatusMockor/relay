@@ -5,10 +5,12 @@ import type { PendingWorkRepository } from '../../ports/pending-work-repository'
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import { pendingMoveRoles } from '../shared/provider-ops';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { publishThreadOutcomes, refreshThread } from '../shared/thread-refresh';
 import type { JiraTaskSink } from './jira-task-sink';
-import { inboxMailboxIds, type SyncContext } from './sync-context';
+import type { SyncContext } from './sync-context';
+import { messageRoleOf } from './synced-thread-state';
 import { threadWorkHint } from './thread-refresh-work';
 
 export interface ChangeFlusherDeps {
@@ -37,11 +39,12 @@ export class ChangeFlusher {
     if (work.length === 0) {
       return new Set();
     }
-    const inboxIds = inboxMailboxIds(context);
     const outcomes = await this.deps.unitOfWork.run(async (repositories) => {
+      const pendingMoves = await pendingMoveRoles(repositories.pendingWork, account.id);
+      const roleOf = messageRoleOf(context.mailboxRoles, pendingMoves);
       const results = [];
       for (const item of work) {
-        const hint = threadWorkHint(item.payload, inboxIds);
+        const hint = threadWorkHint(item.payload, roleOf);
         results.push(
           await refreshThread(repositories, userId, account.id, item.payload.threadId, hint),
         );
