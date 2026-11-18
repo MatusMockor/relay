@@ -33,6 +33,12 @@ const rightClick = (element: HTMLElement): boolean => {
   return notPrevented;
 };
 
+const pressKey = (key: string) => {
+  act(() => {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key });
+  });
+};
+
 const choose = async (label: string) => {
   await act(async () => {
     fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: label }));
@@ -172,6 +178,42 @@ describe('folder context menu', () => {
 
     const input = await within(efabrica).findByRole('textbox', { name: 'Premenovať Beta' });
     expect((input as HTMLInputElement).value).toBe('Beta');
+  });
+
+  it('moves focus into the menu and chooses the highlighted item with Enter', async () => {
+    renderApp({ demo: () => client });
+    const efabrica = await waitFor(() => group('eFabrica'));
+    const row = await within(efabrica).findByRole('button', { name: /Beta/ });
+    act(() => {
+      row.focus();
+    });
+
+    rightClick(row);
+    const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
+    expect(document.activeElement).toBe(items[0]);
+    pressKey('ArrowDown');
+    pressKey('ArrowDown');
+    expect(document.activeElement).toBe(items[2]);
+    pressKey('Enter');
+
+    const input = await within(efabrica).findByRole('textbox', { name: 'Premenovať Beta' });
+    expect((input as HTMLInputElement).value).toBe('Beta');
+  });
+
+  it('returns focus to the folder when the menu is dismissed', async () => {
+    renderApp({ demo: () => client });
+    const efabrica = await waitFor(() => group('eFabrica'));
+    const row = await within(efabrica).findByRole('button', { name: /Beta/ });
+    act(() => {
+      row.focus();
+    });
+
+    rightClick(row);
+    expect(document.activeElement).not.toBe(row);
+    pressKey('Escape');
+
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(row);
   });
 
   it('offers only mark all read on a non-Gmail label', async () => {

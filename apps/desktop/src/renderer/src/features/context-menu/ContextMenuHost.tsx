@@ -3,6 +3,7 @@ import { Popover } from '@relay/ui';
 import { useMemo, useState } from 'react';
 import { isControlTarget } from '../keyboard/focus-target';
 import { settleContextMenu, useContextMenuStore } from './context-menu-store';
+import { isInsideMenu, useMenuFocus } from './use-menu-focus';
 
 const MOVES: Readonly<Record<string, number>> = { ArrowDown: 1, j: 1, ArrowUp: -1, k: -1 };
 
@@ -17,6 +18,7 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
     [request],
   );
   const active = choosable[cursor] ?? null;
+  const itemRef = useMenuFocus(active);
   const choose = (index: number) => {
     const item = request.items[index];
     if (item?.type !== 'item' || !item.enabled) {
@@ -31,7 +33,7 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
       setCursor((value) => (value + move + choosable.length) % Math.max(choosable.length, 1));
       return true;
     }
-    if (event.key === 'Enter' && !isControlTarget(event.target)) {
+    if (event.key === 'Enter' && (isInsideMenu(event.target) || !isControlTarget(event.target))) {
       event.preventDefault();
       if (active !== null) {
         choose(active);
@@ -58,6 +60,7 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
         return (
           <button
             key={index}
+            ref={itemRef(index)}
             type="button"
             role="menuitem"
             aria-disabled={item.enabled ? undefined : 'true'}
