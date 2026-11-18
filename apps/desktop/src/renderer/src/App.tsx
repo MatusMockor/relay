@@ -7,6 +7,7 @@ import {
 } from './data/hooks/services-context';
 import { sendQueue } from './features/mail/send-queue';
 import { AppShell } from './features/shell/AppShell';
+import { useScopePersistence } from './features/shell/scope-persistence';
 import { resetChat } from './features/side/chat-store';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { MenuCommandListener } from './features/updates/MenuCommandListener';
@@ -69,6 +70,7 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
 }
 
 export function App({ createQueryClient = defaultQueryClient, ...context }: AppProps) {
+  useScopePersistence();
   useEffect(
     () =>
       context.session.addTeardown(async () => {

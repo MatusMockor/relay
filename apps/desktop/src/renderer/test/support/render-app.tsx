@@ -16,6 +16,7 @@ import {
   resetContextMenu,
 } from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
+import { resetBackPresses } from '../../src/features/mail/back-press-gate';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
@@ -38,15 +39,21 @@ export const storageWith = (settings: Partial<DeviceSettings>) =>
     [DEVICE_SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_DEVICE_SETTINGS, ...settings }),
   });
 
-export const resetStores = (): void => {
+export const resetMemoryStores = (): void => {
   cleanup();
   resetLayers();
+  resetBackPresses();
   useSessionStore.setState(INITIAL_SESSION);
   useUiStore.setState(INITIAL_UI);
   useChat.setState({ turns: [], queued: null });
   resetToasts();
   setFolderEdit(null);
   resetContextMenu();
+};
+
+export const resetStores = (): void => {
+  resetMemoryStores();
+  window.localStorage.clear();
 };
 
 export const testQueryClient = (): QueryClient =>

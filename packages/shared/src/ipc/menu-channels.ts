@@ -29,6 +29,7 @@ export const MenuCommandSchema = z.discriminatedUnion('command', [
   z.object({ command: z.literal('open-settings'), section: SettingsSectionSchema }),
   z.object({ command: z.literal('compose') }),
   z.object({ command: z.literal('select-scope'), scope: AccountScopeSchema }),
+  z.object({ command: z.literal('navigate-back') }),
 ]);
 export type MenuCommand = z.infer<typeof MenuCommandSchema>;
 export type MenuCommandKind = MenuCommand['command'];

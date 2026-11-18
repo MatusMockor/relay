@@ -71,3 +71,11 @@ export const openSearch = (): void => {
 export const closeSearch = (): void => {
   setUi({ searchOpen: false, query: '' });
 };
+
+export const goBack = (): void => {
+  if (useUiStore.getState().openThreadId !== null) {
+    backToList();
+    return;
+  }
+  closeSearch();
+};

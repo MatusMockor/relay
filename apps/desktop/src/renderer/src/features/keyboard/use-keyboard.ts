@@ -8,10 +8,10 @@ import { useSplits, useTasks } from '../../data/hooks/use-mail-queries';
 import { undoLast } from '../../state/toast-store';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import { centerRect, rectOf } from '../folders/rect';
+import { runBackGuards } from '../mail/back-guards';
 import { useMailActions } from '../mail/MailActionsProvider';
 import {
-  backToList,
-  closeSearch,
+  goBack,
   moveSelection,
   openRight,
   openSearch,
@@ -151,11 +151,8 @@ export const useKeyboard = (): void => {
         }
       },
       Escape: () => {
-        if (inThread) {
-          backToList();
-          return;
-        }
-        closeSearch();
+        runBackGuards();
+        goBack();
       },
       e: () => {
         actions.thread.markDone(current);
