@@ -18,6 +18,7 @@ import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
 import { SqliteGoogleCalendarRepository } from './repositories/sqlite-google-calendar-repository';
 import { SqliteGoogleConnectionRepository } from './repositories/sqlite-google-connection-repository';
 import { SqliteGoogleEventRepository } from './repositories/sqlite-google-event-repository';
+import { SqliteAutomationCandidateRepository } from './repositories/sqlite-automation-candidate-repository';
 import { SqliteInviteCandidateRepository } from './repositories/sqlite-invite-candidate-repository';
 import { SqliteLabelRepository } from './repositories/sqlite-label-repository';
 import { SqliteMailboxRepository } from './repositories/sqlite-mailbox-repository';
@@ -41,6 +42,7 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   splits: new SqliteSplitRepository(executor),
   automations: new SqliteAutomationRepository(executor),
   automationRuns: new SqliteAutomationRunRepository(executor),
+  automationCandidates: new SqliteAutomationCandidateRepository(executor),
   tasks: new SqliteTaskRepository(executor),
   reminders: new SqliteReminderRepository(executor),
   drafts: new SqliteDraftRepository(executor),

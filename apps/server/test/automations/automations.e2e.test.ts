@@ -116,7 +116,7 @@ describe('automations', () => {
       { params: { id: required(saved[1]).id } },
       session.accessToken,
     );
-    expect(applied).toEqual({ matched: 0, applied: 0 });
+    expect(applied).toEqual({ matched: 0, applied: 0, failed: 0 });
     const allAccounts = await app.api.fail(
       api.automations.replace,
       {

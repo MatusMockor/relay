@@ -1,4 +1,6 @@
 import type { AutomationRun, AutomationRunRepository } from '@relay/engine';
+import type { AutomationId, MessageId } from '@relay/shared/domain';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { automationRuns } from '../../schema';
 import { toDate } from '../../support/timestamps';
@@ -18,5 +20,19 @@ export class PgAutomationRunRepository implements AutomationRunRepository {
       .onConflictDoNothing()
       .returning({ automationId: automationRuns.automationId });
     return inserted.length > 0;
+  }
+
+  async release(automationId: AutomationId, messageIds: readonly MessageId[]): Promise<void> {
+    if (messageIds.length === 0) {
+      return;
+    }
+    await this.db
+      .delete(automationRuns)
+      .where(
+        and(
+          eq(automationRuns.automationId, automationId),
+          inArray(automationRuns.messageId, [...messageIds]),
+        ),
+      );
   }
 }

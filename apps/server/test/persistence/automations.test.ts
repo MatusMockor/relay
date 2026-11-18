@@ -1,7 +1,7 @@
 import { ForbiddenError } from '@relay/engine';
 import type { Automation, UserId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { at, buildUser, newId, seedAccount, seedThread } from './support/fixtures';
+import { at, buildMessage, buildUser, newId, seedAccount, seedThread } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
 
 const buildAutomation = (userId: UserId, overrides: Partial<Automation> = {}): Automation => ({
@@ -86,5 +86,47 @@ describe('PgAutomationRunRepository', () => {
 
     await expect(context.repositories.automationRuns.claim(run)).resolves.toBe(true);
     await expect(context.repositories.automationRuns.claim(run)).resolves.toBe(false);
+    await context.repositories.automationRuns.release(automation.id, [message.id]);
+    await expect(context.repositories.automationRuns.claim(run)).resolves.toBe(true);
+  });
+});
+
+describe('PgAutomationCandidateRepository', () => {
+  const context = usePgTestContext();
+
+  it('lists the newest inbox threads of the account with their match subjects', async () => {
+    const seeded = await seedAccount(context.repositories);
+    await seedThread(context.repositories, seeded, { subject: 'old', lastMessageAt: at(1) });
+    const newest = await seedThread(
+      context.repositories,
+      seeded,
+      { subject: 'new', lastMessageAt: at(3), jiraKey: 'EF-1' },
+      { date: at(2) },
+    );
+    await seedThread(context.repositories, seeded, { subject: 'mid', lastMessageAt: at(2) });
+    await seedThread(context.repositories, seeded, {
+      subject: 'done',
+      lastMessageAt: at(4),
+      state: 'done',
+    });
+    await context.repositories.messages.upsert(
+      buildMessage(newest.thread, seeded.mailboxes.inbox, { subject: 'Re: new', date: at(3) }),
+      new Map(),
+    );
+
+    const candidates = await context.repositories.automationCandidates.listInbox(
+      seeded.account.id,
+      2,
+    );
+
+    expect(candidates.map((candidate) => [candidate.threadId, candidate.jiraKey])).toEqual([
+      [newest.thread.id, 'EF-1'],
+      [expect.any(String), null],
+    ]);
+    expect(candidates[0]?.lastMessageAt).toBe(at(3));
+    expect(candidates[0]?.messages.map((item) => item.subject.subject)).toEqual([
+      newest.message.subject,
+      'Re: new',
+    ]);
   });
 });

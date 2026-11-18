@@ -100,8 +100,8 @@ describe('local automation that moves mail into a folder (SQLite + GreenMail)', 
       await bridge.invoke('local.automations.apply', { automationId: saved.id }),
     );
 
-    expect(applied).toEqual({ matched: 1, applied: 1 });
-    expect(repeated).toEqual({ matched: 0, applied: 0 });
+    expect(applied).toEqual({ matched: 1, applied: 1, failed: 0 });
+    expect(repeated).toEqual({ matched: 0, applied: 0, failed: 0 });
     expect(await subjectsIn(mailbox, folderPath)).toEqual(['Faktúra september']);
     expect(await subjectsIn(mailbox, 'INBOX')).toEqual([]);
   });

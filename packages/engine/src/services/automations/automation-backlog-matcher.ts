@@ -1,74 +1,92 @@
 import type {
   AccountId,
   Automation,
+  AutomationCondition,
   MessageId,
   ThreadId,
-  ThreadSummary,
+  UserId,
 } from '@relay/shared/domain';
 import type { JiraClassification } from '../../model/jira';
+import type {
+  AutomationCandidateRepository,
+  InboxCandidate,
+} from '../../ports/automation-candidate-repository';
 import type { AutomationMatcher } from '../../ports/automation-matcher';
+import type { JiraClassifier } from '../../ports/jira-classifier';
 import type { MessageRepository } from '../../ports/message-repository';
-import type { ThreadRepository } from '../../ports/thread-repository';
-
-const PAGE_SIZE = 200;
+import { classifyStored } from './stored-jira-classification';
 
 export interface BacklogMatch {
-  readonly thread: ThreadSummary;
+  readonly accountId: AccountId;
+  readonly threadId: ThreadId;
+  readonly lastMessageAt: string;
   readonly messageIds: readonly MessageId[];
 }
 
 export interface AutomationBacklogMatcherDeps {
+  readonly candidates: AutomationCandidateRepository;
   readonly messages: MessageRepository;
-  readonly threads: ThreadRepository;
   readonly matcher: AutomationMatcher;
+  readonly classifier: JiraClassifier;
 }
 
-const jiraOf = (thread: ThreadSummary): JiraClassification | null =>
-  thread.jiraKey === null ? null : { jiraKey: thread.jiraKey, eventKind: 'other', actor: null };
+const JIRA_CONDITIONS: readonly AutomationCondition['type'][] = ['jira', 'jiraEvent'];
+
+const NO_JIRA = new Map<MessageId, JiraClassification | null>();
 
 export class AutomationBacklogMatcher {
   constructor(private readonly deps: AutomationBacklogMatcherDeps) {}
 
-  async inboxMatches(accountId: AccountId, automation: Automation): Promise<BacklogMatch[]> {
-    const threads = new Map<ThreadId, ThreadSummary | null>();
-    const matched = new Map<ThreadId, MessageId[]>();
-    let cursor: string | null = null;
-    do {
-      const page = await this.deps.messages.listMatchSubjects(accountId, {
-        cursor,
-        limit: PAGE_SIZE,
-      });
-      for (const item of page.items) {
-        const thread = await this.inboxThread(threads, accountId, item.threadId);
-        if (thread === null) {
-          continue;
-        }
-        const matches = await this.deps.matcher.matches({
-          message: item.subject,
-          jira: jiraOf(thread),
+  async inboxMatches(
+    userId: UserId,
+    accountId: AccountId,
+    automation: Automation,
+    limit: number,
+  ): Promise<BacklogMatch[]> {
+    const usesJira = automation.conditions.some((condition) =>
+      JIRA_CONDITIONS.includes(condition.type),
+    );
+    const matches: BacklogMatch[] = [];
+    for (const candidate of await this.deps.candidates.listInbox(accountId, limit)) {
+      const jira = usesJira ? await this.jiraOf(userId, candidate) : NO_JIRA;
+      const messageIds: MessageId[] = [];
+      for (const { messageId, subject } of candidate.messages) {
+        const matched = await this.deps.matcher.matches({
+          message: subject,
+          jira: jira.get(messageId) ?? null,
           conditions: automation.conditions,
         });
-        if (matches) {
-          matched.set(thread.id, [...(matched.get(thread.id) ?? []), item.messageId]);
+        if (matched) {
+          messageIds.push(messageId);
         }
       }
-      cursor = page.nextCursor;
-    } while (cursor !== null);
-    return [...matched.entries()].flatMap(([threadId, messageIds]) => {
-      const thread = threads.get(threadId) ?? null;
-      return thread === null ? [] : [{ thread, messageIds }];
-    });
+      if (messageIds.length > 0) {
+        matches.push({
+          accountId,
+          threadId: candidate.threadId,
+          lastMessageAt: candidate.lastMessageAt,
+          messageIds,
+        });
+      }
+    }
+    return matches;
   }
 
-  private async inboxThread(
-    cache: Map<ThreadId, ThreadSummary | null>,
-    accountId: AccountId,
-    threadId: ThreadId,
-  ): Promise<ThreadSummary | null> {
-    if (!cache.has(threadId)) {
-      const thread = await this.deps.threads.findByIdForAccount(accountId, threadId);
-      cache.set(threadId, thread?.state === 'inbox' ? thread : null);
+  private async jiraOf(
+    userId: UserId,
+    candidate: InboxCandidate,
+  ): Promise<Map<MessageId, JiraClassification | null>> {
+    if (candidate.jiraKey === null) {
+      return NO_JIRA;
     }
-    return cache.get(threadId) ?? null;
+    const headers = new Map(
+      candidate.messages.map((item) => [item.messageId, item.subject.headers]),
+    );
+    const stored = await this.deps.messages.listByThread(userId, candidate.threadId);
+    return classifyStored(
+      this.deps.classifier,
+      stored,
+      (messageId) => headers.get(messageId) ?? new Map<string, string[]>(),
+    );
   }
 }

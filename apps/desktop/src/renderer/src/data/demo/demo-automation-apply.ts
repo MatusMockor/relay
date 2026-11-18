@@ -70,6 +70,6 @@ export const createDemoAutomationApply = (
       });
       count += 1;
     });
-    return { matched: matches.length, applied: count };
+    return { matched: Math.min(matches.length, LIMIT), applied: count, failed: 0 };
   };
 };

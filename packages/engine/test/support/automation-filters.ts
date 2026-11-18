@@ -1,7 +1,7 @@
 import type { AutomationInput } from '@relay/shared/api';
-import type { Label, LabelId, Mailbox, ThreadSummary } from '@relay/shared/domain';
+import type { Automation, Label, LabelId, Mailbox, ThreadSummary } from '@relay/shared/domain';
 import { expect } from 'vitest';
-import { automationInput } from './automations';
+import { addAutomations, automationInput } from './automations';
 import { present, seedAccount, type SeededAccount } from './fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from './test-engine';
 
@@ -49,3 +49,12 @@ export const failedActions = (engine: TestEngine): unknown[] =>
   engine.logger.entries
     .filter((entry) => entry.message === 'An automation action failed')
     .map((entry) => entry.context.action);
+
+export const saveRule = async (
+  setup: FolderSetup,
+  overrides: Partial<AutomationInput> = {},
+): Promise<Automation> => {
+  const input = scopedRule(setup, overrides);
+  const saved = await addAutomations(setup.engine, [input]);
+  return present(saved.find((automation) => automation.name === input.name));
+};

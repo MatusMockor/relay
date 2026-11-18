@@ -65,11 +65,13 @@ export const createAutomationComponents = (
       backlog: new AutomationBacklog({
         accounts: repositories.accounts,
         messages: repositories.messages,
+        threads: repositories.threads,
         runs: repositories.automationRuns,
         matcher: new AutomationBacklogMatcher({
+          candidates: repositories.automationCandidates,
           messages: repositories.messages,
-          threads: repositories.threads,
           matcher: deps.automationMatcher,
+          classifier: deps.jiraClassifier,
         }),
         executor,
         clock: deps.clock,

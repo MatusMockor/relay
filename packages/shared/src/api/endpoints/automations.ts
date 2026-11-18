@@ -24,6 +24,7 @@ export type ReplaceAutomationsBody = z.infer<typeof ReplaceAutomationsBodySchema
 export const ApplyAutomationResponseSchema = z.object({
   matched: z.number().int().nonnegative(),
   applied: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
 });
 export type ApplyAutomationResponse = z.infer<typeof ApplyAutomationResponseSchema>;
 

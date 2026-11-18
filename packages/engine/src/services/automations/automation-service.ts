@@ -30,6 +30,7 @@ export interface AutomationServiceDeps {
 
 export class AutomationService {
   private readonly serializer = new KeyedSerializer();
+  private readonly applies = new KeyedSerializer();
 
   constructor(private readonly deps: AutomationServiceDeps) {}
 
@@ -41,7 +42,11 @@ export class AutomationService {
     return this.serializer.run(userId, () => this.replaceNow(userId, body));
   }
 
-  async applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
+  applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
+    return this.applies.run(`${userId}:${id}`, () => this.applyNow(userId, id));
+  }
+
+  private async applyNow(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
     const stored = await this.deps.automations.listByUser(userId);
     const automation = stored.find((item) => item.id === id);
     if (automation === undefined) {

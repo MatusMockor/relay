@@ -1,4 +1,4 @@
-import type { Automation, UserId } from '@relay/shared/domain';
+import type { Automation, AutomationId, MessageId, UserId } from '@relay/shared/domain';
 import type { AutomationRepository, AutomationRun, AutomationRunRepository } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
@@ -37,5 +37,12 @@ export class MemoryAutomationRunRepository implements AutomationRunRepository {
     }
     this.db.tables.automationRuns.add(key);
     return Promise.resolve(true);
+  }
+
+  release(automationId: AutomationId, messageIds: readonly MessageId[]): Promise<void> {
+    messageIds.forEach((messageId) => {
+      this.db.tables.automationRuns.delete(`${automationId}:${messageId}`);
+    });
+    return Promise.resolve();
   }
 }
