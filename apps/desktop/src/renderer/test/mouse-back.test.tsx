@@ -112,6 +112,21 @@ describe('mouse back button', () => {
     expect((reopened as HTMLTextAreaElement).value).toBe('Piatok mi vyhovuje.');
   });
 
+  it('reopens the thread with the reply when saving it fails after going back', async () => {
+    const base = demoClient();
+    await start({
+      ...base,
+      updateDraft: () => Promise.reject(new Error('server neodpovedá')),
+      createDraft: () => Promise.reject(new Error('server neodpovedá')),
+    });
+    await openThreadBySubject(SUBJECT);
+    await typeReply('Nestratí sa.');
+    releaseButton(3);
+    const restored = await screen.findByRole('textbox', { name: 'Odpoveď' });
+    expect((restored as HTMLTextAreaElement).value).toBe('Nestratí sa.');
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
   it('keeps Escape in the reply saving the draft without leaving the thread', async () => {
     const client = await start();
     await openThreadBySubject(SUBJECT);
