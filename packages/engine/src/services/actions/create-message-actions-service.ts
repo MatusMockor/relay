@@ -4,6 +4,8 @@ import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { FlagWriter } from './handlers/flag-writer';
 import { LabelHandler } from './handlers/label-handler';
+import { MessageLocator } from './handlers/message-locator';
+import { MoveHandler } from './handlers/move-handler';
 import { PinHandler } from './handlers/pin-handler';
 import { ReadStateHandler } from './handlers/read-state-handler';
 import { StateMoveHandler } from './handlers/state-move-handler';
@@ -27,15 +29,23 @@ export const createMessageActionsService = (
     logger,
   });
   const flags = new FlagWriter({ unitOfWork, mirror, clock });
+  const stateMoves = new StateMoveHandler({
+    locator: new MessageLocator(repositories.mailboxes, repositories.pendingWork),
+    labels: repositories.labels,
+    unitOfWork,
+    mirror,
+    clock,
+  });
   return new MessageActionsService({
     threads: repositories.threads,
     messages: repositories.messages,
     accounts: repositories.accounts,
-    stateMoves: new StateMoveHandler({
+    stateMoves,
+    moves: new MoveHandler({
       mailboxes: repositories.mailboxes,
+      labels: repositories.labels,
       pendingWork: repositories.pendingWork,
-      unitOfWork,
-      mirror,
+      stateMoves,
       clock,
     }),
     readState: new ReadStateHandler(flags),

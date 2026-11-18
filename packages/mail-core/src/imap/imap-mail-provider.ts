@@ -2,6 +2,7 @@ import type {
   AppendResult,
   Disposer,
   FlagMutation,
+  LabelMutation,
   MailboxChange,
   MailProvider,
   MoveResult,
@@ -19,6 +20,7 @@ import { fetchThreadHeaders } from './fetch-thread-headers';
 import { fetchUids } from './fetch-uids';
 import { DEFAULT_IDLE_OPTIONS, IdleWatcher, type IdleWatcherOptions } from './idle-watcher';
 import { createMailbox } from './create-mailbox';
+import { setLabels } from './gmail-label-writes';
 import type { ImapClientFactory } from './imap-client-factory';
 import { ImapConnection } from './imap-connection';
 import { listMailboxes } from './list-mailboxes';
@@ -125,6 +127,10 @@ export class ImapMailProvider implements MailProvider {
     mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
   ): Promise<void> {
     return storeFlags(this.connection, mailboxPath, uids, mutation);
+  }
+
+  setLabels(mailboxPath: string, uids: readonly number[], mutation: LabelMutation): Promise<void> {
+    return setLabels(this.connection, mailboxPath, uids, mutation);
   }
 
   move(mailboxPath: string, uids: readonly number[], targetPath: string): Promise<MoveResult> {

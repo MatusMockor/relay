@@ -20,6 +20,8 @@ import type {
 import { normalizeSubject } from '../../../src';
 import { type MemoryDatabase, offsetPage } from './memory-database';
 
+const PENDING_UID = 0;
+
 export class MemoryMessageRepository implements MessageRepository {
   constructor(private readonly db: MemoryDatabase) {}
 
@@ -142,6 +144,16 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   move(messageId: MessageId, target: MessageLocation): Promise<void> {
+    const occupied = this.all().some(
+      (message) =>
+        message.id !== messageId &&
+        message.mailboxId === target.mailboxId &&
+        message.uid === target.uid &&
+        target.uid !== PENDING_UID,
+    );
+    if (occupied) {
+      return Promise.reject(new Error('Unique constraint failed: messages (mailbox_id, uid)'));
+    }
     return this.patch(messageId, { mailboxId: target.mailboxId, uid: target.uid });
   }
 

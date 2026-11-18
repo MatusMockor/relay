@@ -14,3 +14,16 @@ const decodeShift = (encoded: string): string => {
 
 export const decodeModifiedUtf7 = (value: string): string =>
   value.replace(SHIFTED, (_match, encoded: string) => decodeShift(encoded));
+
+const UNPRINTABLE_OR_SHIFT = /[^ -~]+|&/g;
+
+const encodeShift = (text: string): string => {
+  const bytes = Buffer.alloc(text.length * 2);
+  for (let index = 0; index < text.length; index += 1) {
+    bytes.writeUInt16BE(text.charCodeAt(index), index * 2);
+  }
+  return `&${bytes.toString('base64').replace(/=+$/, '').replace(/\//g, ',')}-`;
+};
+
+export const encodeModifiedUtf7 = (value: string): string =>
+  value.replace(UNPRINTABLE_OR_SHIFT, (run) => (run === '&' ? '&-' : encodeShift(run)));

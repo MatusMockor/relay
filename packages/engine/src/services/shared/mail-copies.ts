@@ -8,7 +8,7 @@ export interface PlacedCopy {
 
 const GMAIL_IMAP_HOSTS: ReadonlySet<string> = new Set(['imap.gmail.com', 'imap.googlemail.com']);
 
-const labelsMessages = (account: MailAccount): boolean =>
+export const labelsMessages = (account: MailAccount): boolean =>
   account.provider === 'gmail' || GMAIL_IMAP_HOSTS.has(account.settings.imap.host.toLowerCase());
 
 export class MailCopies {

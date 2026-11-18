@@ -1,13 +1,15 @@
-import type { ThreadAction, ThreadSummary } from '@relay/shared';
+import type { LabelId, ThreadAction, ThreadSummary } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
 import { useThreadAction } from '../../data/hooks/use-thread-action';
+import type { ProjectionHint } from '../../data/thread-projection';
 import { describeWhen } from '../../lib/dates';
 import { dropUndo, showToast } from '../../state/toast-store';
 import { useUiStore } from '../../state/ui-store';
 import type { ListItem } from './list-items';
+import type { MoveTarget } from './move-targets';
 import { backToList, openThread } from './navigation';
 import { neighborOf, selectKey } from './selection';
 
@@ -41,12 +43,13 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     action: ThreadAction,
     message: string,
     undo: ThreadAction,
+    hint?: ProjectionHint,
   ) => {
     retire(items, thread.id);
     const revert = () => {
       mutation.mutate({ threadId: thread.id, action: undo });
     };
-    void mutation.mutateAsync({ threadId: thread.id, action }).catch(() => {
+    void mutation.mutateAsync({ threadId: thread.id, action, hint }).catch(() => {
       dropUndo(revert);
     });
     showToast(message, { undo: revert });
@@ -92,6 +95,15 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       { type: 'remind', at: at.toISOString() },
       `Pripomenie sa ${describeWhen(at, new Date()).phrase}`,
       { type: 'cancelReminder' },
+    );
+  };
+  const moveTo = (thread: ThreadSummary, target: MoveTarget, labelId?: LabelId) => {
+    apply(
+      thread,
+      { type: 'move', mailboxId: target.mailbox.id },
+      `Presunuté do „${target.label}“`,
+      { type: 'undoMove' },
+      { targetRole: target.mailbox.role, labelId },
     );
   };
   const trashDraft = async (item: Extract<ListItem, { kind: 'draft' }>) => {
@@ -141,7 +153,7 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     }
     mutation.mutate({ threadId: thread.id, action: { type: 'markRead' } });
   };
-  return { markDone, toggleSpam, remind, trash, markRead };
+  return { markDone, toggleSpam, remind, moveTo, trash, markRead };
 };
 
 export type ThreadCommands = ReturnType<typeof useThreadCommands>;

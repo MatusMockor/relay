@@ -2,6 +2,7 @@ import type {
   AppendResult,
   Disposer,
   FlagMutation,
+  LabelMutation,
   MailboxChange,
   MoveResult,
   RawMessage,
@@ -48,6 +49,7 @@ export interface MailProvider {
     uids: readonly number[],
     mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
   ): Promise<void>;
+  setLabels(mailboxPath: string, uids: readonly number[], mutation: LabelMutation): Promise<void>;
   move(mailboxPath: string, uids: readonly number[], targetPath: string): Promise<MoveResult>;
   append(
     mailboxPath: string,

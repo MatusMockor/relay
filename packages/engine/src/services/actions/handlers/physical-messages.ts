@@ -1,4 +1,4 @@
-import type { MailboxRole } from '@relay/shared/domain';
+import type { MailboxRole, Message } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
 import { PENDING_UID } from '../../shared/pending-uid';
 import { inRoles, type LocatedMessage, type PlannedMove } from './state-move-plan';
@@ -75,6 +75,7 @@ export const rolesAfter = (
   copies: MailCopies,
   messages: readonly LocatedMessage[],
   moves: readonly PlannedMove[],
+  keyOf: (message: Message) => string = (message) => copies.identityOf(message),
 ): Role[] => {
   const targets = new Map(moves.map((move) => [move.messageId, move.role]));
   const placed = messages.map(({ message, role }) => ({
@@ -85,7 +86,7 @@ export const rolesAfter = (
   const byMessage = new Map<string, Placement>();
   placed.forEach(({ message }, index) => {
     const placement = { moved: targets.has(message.id), role: roles[index] };
-    const key = copies.identityOf(message);
+    const key = keyOf(message);
     const current = byMessage.get(key);
     if (current === undefined || better(placement, current)) {
       byMessage.set(key, placement);

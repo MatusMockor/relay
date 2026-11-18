@@ -2,7 +2,14 @@ import type { Draft, ScheduledSend, UserId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { PgAttachmentStore } from '../../src/persistence/repositories/attachments/pg-attachment-store';
 import { PgDraftRepository } from '../../src/persistence/repositories/drafts/pg-draft-repository';
-import { at, newId, seedAccount, seedThread, type SeededAccount } from './support/fixtures';
+import {
+  at,
+  buildMessage,
+  newId,
+  seedAccount,
+  seedThread,
+  type SeededAccount,
+} from './support/fixtures';
 import { openInterceptedDatabase } from './support/intercepted-database';
 import { usePgTestContext } from './support/pg-test-context';
 
@@ -53,6 +60,25 @@ describe('PgAttachmentStore', () => {
 
 describe('PgDraftRepository', () => {
   const context = usePgTestContext();
+
+  it('points reply drafts at another copy of the replied message', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { thread, message } = await seedThread(context.repositories, seeded);
+    const twin = await context.repositories.messages.upsert(
+      buildMessage(thread, seeded.mailboxes.sent, { messageIdHeader: message.messageIdHeader }),
+      new Map(),
+    );
+    const draft = await context.repositories.drafts.create(
+      seeded.user.id,
+      buildDraft(seeded, { inReplyToThreadId: thread.id, inReplyToMessageId: message.id }),
+    );
+
+    await context.repositories.drafts.retargetReplies(message.id, twin.id);
+    await context.repositories.messages.deleteByUids(message.mailboxId, [message.uid]);
+
+    const kept = await context.repositories.drafts.findById(seeded.user.id, draft.id);
+    expect(kept?.inReplyToMessageId).toBe(twin.id);
+  });
 
   it('creates and updates drafts with ordered attachments the user owns', async () => {
     const store = new PgAttachmentStore(context.db);

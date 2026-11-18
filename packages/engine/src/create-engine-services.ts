@@ -102,6 +102,8 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     mailboxes: repositories.mailboxes,
     pendingWork: repositories.pendingWork,
     roleMailboxes,
+    unitOfWork,
+    clock,
     logger: deps.logger,
   });
   const actions = createMessageActionsService(deps, {

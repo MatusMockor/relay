@@ -1,4 +1,5 @@
 import type {
+  LabelId,
   MailboxId,
   MailboxRole,
   Message,
@@ -6,7 +7,7 @@ import type {
   ThreadState,
   ThreadSummary,
 } from '@relay/shared/domain';
-import type { MoveOriginWork } from '../../../model/pending-work';
+import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin, MoveOriginKind } from '../../shared/move-origins';
 
@@ -17,6 +18,8 @@ export interface LocatedMessage {
   readonly role: MailboxRole | undefined;
   readonly mailboxId: MailboxId | undefined;
   readonly origin: MoveOrigin | undefined;
+  readonly moveOrigin?: MoveOrigin;
+  readonly heldOrigins?: readonly HeldOriginWork[];
   readonly moving: boolean;
 }
 
@@ -35,10 +38,18 @@ export interface OriginChanges {
   readonly forget: readonly MessageId[];
 }
 
+export interface LabelChange {
+  readonly labelId: LabelId;
+  readonly value: boolean;
+  readonly messageIds: readonly MessageId[];
+  readonly providerMessageIds: readonly MessageId[];
+}
+
 export interface StateMovePlan {
   readonly state: ThreadState;
   readonly moves: readonly PlannedMove[];
-  readonly origins: OriginChanges | null;
+  readonly origins: readonly OriginChanges[];
+  readonly labels: readonly LabelChange[];
 }
 
 export type StateMovePlanner = (
@@ -53,7 +64,8 @@ export const inRoles = (messages: readonly LocatedMessage[], roles: readonly Mai
 export const plan = (state: ThreadState, moves: readonly PlannedMove[] = []): StateMovePlan => ({
   state,
   moves,
-  origins: null,
+  origins: [],
+  labels: [],
 });
 
 export const moveTo = (state: ThreadState, sources: readonly LocatedMessage[], role: MailboxRole) =>

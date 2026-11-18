@@ -9,6 +9,7 @@ import type {
   DraftAttachment,
   DraftContent,
   DraftId,
+  MessageId,
   ThreadId,
   UserId,
 } from '@relay/shared/domain';
@@ -186,5 +187,12 @@ export class PgDraftRepository implements DraftRepository {
       )
       .returning({ id: drafts.id });
     return rows.length > 0;
+  }
+
+  async retargetReplies(from: MessageId, to: MessageId): Promise<void> {
+    await this.db
+      .update(drafts)
+      .set({ inReplyToMessageId: to })
+      .where(eq(drafts.inReplyToMessageId, from));
   }
 }

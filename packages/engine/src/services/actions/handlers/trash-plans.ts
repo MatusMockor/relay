@@ -29,7 +29,7 @@ export const trash: StateMovePlanner = (messages, thread, copies) => {
   const sources = trashSources(messages, copies);
   return {
     ...moveTo('trash', sources, 'trash'),
-    origins: { kind: 'trash-origin', remember: originsOf(sources), forget: [] },
+    origins: [{ kind: 'trash-origin', remember: originsOf(sources), forget: [] }],
   };
 };
 
@@ -40,6 +40,6 @@ export const restore: StateMovePlanner = (messages, _thread, copies) => {
   }));
   return {
     ...plan(settledState(rolesAfter(copies, messages, moves)), moves),
-    origins: { kind: 'trash-origin', remember: [], forget: moves.map((move) => move.messageId) },
+    origins: [{ kind: 'trash-origin', remember: [], forget: moves.map((move) => move.messageId) }],
   };
 };

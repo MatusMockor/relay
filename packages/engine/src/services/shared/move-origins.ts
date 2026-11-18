@@ -1,12 +1,14 @@
-import type { AccountId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
-import type { MoveOriginWork } from '../../model/pending-work';
+import type { AccountId, LabelId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type { HeldOriginWork, MoveOriginWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
-export type MoveOriginKind = 'trash-origin' | 'spam-origin';
+export type MoveOriginKind = 'trash-origin' | 'spam-origin' | 'move-origin';
 
 export interface MoveOrigin {
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
+  readonly labelId?: LabelId;
+  readonly held?: readonly HeldOriginWork[];
 }
 
 export const moveOrigins = async (
@@ -42,4 +44,14 @@ export const forgetMoveOrigins = async (
   const restored = new Set<string>(messageIds);
   const origins = await pendingWork.list(accountId, kind);
   await pendingWork.remove(origins.filter((origin) => restored.has(origin.ref)));
+};
+
+export const expireMoveOrigins = async (
+  pendingWork: PendingWorkRepository,
+  accountId: AccountId,
+  kind: MoveOriginKind,
+  before: string,
+): Promise<void> => {
+  const origins = await pendingWork.list(accountId, kind);
+  await pendingWork.remove(origins.filter((origin) => origin.createdAt < before));
 };

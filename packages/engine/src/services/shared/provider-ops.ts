@@ -10,6 +10,8 @@ const changeKey = (change: ProviderChange): string => {
       return `flag:${change.flag}`;
     case 'keyword':
       return `keyword:${change.keyword}`;
+    case 'label':
+      return `label:${change.label}`;
     case 'move':
       return 'move';
   }

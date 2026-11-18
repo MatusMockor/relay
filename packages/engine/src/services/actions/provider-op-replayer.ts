@@ -1,17 +1,21 @@
 import type { MailAccount, Mailbox, Message } from '@relay/shared/domain';
 import { PartialMoveError } from '../../errors';
 import type { ProviderChange } from '../../model/pending-work';
+import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { MailProvider } from '../../ports/mail-provider';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
+import type { UnitOfWork } from '../../ports/unit-of-work';
 import { KeyedSerializer } from '../shared/keyed-serializer';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { PendingProviderOp } from '../shared/provider-ops';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
+import { MovedCopyMerger } from './moved-copy-merger';
 import { MoveTargetResolver } from './move-target-resolver';
+import { writeStoreChange } from './store-change-writer';
 
 interface OpBatch {
   readonly mailbox: Mailbox;
@@ -25,15 +29,19 @@ export interface ProviderOpReplayerDeps {
   readonly mailboxes: MailboxRepository;
   readonly pendingWork: PendingWorkRepository;
   readonly roleMailboxes: RoleMailboxEnsurer;
+  readonly unitOfWork: UnitOfWork;
+  readonly clock: Clock;
   readonly logger: Logger;
 }
 
 export class ProviderOpReplayer {
   private readonly serializer = new KeyedSerializer();
   private readonly targets: MoveTargetResolver;
+  private readonly merger: MovedCopyMerger;
 
   constructor(private readonly deps: ProviderOpReplayerDeps) {
     this.targets = new MoveTargetResolver(deps.mailboxes, deps.roleMailboxes);
+    this.merger = new MovedCopyMerger(deps);
   }
 
   replayPending(account: MailAccount, provider: MailProvider): Promise<void> {
@@ -90,22 +98,8 @@ export class ProviderOpReplayer {
   private async applyBatch(account: MailAccount, provider: MailProvider, batch: OpBatch) {
     const uids = batch.messages.map((message) => message.uid);
     const { change, mailbox } = batch;
-    if (change.kind === 'flag') {
-      const flags = [change.flag];
-      await provider.setFlags(
-        mailbox.path,
-        uids,
-        change.value ? { add: flags, remove: [] } : { add: [], remove: flags },
-      );
-      return;
-    }
-    if (change.kind === 'keyword') {
-      const keywords = [change.keyword];
-      await provider.setKeywords(
-        mailbox.path,
-        uids,
-        change.value ? { add: keywords, remove: [] } : { add: [], remove: keywords },
-      );
+    if (change.kind !== 'move') {
+      await writeStoreChange(provider, mailbox.path, uids, change);
       return;
     }
     if (change.mailboxId === undefined && mailbox.role === change.role) {
@@ -117,10 +111,13 @@ export class ProviderOpReplayer {
     }
     const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
     for (const message of batch.messages) {
-      await this.deps.messages.move(message.id, {
-        mailboxId: target.id,
-        uid: uidMap.get(message.uid) ?? PENDING_UID,
-      });
+      const uid = uidMap.get(message.uid) ?? PENDING_UID;
+      const twin = await this.merger.twinOf(account, message, target, uid);
+      if (twin !== null) {
+        await this.merger.merge(account, message, twin);
+        continue;
+      }
+      await this.deps.messages.move(message.id, { mailboxId: target.id, uid });
     }
   }
 

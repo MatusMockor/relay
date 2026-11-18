@@ -1,11 +1,36 @@
 import {
   type FolderView,
   isHeldThreadState,
+  type LabelId,
+  type MailboxRole,
   type ThreadAction,
   type ThreadSummary,
 } from '@relay/shared';
 
-export const projectThreadAction = (thread: ThreadSummary, action: ThreadAction): ThreadSummary => {
+export interface ProjectionHint {
+  readonly targetRole?: MailboxRole;
+  readonly labelId?: LabelId;
+}
+
+const projectMove = (thread: ThreadSummary, hint: ProjectionHint): ThreadSummary => ({
+  ...thread,
+  state: hint.targetRole === 'inbox' ? 'inbox' : 'done',
+  remindAt: null,
+  labelIds:
+    hint.labelId === undefined ? thread.labelIds : [...new Set([...thread.labelIds, hint.labelId])],
+});
+
+export const projectThreadAction = (
+  thread: ThreadSummary,
+  action: ThreadAction,
+  hint: ProjectionHint = {},
+): ThreadSummary => {
+  if (action.type === 'move') {
+    return projectMove(thread, hint);
+  }
+  if (action.type === 'undoMove') {
+    return thread;
+  }
   if (action.type === 'done') {
     return { ...thread, state: 'done', unread: false, remindAt: null };
   }

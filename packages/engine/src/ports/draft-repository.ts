@@ -1,4 +1,11 @@
-import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  Draft,
+  DraftContent,
+  DraftId,
+  MessageId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 
 export interface DraftRevision {
   readonly expected: string;
@@ -31,4 +38,5 @@ export interface DraftRepository {
   claimForSend(userId: UserId, draftId: DraftId, claim: DraftSendClaim): Promise<boolean>;
   releaseSendClaim(userId: UserId, draftId: DraftId, claimedAt: string): Promise<boolean>;
   renewSendClaim(userId: UserId, draftId: DraftId, renewal: DraftSendRenewal): Promise<boolean>;
+  retargetReplies(from: MessageId, to: MessageId): Promise<void>;
 }

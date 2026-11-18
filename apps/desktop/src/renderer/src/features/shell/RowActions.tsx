@@ -1,5 +1,5 @@
 import type { FolderView } from '@relay/shared';
-import { Icon, type StrokeIconName } from '@relay/ui';
+import { FolderIcon, Icon, type StrokeIconName } from '@relay/ui';
 import type { MouseEvent } from 'react';
 import { viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -8,8 +8,8 @@ import type { ListItem } from '../mail/list-items';
 import { useMailActions } from '../mail/MailActionsProvider';
 
 interface ActionSpec {
-  readonly id: 'done' | 'remind' | 'reply' | 'spam' | 'trash';
-  readonly icon: StrokeIconName;
+  readonly id: 'done' | 'remind' | 'reply' | 'move' | 'spam' | 'trash';
+  readonly icon: StrokeIconName | 'folder';
   readonly label: string;
   readonly key: string;
 }
@@ -17,6 +17,7 @@ interface ActionSpec {
 const DONE: ActionSpec = { id: 'done', icon: 'check', label: 'Hotovo', key: 'E' };
 const REMIND: ActionSpec = { id: 'remind', icon: 'clock', label: 'Pripomenúť', key: 'H' };
 const REPLY: ActionSpec = { id: 'reply', icon: 'reply', label: 'Odpovedať', key: 'R' };
+const MOVE: ActionSpec = { id: 'move', icon: 'folder', label: 'Presunúť do…', key: 'V' };
 const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: '#' };
 const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', key: '!' };
 
@@ -35,14 +36,16 @@ const actionView = (view: FolderView, item: ListItem): string => {
 
 const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   const map: Record<string, ActionSpec[]> = {
-    done: [{ ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' }, REPLY],
+    done: [{ ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' }, REPLY, MOVE],
     trash: [{ ...DONE, icon: 'inbox', label: 'Obnoviť' }],
     spam: [{ ...SPAM, icon: 'inbox', label: 'Nie je spam' }, TRASH],
     sent: [REPLY, TRASH],
     drafts: [{ ...TRASH, label: 'Zahodiť koncept' }],
     scheduled: [{ ...TRASH, icon: 'draft', label: 'Zrušiť plán, presunúť do Konceptov' }],
   };
-  return map[view] ?? (inRow ? [DONE, REMIND, REPLY] : [DONE, REMIND, REPLY, SPAM, TRASH]);
+  return (
+    map[view] ?? (inRow ? [DONE, REMIND, REPLY, MOVE] : [DONE, REMIND, REPLY, MOVE, SPAM, TRASH])
+  );
 };
 
 export const rowActionLabels = (view: FolderView, item: ListItem, inRow: boolean): string[] =>
@@ -68,6 +71,10 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
     if (item.kind !== 'thread') {
       return;
     }
+    if (spec.id === 'move') {
+      setUi({ overlay: { kind: 'move', threadId: item.thread.id } });
+      return;
+    }
     if (spec.id === 'remind') {
       setUi({
         overlay: { kind: 'remind', threadId: item.thread.id, anchor: rectOf(event.currentTarget) },
@@ -90,7 +97,7 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
             run(spec, event);
           }}
         >
-          <Icon name={spec.icon} />
+          {spec.icon === 'folder' ? <FolderIcon name="folder" /> : <Icon name={spec.icon} />}
         </button>
       ))}
     </>
