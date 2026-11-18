@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_ACCOUNT_FORM,
@@ -123,6 +124,8 @@ describe('hasRemoteImages', () => {
     '<img srcset="https://cdn.example.org/a.png 1x">',
     '<img src="cid:logo" srcset="/local.png 1x, https://cdn.example.org/a.png 2x">',
     '<picture><source srcset="//cdn.example.org/a.webp"><img src="cid:a"></picture>',
+    '<img alt="A > B" src="https://cdn.example.org/a.png">',
+    '<img title="src=cid:x" src=\'https://cdn.example.org/a.png\'>',
   ])('detects remote candidates in %s', (html) => {
     expect(hasRemoteImages(html)).toBe(true);
   });
@@ -131,6 +134,7 @@ describe('hasRemoteImages', () => {
     '<img src="cid:logo">',
     '<img data-src="https://cdn.example.org/a.png" src="data:image/png;base64,AA">',
     '<video><source src="https://cdn.example.org/a.mp4"></video>',
+    '<img alt="src=https://cdn.example.org/a.png" src="cid:logo">',
   ])('ignores %s', (html) => {
     expect(hasRemoteImages(html)).toBe(false);
   });

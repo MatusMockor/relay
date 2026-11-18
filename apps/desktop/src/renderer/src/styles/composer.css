@@ -31,8 +31,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
+  min-width: calc(12px + 16px + 6px + 6ch);
   flex: 0 1 auto;
+  overflow: hidden;
   padding: 1px 6px;
   margin: -1px 0 -1px -2px;
   border-radius: 6px;
@@ -286,7 +287,7 @@
   height: 11px;
 }
 .cmp-h .to-chip {
-  flex: 0 1 auto;
+  flex: 0 4 auto;
   min-width: 0;
   padding-right: 10px;
   color: var(--fg);

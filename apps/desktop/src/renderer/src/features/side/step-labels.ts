@@ -1,5 +1,10 @@
 import type { TurnStatus } from './chat-store';
 
+const OUTCOME: ReadonlyMap<string, string> = new Map([
+  ['Vytváram úlohu…', 'Vytváranie úlohy'],
+  ['Pripravujem koncept…', 'Príprava konceptu'],
+]);
+
 const DONE: ReadonlyMap<string, string> = new Map([
   ['Hľadám v pošte…', 'Pošta prehľadaná'],
   ['Čítam vlákno…', 'Vlákno prečítané'],
@@ -7,13 +12,7 @@ const DONE: ReadonlyMap<string, string> = new Map([
   ['Pozerám úlohy…', 'Úlohy skontrolované'],
   ['Pozerám kalendár…', 'Kalendár skontrolovaný'],
   ['Pozerám udalosť vo vlákne…', 'Udalosť vo vlákne skontrolovaná'],
-  ['Vytváram úlohu…', 'Úloha vytvorená'],
-  ['Pripravujem koncept…', 'Koncept pripravený'],
-]);
-
-const UNFINISHED: ReadonlyMap<string, string> = new Map([
-  ['Vytváram úlohu…', 'Vytváranie úlohy nedokončené'],
-  ['Pripravujem koncept…', 'Príprava konceptu nedokončená'],
+  ...OUTCOME,
 ]);
 
 const STARTED = /^Spúšťam (.+)$/;
@@ -30,10 +29,5 @@ export const doneStepLabel = (step: string): string => {
   return step.replace(/…$/, '');
 };
 
-export const finishedStepLabel = (step: string, status: TurnStatus): string => {
-  const unfinished = UNFINISHED.get(step);
-  if (status === 'done' || unfinished === undefined) {
-    return doneStepLabel(step);
-  }
-  return status === 'error' ? unfinished : step;
-};
+export const finishedStepLabel = (step: string, status: TurnStatus): string =>
+  status === 'running' && OUTCOME.has(step) ? step : doneStepLabel(step);

@@ -21,11 +21,10 @@ describe('finished AI step labels', () => {
     expect(doneStepLabel('toString')).toBe('toString');
   });
 
-  it('labels a draft step from the outcome of the turn', () => {
-    expect(finishedStepLabel('Pripravujem koncept…', 'done')).toBe('Koncept pripravený');
-    expect(finishedStepLabel('Pripravujem koncept…', 'error')).toBe(
-      'Príprava konceptu nedokončená',
-    );
+  it('never claims that a draft or task exists, because the run reports no tool result', () => {
+    expect(finishedStepLabel('Pripravujem koncept…', 'done')).toBe('Príprava konceptu');
+    expect(finishedStepLabel('Pripravujem koncept…', 'error')).toBe('Príprava konceptu');
+    expect(finishedStepLabel('Vytváram úlohu…', 'done')).toBe('Vytváranie úlohy');
     expect(finishedStepLabel('Pripravujem koncept…', 'running')).toBe('Pripravujem koncept…');
     expect(finishedStepLabel('Hľadám v pošte…', 'error')).toBe('Pošta prehľadaná');
   });
