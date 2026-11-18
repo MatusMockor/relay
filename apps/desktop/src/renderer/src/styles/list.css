@@ -82,7 +82,7 @@
 }
 .a-row.unread .subj {
   color: var(--fg);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-medium);
 }
 .a-row .snip {
   color: var(--fg4);
@@ -123,6 +123,16 @@
 .st-ok::before {
   background: var(--ok);
 }
+.a-row .when {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.when-acc {
+  display: inline-flex;
+  opacity: 0.8;
+}
 .a-row time {
   min-width: 40px;
   text-align: right;
@@ -157,7 +167,7 @@
 .a-row:hover .acts {
   display: flex;
 }
-.a-row:hover time {
+.a-row:hover .when {
   visibility: hidden;
 }
 .a-row.fresh {

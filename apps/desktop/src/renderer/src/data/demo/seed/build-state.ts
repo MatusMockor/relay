@@ -17,7 +17,7 @@ const buildAccounts = (now: Date): MailAccount[] =>
     userId: demoIds.user,
     provider: seed.provider,
     displayName: seed.name,
-    senderName: 'Ty',
+    senderName: 'Ján Adamec',
     email: seed.email,
     color: seed.color,
     isPrimary: seed.isPrimary,

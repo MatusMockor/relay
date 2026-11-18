@@ -1,5 +1,5 @@
 import type { AiRunnerKind } from '@relay/shared';
-import { Kbd, Spark } from '@relay/ui';
+import { Icon, Kbd, Spark } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
@@ -50,13 +50,18 @@ export function AiChatPane() {
   }, [turns]);
   const examples =
     threadId === null
-      ? ['Čo mám dnes vybaviť?', 'Zhrň neprečítané']
-      : ['Zhrň toto vlákno', 'Priprav odpoveď', 'Čo mám dnes vybaviť?'];
+      ? ['Čo dnes vybaviť?', 'Zhrň neprečítané']
+      : ['Zhrň toto vlákno', 'Priprav odpoveď', 'Čo dnes vybaviť?'];
   return (
     <div className="spane chatpane" role="tabpanel" aria-label="AI">
       <div className="chat-ctx">
-        <span className="ctx" title={threadId === null ? undefined : subject}>
-          Kontext: <b>{threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}</b>
+        <span
+          className="ctx"
+          title={threadId === null ? undefined : subject}
+          aria-label={`Kontext: ${threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}`}
+        >
+          <Icon name="inbox" size={13} />
+          <b>{threadId === null ? 'Celá schránka' : (subject ?? 'Vlákno')}</b>
         </span>
         <span className="runner" role="group" aria-label="Spustiť cez">
           {RUNNERS.map(([kind, label]) => (

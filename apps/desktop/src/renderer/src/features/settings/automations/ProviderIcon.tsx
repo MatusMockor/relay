@@ -4,7 +4,7 @@ const GLYPHS: Readonly<
   Record<AiRunnerKind, { readonly className: string; readonly glyph: string }>
 > = {
   claude: { className: 'cl', glyph: '✳' },
-  codex: { className: 'cx', glyph: '⌘' },
+  codex: { className: 'cx', glyph: 'O' },
 };
 
 export function ProviderIcon({

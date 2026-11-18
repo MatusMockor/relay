@@ -1,4 +1,4 @@
-.t-earlier {
+.t-stack {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   border-radius: 12px;
@@ -6,15 +6,14 @@
   background: var(--panel);
   overflow: hidden;
 }
-.t-earlier:empty {
+.t-stack:empty {
   display: none;
 }
-.t-earlier > * + * {
+.t-stack > * + * {
   border-top: 1px solid var(--line-soft);
 }
-.t-earlier .msg {
-  padding: 16px 16px 18px;
-  background: var(--bg);
+.t-stack .msg {
+  padding: 18px 20px 22px;
 }
 .m-c {
   display: flex;
@@ -139,13 +138,13 @@ button.mh-main {
   max-width: 680px;
   margin-left: 44px;
   display: grid;
-  gap: 8px;
+  gap: 16px;
 }
 .html-mail iframe {
   width: 100%;
   border: 0;
   border-radius: 12px;
-  background: #fff;
+  background: #f3f4f6;
   min-height: 80px;
   display: block;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -165,7 +164,7 @@ button.mh-main {
   margin-top: 6px;
   display: grid;
   gap: 12px;
-  padding-left: 44px;
+  padding-left: 0;
 }
 .t-next h4 {
   margin: 0;

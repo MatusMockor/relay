@@ -4,7 +4,7 @@ import { capitalize } from '../../lib/text';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { openThread, selectScope } from '../mail/navigation';
 import { useAccountsModel } from '../mail/use-accounts-model';
-import { AccountDot, Icon } from '@relay/ui';
+import { AccountSquare, Icon } from '@relay/ui';
 import { accountLike } from '../mail/use-accounts-model';
 import { MiniSection } from './Mini';
 
@@ -39,7 +39,7 @@ export function IdlePane() {
             key: account.id,
             left: (
               <span className="dot-l">
-                <AccountDot account={accountLike(account)} />
+                <AccountSquare account={accountLike(account)} small />
                 {account.displayName}
               </span>
             ),

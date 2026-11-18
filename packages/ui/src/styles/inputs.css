@@ -213,7 +213,7 @@
 .acc-sq.all i {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: 3px;
   background: var(--a);
   box-shadow: 0 0 0 2px var(--panel);
 }
@@ -226,6 +226,7 @@
 .acc-sq.sm.all i {
   width: 8px;
   height: 8px;
+  border-radius: 2px;
   box-shadow: 0 0 0 1.5px var(--panel);
 }
 .acc-sq.sm.all i + i {

@@ -63,7 +63,7 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
           <Field
             id="acc-f-senderName"
             label="Meno odosielateľa"
-            placeholder="napr. Ján Novák"
+            placeholder="Meno a priezvisko"
             value={values.senderName}
             onChange={set('senderName')}
           />

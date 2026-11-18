@@ -12,7 +12,7 @@ export interface PresetHint {
 }
 
 const NOTES: Partial<Record<ProviderPresetId, string>> = {
-  gmail: 'Odporúčame Prihlásiť cez Google. Pri IMAP použi heslo aplikácie.',
+  gmail: 'Pri IMAP použi heslo aplikácie.',
   icloud: 'iCloud vyžaduje heslo pre aplikáciu.',
 };
 

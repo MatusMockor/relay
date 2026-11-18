@@ -5,7 +5,7 @@ describe('provider presets', () => {
   it('uses the mail-core presets and adds Slovak notes', () => {
     expect(presetFor('meno@gmail.com')).toMatchObject({
       preset: { id: 'gmail', supportsOAuth: true },
-      note: expect.stringContaining('Prihlásiť cez Google') as unknown,
+      note: 'Pri IMAP použi heslo aplikácie.',
     });
     expect(presetFor('ja@azet.sk')?.preset.id).toBe('azet');
     expect(presetFor('ja@firma.sk')).toBeNull();

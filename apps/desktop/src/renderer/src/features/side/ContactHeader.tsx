@@ -1,5 +1,5 @@
 import type { AccountId } from '@relay/shared';
-import { AccountDot, Avatar } from '@relay/ui';
+import { AccountSquare, Avatar } from '@relay/ui';
 import type { ReactNode } from 'react';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 
@@ -35,7 +35,7 @@ export function ContactHeader({
       {meta === undefined ? null : <p>{meta}</p>}
       {account === undefined ? null : (
         <p className="a-acct">
-          <AccountDot account={accountLike(account)} />
+          <AccountSquare account={accountLike(account)} small />
           {account.displayName}
         </p>
       )}

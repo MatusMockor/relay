@@ -28,9 +28,7 @@ describe('right panel', () => {
       setUi({ openThreadId: done?.id ?? null, rightOpen: true, rightTab: 'ai' });
     });
     await waitFor(() => {
-      expect(within(pane()).getByText(/^Kontext:/).textContent).toBe(
-        `Kontext: ${done?.subject ?? ''}`,
-      );
+      expect(within(pane()).getByLabelText(`Kontext: ${done?.subject ?? ''}`)).toBeDefined();
     });
   });
 

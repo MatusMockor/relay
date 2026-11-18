@@ -1,3 +1,4 @@
+import { Icon } from '@relay/ui';
 import type { AccountId, MailAccount } from '@relay/shared';
 import { ActionTokens } from './ActionTokens';
 import { ConditionTokens } from './ConditionTokens';
@@ -34,7 +35,7 @@ export function RuleSentence({ rule, accounts, disabled, onChange, onEngage }: R
             content={
               <>
                 {accountLabel}
-                <span className="cv" />
+                <Icon name="down" size={12} />
               </>
             }
             disabled={disabled || rule.preset !== null}

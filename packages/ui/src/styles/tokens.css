@@ -67,4 +67,6 @@
   --scrim: rgba(4, 5, 8, 0.72);
   --dot-size: 6px;
   --dot-gap: 8px;
+  --sec-above: 24px;
+  --sec-below: 12px;
 }

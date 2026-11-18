@@ -9,7 +9,6 @@ import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
 import { SettingsGroup } from '../SettingsGroup';
-import { ThemeRow } from './ThemeRow';
 
 export function LookSection() {
   const settings = useUserSettings();
@@ -44,7 +43,6 @@ export function LookSection() {
           }}
         />
       </SettingRow>
-      <ThemeRow />
       <SettingsGroup title="Toto zariadenie" />
       <SettingRow
         title="Šírky panelov"

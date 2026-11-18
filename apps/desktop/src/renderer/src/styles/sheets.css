@@ -1,7 +1,6 @@
 .sheet {
   position: relative;
   width: min(920px, 100%);
-  height: min(720px, calc(100vh - 56px));
   display: grid;
   grid-template-columns: 216px minmax(0, 1fr);
   overflow: hidden;
@@ -47,6 +46,8 @@
   color: var(--muted);
 }
 .sh-main {
+  min-height: 520px;
+  max-height: min(720px, calc(100vh - 56px));
   padding: 0 32px;
   overflow: auto;
   scrollbar-width: thin;
@@ -85,7 +86,7 @@
   letter-spacing: var(--ls-tight);
 }
 .sh-main h4.acc-g {
-  margin: 24px 0 2px;
+  margin: var(--sec-above) 0 var(--sec-below);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -192,4 +193,14 @@
 .sh-back:hover {
   color: var(--fg2);
   background: var(--hover);
+}
+.ov.mid:has(> .sheet) {
+  align-items: flex-start;
+  padding-top: max(28px, calc(50vh - 360px));
+}
+.sh-head + h4.acc-g {
+  margin-top: 20px;
+}
+.sh-main h4.acc-g + .srow {
+  padding-top: 4px;
 }

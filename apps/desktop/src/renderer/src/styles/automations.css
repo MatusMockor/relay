@@ -143,14 +143,6 @@
 .tk:hover {
   color: var(--fg);
 }
-.cv {
-  width: 0;
-  height: 0;
-  border-left: 3.5px solid transparent;
-  border-right: 3.5px solid transparent;
-  border-top: 4px solid currentColor;
-  opacity: 0.6;
-}
 .ins {
   display: grid;
   gap: 6px;
@@ -218,4 +210,9 @@
   justify-content: flex-end;
   gap: 6px;
   padding: 6px 4px 2px;
+}
+.tk > svg,
+.mpb > svg:last-child {
+  flex: none;
+  opacity: 0.7;
 }

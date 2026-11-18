@@ -63,7 +63,7 @@
   grid-row: 1 / span 3;
   grid-column: 2;
   display: flex;
-  gap: 6px;
+  gap: 10px;
   align-items: center;
   color: var(--muted);
   font-size: var(--fs-base);
@@ -82,4 +82,11 @@
   margin: 12px 0 0;
   color: var(--muted);
   font-size: var(--fs-sm);
+}
+.rule .cnt .ibtn {
+  opacity: 0;
+}
+.rule:hover .cnt .ibtn,
+.rule:focus-within .cnt .ibtn {
+  opacity: 1;
 }

@@ -126,3 +126,8 @@
   color: var(--accent-hover);
   font-weight: var(--w-semibold);
 }
+.pi .hit {
+  flex: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}

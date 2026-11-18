@@ -1,5 +1,5 @@
 import type { MailAccount, ThreadDetail } from '@relay/shared';
-import { AccountDot, type AnchorRect, Button, ConfirmDialog, Spark } from '@relay/ui';
+import { AccountSquare, type AnchorRect, Button, ConfirmDialog, Spark } from '@relay/ui';
 import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { useClient } from '../../data/hooks/services-context';
@@ -110,7 +110,7 @@ export function ReplyComposer({
               setFromAnchor(rectOf(event.currentTarget));
             }}
           >
-            <AccountDot account={accountLike(account)} />
+            <AccountSquare account={accountLike(account)} small />
             <span>z {account.email}</span>
           </button>
         ) : null}

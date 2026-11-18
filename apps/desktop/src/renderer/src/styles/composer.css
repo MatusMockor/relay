@@ -1,6 +1,6 @@
 .cmp {
   margin-top: 6px;
-  margin-left: 44px;
+  margin-left: 0;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);

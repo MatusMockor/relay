@@ -73,7 +73,7 @@ describe('ModelPicker', () => {
       { runner: 'codex', model: 'gpt-6-astra', effort: null },
       { runner: 'codex', model: 'gpt-6-astra', effort: 'high' },
     ]);
-    expect(trigger().textContent).toBe('⌘GPT-6 AstraVysoký');
+    expect(trigger().textContent).toBe('OGPT-6 AstraVysoký');
   });
 
   it('keeps a supported effort and drops an unsupported one when the provider changes', () => {

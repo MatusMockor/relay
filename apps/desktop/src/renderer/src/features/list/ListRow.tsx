@@ -1,5 +1,5 @@
 import { displaySubject, type FolderView, type MailAccount, type Task } from '@relay/shared';
-import { AccountDot, cx } from '@relay/ui';
+import { AccountSquare, cx } from '@relay/ui';
 import { jiraActorOf } from '../mail/jira-display';
 import type { ListItem } from '../mail/list-items';
 import { accountLike } from '../mail/use-accounts-model';
@@ -102,9 +102,6 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
     >
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
-        {context.unified && context.account !== undefined ? (
-          <AccountDot account={accountLike(context.account)} title={context.account.displayName} />
-        ) : null}
         <span
           className="who-n"
           title={thread !== null && jiraActorOf(thread) !== null ? 'Cez Jira' : undefined}
@@ -125,7 +122,14 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
           </span>
         ) : null}
       </span>
-      <time>{context.time}</time>
+      <span className="when">
+        {context.unified && context.account !== undefined ? (
+          <span className="when-acc" title={context.account.displayName}>
+            <AccountSquare account={accountLike(context.account)} small />
+          </span>
+        ) : null}
+        <time>{context.time}</time>
+      </span>
       <span className="acts">
         <RowActions item={item} inRow />
       </span>
