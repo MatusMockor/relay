@@ -132,4 +132,14 @@ describe('blocked remote images', () => {
       [...fromSrcset, ...fromPicture].map((image) => image.getAttribute('data-relay-blocked')),
     ).toEqual(['', '']);
   });
+
+  it('hides an unsized fallback when the only retained source is media-conditional', () => {
+    const [image] = imagesOf(
+      withBlockedImagePlaceholders(
+        '<picture><source media="(min-width: 2000px)" srcset="data:image/png;base64,AA"><img src="https://cdn.example.com/b.png"></picture>',
+      ),
+    );
+
+    expect(image?.getAttribute('style')).toBe('display:none!important');
+  });
 });

@@ -21,4 +21,7 @@ export const fitMailWidth = (document: Document): void => {
     const next = Math.max(MIN_ZOOM, (zoom * root.clientWidth) / root.scrollWidth);
     body.style.setProperty('zoom', next.toFixed(3));
   }
+  if (overflows(root)) {
+    body.style.setProperty('zoom', String(MIN_ZOOM));
+  }
 };

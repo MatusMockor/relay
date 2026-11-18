@@ -46,7 +46,7 @@ const blockSource = (source: Element): boolean => {
 
 const hasRetainedSource = (image: Element): boolean =>
   image.parentElement?.tagName === 'PICTURE' &&
-  image.parentElement.querySelector(':scope > source') !== null;
+  image.parentElement.querySelector(':scope > source:not([media])') !== null;
 
 const replaceBlockedSrc = (image: Element, hasPermittedCandidate: boolean): void => {
   const width = dimensionOf(image, 'width');
