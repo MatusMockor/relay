@@ -20,6 +20,7 @@ import { fetchThreadHeaders } from './fetch-thread-headers';
 import { fetchUids } from './fetch-uids';
 import { DEFAULT_IDLE_OPTIONS, IdleWatcher, type IdleWatcherOptions } from './idle-watcher';
 import { createMailbox } from './create-mailbox';
+import { deleteMailbox } from './delete-mailbox';
 import { setLabels } from './gmail-label-writes';
 import type { ImapClientFactory } from './imap-client-factory';
 import { ImapConnection } from './imap-connection';
@@ -27,7 +28,9 @@ import { listMailboxes } from './list-mailboxes';
 import { mailboxStatus } from './mailbox-status';
 import { fetchCalendarParts } from './calendar-part-reads';
 import { fetchMessage, listUids } from './message-reads';
-import { appendMessage, moveMessages, setFlags, storeFlags } from './message-writes';
+import { purgeKeyword, storeKeywords } from './keyword-writes';
+import { appendMessage, moveMessages, setFlags } from './message-writes';
+import { renameMailbox } from './rename-mailbox';
 import { searchRelated } from './search-related';
 import { requireBatchSize } from './uid-batches';
 
@@ -63,6 +66,14 @@ export class ImapMailProvider implements MailProvider {
 
   createMailbox(name: string): Promise<RemoteMailbox> {
     return createMailbox(this.connection, name);
+  }
+
+  renameMailbox(path: string, newPath: string): Promise<RemoteMailbox> {
+    return renameMailbox(this.connection, path, newPath);
+  }
+
+  deleteMailbox(path: string): Promise<void> {
+    return deleteMailbox(this.connection, path);
   }
 
   status(mailboxPath: string): Promise<RemoteMailboxStatus> {
@@ -126,7 +137,11 @@ export class ImapMailProvider implements MailProvider {
     uids: readonly number[],
     mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
   ): Promise<void> {
-    return storeFlags(this.connection, mailboxPath, uids, mutation);
+    return storeKeywords(this.connection, mailboxPath, uids, mutation);
+  }
+
+  purgeKeyword(mailboxPath: string, keyword: string): Promise<void> {
+    return purgeKeyword(this.connection, mailboxPath, keyword);
   }
 
   setLabels(mailboxPath: string, uids: readonly number[], mutation: LabelMutation): Promise<void> {

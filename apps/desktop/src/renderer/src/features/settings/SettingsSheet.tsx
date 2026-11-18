@@ -10,6 +10,7 @@ import { CalendarsSection } from './sections/CalendarsSection';
 import { DevicesSection } from './sections/DevicesSection';
 import { JiraSection } from './sections/JiraSection';
 import { KeysSection } from './sections/KeysSection';
+import { LabelsSection } from './sections/LabelsSection';
 import { LookSection } from './sections/LookSection';
 import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
@@ -25,6 +26,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     devices: () => <DevicesSection />,
     accounts: () => <AccountsSection adding={adding} />,
     splits: () => <SplitsSection />,
+    labels: () => <LabelsSection />,
     automations: () => <AutomationsSection />,
     jira: () => <JiraSection />,
     sync: () => <SyncSection />,

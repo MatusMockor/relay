@@ -20,6 +20,7 @@ import { createGoogleCalendarHandlers } from '../handlers/local/google-calendar-
 import { createComposeHandlers } from '../handlers/local/compose-handlers';
 import { createDraftAttachmentHandlers } from '../handlers/local/draft-attachment-handlers';
 import { createEventStreamHandlers } from '../handlers/local/event-stream-handlers';
+import { createLabelHandlers } from '../handlers/local/label-handlers';
 import { createSettingsHandlers } from '../handlers/local/settings-handlers';
 import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-handlers';
 import { createTaskHandlers } from '../handlers/local/task-handlers';
@@ -84,6 +85,7 @@ export interface MainProcessContext {
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
   mergeInvokeHandlers(
     createThreadHandlers(local.services, local.userId),
+    createLabelHandlers(local.services, local.userId),
     createAiJobHandlers(local.services, local.userId),
     createTaskHandlers(local.services, local.userId),
     createSyncHandlers(local.sync),

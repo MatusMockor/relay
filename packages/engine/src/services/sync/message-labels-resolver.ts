@@ -1,6 +1,7 @@
 import type { AccountId, Label, LabelId } from '@relay/shared/domain';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { LabelRepository } from '../../ports/label-repository';
+import type { Repositories } from '../../ports/repositories';
 import { isValidLabel } from './valid-label';
 
 export interface LabelSource {
@@ -18,16 +19,18 @@ const isUserKeyword = (keyword: string): boolean => {
   return !DENIED_KEYWORDS.has(trimmed.toLowerCase());
 };
 
+type LabelStores = Pick<Repositories, 'labels' | 'pendingWork'>;
+
 const isUserLabel = (label: string): boolean => label.trim() !== '' && !label.startsWith('\\');
 
 export class MessageLabelsResolver {
   constructor(private readonly ids: IdGenerator) {}
 
-  resolve(labels: LabelRepository, accountId: AccountId, source: LabelSource): Promise<LabelId[]> {
+  resolve(stores: LabelStores, accountId: AccountId, source: LabelSource): Promise<LabelId[]> {
     if (source.labels !== null) {
-      return this.gmailLabels(labels, accountId, source.labels);
+      return this.gmailLabels(stores.labels, accountId, source.labels);
     }
-    return this.keywordLabels(labels, accountId, source.keywords);
+    return this.keywordLabels(stores, accountId, source.keywords);
   }
 
   private async gmailLabels(
@@ -46,19 +49,28 @@ export class MessageLabelsResolver {
   }
 
   private async keywordLabels(
-    labels: LabelRepository,
+    stores: LabelStores,
     accountId: AccountId,
     keywords: readonly string[],
   ): Promise<LabelId[]> {
     const resolved: LabelId[] = [];
     for (const keyword of new Set(keywords.filter(isUserKeyword))) {
-      const known = await labels.findByRemoteName(accountId, 'keyword', keyword);
-      const label = known ?? (await this.created(labels, accountId, keyword));
+      const known = await stores.labels.findByRemoteName(accountId, 'keyword', keyword);
+      const label = known ?? (await this.adopted(stores, accountId, keyword));
       if (label !== null) {
         resolved.push(label.id);
       }
     }
     return resolved;
+  }
+
+  private async adopted(
+    stores: LabelStores,
+    accountId: AccountId,
+    keyword: string,
+  ): Promise<Label | null> {
+    const purge = await stores.pendingWork.find({ accountId, kind: 'keyword-purge', ref: keyword });
+    return purge === null ? this.created(stores.labels, accountId, keyword) : null;
   }
 
   private async created(
@@ -69,11 +81,24 @@ export class MessageLabelsResolver {
     const label: Label = {
       id: this.ids.generate('label'),
       accountId,
-      name: keyword,
+      name: await this.freeName(labels, accountId, keyword),
       color: null,
       kind: 'keyword',
       remoteName: keyword,
     };
     return isValidLabel(label) ? labels.upsert(label) : null;
+  }
+
+  private async freeName(
+    labels: LabelRepository,
+    accountId: AccountId,
+    keyword: string,
+  ): Promise<string> {
+    for (let suffix = 1; ; suffix += 1) {
+      const name = suffix === 1 ? keyword : `${keyword} (${String(suffix)})`;
+      if ((await labels.findByName(accountId, name)) === null) {
+        return name;
+      }
+    }
   }
 }

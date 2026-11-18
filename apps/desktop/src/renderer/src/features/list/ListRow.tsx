@@ -5,6 +5,7 @@ import type { ListItem } from '../mail/list-items';
 import { accountLike } from '../mail/use-accounts-model';
 import { RowActions } from '../shell/RowActions';
 import { Highlight } from './Highlight';
+import { LabelChips } from './LabelChips';
 
 export interface RowContext {
   readonly view: FolderView;
@@ -116,6 +117,7 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
           {thread?.jiraKey == null ? null : <span className="key">{thread.jiraKey} </span>}
           <Highlight text={subject === '' ? '(bez predmetu)' : subject} query={context.query} />
         </span>
+        {thread === null ? null : <LabelChips labelIds={thread.labelIds} />}
         <Snippet item={item} context={context} />
         {context.view === 'tasks' && context.task?.aiWhat != null ? (
           <span className={`st st-${TASK_TONE[context.task.state] ?? 'acc'}`}>

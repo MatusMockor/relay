@@ -29,8 +29,9 @@ export const createMessageActionsService = (
     logger,
   });
   const flags = new FlagWriter({ unitOfWork, mirror, clock });
+  const locator = new MessageLocator(repositories.mailboxes, repositories.pendingWork);
   const stateMoves = new StateMoveHandler({
-    locator: new MessageLocator(repositories.mailboxes, repositories.pendingWork),
+    locator,
     labels: repositories.labels,
     unitOfWork,
     mirror,
@@ -50,7 +51,13 @@ export const createMessageActionsService = (
     }),
     readState: new ReadStateHandler(flags),
     pins: new PinHandler(flags),
-    labels: new LabelHandler({ labels: repositories.labels, unitOfWork, mirror, clock }),
+    labels: new LabelHandler({
+      labels: repositories.labels,
+      locator,
+      unitOfWork,
+      mirror,
+      clock,
+    }),
     reminders: shared.reminders,
     events: shared.events,
   });

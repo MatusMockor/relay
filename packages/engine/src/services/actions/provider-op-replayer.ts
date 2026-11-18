@@ -8,6 +8,7 @@ import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { KeywordPurger } from '../labels/keyword-purger';
 import { KeyedSerializer } from '../shared/keyed-serializer';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
@@ -38,17 +39,24 @@ export class ProviderOpReplayer {
   private readonly serializer = new KeyedSerializer();
   private readonly targets: MoveTargetResolver;
   private readonly merger: MovedCopyMerger;
+  private readonly purger: KeywordPurger;
 
   constructor(private readonly deps: ProviderOpReplayerDeps) {
     this.targets = new MoveTargetResolver(deps.mailboxes, deps.roleMailboxes);
     this.merger = new MovedCopyMerger(deps);
+    this.purger = new KeywordPurger(deps);
   }
 
   replayPending(account: MailAccount, provider: MailProvider): Promise<void> {
     return this.serializer.run(account.id, async () => {
       const ops = await this.deps.pendingWork.list(account.id, 'provider-op');
       await this.apply(account, provider, ops);
+      await this.purger.purgePending(account, provider);
     });
+  }
+
+  purgeKeywords(account: MailAccount, provider: MailProvider): Promise<void> {
+    return this.serializer.run(account.id, () => this.purger.purgePending(account, provider));
   }
 
   replay(

@@ -3,14 +3,16 @@ import { NotFoundError, ValidationError } from '../../../errors';
 import type { Clock } from '../../../ports/clock';
 import type { LabelRepository } from '../../../ports/label-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
-import { recordProviderOps } from '../../shared/provider-ops';
 import { refreshThread } from '../../shared/thread-refresh';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
+import { gmailWrite, keywordWrite, type LabelWrite } from './label-writes';
+import type { MessageLocator } from './message-locator';
 import { requireUpserted } from './require-upserted';
 
 export interface LabelHandlerDeps {
   readonly labels: LabelRepository;
+  readonly locator: MessageLocator;
   readonly unitOfWork: UnitOfWork;
   readonly mirror: ProviderMirror;
   readonly clock: Clock;
@@ -34,24 +36,10 @@ export class LabelHandler {
     label: Label,
     add: boolean,
   ): Promise<ThreadSummary> {
-    const targets = context.messages.filter(
-      (message) => message.labelIds.includes(label.id) !== add,
-    );
+    const write = await this.writeOf(context, label, add);
+    const now = this.deps.clock.now().toISOString();
     const { outcome, ops } = await this.deps.unitOfWork.run(async (repositories) => {
-      for (const message of targets) {
-        await (add
-          ? repositories.messages.addLabel(message.id, label.id)
-          : repositories.messages.removeLabel(message.id, label.id));
-      }
-      const recorded = await recordProviderOps(
-        repositories.pendingWork,
-        context.account.id,
-        targets.map((message) => ({
-          messageId: message.id,
-          change: { kind: 'keyword', keyword: label.remoteName, value: add } as const,
-        })),
-        this.deps.clock.now().toISOString(),
-      );
+      const recorded = await write(repositories, context.account.id, now);
       const refreshed = await refreshThread(
         repositories,
         context.userId,
@@ -64,6 +52,16 @@ export class LabelHandler {
     return requireUpserted(outcome, context.thread.id);
   }
 
+  private writeOf(context: ThreadActionContext, label: Label, add: boolean): Promise<LabelWrite> {
+    const targets = context.messages.filter(
+      (message) => message.labelIds.includes(label.id) !== add,
+    );
+    if (label.kind === 'gmail') {
+      return gmailWrite(this.deps.locator, context, label, add, targets);
+    }
+    return Promise.resolve(keywordWrite(label, add, targets));
+  }
+
   private async requireLabel(context: ThreadActionContext, labelId: LabelId): Promise<Label> {
     const label = await this.deps.labels.findById(context.userId, labelId);
     if (label === null) {
@@ -71,9 +69,6 @@ export class LabelHandler {
     }
     if (label.accountId !== context.account.id) {
       throw new ValidationError('Label belongs to a different account than the thread');
-    }
-    if (label.kind === 'gmail') {
-      throw new ValidationError('Gmail štítky zatiaľ nie je možné v Relay meniť.');
     }
     return label;
   }

@@ -15,22 +15,19 @@ import {
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
 import {
-  calendarHeaders,
-  CREATED_ROLES,
-  flagChangesOf,
-  missing,
-  statusOf,
-  toRaw,
-  toRemote,
-} from './fake-records';
+  createFakeMailbox,
+  deleteFakeMailbox,
+  purgeFakeKeyword,
+  renameFakeMailbox,
+} from './fake-mailbox-admin';
+import { calendarHeaders, flagChangesOf, missing, statusOf, toRaw, toRemote } from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
 import { threadHeadersOf } from './fake-thread-headers';
 import { uidValidityMismatch } from './fake-uid-validity';
+import { type ChangeListener, watchFakeMailbox } from './fake-idle';
 import { applyKeywords, type KeywordMutation, moveRecords, writeLabels } from './fake-writes';
-
-type ChangeListener = (change: MailboxChange) => void;
 
 interface OpenedMailbox {
   readonly mailbox: FakeMailbox;
@@ -79,13 +76,19 @@ export class FakeMailProvider implements MailProvider {
   }
 
   createMailbox(name: string): Promise<RemoteMailbox> {
-    return this.guard((server) => {
-      server.createdMailboxes.push(name);
-      const existing = server.find(name);
-      return Promise.resolve(
-        toRemote(existing ?? server.addMailbox(name, CREATED_ROLES.get(name) ?? 'custom')),
-      );
-    });
+    return this.guard((server) => Promise.resolve(createFakeMailbox(server, name)));
+  }
+
+  renameMailbox(path: string, newPath: string): Promise<RemoteMailbox> {
+    return this.guard((server) => renameFakeMailbox(server, path, newPath));
+  }
+
+  deleteMailbox(path: string): Promise<void> {
+    return this.guard((server) => deleteFakeMailbox(server, path));
+  }
+
+  purgeKeyword(path: string, keyword: string): Promise<void> {
+    return this.guard((server) => purgeFakeKeyword(server, path, keyword));
   }
 
   status(mailboxPath: string): Promise<RemoteMailboxStatus> {
@@ -227,23 +230,9 @@ export class FakeMailProvider implements MailProvider {
   }
 
   idle(mailboxPath: string, onChange: (change: MailboxChange) => void): Promise<Disposer> {
-    return this.withMailbox(mailboxPath, (_mailbox, server) => {
-      const listener: ChangeListener = (change) => {
-        if (change.mailboxPath === mailboxPath) {
-          onChange(change);
-        }
-      };
-      server.listeners.add(listener);
-      this.listeners.add(listener);
-      return Promise.resolve(() => {
-        if (server.failIdleStop !== null) {
-          return Promise.reject(new Error(server.failIdleStop));
-        }
-        server.listeners.delete(listener);
-        this.listeners.delete(listener);
-        return Promise.resolve();
-      });
-    });
+    return this.withMailbox(mailboxPath, (_mailbox, server) =>
+      Promise.resolve(watchFakeMailbox(server, this.listeners, mailboxPath, onChange)),
+    );
   }
 
   close(): Promise<void> {

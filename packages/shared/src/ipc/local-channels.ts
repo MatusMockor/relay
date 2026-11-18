@@ -12,7 +12,11 @@ import {
   SendResponseSchema,
   UpdateDraftBodySchema,
 } from '../api/endpoints/compose';
-import { LabelListQuerySchema } from '../api/endpoints/labels';
+import {
+  CreateLabelBodySchema,
+  LabelListQuerySchema,
+  UpdateLabelBodySchema,
+} from '../api/endpoints/labels';
 import {
   ApplyAutomationResponseSchema,
   ReplaceAutomationsBodySchema,
@@ -36,6 +40,7 @@ import {
   AttachmentIdSchema,
   AutomationIdSchema,
   DraftIdSchema,
+  LabelIdSchema,
   ScheduledSendIdSchema,
   TaskIdSchema,
   ThreadIdSchema,
@@ -86,6 +91,12 @@ export const localInvokeChannels = {
   ),
   'local.ai.getJob': invokeChannel(z.object({ jobId: AiJobIdSchema }), AiJobSchema),
   'local.labels.list': invokeChannel(LabelListQuerySchema, z.array(LabelSchema)),
+  'local.labels.create': invokeChannel(CreateLabelBodySchema, LabelSchema),
+  'local.labels.update': invokeChannel(
+    z.object({ labelId: LabelIdSchema, patch: UpdateLabelBodySchema }),
+    LabelSchema,
+  ),
+  'local.labels.delete': invokeChannel(z.object({ labelId: LabelIdSchema }), OkResponseSchema),
   'local.accounts.list': invokeChannel(z.undefined(), z.array(MailAccountSchema)),
   'local.accounts.create': invokeChannel(CreateAccountBodySchema, MailAccountSchema),
   'local.accounts.update': invokeChannel(

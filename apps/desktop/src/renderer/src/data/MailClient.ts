@@ -12,12 +12,14 @@ import type {
   AiRunnerInfo,
   AiRunRequest,
   CreateAccountBody,
+  CreateLabelBody,
   DraftAttachment,
   DraftAttachmentAdded,
   DraftAttachmentsForwarded,
   DraftContent,
   DraftId,
   Label,
+  LabelId,
   MailAccount,
   Mailbox,
   MessageId,
@@ -45,6 +47,7 @@ import type {
   UpdateAccountBody,
   UpdateChecklistItemBody,
   UpdateDraftBody,
+  UpdateLabelBody,
   UnsubscribeOptions,
   UnsubscribeUrl,
   UpdateTaskBody,
@@ -116,6 +119,9 @@ export interface Composer {
 export interface Organizer {
   listSplits(): Promise<Split[]>;
   replaceSplits(splits: SplitInput[]): Promise<Split[]>;
+  createLabel(body: CreateLabelBody): Promise<Label>;
+  updateLabel(labelId: LabelId, patch: UpdateLabelBody): Promise<Label>;
+  deleteLabel(labelId: LabelId): Promise<void>;
   listAutomations(): Promise<Automation[]>;
   replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;

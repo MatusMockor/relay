@@ -1,10 +1,10 @@
-import { Icon, rovingIndex, Spark, type StrokeIconName } from '@relay/ui';
+import { FolderIcon, Icon, rovingIndex, Spark, type StrokeIconName } from '@relay/ui';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useSessionStore } from '../../session/session-store';
 import type { SettingsSection } from '../../state/ui-store';
 import { StorageNote } from './StorageNote';
 
-type Entry = readonly [SettingsSection, string, StrokeIconName | 'spark'];
+type Entry = readonly [SettingsSection, string, StrokeIconName | 'spark' | 'label'];
 
 const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
   [
@@ -20,6 +20,7 @@ const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
     'Pošta',
     [
       ['splits', 'Split Inbox', 'columns'],
+      ['labels', 'Štítky', 'label'],
       ['automations', 'Automatizácie', 'bolt'],
       ['jira', 'Jira', 'check'],
       ['sync', 'Synchronizácia', 'refresh'],
@@ -38,7 +39,15 @@ const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
   ],
 ];
 
-const iconOf = (name: Entry[2]): ReactNode => (name === 'spark' ? <Spark /> : <Icon name={name} />);
+const iconOf = (name: Entry[2]): ReactNode => {
+  if (name === 'spark') {
+    return <Spark />;
+  }
+  if (name === 'label') {
+    return <FolderIcon name="label" />;
+  }
+  return <Icon name={name} />;
+};
 
 export const SETTINGS_PANEL_ID = 'settings-panel';
 

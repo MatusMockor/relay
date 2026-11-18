@@ -56,6 +56,9 @@ export class FakeMailServer {
   readonly gmail: boolean;
   readonly mailboxes = new Map<string, FakeMailbox>();
   readonly createdMailboxes: string[] = [];
+  readonly renamedMailboxes: { path: string; newPath: string }[] = [];
+  readonly deletedMailboxes: string[] = [];
+  readonly keywordPurges: { path: string; keyword: string }[] = [];
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
@@ -74,6 +77,7 @@ export class FakeMailServer {
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;
+  failKeywordPurge: string | null = null;
   beforeNextFetch: ((path: string) => void) | null = null;
   private modseq = 1n;
 

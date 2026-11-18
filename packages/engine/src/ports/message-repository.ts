@@ -40,6 +40,7 @@ export interface MessageRepository {
     window: SubjectSearchWindow,
   ): Promise<ThreadId | null>;
   listUids(mailboxId: MailboxId): Promise<number[]>;
+  listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]>;
   upsert(message: Message, headers: MessageHeaders): Promise<Message>;
   listMatchSubjects(accountId: AccountId, page: PageRequest): Promise<Page<StoredMatchSubject>>;
   updateFlags(messageId: MessageId, flags: MessageFlags): Promise<void>;

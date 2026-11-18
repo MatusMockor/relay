@@ -124,6 +124,11 @@ export interface LabelRescanWork {
   readonly mailboxId: MailboxId;
 }
 
+export interface KeywordPurgeWork {
+  readonly keyword: string;
+  readonly mailboxIds: readonly MailboxId[];
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
@@ -139,6 +144,7 @@ export interface PendingWorkPayloads {
   readonly 'spam-origin': MoveOriginWork;
   readonly 'move-origin': MoveOriginWork;
   readonly 'label-rescan': LabelRescanWork;
+  readonly 'keyword-purge': KeywordPurgeWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

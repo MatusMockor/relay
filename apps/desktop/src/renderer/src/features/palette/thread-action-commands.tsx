@@ -17,8 +17,24 @@ export const threadMoveCommand = (thread: ThreadSummary, ctx: string | undefined
   },
 });
 
+export const threadLabelCommand = (thread: ThreadSummary, ctx: string | undefined): Command => ({
+  id: 'labels',
+  label: 'Štítok…',
+  sub: ctx,
+  keys: ['L'],
+  icon: <FolderIcon name="label" />,
+  alias: 'stitok stitky label tag oznacit',
+  run: () => {
+    setUi({ overlay: { kind: 'labels', threadId: thread.id } });
+  },
+});
+
 export const threadActionCommands = (
   thread: ThreadSummary,
   ctx: string | undefined,
   commands: ThreadCommands,
-): Command[] => [threadMoveCommand(thread, ctx), ...threadSpamCommand(thread, ctx, commands)];
+): Command[] => [
+  threadMoveCommand(thread, ctx),
+  threadLabelCommand(thread, ctx),
+  ...threadSpamCommand(thread, ctx, commands),
+];

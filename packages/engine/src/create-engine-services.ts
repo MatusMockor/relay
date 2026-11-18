@@ -23,6 +23,8 @@ import { createComposeService } from './services/compose/create-compose-service'
 import { SentMessageRecorder } from './services/compose/sent-message-recorder';
 import { InboxQueryService } from './services/inbox/inbox-query-service';
 import { LabelQueryService } from './services/inbox/label-query-service';
+import { createLabelService } from './services/labels/create-label-service';
+import type { LabelService } from './services/labels/label-service';
 import { ReminderService } from './services/reminders/reminder-service';
 import { SettingsService } from './services/settings/settings-service';
 import { EngineEvents } from './services/shared/engine-events';
@@ -49,6 +51,7 @@ export interface EngineServices {
   readonly settings: SettingsService;
   readonly inbox: InboxQueryService;
   readonly labels: LabelQueryService;
+  readonly labelAdmin: LabelService;
   readonly threads: ThreadQueryService;
   readonly threadAi: ThreadAiPreparer;
   readonly checklist: ThreadChecklistService;
@@ -168,6 +171,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       accounts: repositories.accounts,
     }),
     labels: new LabelQueryService(repositories.labels),
+    labelAdmin: createLabelService(deps, { events, sessions, replayer }),
     threads,
     threadAi: new ThreadAiPreparer({
       threads: repositories.threads,

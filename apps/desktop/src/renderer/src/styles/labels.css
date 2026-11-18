@@ -1,0 +1,131 @@
+.lbl-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  min-width: 0;
+}
+.lbl-chip {
+  max-width: 150px;
+  gap: 5px;
+  color: var(--fg3);
+  background: color-mix(in srgb, var(--d) 9%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--d) 34%, transparent);
+}
+.lbl-chip-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--d);
+}
+.lbl-chip-n {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lbl-chip-x {
+  display: inline-flex;
+  flex: none;
+  margin-right: -3px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.lbl-chip-x:hover,
+.lbl-chip-x:focus-visible {
+  color: var(--fg);
+}
+.lbl-more {
+  flex: none;
+  color: var(--muted);
+}
+.t-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: -12px;
+}
+.t-labels .lbl-chip {
+  height: 22px;
+  max-width: 240px;
+  font-size: var(--fs-xs);
+}
+.lbl-add {
+  height: 22px;
+  cursor: pointer;
+  color: var(--muted);
+  background: none;
+  border: 0;
+}
+.lbl-add:hover,
+.lbl-add:focus-visible {
+  color: var(--fg2);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.lbl-ck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px var(--d);
+  color: var(--accent-ink);
+}
+.lbl-ck.on {
+  background: var(--d);
+}
+.lbl-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 0;
+  padding: 0;
+  background: var(--c);
+  cursor: pointer;
+  flex: none;
+}
+.lbl-swatch.auto {
+  background: conic-gradient(#e6d15a, #ef6b6b, #d77ae8, #5fc4d9, #a3cf5a, #e6d15a);
+}
+.lbl-swatch.on {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 3.5px var(--c, var(--fg3));
+}
+.lbl-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 6px 4px;
+}
+@container main (max-width: 540px) {
+  .a-row .line > .lbl-chips {
+    display: none;
+  }
+}
+.lbl-row-l {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.lbl-name-fld {
+  width: 260px;
+}
+.lbl-kind {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.lbl-row .r .ibtn {
+  opacity: 0;
+}
+.lbl-row:hover .r .ibtn,
+.lbl-row:focus-within .r .ibtn {
+  opacity: 1;
+}

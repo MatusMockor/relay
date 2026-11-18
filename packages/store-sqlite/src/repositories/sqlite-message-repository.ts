@@ -138,6 +138,18 @@ export class SqliteMessageRepository implements MessageRepository {
     });
   }
 
+  listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]> {
+    return this.executor.execute((db) =>
+      db
+        .selectDistinct({ threadId: messages.threadId })
+        .from(messageLabels)
+        .innerJoin(messages, eq(messages.id, messageLabels.messageId))
+        .where(eq(messageLabels.labelId, labelId))
+        .all()
+        .map((row) => ThreadIdSchema.parse(row.threadId)),
+    );
+  }
+
   listUids(mailboxId: MailboxId): Promise<number[]> {
     return this.executor.execute((db) =>
       db

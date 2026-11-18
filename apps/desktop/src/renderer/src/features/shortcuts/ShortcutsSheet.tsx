@@ -23,6 +23,7 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Vrátiť z Hotovo, Spamu alebo Koša', ['E']],
       ['Pripomenúť', ['H']],
       ['Presunúť do priečinka alebo štítka', ['V']],
+      ['Štítok', ['L']],
       ['Odpovedať', ['R']],
       ['Odpovedať všetkým', ['⇧', 'R']],
       ['Preposlať', ['F']],

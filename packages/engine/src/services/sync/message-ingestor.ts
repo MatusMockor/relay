@@ -86,11 +86,7 @@ export class MessageIngestor {
       splits: target.splits,
     });
     const message = await this.deps.unitOfWork.run(async (repositories) => {
-      const labelIds = await this.deps.labelsResolver.resolve(
-        repositories.labels,
-        target.account.id,
-        raw,
-      );
+      const labelIds = await this.deps.labelsResolver.resolve(repositories, target.account.id, raw);
       const built = buildMessage(
         {
           accountId: target.account.id,
@@ -158,11 +154,7 @@ export class MessageIngestor {
         await repositories.messages.move(known.id, { mailboxId: known.mailboxId, uid: known.uid });
       }
       await target.journal?.touched(repositories.pendingWork, known.threadId);
-      const labelIds = await this.deps.labelsResolver.resolve(
-        repositories.labels,
-        target.account.id,
-        raw,
-      );
+      const labelIds = await this.deps.labelsResolver.resolve(repositories, target.account.id, raw);
       const flagsChanged = flagsDiffer(known.flags, raw.flags);
       const labelsChanged = !sameMembers(known.labelIds, labelIds);
       if (flagsChanged) {

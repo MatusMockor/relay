@@ -1,7 +1,8 @@
 import { FolderIcon } from '@relay/ui';
 import { folderIconOf } from '../folders/folder-icons';
 import { useFolderMailbox } from '../folders/use-folder-mailbox';
-import { useNameColors } from '../colors/use-name-colors';
+import { NEUTRAL } from '../colors/name-colors';
+import { useLabelColor } from '../labels/use-label-color';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
@@ -11,7 +12,7 @@ export function FolderTitle() {
   const folder = useUiStore((state) => state.folder);
   const { items } = useMailActions();
   const labels = useLabels();
-  const colors = useNameColors();
+  const colorOf = useLabelColor();
   const mailbox = useFolderMailbox(folder);
   const count = items.length;
   if (folder.kind === 'label') {
@@ -19,7 +20,10 @@ export function FolderTitle() {
     return (
       <div className="a-title">
         <h2>
-          <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label?.name ?? '') }} />
+          <span
+            className="lbl-dot"
+            style={{ ['--d' as string]: label === undefined ? NEUTRAL : colorOf(label) }}
+          />
           <span className="a-tt" title={label?.name ?? 'Štítok'}>
             {label?.name ?? 'Štítok'}
           </span>

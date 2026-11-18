@@ -1,5 +1,6 @@
 import type { MailFlag } from '@relay/engine';
 import type { MessageFlags } from '@relay/shared/domain';
+import { decodeKeyword } from './keyword-codec';
 
 const SYSTEM_FLAGS: Readonly<Record<MailFlag, string>> = {
   seen: '\\Seen',
@@ -22,4 +23,7 @@ export const toMessageFlags = (flags: ReadonlySet<string> | undefined): MessageF
 });
 
 export const toKeywords = (flags: ReadonlySet<string> | undefined): string[] =>
-  [...(flags ?? [])].filter((flag) => !flag.startsWith('\\')).sort();
+  [...(flags ?? [])]
+    .filter((flag) => !flag.startsWith('\\'))
+    .map(decodeKeyword)
+    .sort();

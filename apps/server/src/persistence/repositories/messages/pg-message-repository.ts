@@ -21,7 +21,7 @@ import type {
 } from '@relay/shared/domain';
 import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
-import { messages } from '../../schema';
+import { messageLabels, messages } from '../../schema';
 import { findAccountOwner } from '../../support/account-owner';
 import { decodeCursor, pageOf } from '../../support/cursor';
 import { toIso } from '../../support/timestamps';
@@ -112,6 +112,15 @@ export class PgMessageRepository implements MessageRepository {
       .orderBy(desc(messages.date), desc(messages.id))
       .limit(1);
     return row?.threadId ?? null;
+  }
+
+  async listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]> {
+    const rows = await this.db
+      .selectDistinct({ threadId: messages.threadId })
+      .from(messageLabels)
+      .innerJoin(messages, eq(messages.id, messageLabels.messageId))
+      .where(eq(messageLabels.labelId, labelId));
+    return rows.map((row) => row.threadId);
   }
 
   async listUids(mailboxId: MailboxId): Promise<number[]> {

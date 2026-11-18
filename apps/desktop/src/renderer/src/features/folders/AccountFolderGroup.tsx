@@ -2,8 +2,8 @@ import type { Label, MailAccount, Mailbox } from '@relay/shared';
 import { FolderIcon, Icon } from '@relay/ui';
 import { useMemo } from 'react';
 import { toggleCollapsed, useUiStore } from '../../state/ui-store';
-import { useNameColors } from '../colors/use-name-colors';
 import { accountHue } from '../colors/name-colors';
+import { useLabelColor } from '../labels/use-label-color';
 import { selectFolder } from '../mail/navigation';
 import { labelEntries, mailboxEntries } from './folder-sections';
 import { buildFolderTree } from './folder-tree';
@@ -48,7 +48,7 @@ export function AccountFolderGroup({
   const folder = useUiStore((state) => state.folder);
   const collapsed = useUiStore((state) => state.collapsed[`acct:${account.id}`] === true);
   const shut = grouped && collapsed;
-  const colors = useNameColors();
+  const colorOf = useLabelColor();
   const folders = useMemo(() => buildFolderTree(mailboxEntries(mailboxes)), [mailboxes]);
   const labelTree = useMemo(() => buildFolderTree(labelEntries(labels)), [labels]);
   if (folders.length === 0 && labelTree.length === 0) {
@@ -64,7 +64,7 @@ export function AccountFolderGroup({
     },
   });
   const labelLeaf = (label: Label): TreeLeaf => ({
-    icon: <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label.name) }} />,
+    icon: <span className="lbl-dot" style={{ ['--d' as string]: colorOf(label) }} />,
     on: folder.kind === 'label' && folder.labelId === label.id,
     count: 0,
     title: label.name,
