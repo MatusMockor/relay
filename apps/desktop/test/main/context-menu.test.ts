@@ -1,5 +1,6 @@
 import type { ContextMenuRequest } from '@relay/shared/ipc';
 import { describe, expect, it } from 'vitest';
+import type { Logger } from '@relay/engine';
 import { composeIpc } from '../../src/main/composition/compose-ipc';
 import {
   type ContextMenuFactory,
@@ -12,6 +13,7 @@ import { WindowContextMenuPresenter } from '../../src/main/native/context-menu-p
 import { contextMenuWindow } from '../../src/main/native/context-menu-window';
 import { createRelayBridge } from '../../src/preload/create-bridge';
 import { InMemoryIpc } from './in-memory-ipc';
+import { createTestLogger } from './support/memory-log-sink';
 
 interface FakeWindow {
   readonly name: string;
@@ -79,12 +81,14 @@ const appMetadata = {
 
 const bridgeWith = (
   windows: { readonly focused: FakeWindow | null; readonly all: readonly FakeWindow[] },
-  factory: RecordingMenuFactory,
+  factory: ContextMenuFactory<FakeWindow>,
+  logger?: Logger,
 ) =>
   createRelayBridge(
     new InMemoryIpc(
       composeIpc({
         app: appMetadata,
+        ...(logger === undefined ? {} : { logger }),
         contextMenu: new WindowContextMenuPresenter(
           contextMenuWindow({ focused: () => windows.focused, all: () => windows.all }),
           factory,
@@ -193,6 +197,27 @@ describe('context menu IPC', () => {
       data: { id: null },
     });
     expect(factory.menus).toEqual([]);
+  });
+
+  it('logs a menu that fails to open in the main process', async () => {
+    const { logger, sink } = createTestLogger();
+    const unusable: ContextMenuFactory<FakeWindow> = {
+      build: () => Object.create(null) as ContextMenuHandle<FakeWindow>,
+    };
+    const bridge = bridgeWith({ focused: WINDOW, all: [WINDOW] }, unusable, logger);
+
+    const result = await bridge.invoke('app.contextMenu.show', REQUEST);
+
+    expect(result.ok).toBe(false);
+    expect(
+      sink.records.map(({ level, message, context }) => ({
+        level,
+        message,
+        channel: context.channel,
+      })),
+    ).toEqual([
+      { level: 'error', message: 'IPC call failed unexpectedly', channel: 'app.contextMenu.show' },
+    ]);
   });
 
   it('rejects a request without items', async () => {
