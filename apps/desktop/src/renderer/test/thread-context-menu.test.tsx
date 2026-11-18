@@ -2,6 +2,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { threadMenuItems } from '../src/features/list/thread-menu-items';
+import { present } from './support/present';
 import { renderApp, resetStores } from './support/render-app';
 import { serverThread } from './support/thread-fixtures';
 
@@ -16,8 +17,7 @@ const key = (value: string) => {
 const rows = () =>
   within(screen.getByRole('listbox', { name: 'Konverzácie' })).getAllByRole('option');
 const subjectOf = (row: HTMLElement) => row.querySelector('.subj')?.textContent.trim() ?? '';
-const rowBySubject = (subject: string) =>
-  rows().find((row) => subjectOf(row) === subject) ?? document.body;
+const rowBySubject = (subject: string) => present(rows().find((row) => subjectOf(row) === subject));
 const menuLabels = () =>
   within(screen.getByRole('menu'))
     .getAllByRole('menuitem')
@@ -40,9 +40,7 @@ const choose = (label: string) => {
 const unreadSubject = async (): Promise<string> => {
   await screen.findByRole('listbox', { name: 'Konverzácie' });
   const unread = rows().filter((row) => row.classList.contains('unread'));
-  const candidate = unread.find((row) => row.getAttribute('aria-selected') !== 'true');
-  expect(candidate).toBeDefined();
-  return subjectOf(candidate ?? document.body);
+  return subjectOf(present(unread.find((row) => row.getAttribute('aria-selected') !== 'true')));
 };
 
 describe('thread row context menu', () => {
@@ -119,7 +117,7 @@ describe('thread row context menu', () => {
       expect(rows().length).toBeGreaterThan(0);
     });
 
-    rightClick(rows()[0] ?? document.body);
+    rightClick(present(rows()[0]));
 
     expect(menuLabels()).toContain('Obnoviť');
     expect(menuLabels()).not.toContain('Presunúť do koša');
@@ -135,7 +133,7 @@ describe('thread row context menu', () => {
       expect(rows().length).toBeGreaterThan(0);
     });
 
-    const notPrevented = rightClick(rows()[0] ?? document.body);
+    const notPrevented = rightClick(present(rows()[0]));
 
     expect(notPrevented).toBe(true);
     expect(screen.queryByRole('menu')).toBeNull();

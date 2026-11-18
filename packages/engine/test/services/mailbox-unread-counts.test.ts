@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { deliverMail, present, seedAccount, type SeededAccount } from '../support/fixtures';
+import { present, seedAccount, type SeededAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
+import { deliverUnread } from '../support/unread-mail';
 
 const syncedAccount = async (engine: TestEngine, ids: readonly string[]) => {
   const seeded = await seedAccount(engine);
-  ids.forEach((id, index) =>
-    deliverMail(seeded.server, 'INBOX', { id, date: `2026-11-14T0${String(index)}:00:00.000Z` }),
-  );
+  deliverUnread(seeded.server, 'INBOX', ids);
   await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
   engine.events.clear();
   return seeded;

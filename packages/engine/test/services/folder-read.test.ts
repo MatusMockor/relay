@@ -1,13 +1,8 @@
 import type { LabelId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { deliverMail, present, seedAccount, type SeededAccount } from '../support/fixtures';
+import { present, seedAccount, type SeededAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
-
-const deliverUnread = (seeded: SeededAccount, path: string, ids: readonly string[]): void => {
-  ids.forEach((id, index) =>
-    deliverMail(seeded.server, path, { id, date: `2026-11-14T0${index}:00:00.000Z` }),
-  );
-};
+import { deliverUnread } from '../support/unread-mail';
 
 const syncedAccount = async (
   engine: TestEngine,
@@ -16,16 +11,20 @@ const syncedAccount = async (
   serverOptions: Parameters<typeof seedAccount>[2] = {},
 ): Promise<SeededAccount> => {
   const seeded = await seedAccount(engine, overrides, serverOptions);
-  deliverUnread(seeded, 'INBOX', ids);
+  deliverUnread(seeded.server, 'INBOX', ids);
   await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
   engine.events.clear();
   return seeded;
 };
 
+const inboxThreads = async (engine: TestEngine) =>
+  (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 50 })).items;
+
 const unreadInbox = async (engine: TestEngine): Promise<string[]> =>
-  (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 50 })).items
-    .filter((thread) => thread.unread)
-    .map((thread) => thread.accountId);
+  (await inboxThreads(engine)).filter((thread) => thread.unread).map((thread) => thread.accountId);
+
+const unreadThreadIds = async (engine: TestEngine): Promise<string[]> =>
+  (await inboxThreads(engine)).filter((thread) => thread.unread).map((thread) => thread.id);
 
 const pendingOps = (engine: TestEngine) =>
   [...engine.db.tables.pendingWork.values()].filter((work) => work.kind === 'provider-op');
@@ -60,16 +59,17 @@ describe('FolderReadService', () => {
   });
 
   it('marks and mirrors a big folder in bounded chunks', async () => {
-    const engine = createTestEngine({ actions: { folderReadPageSize: 2 } });
-    const { server } = await syncedAccount(engine, ['m1', 'm2', 'm3', 'm4', 'm5']);
+    const engine = createTestEngine({ actions: { folderReadPageSize: 4 } });
+    const ids = Array.from({ length: 11 }, (_, index) => `m${String(index + 1)}`);
+    const { server } = await syncedAccount(engine, ids);
     const connectionsBefore = server.connections;
 
     const result = await engine.services.folderRead.markAllRead(USER_ID, { view: 'inbox' });
 
-    expect(result).toEqual({ count: 5 });
+    expect(result).toEqual({ count: 11 });
     expect(server.connections - connectionsBefore).toBe(3);
-    expect([1, 2, 3, 4, 5].every((uid) => server.record('INBOX', uid).flags.seen)).toBe(true);
-    expect(engine.events.ofType('thread.upserted')).toHaveLength(5);
+    expect(ids.every((_, index) => server.record('INBOX', index + 1).flags.seen)).toBe(true);
+    expect(engine.events.ofType('thread.upserted')).toHaveLength(11);
   });
 
   it('yields to the event loop between chunks', async () => {
@@ -105,8 +105,8 @@ describe('FolderReadService', () => {
     const engine = createTestEngine();
     const seeded = await seedAccount(engine);
     seeded.server.addMailbox('Projekty', 'custom');
-    deliverUnread(seeded, 'Projekty', ['f1', 'f2']);
-    deliverUnread(seeded, 'INBOX', ['i1']);
+    deliverUnread(seeded.server, 'Projekty', ['f1', 'f2']);
+    deliverUnread(seeded.server, 'INBOX', ['i1']);
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
     const folder = present(
       await engine.repositories.mailboxes.findByPath(seeded.account.id, 'Projekty'),
@@ -118,7 +118,11 @@ describe('FolderReadService', () => {
     });
 
     expect(result).toEqual({ count: 2 });
-    expect(seeded.server.record('Projekty', 1).flags.seen).toBe(true);
+    expect([1, 2].map((uid) => seeded.server.record('Projekty', uid).flags.seen)).toEqual([
+      true,
+      true,
+    ]);
+    expect(seeded.server.record('INBOX', 1).flags.seen).toBe(false);
     expect(await unreadInbox(engine)).toEqual([seeded.account.id]);
   });
 
@@ -133,8 +137,7 @@ describe('FolderReadService', () => {
       kind: 'keyword',
       remoteName: 'Clients',
     });
-    const [labelled] = (await engine.services.inbox.list(USER_ID, { view: 'inbox', limit: 50 }))
-      .items;
+    const [labelled, other] = await inboxThreads(engine);
     await engine.services.actions.apply(USER_ID, present(labelled).id, {
       type: 'addLabel',
       labelId: label.id,
@@ -146,7 +149,7 @@ describe('FolderReadService', () => {
     });
 
     expect(result).toEqual({ count: 1 });
-    expect(await unreadInbox(engine)).toEqual([seeded.account.id]);
+    expect(await unreadThreadIds(engine)).toEqual([present(other).id]);
   });
 
   it('returns zero and touches nothing when all read', async () => {
