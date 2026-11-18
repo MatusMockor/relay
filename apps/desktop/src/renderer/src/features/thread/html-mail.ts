@@ -37,7 +37,7 @@ const BASE_STYLE = [
   'body{display:flow-root;margin:0;padding:16px;color:#1b1d23;font:14px/1.5 -apple-system,"Segoe UI",Inter,sans-serif;overflow-wrap:anywhere}',
   'img{max-width:100%;height:auto}',
   'a{color:#3d4fc7;text-decoration-thickness:1px;text-underline-offset:2px}',
-  'body>*{max-width:600px}',
+  'body>*{max-width:680px;margin-left:auto;margin-right:auto}',
 ].join('');
 
 const documentOf = (html: string, allowRemote: boolean): string =>
