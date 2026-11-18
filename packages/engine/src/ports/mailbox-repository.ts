@@ -5,6 +5,12 @@ export interface MailboxCounts {
   readonly totalCount: number;
 }
 
+export interface MailboxLocation {
+  readonly path: string;
+  readonly name: string;
+  readonly delimiter: string | null;
+}
+
 export interface MailboxRepository {
   listByAccount(userId: UserId, accountId: AccountId): Promise<Mailbox[]>;
   listForSync(accountId: AccountId): Promise<Mailbox[]>;
@@ -14,4 +20,6 @@ export interface MailboxRepository {
   upsertMany(accountId: AccountId, mailboxes: readonly Mailbox[]): Promise<Mailbox[]>;
   deleteMissing(accountId: AccountId, keepPaths: readonly string[]): Promise<MailboxId[]>;
   updateCounts(mailboxId: MailboxId, counts: MailboxCounts): Promise<void>;
+  relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void>;
+  saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void>;
 }

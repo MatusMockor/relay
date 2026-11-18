@@ -1,0 +1,78 @@
+.ft-row {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--depth, 0) * 12px);
+}
+.ft-row .f {
+  flex: 1;
+  min-width: 0;
+  padding-left: 4px;
+}
+.ft-tw {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 32px;
+  color: var(--muted);
+}
+.ft-tw svg {
+  transition: transform 0.12s ease;
+}
+.ft-tw.shut svg {
+  transform: rotate(-90deg);
+}
+button.ft-tw:hover {
+  color: var(--fg2);
+}
+.f.ft-gap {
+  cursor: default;
+}
+.f.ft-gap:hover {
+  background: none;
+  color: var(--fg3);
+}
+.fold h6 {
+  margin: 8px 10px 2px 26px;
+  font-size: var(--fs-2xs);
+  color: var(--muted);
+  font-weight: var(--w-medium);
+}
+.ft-acct {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  margin-top: 6px;
+  padding: 0 10px;
+  width: 100%;
+  border-radius: 7px;
+  color: var(--fg2);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-medium);
+}
+.ft-acct:hover {
+  background: var(--hover);
+}
+.ft-acct .fl {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.ft-acct svg {
+  color: var(--muted);
+  transition: transform 0.12s ease;
+}
+.ft-acct.shut svg {
+  transform: rotate(-90deg);
+}
+.ft-acct-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--d);
+}

@@ -10,5 +10,7 @@ export const FolderViewSchema = z.enum([
   'scheduled',
   'trash',
   'spam',
+  'mailbox',
+  'label',
 ]);
 export type FolderView = z.infer<typeof FolderViewSchema>;

@@ -57,6 +57,10 @@ export const FOLDER_ICONS = {
   pen: '<path d="M5 19l1-4L16 5l3 3L9 18z"/>',
   task: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   side: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 5v14"/>',
+  folder:
+    '<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
+  label:
+    '<path d="M4 5.5v5.3l8.7 8.7 6.8-6.8L10.8 4H5.5A1.5 1.5 0 0 0 4 5.5z"/><circle cx="8.3" cy="8.3" r="1.2"/>',
 } as const;
 
 export type StrokeIconName = keyof typeof STROKE_ICONS;

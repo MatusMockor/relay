@@ -25,7 +25,7 @@ describe('calendar invitation rebuild migration', () => {
       migrationsFolder: writeMigrationsBefore('0019_calendar_invite_rebuild', directory.path),
     });
     const repositories = createSqliteRepositories(database);
-    const { account, inbox, sent } = await seedLegacyAccount(database, repositories);
+    const { account, inbox, sent } = await seedLegacyAccount(database);
     database.sqlite
       .prepare(
         `insert into mailboxes (id, account_id, name, path, role, unread_count, total_count) values ('mbx-spam', ?, 'Spam', 'Spam', 'spam', 0, 0)`,

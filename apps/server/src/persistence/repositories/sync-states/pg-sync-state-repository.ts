@@ -30,6 +30,8 @@ export class PgSyncStateRepository implements SyncStateRepository {
           uidValidity: values.uidValidity,
           lastUid: values.lastUid,
           highestModseq: values.highestModseq,
+          uidNext: values.uidNext,
+          messageCount: values.messageCount,
           initialFloorUid: values.initialFloorUid,
           initialCutoff: values.initialCutoff,
           syncedAt: values.syncedAt,

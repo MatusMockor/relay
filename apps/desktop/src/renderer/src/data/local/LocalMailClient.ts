@@ -45,6 +45,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     downloadAttachment: async (attachmentId) =>
       attachmentFileOf(await unwrap(bridge.invoke('local.attachments.content', { attachmentId }))),
     listAccounts: () => unwrap(bridge.invoke('local.accounts.list')),
+    listMailboxes: (accountId) => unwrap(bridge.invoke('local.accounts.mailboxes', { accountId })),
     createAccount: (body) => unwrap(bridge.invoke('local.accounts.create', body)),
     updateAccount: (accountId, patch) =>
       unwrap(bridge.invoke('local.accounts.update', { accountId, patch })),

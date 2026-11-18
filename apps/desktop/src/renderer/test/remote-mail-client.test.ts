@@ -2,6 +2,7 @@ import {
   AccountIdSchema,
   type AiEvent,
   AttachmentIdSchema,
+  MailboxIdSchema,
   type RealtimeEvent,
   ThreadSummarySchema,
 } from '@relay/shared';
@@ -90,6 +91,34 @@ describe('RemoteMailClient', () => {
     const request = server.requests.find((item) => item.key === 'threads.list');
     expect(request?.authorization).toBe('Bearer access-1');
     expect(request?.url).toBe('/threads?view=inbox&accountId=acc-1');
+  });
+
+  it('lists the mailboxes of an account and the threads of one folder', async () => {
+    const mailbox = {
+      id: 'mbx-alfa',
+      accountId: 'acc-1',
+      name: 'Alfa',
+      path: 'Projekty/Alfa',
+      delimiter: '/',
+      role: 'custom',
+      subscribed: true,
+      uidValidity: 7,
+      unreadCount: 2,
+      totalCount: 5,
+    };
+    server.handle('accounts.mailboxes', () => ({ body: [mailbox] }));
+    server.handle('threads.list', () => ({ body: { items: [], nextCursor: null } }));
+    const remote = connect();
+
+    expect(await remote.listMailboxes(AccountIdSchema.parse('acc-1'))).toEqual([mailbox]);
+    await remote.listThreads({ view: 'mailbox', mailboxId: MailboxIdSchema.parse('mbx-alfa') });
+
+    expect(server.requests.find((item) => item.key === 'accounts.mailboxes')?.url).toBe(
+      '/accounts/acc-1/mailboxes',
+    );
+    expect(server.requests.find((item) => item.key === 'threads.list')?.url).toBe(
+      '/threads?view=mailbox&mailboxId=mbx-alfa',
+    );
   });
 
   it('refreshes an expired session once and retries the request', async () => {

@@ -5,6 +5,7 @@ export interface MailboxRoleInput {
   readonly name: string;
   readonly flags: ReadonlySet<string>;
   readonly specialUse: string | null;
+  readonly labels: boolean;
 }
 
 const SPECIAL_USE_ROLES: Readonly<Record<string, MailboxRole>> = {
@@ -15,6 +16,8 @@ const SPECIAL_USE_ROLES: Readonly<Record<string, MailboxRole>> = {
   '\\junk': 'spam',
   '\\archive': 'archive',
   '\\all': 'archive',
+  '\\flagged': 'system',
+  '\\important': 'system',
 };
 
 const NAME_ROLES: readonly (readonly [MailboxRole, readonly string[]])[] = [
@@ -78,6 +81,9 @@ export const detectMailboxRole = (input: MailboxRoleInput): MailboxRole => {
   ]);
   if (fromFlags) {
     return fromFlags;
+  }
+  if (input.labels) {
+    return 'label';
   }
   return roleFromName(input.name) ?? 'custom';
 };

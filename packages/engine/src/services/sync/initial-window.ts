@@ -1,3 +1,4 @@
+import type { MailboxRole } from '@relay/shared/domain';
 import type { RemoteThreadHeaders } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
@@ -58,8 +59,13 @@ const freeze = (
   );
 };
 
+const UNDATED_ROLES: ReadonlySet<MailboxRole> = new Set(['trash', 'custom']);
+
+const limitOf = (pass: MailboxPass, options: SyncOptions): number =>
+  pass.role === 'custom' ? options.initialFolderMessageLimit : options.initialMessageLimit;
+
 const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
-  if (pass.role === 'trash') {
+  if (UNDATED_ROLES.has(pass.role)) {
     return Number.NEGATIVE_INFINITY;
   }
   return Date.parse(frozen.cutoff);
@@ -100,7 +106,7 @@ export const mailboxWindow = async (
 ): Promise<MailboxWindow> => {
   const { path } = pass.mailbox;
   const uids = await context.provider.listUids(path);
-  const selected = selectUids(uids, pass, deps.options.initialMessageLimit);
+  const selected = selectUids(uids, pass, limitOf(pass, deps.options));
   const frozen = freeze(pass, selected, deps);
   const headers = await context.provider.fetchThreadHeaders(
     path,

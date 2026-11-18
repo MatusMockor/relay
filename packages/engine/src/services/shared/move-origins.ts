@@ -1,16 +1,21 @@
-import type { AccountId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type { AccountId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
 import type { MoveOriginWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
 export type MoveOriginKind = 'trash-origin' | 'spam-origin';
 
+export interface MoveOrigin {
+  readonly role: MailboxRole;
+  readonly mailboxId?: MailboxId;
+}
+
 export const moveOrigins = async (
   pendingWork: PendingWorkRepository,
   accountId: AccountId,
   kind: MoveOriginKind,
-): Promise<Map<MessageId, MailboxRole>> => {
+): Promise<Map<MessageId, MoveOrigin>> => {
   const origins = await pendingWork.list(accountId, kind);
-  return new Map(origins.map((origin) => [origin.payload.messageId, origin.payload.role]));
+  return new Map(origins.map(({ payload }) => [payload.messageId, payload]));
 };
 
 export const recordMoveOrigins = async (

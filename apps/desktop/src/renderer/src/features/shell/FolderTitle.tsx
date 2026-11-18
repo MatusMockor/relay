@@ -1,5 +1,6 @@
 import { FolderIcon } from '@relay/ui';
 import { folderIconOf } from '../folders/folder-icons';
+import { useFolderMailbox } from '../folders/use-folder-mailbox';
 import { useNameColors } from '../colors/use-name-colors';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
@@ -14,6 +15,7 @@ export function FolderTitle() {
   const labels = useLabels();
   const colors = useNameColors();
   const model = useAccountsModel();
+  const mailbox = useFolderMailbox(folder);
   const count = items.length;
   const where = model.unified
     ? 'všetky účty'
@@ -31,7 +33,22 @@ export function FolderTitle() {
           </span>
           {count > 0 ? <b>{count}</b> : null}
         </h2>
-        <span className="sub">{`Štítok${model.multi ? ` účtu ${model.accountName(label?.accountId ?? '')}` : ''} · konverzácie v Doručenej pošte`}</span>
+        <span className="sub">{`Štítok${model.multi ? ` účtu ${model.accountName(label?.accountId ?? '')}` : ''} · konverzácie mimo Koša a Spamu`}</span>
+      </div>
+    );
+  }
+  if (folder.kind === 'mailbox') {
+    const name = mailbox?.name ?? 'Priečinok';
+    return (
+      <div className="a-title">
+        <h2>
+          <FolderIcon name="folder" />
+          <span className="a-tt" title={mailbox?.path ?? name}>
+            {name}
+          </span>
+          {count > 0 ? <b>{count}</b> : null}
+        </h2>
+        <span className="sub">{`Priečinok${model.multi ? ` účtu ${model.accountName(folder.accountId)}` : ''}${mailbox === null ? '' : ` · ${mailbox.path}`}`}</span>
       </div>
     );
   }

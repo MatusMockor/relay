@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import {
+  AccountIdSchema,
+  MailboxSchema,
   type RealtimeEvent,
   TaskIdSchema,
   ThreadIdSchema,
@@ -176,6 +178,46 @@ describe('realtime cache sync', () => {
     await waitUntil(() => fetches === 1);
     applyRealtimeEvent(queryClient, event);
     await waitUntil(() => fetches === 2);
+    unsubscribe();
+  });
+  it('stores pushed mailboxes and refetches labels when a sync changes them', async () => {
+    const accountId = AccountIdSchema.parse('acc-1');
+    const mailbox = MailboxSchema.parse({
+      id: 'mbx-alfa',
+      accountId,
+      name: 'Alfa',
+      path: 'Projekty/Alfa',
+      delimiter: '/',
+      role: 'custom',
+      subscribed: true,
+      uidValidity: 7,
+      unreadCount: 1,
+      totalCount: 3,
+    });
+    let labelFetches = 0;
+    const observer = new QueryObserver(queryClient, {
+      queryKey: queryKeys.labels(),
+      queryFn: () => {
+        labelFetches += 1;
+        return Promise.resolve([]);
+      },
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await waitUntil(() => labelFetches === 1);
+
+    applyRealtimeEvent(queryClient, {
+      type: 'mailboxes.updated',
+      at: '2026-11-15T08:00:00.000Z',
+      data: { accountId, mailboxes: [mailbox] },
+    });
+    applyRealtimeEvent(queryClient, {
+      type: 'labels.updated',
+      at: '2026-11-15T08:00:00.000Z',
+      data: { accountId, labels: [] },
+    });
+
+    expect(queryClient.getQueryData(queryKeys.mailboxes(accountId))).toEqual([mailbox]);
+    await waitUntil(() => labelFetches === 2);
     unsubscribe();
   });
 });

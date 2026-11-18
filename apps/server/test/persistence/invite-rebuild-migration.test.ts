@@ -13,7 +13,7 @@ import {
 } from '../../src/persistence/migrations/migration-runner';
 import { createPgRepositories } from '../../src/persistence/repositories/create-pg-repositories';
 import { buildMailbox } from './support/fixtures';
-import { seedLegacyAccount } from './support/legacy-account';
+import { insertLegacyMailboxes, seedLegacyAccount } from './support/legacy-account';
 import { createTestDatabase, type TestDatabase } from './support/test-database';
 
 const NOW = '2026-11-16T08:00:00.000Z';
@@ -50,7 +50,7 @@ describe('calendar invitation rebuild migration', () => {
     const repositories = createPgRepositories(connection.db);
     const seeded = await seedLegacyAccount(database.url, repositories);
     const { account, mailboxes } = seeded;
-    await repositories.mailboxes.upsertMany(account.id, [buildMailbox(account.id, 'spam')]);
+    await insertLegacyMailboxes(database.url, seeded.user.id, [buildMailbox(account.id, 'spam')]);
     await repositories.pendingWork.put({
       accountId: account.id,
       kind: 'calendar-reply',

@@ -34,6 +34,7 @@ export const MessageSchema = z.object({
   mailboxId: MailboxIdSchema,
   uid: z.number().int().nonnegative(),
   messageIdHeader: z.string().nullable(),
+  emailId: z.string().min(1).nullable(),
   inReplyTo: z.string().nullable(),
   references: z.array(z.string()),
   from: AddressSchema.nullable(),

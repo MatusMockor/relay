@@ -101,6 +101,20 @@ export class SqliteMessageRepository implements MessageRepository {
     );
   }
 
+  findByEmailId(accountId: AccountId, emailId: string): Promise<Message[]> {
+    return this.executor.execute((db) =>
+      this.hydrate(
+        db,
+        db
+          .select()
+          .from(messages)
+          .where(and(eq(messages.accountId, accountId), eq(messages.emailId, emailId)))
+          .orderBy(asc(messages.dateTs), asc(messages.seq))
+          .all(),
+      ),
+    );
+  }
+
   findThreadIdBySubject(
     accountId: AccountId,
     normalizedSubject: string,

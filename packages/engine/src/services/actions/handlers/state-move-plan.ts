@@ -1,4 +1,5 @@
 import type {
+  MailboxId,
   MailboxRole,
   Message,
   MessageId,
@@ -7,20 +8,25 @@ import type {
 } from '@relay/shared/domain';
 import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
-import type { MoveOriginKind } from '../../shared/move-origins';
+import type { MoveOrigin, MoveOriginKind } from '../../shared/move-origins';
 
 export type StateMoveAction = 'done' | 'undone' | 'trash' | 'restore' | 'reportSpam' | 'notSpam';
 
 export interface LocatedMessage {
   readonly message: Message;
   readonly role: MailboxRole | undefined;
-  readonly origin: MailboxRole | undefined;
+  readonly mailboxId: MailboxId | undefined;
+  readonly origin: MoveOrigin | undefined;
   readonly moving: boolean;
 }
 
-export interface PlannedMove {
-  readonly messageId: MessageId;
+export interface MoveTarget {
   readonly role: MailboxRole;
+  readonly mailboxId?: MailboxId;
+}
+
+export interface PlannedMove extends MoveTarget {
+  readonly messageId: MessageId;
 }
 
 export interface OriginChanges {
@@ -56,21 +62,37 @@ export const moveTo = (state: ThreadState, sources: readonly LocatedMessage[], r
     sources.map(({ message }) => ({ messageId: message.id, role })),
   );
 
+const originOf = (source: LocatedMessage, role: MailboxRole): MoveOriginWork => {
+  const { message, mailboxId } = source;
+  if (role !== 'custom' || mailboxId === undefined) {
+    return { messageId: message.id, role };
+  }
+  return { messageId: message.id, role, mailboxId };
+};
+
 export const originsOf = (sources: readonly LocatedMessage[]): MoveOriginWork[] =>
-  sources.flatMap(({ message, role }) =>
-    role === undefined ? [] : [{ messageId: message.id, role }],
-  );
+  sources.flatMap((source) => (source.role === undefined ? [] : [originOf(source, source.role)]));
+
+const INBOX: MoveTarget = { role: 'inbox' };
 
 export const returnTo = (
-  origin: MailboxRole | undefined,
+  origin: MoveOrigin | undefined,
   targets: readonly MailboxRole[],
-): MailboxRole => (origin !== undefined && targets.includes(origin) ? origin : 'inbox');
+): MoveTarget => {
+  if (origin === undefined || !targets.includes(origin.role)) {
+    return INBOX;
+  }
+  if (origin.role !== 'custom') {
+    return { role: origin.role };
+  }
+  return origin.mailboxId === undefined ? INBOX : { role: 'custom', mailboxId: origin.mailboxId };
+};
 
 export const settledState = (roles: readonly (MailboxRole | undefined)[]): ThreadState => {
   if (roles.includes('inbox')) {
     return 'inbox';
   }
-  if (roles.includes('archive')) {
+  if (roles.includes('archive') || roles.includes('custom')) {
     return 'done';
   }
   if (roles.includes('spam')) {

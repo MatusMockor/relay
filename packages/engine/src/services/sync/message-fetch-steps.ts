@@ -75,6 +75,8 @@ export class MessageFetchSteps {
       accountId: context.account.id,
       mailboxId: pass.mailbox.id,
       uidValidity: pass.status.uidValidity,
+      uidNext: null,
+      messageCount: null,
       ...mark,
       syncedAt: this.deps.clock.now().toISOString(),
     });

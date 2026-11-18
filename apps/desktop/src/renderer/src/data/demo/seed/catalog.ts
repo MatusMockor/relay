@@ -58,6 +58,9 @@ export const DEMO_LABELS: readonly {
   { key: 'jira', acct: 'efa', name: 'Jira', color: '#8ea2ff' },
   { key: 'fam', acct: 'os', name: 'Rodina', color: '#5fd39a' },
   { key: 'shop', acct: 'os', name: 'Nákupy', color: '#f2b45a' },
+  { key: 'acme', acct: 'os', name: 'Klienti/Acme', color: '#8ea2ff' },
+  { key: 'trip', acct: 'os', name: 'Cestovanie', color: '#d48fa8' },
+  { key: 'trip-it', acct: 'os', name: 'Cestovanie/Taliansko 2026', color: '#d9a878' },
   { key: 'cli', acct: 'fl', name: 'Klienti', color: '#6aa8ff' },
   { key: 'inv', acct: 'fl', name: 'Faktúry', color: '#ff7a7a' },
 ];

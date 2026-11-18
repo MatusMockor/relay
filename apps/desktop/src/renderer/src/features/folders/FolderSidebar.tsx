@@ -4,7 +4,8 @@ import { useLabels, useTasks } from '../../data/hooks/use-mail-queries';
 import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
-import { FolderNav } from './FolderNav';
+import { AccountFolders } from './AccountFolders';
+import { SystemFolders } from './SystemFolders';
 import { rectOf } from './rect';
 import { accountCount } from '../../lib/text';
 import { AppVersionStatus } from '../updates/AppVersionStatus';
@@ -99,7 +100,8 @@ export function FolderSidebar({ width }: { readonly width: number }) {
         Napísať
         <Kbd keys={['C']} />
       </button>
-      <FolderNav labels={scopedLabels} showTasks={openTasks} />
+      <SystemFolders showTasks={openTasks} />
+      <AccountFolders labels={scopedLabels} />
       <div className="fold-foot">
         <ModeStatus />
         <AppVersionStatus />

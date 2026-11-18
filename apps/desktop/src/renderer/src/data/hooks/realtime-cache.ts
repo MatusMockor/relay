@@ -44,6 +44,14 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     client.setQueryData(queryKeys.automations(), event.data.automations);
     return;
   }
+  if (event.type === 'mailboxes.updated') {
+    client.setQueryData(queryKeys.mailboxes(event.data.accountId), event.data.mailboxes);
+    return;
+  }
+  if (event.type === 'labels.updated') {
+    invalidate(client, queryKeys.labels());
+    return;
+  }
   if (event.type === 'calendar.updated') {
     invalidate(client, calendarKeys.all());
     return;
@@ -68,6 +76,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   ) {
     invalidate(client, queryKeys.accounts());
     if (event.type === 'account.removed') {
+      invalidate(client, queryKeys.allMailboxes());
       invalidate(client, calendarKeys.all());
       invalidate(client, queryKeys.threadLists());
     }

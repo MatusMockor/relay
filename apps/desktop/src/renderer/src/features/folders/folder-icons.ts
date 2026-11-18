@@ -12,6 +12,8 @@ const ICONS = {
   calendar: 'calendar',
   spam: 'spam',
   trash: 'trash',
+  folder: 'folder',
+  label: 'label',
 } as const satisfies Record<string, FolderIconName>;
 
 export const folderIconOf = (view: FolderView): FolderIconName => ICONS[VIEW_META[view].icon];

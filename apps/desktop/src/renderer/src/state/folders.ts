@@ -1,13 +1,15 @@
-import type { AccountId, FolderView, LabelId, SplitId } from '@relay/shared';
+import type { AccountId, FolderView, LabelId, MailboxId, SplitId } from '@relay/shared';
 import type { ThreadListParams } from '../data/MailClient';
 
 export type AccountScope = AccountId | 'all';
-export type SecondaryView = Exclude<FolderView, 'inbox'>;
+export type SecondaryView = Exclude<FolderView, 'inbox' | 'mailbox' | 'label'>;
+export type NavView = 'inbox' | SecondaryView;
 
 export type Folder =
   | { readonly kind: 'inbox'; readonly splitId: SplitId | null }
   | { readonly kind: 'view'; readonly view: SecondaryView }
-  | { readonly kind: 'label'; readonly labelId: LabelId };
+  | { readonly kind: 'label'; readonly labelId: LabelId }
+  | { readonly kind: 'mailbox'; readonly mailboxId: MailboxId; readonly accountId: AccountId };
 
 export const INBOX: Folder = { kind: 'inbox', splitId: null };
 
@@ -15,13 +17,23 @@ export const folderKey = (folder: Folder): string => {
   if (folder.kind === 'inbox') {
     return `inbox:${folder.splitId ?? 'main'}`;
   }
+  if (folder.kind === 'mailbox') {
+    return `mailbox:${folder.mailboxId}`;
+  }
   return folder.kind === 'view' ? `view:${folder.view}` : `label:${folder.labelId}`;
 };
 
 export const sameFolder = (a: Folder, b: Folder): boolean => folderKey(a) === folderKey(b);
 
-export const viewOf = (folder: Folder): FolderView =>
-  folder.kind === 'view' ? folder.view : 'inbox';
+export const viewOf = (folder: Folder): FolderView => {
+  if (folder.kind === 'view') {
+    return folder.view;
+  }
+  return folder.kind === 'inbox' ? 'inbox' : folder.kind;
+};
+
+export const isAccountFolder = (folder: Folder): boolean =>
+  folder.kind === 'label' || folder.kind === 'mailbox';
 
 export const listParamsOf = (folder: Folder, scope: AccountScope, q: string): ThreadListParams => {
   const base = {
@@ -31,6 +43,9 @@ export const listParamsOf = (folder: Folder, scope: AccountScope, q: string): Th
   };
   if (folder.kind === 'inbox') {
     return { ...base, splitId: folder.splitId ?? undefined };
+  }
+  if (folder.kind === 'mailbox') {
+    return { ...base, mailboxId: folder.mailboxId };
   }
   return folder.kind === 'label' ? { ...base, labelId: folder.labelId } : base;
 };
@@ -46,7 +61,9 @@ export interface ViewMeta {
     | 'file'
     | 'calendar'
     | 'spam'
-    | 'trash';
+    | 'trash'
+    | 'folder'
+    | 'label';
   readonly g: string;
   readonly sub: string;
   readonly hint?: string;
@@ -95,9 +112,11 @@ export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
     sub: 'Zmazané konverzácie',
     hint: '[E] obnoví vybranú',
   },
+  mailbox: { label: 'Priečinok', icon: 'folder', g: '', sub: '' },
+  label: { label: 'Štítok', icon: 'label', g: '', sub: '' },
 };
 
-export const NAV_VIEWS: readonly FolderView[] = [
+export const NAV_VIEWS: readonly NavView[] = [
   'inbox',
   'tasks',
   'reminders',

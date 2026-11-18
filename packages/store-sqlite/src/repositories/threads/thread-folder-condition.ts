@@ -20,6 +20,11 @@ const labelCondition = (labelId: string | null): SQL | undefined =>
     ? undefined
     : sql`exists (select 1 from json_each(${threads.labelIds}) where value = ${labelId})`;
 
+const mailboxCondition = (mailboxId: string | null): SQL | undefined =>
+  mailboxId === null
+    ? undefined
+    : sql`${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`;
+
 const searchCondition = (userId: UserId, search: string | null): SQL | undefined => {
   const match = toFtsMatchExpression(search);
   if (match === null) {
@@ -47,6 +52,7 @@ export const threadFolderCondition = (
     folderViewCondition(query.view, query.splitId !== null),
     splitCondition(query.splitId),
     labelCondition(query.labelId),
+    mailboxCondition(query.mailboxId),
     searchCondition(userId, query.search),
     afterCursor(position),
   );

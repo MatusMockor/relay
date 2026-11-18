@@ -14,6 +14,7 @@ describe('full-text search in queryFolder', () => {
         accountId: null,
         splitId: null,
         labelId: null,
+        mailboxId: null,
         search: text,
         cursor: null,
         limit: 50,

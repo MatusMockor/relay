@@ -21,6 +21,8 @@ import type { NewMailTask } from '../../src/backend/mail-tool-backend';
 import type { CalendarRangeQuery } from '../../src/backend/calendar-tool-types';
 
 const NOW = '2026-11-15T10:00:00+01:00';
+const HELD_STATES: readonly ThreadState[] = ['trash', 'spam'];
+
 const VIEW_STATES: Partial<Record<FolderView, ThreadState>> = {
   inbox: 'inbox',
   done: 'done',
@@ -43,6 +45,7 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
   readonly occurrences: { userId: UserId; occurrence: CalendarOccurrence }[] = [];
   readonly invitations: { userId: UserId; invitation: CalendarInvitation }[] = [];
   readonly calendarRequests: { range: CalendarRangeQuery | null; timeZone: string }[] = [];
+  readonly folderQueries: ThreadFolderQuery[] = [];
 
   addThread(userId: string, thread: ThreadSummary, messages: readonly Message[] = []): void {
     const owner = UserIdSchema.parse(userId);
@@ -51,15 +54,30 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
   }
 
   listFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>> {
+    this.folderQueries.push(query);
     const search = query.search?.toLowerCase() ?? null;
     const state = VIEW_STATES[query.view];
     const items = (this.threads.get(userId) ?? []).filter(
       (thread) =>
         (state === undefined || thread.state === state) &&
         (query.accountId === null || thread.accountId === query.accountId) &&
+        (query.labelId === null || thread.labelIds.includes(query.labelId)) &&
+        this.inMailbox(thread, query) &&
         (search === null || `${thread.subject} ${thread.snippet}`.toLowerCase().includes(search)),
     );
     return Promise.resolve(paginate(items, query));
+  }
+
+  private inMailbox(thread: ThreadSummary, query: ThreadFolderQuery): boolean {
+    if (query.mailboxId === null) {
+      return true;
+    }
+    return (
+      !HELD_STATES.includes(thread.state) &&
+      this.messages.some(
+        (message) => message.threadId === thread.id && message.mailboxId === query.mailboxId,
+      )
+    );
   }
 
   getThread(userId: UserId, threadId: ThreadId): Promise<ThreadDetail | null> {

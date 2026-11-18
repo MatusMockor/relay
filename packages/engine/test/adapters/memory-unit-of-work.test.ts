@@ -7,6 +7,8 @@ const syncState = (mailboxId: string): MailboxSyncState => ({
   accountId: 'acc_1' as AccountId,
   mailboxId: mailboxId as MailboxId,
   uidValidity: 1,
+  uidNext: null,
+  messageCount: null,
   lastUid: 1,
   highestModseq: null,
   initialWindow: null,

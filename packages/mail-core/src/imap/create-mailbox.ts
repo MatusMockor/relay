@@ -2,6 +2,7 @@ import type { RemoteMailbox } from '@relay/engine';
 import type { ImapFlow } from 'imapflow';
 import { z } from 'zod';
 import type { ImapConnection } from './imap-connection';
+import { hasGmailLabels } from './gmail-labels';
 import { isSelectable, toRemoteMailbox } from './list-mailboxes';
 
 export interface MailboxNamespace {
@@ -39,7 +40,7 @@ const findListed = async (client: ImapFlow, path: string): Promise<RemoteMailbox
   if (!isSelectable(listed)) {
     throw new Error(`Mailbox ${path} exists but cannot hold messages`);
   }
-  return toRemoteMailbox(listed);
+  return toRemoteMailbox(listed, hasGmailLabels(client));
 };
 
 const createListed = async (client: ImapFlow, path: string): Promise<RemoteMailbox> => {

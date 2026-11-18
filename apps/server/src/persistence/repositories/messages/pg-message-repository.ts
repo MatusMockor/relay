@@ -82,6 +82,15 @@ export class PgMessageRepository implements MessageRepository {
     return rows.map(toMessage);
   }
 
+  async findByEmailId(accountId: AccountId, emailId: string): Promise<Message[]> {
+    const rows = await this.db
+      .select(messageSelection)
+      .from(messages)
+      .where(and(eq(messages.accountId, accountId), eq(messages.emailId, emailId)))
+      .orderBy(asc(messages.date), asc(messages.id));
+    return rows.map(toMessage);
+  }
+
   async findThreadIdBySubject(
     accountId: AccountId,
     normalizedSubject: string,

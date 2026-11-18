@@ -13,7 +13,7 @@ import {
 } from '../../src/persistence/migrations/migration-runner';
 import { createPgRepositories } from '../../src/persistence/repositories/create-pg-repositories';
 import { buildMailbox, buildMessage, seedAccount, seedThread } from './support/fixtures';
-import { seedLegacyAccount } from './support/legacy-account';
+import { insertLegacyMailboxes, seedLegacyAccount } from './support/legacy-account';
 import { usePgTestContext } from './support/pg-test-context';
 import { createTestDatabase, type TestDatabase } from './support/test-database';
 
@@ -88,7 +88,7 @@ describe('calendar invitation back-fill migration', () => {
     connection = openPostgresConnection({ url: database.url, maxConnections: 2 });
     const repositories = createPgRepositories(connection.db);
     const seeded = await seedLegacyAccount(database.url, repositories);
-    await repositories.mailboxes.upsertMany(seeded.account.id, [
+    await insertLegacyMailboxes(database.url, seeded.user.id, [
       buildMailbox(seeded.account.id, 'drafts'),
     ]);
 

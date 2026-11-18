@@ -182,6 +182,8 @@ describe('references to rows of another user', () => {
       uidValidity: 1,
       lastUid: 500,
       highestModseq: '9',
+      uidNext: null,
+      messageCount: null,
       initialWindow: null,
       syncedAt: at(1),
     };

@@ -19,6 +19,8 @@ const EMPTY: Readonly<Partial<Record<FolderView, readonly [string, string]>>> = 
   ],
   trash: ['Kôš je prázdny', 'Konverzácie zmazané cez [#] sa presunú sem.'],
   tasks: ['Žiadne úlohy', 'Žiadna úloha z Jiry teraz nečaká na teba.'],
+  mailbox: ['Priečinok je prázdny', 'V tomto priečinku teraz nie je žiadna konverzácia.'],
+  label: ['Nič s týmto štítkom', 'Žiadna konverzácia mimo Koša a Spamu nemá tento štítok.'],
 };
 
 export function InboxZero({ splitName }: { readonly splitName: string | null }) {
@@ -47,10 +49,7 @@ export function InboxZero({ splitName }: { readonly splitName: string | null }) 
 }
 
 export function EmptyFolder({ view }: { readonly view: FolderView }) {
-  const [title, text] = EMPTY[view] ?? [
-    'Nič s týmto štítkom',
-    'V Doručenej pošte teraz nie je nič s týmto štítkom.',
-  ];
+  const [title, text] = EMPTY[view] ?? ['Nič tu nie je', 'Tento priečinok je teraz prázdny.'];
   return (
     <div className="zero small">
       <div className="zero-in">

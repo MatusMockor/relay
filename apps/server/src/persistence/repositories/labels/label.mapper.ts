@@ -9,6 +9,8 @@ export const toLabel = (row: LabelRow): Label => ({
   accountId: row.accountId,
   name: row.name,
   color: row.color,
+  kind: row.kind,
+  remoteName: row.remoteName,
 });
 
 export const toLabelInsert = (userId: UserId, label: Label): LabelInsert => ({
@@ -17,4 +19,6 @@ export const toLabelInsert = (userId: UserId, label: Label): LabelInsert => ({
   accountId: label.accountId,
   name: label.name,
   color: label.color,
+  kind: label.kind,
+  remoteName: label.remoteName,
 });

@@ -176,6 +176,13 @@
       "when": 1794997830953,
       "tag": "0024_split_hide_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795017416282,
+      "tag": "0025_custom_folders",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import type { MailboxCounts, MailboxRepository } from '@relay/engine';
+import type { MailboxCounts, MailboxLocation, MailboxRepository } from '@relay/engine';
 import type { AccountId, Mailbox, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
 import { and, asc, eq, notInArray, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
@@ -67,6 +67,8 @@ export class PgMailboxRepository implements MailboxRepository {
           name: sql`excluded.name`,
           delimiter: sql`excluded.delimiter`,
           role: sql`excluded.role`,
+          subscribed: sql`excluded.subscribed`,
+          uidValidity: sql`excluded.uid_validity`,
         },
       })
       .returning();
@@ -87,5 +89,16 @@ export class PgMailboxRepository implements MailboxRepository {
       .update(mailboxes)
       .set({ unreadCount: counts.unreadCount, totalCount: counts.totalCount })
       .where(eq(mailboxes.id, mailboxId));
+  }
+
+  async relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
+    await this.db
+      .update(mailboxes)
+      .set({ path: location.path, name: location.name, delimiter: location.delimiter })
+      .where(eq(mailboxes.id, mailboxId));
+  }
+
+  async saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void> {
+    await this.db.update(mailboxes).set({ uidValidity }).where(eq(mailboxes.id, mailboxId));
   }
 }

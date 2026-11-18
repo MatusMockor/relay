@@ -1,5 +1,6 @@
 import { Icon } from '@relay/ui';
 import { useLabels } from '../../data/hooks/use-mail-queries';
+import { useFolderMailbox } from '../folders/use-folder-mailbox';
 import { MAIN_TAB_LABEL, VIEW_META } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useSplits } from '../../data/hooks/use-mail-queries';
@@ -12,11 +13,15 @@ const useFolderLabel = (): string => {
   const folder = useUiStore((state) => state.folder);
   const splits = useSplits();
   const labels = useLabels();
+  const mailbox = useFolderMailbox(folder);
   if (folder.kind === 'view') {
     return VIEW_META[folder.view].label;
   }
   if (folder.kind === 'label') {
     return labels.data?.find((label) => label.id === folder.labelId)?.name ?? 'Štítok';
+  }
+  if (folder.kind === 'mailbox') {
+    return mailbox?.name ?? 'Priečinok';
   }
   return folder.splitId === null
     ? MAIN_TAB_LABEL

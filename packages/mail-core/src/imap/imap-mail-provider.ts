@@ -90,8 +90,9 @@ export class ImapMailProvider implements MailProvider {
   async *fetchFlagChanges(
     mailboxPath: string,
     sinceModseq: string,
+    uids?: readonly number[],
   ): AsyncIterable<RemoteFlagChange> {
-    yield* await fetchFlagChanges(this.connection, mailboxPath, sinceModseq);
+    yield* await fetchFlagChanges(this.connection, mailboxPath, sinceModseq, uids);
   }
 
   listUids(mailboxPath: string): Promise<number[]> {

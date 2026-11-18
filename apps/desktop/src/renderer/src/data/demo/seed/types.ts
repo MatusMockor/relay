@@ -1,6 +1,15 @@
 export type DemoAccountKey = 'efa' | 'os' | 'fl';
 export type DemoSplitKey = 'jira' | 'other' | 'clients';
-export type DemoLabelKey = 'efa' | 'jira' | 'fam' | 'shop' | 'cli' | 'inv';
+export type DemoLabelKey =
+  | 'efa'
+  | 'jira'
+  | 'fam'
+  | 'shop'
+  | 'cli'
+  | 'inv'
+  | 'acme'
+  | 'trip'
+  | 'trip-it';
 export type DemoAt = readonly [days: number, hours: number, minutes: number];
 export interface DemoCopies {
   readonly cc?: readonly string[];
@@ -31,6 +40,7 @@ export interface DemoThread {
   readonly state?: 'inbox' | 'done' | 'trash' | 'spam' | 'reminder';
   readonly remindAt?: DemoAt;
   readonly labels?: readonly DemoLabelKey[];
+  readonly folder?: string;
   readonly html?: string;
   readonly task?: {
     readonly title: string;

@@ -36,6 +36,8 @@ const ICONS = {
   calendar: 'calendar',
   spam: 'spam',
   trash: 'trash',
+  folder: 'folder',
+  label: 'label',
 } as const;
 
 const gKeys = (key: string | null): string[] => (key === null ? [] : ['G', key]);

@@ -11,6 +11,8 @@ export interface MailboxSyncState {
   readonly uidValidity: number;
   readonly lastUid: number;
   readonly highestModseq: string | null;
+  readonly uidNext: number | null;
+  readonly messageCount: number | null;
   readonly initialWindow: InitialSyncWindow | null;
   readonly syncedAt: string;
 }

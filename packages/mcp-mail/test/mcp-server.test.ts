@@ -140,6 +140,35 @@ describe('relay mail MCP server', () => {
     expect(firstText(result.content)).toBe('Thread thr_9 was not found');
   });
 
+  it('lists the threads of one custom folder by mailboxId', async () => {
+    mail.addThread(USER_A, thread('thr_3', { subject: 'Projekt Alfa', state: 'done' }), [
+      message('msg_3', 'thr_3', { mailboxId: 'mbx_alfa' }),
+    ]);
+
+    const page = ThreadPageSchema.parse(
+      await callJson(connected.client, 'list_folder', { view: 'mailbox', mailboxId: 'mbx_alfa' }),
+    );
+
+    expect(page.threads.map((item) => item.threadId)).toEqual(['thr_3']);
+    expect(mail.folderQueries.at(-1)).toMatchObject({ view: 'mailbox', mailboxId: 'mbx_alfa' });
+  });
+
+  it('requires a mailboxId for the mailbox view and a labelId for the label view', async () => {
+    const mailbox = await connected.client.callTool({
+      name: 'list_folder',
+      arguments: { view: 'mailbox' },
+    });
+    const label = await connected.client.callTool({
+      name: 'list_folder',
+      arguments: { view: 'label' },
+    });
+
+    expect(mailbox.isError).toBe(true);
+    expect(firstText(mailbox.content)).toContain('mailboxId');
+    expect(label.isError).toBe(true);
+    expect(mail.folderQueries).toHaveLength(0);
+  });
+
   it('rejects invalid arguments', async () => {
     const result = await connected.client.callTool({
       name: 'list_folder',

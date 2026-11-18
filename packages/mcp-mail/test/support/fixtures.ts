@@ -47,6 +47,7 @@ export function message(
     mailboxId: 'mbx_1',
     uid: 1,
     messageIdHeader: null,
+    emailId: null,
     inReplyTo: null,
     references: [],
     from: { name: 'Jana Nováková', email: 'jana@example.com' },

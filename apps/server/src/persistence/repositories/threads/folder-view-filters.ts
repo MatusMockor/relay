@@ -58,6 +58,8 @@ const FOLDER_VIEW_FILTERS: Readonly<Record<FolderView, (input: FolderViewFilterI
   sent: () => sql`${notHeld} and ${hasSentMessage}`,
   drafts: () => sql`${notHeld} and ${hasDraft}`,
   scheduled: () => sql`${notHeld} and ${hasActiveScheduledSend}`,
+  mailbox: () => notHeld,
+  label: () => notHeld,
 };
 
 export const folderViewFilter = (input: FolderViewFilterInput): SQL =>

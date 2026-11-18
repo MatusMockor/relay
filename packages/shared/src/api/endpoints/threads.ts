@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { FolderViewSchema } from '../../domain/folder-view';
-import { AccountIdSchema, LabelIdSchema, SplitIdSchema, ThreadIdSchema } from '../../domain/ids';
+import {
+  AccountIdSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
+  SplitIdSchema,
+  ThreadIdSchema,
+} from '../../domain/ids';
 import {
   ChecklistItemIdSchema,
   ChecklistItemSchema,
@@ -20,7 +26,15 @@ export const ThreadListQuerySchema = CursorPaginationQuerySchema.extend({
   accountId: AccountIdSchema.optional(),
   splitId: SplitIdSchema.optional(),
   labelId: LabelIdSchema.optional(),
+  mailboxId: MailboxIdSchema.optional(),
   q: z.string().trim().min(1).max(500).optional(),
+}).superRefine((query, context) => {
+  if (query.view === 'mailbox' && query.mailboxId === undefined) {
+    context.addIssue({ code: 'custom', path: ['mailboxId'], message: 'Chýba priečinok.' });
+  }
+  if (query.view === 'label' && query.labelId === undefined) {
+    context.addIssue({ code: 'custom', path: ['labelId'], message: 'Chýba štítok.' });
+  }
 });
 export type ThreadListQuery = z.infer<typeof ThreadListQuerySchema>;
 

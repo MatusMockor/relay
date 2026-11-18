@@ -83,6 +83,8 @@ describe('PgSyncStateRepository', () => {
       uidValidity: 4_000_000_000,
       lastUid: 42,
       highestModseq: '18446744073709551615',
+      uidNext: 4_000_000_001,
+      messageCount: 40,
       initialWindow: { floorUid: 37, cutoff: '2026-10-11T10:00:00.000Z' },
       syncedAt: at(1),
     };
@@ -116,6 +118,8 @@ describe('PgSyncStateRepository', () => {
       uidValidity: 1,
       lastUid: 1,
       highestModseq: null,
+      uidNext: null,
+      messageCount: null,
       initialWindow: null,
       syncedAt: at(1),
     });

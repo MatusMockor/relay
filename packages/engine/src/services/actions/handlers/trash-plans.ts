@@ -11,13 +11,14 @@ import {
   type StateMovePlanner,
 } from './state-move-plan';
 
-const RESTORE_TARGETS: readonly MailboxRole[] = ['inbox', 'archive', 'sent', 'spam'];
+const RESTORE_TARGETS: readonly MailboxRole[] = ['inbox', 'archive', 'sent', 'spam', 'custom'];
+const TRASH_SOURCES: readonly MailboxRole[] = ['inbox', 'archive', 'spam', 'custom'];
 
 const trashSources = (
   messages: readonly LocatedMessage[],
   copies: MailCopies,
 ): LocatedMessage[] => {
-  const received = receivedIn(copies, messages, ['inbox', 'archive', 'spam']);
+  const received = receivedIn(copies, messages, TRASH_SOURCES);
   return received.length > 0 ? received : copiesIn(copies, messages, ['sent']);
 };
 
@@ -35,7 +36,7 @@ export const trash: StateMovePlanner = (messages, thread, copies) => {
 export const restore: StateMovePlanner = (messages, _thread, copies) => {
   const moves = copiesIn(copies, messages, ['trash']).map(({ message, origin }) => ({
     messageId: message.id,
-    role: returnTo(origin, RESTORE_TARGETS),
+    ...returnTo(origin, RESTORE_TARGETS),
   }));
   return {
     ...plan(settledState(rolesAfter(copies, messages, moves)), moves),

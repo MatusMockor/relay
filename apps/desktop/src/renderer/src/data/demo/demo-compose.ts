@@ -35,6 +35,7 @@ const outgoingMessage = (
     mailboxId: demoIds.mailbox('sent'),
     uid: 0,
     messageIdHeader: `<${nextKey('msg')}@demo.relay>`,
+    emailId: null,
     inReplyTo: null,
     references: [],
     from: { name: account?.senderName ?? 'Ján Adamec', email: account?.email ?? 'ja@relay.local' },

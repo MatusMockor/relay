@@ -1,5 +1,5 @@
 import type { AccountId, Mailbox, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
-import type { MailboxCounts, MailboxRepository } from '../../../src';
+import type { MailboxCounts, MailboxLocation, MailboxRepository } from '../../../src';
 import { removeWhere } from './memory-account-repository';
 import type { MemoryDatabase } from './memory-database';
 
@@ -56,6 +56,22 @@ export class MemoryMailboxRepository implements MailboxRepository {
     const mailbox = this.db.tables.mailboxes.get(mailboxId);
     if (mailbox !== undefined) {
       this.db.tables.mailboxes.set(mailboxId, { ...mailbox, ...counts });
+    }
+    return Promise.resolve();
+  }
+
+  relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
+    const mailbox = this.db.tables.mailboxes.get(mailboxId);
+    if (mailbox !== undefined) {
+      this.db.tables.mailboxes.set(mailboxId, { ...mailbox, ...location });
+    }
+    return Promise.resolve();
+  }
+
+  saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void> {
+    const mailbox = this.db.tables.mailboxes.get(mailboxId);
+    if (mailbox !== undefined) {
+      this.db.tables.mailboxes.set(mailboxId, { ...mailbox, uidValidity });
     }
     return Promise.resolve();
   }

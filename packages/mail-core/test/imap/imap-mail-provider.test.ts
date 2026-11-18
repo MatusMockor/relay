@@ -128,7 +128,13 @@ describe('ImapMailProvider against GreenMail', () => {
     const changes = await collect(harness.provider.fetchFlagChanges('INBOX', '0'));
 
     expect(changes).toEqual([
-      { uid: 1, flags: { seen: true, flagged: false, answered: true }, keywords: [], modseq: null },
+      {
+        uid: 1,
+        flags: { seen: true, flagged: false, answered: true },
+        keywords: [],
+        labels: null,
+        modseq: null,
+      },
     ]);
   });
 

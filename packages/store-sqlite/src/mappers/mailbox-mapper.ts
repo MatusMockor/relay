@@ -9,6 +9,8 @@ export const toMailbox = (row: MailboxRow): Mailbox =>
     path: row.path,
     delimiter: row.delimiter,
     role: row.role,
+    subscribed: row.subscribed,
+    uidValidity: row.uidValidity,
     unreadCount: row.unreadCount,
     totalCount: row.totalCount,
   });

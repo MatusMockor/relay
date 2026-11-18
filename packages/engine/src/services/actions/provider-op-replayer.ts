@@ -11,6 +11,7 @@ import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { PendingProviderOp } from '../shared/provider-ops';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
+import { MoveTargetResolver } from './move-target-resolver';
 
 interface OpBatch {
   readonly mailbox: Mailbox;
@@ -29,8 +30,11 @@ export interface ProviderOpReplayerDeps {
 
 export class ProviderOpReplayer {
   private readonly serializer = new KeyedSerializer();
+  private readonly targets: MoveTargetResolver;
 
-  constructor(private readonly deps: ProviderOpReplayerDeps) {}
+  constructor(private readonly deps: ProviderOpReplayerDeps) {
+    this.targets = new MoveTargetResolver(deps.mailboxes, deps.roleMailboxes);
+  }
 
   replayPending(account: MailAccount, provider: MailProvider): Promise<void> {
     return this.serializer.run(account.id, async () => {
@@ -104,12 +108,12 @@ export class ProviderOpReplayer {
       );
       return;
     }
-    if (mailbox.role === change.role) {
+    if (change.mailboxId === undefined && mailbox.role === change.role) {
       return;
     }
-    const target = await this.deps.roleMailboxes.ensure(account, change.role, provider);
-    if (target === null) {
-      throw new Error(`No ${change.role} mailbox to move messages to`);
+    const target = await this.targets.resolve(account, provider, change);
+    if (target.id === mailbox.id) {
+      return;
     }
     const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
     for (const message of batch.messages) {

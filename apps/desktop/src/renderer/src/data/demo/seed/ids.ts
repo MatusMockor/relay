@@ -15,6 +15,7 @@ export const demoIds = {
   user: UserIdSchema.parse('demo-user'),
   account: (key: string) => AccountIdSchema.parse(`acc-${key}`),
   mailbox: (key: string) => MailboxIdSchema.parse(`mbx-${key}-inbox`),
+  folder: (account: string, key: string) => MailboxIdSchema.parse(`mbx-${account}-${key}`),
   thread: (key: string) => ThreadIdSchema.parse(key),
   message: (key: string) => MessageIdSchema.parse(key),
   label: (key: string) => LabelIdSchema.parse(`lbl-${key}`),

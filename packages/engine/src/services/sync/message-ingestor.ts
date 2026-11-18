@@ -13,10 +13,10 @@ import type { UnitOfWork } from '../../ports/unit-of-work';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { CalendarPartsSink } from './calendar-parts-sink';
-import type { KeywordLabels } from './keyword-labels';
 import { acceptsJiraEvents } from './jira-event-roles';
 import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
+import type { MessageLabelsResolver } from './message-labels-resolver';
 import type { SyncJournal } from './sync-journal';
 
 export interface IngestTarget {
@@ -48,7 +48,7 @@ export interface MessageIngestorDeps {
   readonly threadResolver: ThreadResolver;
   readonly jiraClassifier: JiraClassifier;
   readonly splitMatcher: SplitMatcher;
-  readonly keywordLabels: KeywordLabels;
+  readonly labelsResolver: MessageLabelsResolver;
   readonly ids: IdGenerator;
   readonly calendarParts: CalendarPartsSink;
 }
@@ -86,10 +86,10 @@ export class MessageIngestor {
       splits: target.splits,
     });
     const message = await this.deps.unitOfWork.run(async (repositories) => {
-      const labelIds = await this.deps.keywordLabels.resolve(
+      const labelIds = await this.deps.labelsResolver.resolve(
         repositories.labels,
         target.account.id,
-        raw.keywords,
+        raw,
       );
       const built = buildMessage(
         {
@@ -158,10 +158,10 @@ export class MessageIngestor {
         await repositories.messages.move(known.id, { mailboxId: known.mailboxId, uid: known.uid });
       }
       await target.journal?.touched(repositories.pendingWork, known.threadId);
-      const labelIds = await this.deps.keywordLabels.resolve(
+      const labelIds = await this.deps.labelsResolver.resolve(
         repositories.labels,
         target.account.id,
-        raw.keywords,
+        raw,
       );
       const flagsChanged = flagsDiffer(known.flags, raw.flags);
       const labelsChanged = !sameMembers(known.labelIds, labelIds);

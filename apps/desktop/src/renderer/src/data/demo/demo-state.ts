@@ -4,6 +4,7 @@ import type {
   Draft,
   Label,
   MailAccount,
+  Mailbox,
   Message,
   ReplySuggestion,
   ScheduledSend,
@@ -26,6 +27,7 @@ export interface DemoState {
   splits: Split[];
   automations: Automation[];
   labels: Label[];
+  mailboxes: Mailbox[];
   threads: Map<string, DemoThreadRecord>;
   tasks: Task[];
   drafts: Draft[];

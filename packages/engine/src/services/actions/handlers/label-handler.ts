@@ -48,7 +48,7 @@ export class LabelHandler {
         context.account.id,
         targets.map((message) => ({
           messageId: message.id,
-          change: { kind: 'keyword', keyword: label.name, value: add } as const,
+          change: { kind: 'keyword', keyword: label.remoteName, value: add } as const,
         })),
         this.deps.clock.now().toISOString(),
       );
@@ -71,6 +71,9 @@ export class LabelHandler {
     }
     if (label.accountId !== context.account.id) {
       throw new ValidationError('Label belongs to a different account than the thread');
+    }
+    if (label.kind === 'gmail') {
+      throw new ValidationError('Gmail štítky zatiaľ nie je možné v Relay meniť.');
     }
     return label;
   }

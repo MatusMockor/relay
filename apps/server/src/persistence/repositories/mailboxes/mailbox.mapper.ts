@@ -11,6 +11,8 @@ export const toMailbox = (row: MailboxRow): Mailbox => ({
   path: row.path,
   delimiter: row.delimiter,
   role: row.role,
+  subscribed: row.subscribed,
+  uidValidity: row.uidValidity,
   unreadCount: row.unreadCount,
   totalCount: row.totalCount,
 });
@@ -23,6 +25,8 @@ export const toMailboxInsert = (userId: UserId, mailbox: Mailbox): MailboxInsert
   path: mailbox.path,
   delimiter: mailbox.delimiter,
   role: mailbox.role,
+  subscribed: mailbox.subscribed,
+  uidValidity: mailbox.uidValidity,
   unreadCount: mailbox.unreadCount,
   totalCount: mailbox.totalCount,
 });

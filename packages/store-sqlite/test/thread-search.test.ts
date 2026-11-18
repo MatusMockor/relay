@@ -137,6 +137,7 @@ describe('SqliteThreadRepository.queryFolder full-text search', () => {
       accountId: null,
       splitId: null,
       labelId: null,
+      mailboxId: null,
       search: 'faktura',
       cursor: null,
       limit: 10,

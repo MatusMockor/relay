@@ -18,6 +18,7 @@ const query = (overrides: Partial<ThreadFolderQuery> = {}): ThreadFolderQuery =>
   accountId: null,
   splitId: null,
   labelId: null,
+  mailboxId: null,
   search: null,
   cursor: null,
   limit: 50,
@@ -52,7 +53,14 @@ describe('PgThreadRepository.queryFolder', () => {
       hideTasks: false,
     };
     await context.repositories.splits.replaceAll(work.user.id, [split]);
-    label = { id: newId('label'), accountId: work.account.id, name: 'VIP', color: null };
+    label = {
+      id: newId('label'),
+      accountId: work.account.id,
+      name: 'VIP',
+      color: null,
+      kind: 'keyword',
+      remoteName: 'VIP',
+    };
     await context.repositories.labels.upsert(label);
 
     const seed = async (

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { z } from 'zod';
 import { useAppContext } from '../../data/hooks/services-context';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 
@@ -9,7 +10,15 @@ interface StoredLayout {
   readonly leftUser: boolean | null;
   readonly rightOpen: boolean;
   readonly rightTab: RightTab;
+  readonly collapsed: Readonly<Record<string, boolean>>;
 }
+
+const CollapsedSchema = z.record(z.string().max(1000), z.literal(true));
+
+const collapsedOf = (value: unknown): Readonly<Record<string, boolean>> => {
+  const parsed = CollapsedSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
+};
 
 const readLayout = (): Partial<StoredLayout> => {
   try {
@@ -22,6 +31,7 @@ const readLayout = (): Partial<StoredLayout> => {
       leftUser: typeof value.leftUser === 'boolean' ? value.leftUser : null,
       rightOpen: typeof value.rightOpen === 'boolean' ? value.rightOpen : true,
       rightTab: TABS.find((tab) => tab === value.rightTab) ?? 'contact',
+      collapsed: collapsedOf(value.collapsed),
     };
   } catch {
     return {};
@@ -57,7 +67,8 @@ export const useLayoutPersistence = (): (() => void) => {
       if (
         state.leftUser === previous.leftUser &&
         state.rightOpen === previous.rightOpen &&
-        state.rightTab === previous.rightTab
+        state.rightTab === previous.rightTab &&
+        state.collapsed === previous.collapsed
       ) {
         return;
       }
@@ -65,6 +76,7 @@ export const useLayoutPersistence = (): (() => void) => {
         leftUser: state.leftUser,
         rightOpen: state.rightOpen,
         rightTab: state.rightTab,
+        collapsed: state.collapsed,
       });
     });
     return () => {

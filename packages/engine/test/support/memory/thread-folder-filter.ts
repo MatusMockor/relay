@@ -1,6 +1,7 @@
 import {
   type FolderView,
   isHeldThreadState,
+  type MailboxId,
   type SplitId,
   type ThreadSummary,
   type UserId,
@@ -28,6 +29,8 @@ export class ThreadFolderFilter {
       sent: (_userId, thread) => unheld(thread) && this.hasSentMessage(thread),
       drafts: (_userId, thread) => unheld(thread) && thread.hasDraft,
       scheduled: (_userId, thread) => unheld(thread) && this.hasScheduledSend(thread),
+      mailbox: (_userId, thread) => unheld(thread),
+      label: (_userId, thread) => unheld(thread),
     };
   }
 
@@ -42,6 +45,9 @@ export class ThreadFolderFilter {
       return false;
     }
     if (query.labelId !== null && !thread.labelIds.includes(query.labelId)) {
+      return false;
+    }
+    if (query.mailboxId !== null && !this.hasMessageIn(thread, query.mailboxId)) {
       return false;
     }
     if (query.search !== null && !this.matchesSearch(thread, query.search)) {
@@ -84,6 +90,12 @@ export class ThreadFolderFilter {
       (message) =>
         message.threadId === thread.id &&
         this.db.tables.mailboxes.get(message.mailboxId)?.role === 'sent',
+    );
+  }
+
+  private hasMessageIn(thread: ThreadSummary, mailboxId: MailboxId): boolean {
+    return [...this.db.tables.messages.values()].some(
+      (message) => message.threadId === thread.id && message.mailboxId === mailboxId,
     );
   }
 

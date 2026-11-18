@@ -1,4 +1,4 @@
-import type { AccountId, MailAccount, Mailbox, MailboxRole, UserId } from '@relay/shared/domain';
+import type { AccountId, MailAccount, UserId } from '@relay/shared/domain';
 import type { PendingWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
@@ -9,7 +9,10 @@ import { errorMessage, type MailProviderSessions } from '../shared/mail-provider
 import type { ChangeFlusher } from './change-flusher';
 import { completedSyncState } from './completed-sync-state';
 import type { InitialSync } from './initial-sync';
+import type { MailboxEvents } from './mailbox-events';
+import { countsChanged, unchangedSince } from './mailbox-pass';
 import type { MailboxRefresher } from './mailbox-refresher';
+import { selectMailboxes } from './mailbox-selection';
 import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
 import type { SyncBackfill } from './sync-backfill';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync-arrivals';
@@ -32,6 +35,7 @@ export interface AccountSynchronizerDeps {
   readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
+  readonly mailboxEvents: MailboxEvents;
   readonly mailboxSync: MailboxSynchronizer;
   readonly initialSync: InitialSync;
   readonly flusher: ChangeFlusher;
@@ -116,10 +120,10 @@ export class AccountSynchronizer {
   private async syncMailboxes(base: SyncContext): Promise<void> {
     const splits = await this.deps.splits.listForAccount(base.userId, base.account.id);
     const context: SyncContext = { ...base, splits };
-    const mailboxes = await this.deps.refresher.refresh(context);
+    const { mailboxes, rescanLabels } = await this.deps.refresher.refresh(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
     await this.deps.flusher.flush(context);
-    const selected = this.select(mailboxes);
+    const selected = selectMailboxes(mailboxes, this.deps.options);
     await this.deps.reporter.progress(context.userId, context.account.id, {
       mailboxId: null,
       phase: 'mailboxes',
@@ -130,7 +134,12 @@ export class AccountSynchronizer {
     for (const [mailbox, role] of selected) {
       passes.push(await this.deps.mailboxSync.open(context, mailbox, role));
     }
-    const incremental = passes.filter((pass) => completedSyncState(pass.state) !== null);
+    if (passes.some(countsChanged)) {
+      await this.deps.mailboxEvents.mailboxesChanged(context);
+    }
+    const incremental = passes.filter(
+      (pass) => completedSyncState(pass.state) !== null && (rescanLabels || !unchangedSince(pass)),
+    );
     const fetched = await this.fetchIncremental(context, incremental, {
       holdCalendar: await this.deps.initialSync.holdsCalendar(context, passes),
     });
@@ -139,7 +148,7 @@ export class AccountSynchronizer {
       skipped: fetched.length < incremental.length,
     });
     for (const pass of fetched) {
-      await this.deps.mailboxSync.reconcile(context, pass);
+      await this.deps.mailboxSync.reconcile(context, pass, rescanLabels);
     }
     await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);
@@ -161,13 +170,5 @@ export class AccountSynchronizer {
       }
     }
     return fetched;
-  }
-
-  private select(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {
-    return this.deps.options.mailboxRoles.flatMap((role) =>
-      mailboxes
-        .filter((mailbox) => mailbox.role === role)
-        .map((mailbox): [Mailbox, MailboxRole] => [mailbox, role]),
-    );
   }
 }

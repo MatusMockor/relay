@@ -45,5 +45,8 @@ export const folderViewCondition = (view: FolderView, splitSelected: boolean): S
       return and(notHeld, hasDraftRow);
     case 'scheduled':
       return and(notHeld, hasScheduledSend);
+    case 'mailbox':
+    case 'label':
+      return notHeld;
   }
 };

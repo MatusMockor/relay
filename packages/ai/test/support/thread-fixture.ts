@@ -31,6 +31,7 @@ export function threadFixture(
         mailboxId: 'mbx_1',
         uid: 7,
         messageIdHeader: '<a1@example.com>',
+        emailId: null,
         inReplyTo: null,
         references: [],
         from: { name: 'Jana Nováková', email: 'jana@example.com' },

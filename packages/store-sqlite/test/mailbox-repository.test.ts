@@ -67,6 +67,8 @@ describe('SqliteMailboxRepository and SqliteSyncStateRepository', () => {
       uidValidity: 42,
       lastUid: 100,
       highestModseq: '9001',
+      uidNext: 101,
+      messageCount: 80,
       initialWindow: { floorUid: 37, cutoff: '2026-10-11T10:00:00.000Z' },
       syncedAt: '2026-11-10T10:00:00.000Z',
     };

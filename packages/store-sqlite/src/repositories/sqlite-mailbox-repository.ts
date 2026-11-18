@@ -1,4 +1,4 @@
-import type { MailboxCounts, MailboxRepository } from '@relay/engine';
+import type { MailboxCounts, MailboxLocation, MailboxRepository } from '@relay/engine';
 import type { AccountId, Mailbox, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
 import { MailboxIdSchema } from '@relay/shared/domain';
 import { and, asc, eq, notInArray } from 'drizzle-orm';
@@ -68,6 +68,8 @@ export class SqliteMailboxRepository implements MailboxRepository {
               name: mailbox.name,
               delimiter: mailbox.delimiter,
               role: mailbox.role,
+              subscribed: mailbox.subscribed,
+              uidValidity: mailbox.uidValidity,
               unreadCount: mailbox.unreadCount,
               totalCount: mailbox.totalCount,
             },
@@ -96,6 +98,21 @@ export class SqliteMailboxRepository implements MailboxRepository {
         .set({ unreadCount: counts.unreadCount, totalCount: counts.totalCount })
         .where(eq(mailboxes.id, mailboxId))
         .run();
+    });
+  }
+
+  relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
+    return this.executor.execute((db) => {
+      db.update(mailboxes)
+        .set({ path: location.path, name: location.name, delimiter: location.delimiter })
+        .where(eq(mailboxes.id, mailboxId))
+        .run();
+    });
+  }
+
+  saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void> {
+    return this.executor.execute((db) => {
+      db.update(mailboxes).set({ uidValidity }).where(eq(mailboxes.id, mailboxId)).run();
     });
   }
 

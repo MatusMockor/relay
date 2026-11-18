@@ -10,7 +10,7 @@ import {
   type StateMovePlanner,
 } from './state-move-plan';
 
-const REPORTABLE_ROLES: readonly MailboxRole[] = ['inbox', 'archive'];
+const REPORTABLE_ROLES: readonly MailboxRole[] = ['inbox', 'archive', 'custom'];
 
 export const reportSpam: StateMovePlanner = (messages, thread, copies) => {
   if (thread.state === 'spam') {
@@ -31,7 +31,7 @@ export const reportSpam: StateMovePlanner = (messages, thread, copies) => {
 export const notSpam: StateMovePlanner = (messages, thread, copies) => {
   const moves = copiesIn(copies, messages, ['spam']).map(({ message, origin }) => ({
     messageId: message.id,
-    role: returnTo(origin, REPORTABLE_ROLES),
+    ...returnTo(origin, REPORTABLE_ROLES),
   }));
   if (moves.length === 0 && thread.state !== 'spam') {
     return plan(thread.state);

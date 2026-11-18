@@ -29,7 +29,11 @@ export interface MailProvider {
     uidValidity: number,
     uids: readonly number[],
   ): Promise<RemoteThreadHeaders[]>;
-  fetchFlagChanges(mailboxPath: string, sinceModseq: string): AsyncIterable<RemoteFlagChange>;
+  fetchFlagChanges(
+    mailboxPath: string,
+    sinceModseq: string,
+    uids?: readonly number[],
+  ): AsyncIterable<RemoteFlagChange>;
   listUids(mailboxPath: string): Promise<number[]>;
   searchRelated(
     mailboxPath: string,

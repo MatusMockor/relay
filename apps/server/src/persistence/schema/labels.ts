@@ -1,4 +1,4 @@
-import type { AccountId, LabelId, MessageId, UserId } from '@relay/shared/domain';
+import type { AccountId, LabelId, LabelKind, MessageId, UserId } from '@relay/shared/domain';
 import { index, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { mailAccounts } from './accounts';
 import { messages } from './messages';
@@ -18,9 +18,16 @@ export const labels = pgTable(
       .references(() => mailAccounts.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     color: text('color'),
+    kind: text('kind').$type<LabelKind>().notNull().default('keyword'),
+    remoteName: text('remote_name').notNull(),
   },
   (table) => [
     uniqueIndex('labels_account_name_unique').on(table.accountId, table.name),
+    uniqueIndex('labels_account_kind_remote_unique').on(
+      table.accountId,
+      table.kind,
+      table.remoteName,
+    ),
     index('labels_user_idx').on(table.userId),
   ],
 );

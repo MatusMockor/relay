@@ -33,6 +33,7 @@ export interface MessageRepository {
   listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]>;
   findByLocation(location: MessageLocation): Promise<Message | null>;
   findByMessageIdHeaders(accountId: AccountId, headers: readonly string[]): Promise<Message[]>;
+  findByEmailId(accountId: AccountId, emailId: string): Promise<Message[]>;
   findThreadIdBySubject(
     accountId: AccountId,
     normalizedSubject: string,

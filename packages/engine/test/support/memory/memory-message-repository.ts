@@ -54,6 +54,14 @@ export class MemoryMessageRepository implements MessageRepository {
     return Promise.resolve(match ?? null);
   }
 
+  findByEmailId(accountId: AccountId, emailId: string): Promise<Message[]> {
+    return Promise.resolve(
+      this.all().filter(
+        (message) => message.accountId === accountId && message.emailId === emailId,
+      ),
+    );
+  }
+
   findByMessageIdHeaders(accountId: AccountId, headers: readonly string[]): Promise<Message[]> {
     return Promise.resolve(
       this.all().filter(
