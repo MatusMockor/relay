@@ -14,6 +14,7 @@ import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
 import { OverlayHost } from './OverlayHost';
+import { useScopePersistence } from './scope-persistence';
 import { TopBar } from './TopBar';
 import { useTrayReporter } from '../updates/use-tray-reporter';
 import { LIMITS, useLayout } from './use-layout';
@@ -30,6 +31,7 @@ function Shell() {
   useTrayReporter();
   useNotificationNavigation();
   const commit = useLayoutPersistence();
+  useScopePersistence();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);
   const composing = useUiStore((state) => state.overlay?.kind === 'compose');
