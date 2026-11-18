@@ -17,6 +17,9 @@ const changeKey = (change: ProviderChange): string => {
   }
 };
 
+export const providerOpRef = (messageId: MessageId, change: ProviderChange): string =>
+  `${messageId}:${changeKey(change)}`;
+
 export const recordProviderOps = async (
   pendingWork: PendingWorkRepository,
   accountId: AccountId,
@@ -29,7 +32,7 @@ export const recordProviderOps = async (
       await pendingWork.put({
         accountId,
         kind: 'provider-op',
-        ref: `${op.messageId}:${changeKey(op.change)}`,
+        ref: providerOpRef(op.messageId, op.change),
         payload: op,
         createdAt,
       }),

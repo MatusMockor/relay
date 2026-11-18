@@ -188,6 +188,9 @@ export class FakeMailProvider implements MailProvider {
 
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void> {
     return this.withMailbox(mailboxPath, (_mailbox, server) => {
+      if (server.failFlagWrites !== null) {
+        return Promise.reject(new Error(server.failFlagWrites));
+      }
       const flags: Partial<MessageFlags> = {};
       mutation.add.forEach((flag) => (flags[flag] = true));
       mutation.remove.forEach((flag) => (flags[flag] = false));

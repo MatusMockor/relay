@@ -52,11 +52,11 @@ describe('mark folder read over the server', () => {
     const result = await app.api.ok(api.threads.markFolderRead, { body: { view: 'inbox' } }, token);
 
     expect(result).toEqual({ count: 3 });
-    await expect.poll(() => seenCount(ownerImap), { timeout: 10_000 }).toBe(3);
-    const read = await waitForInbox(app.api, token, (items) =>
-      items.every((thread) => !thread.unread),
-    );
-    expect(read).toHaveLength(3);
+    expect(await seenCount(ownerImap)).toBe(3);
+    const again = await app.api.ok(api.threads.markFolderRead, { body: { view: 'inbox' } }, token);
+    expect(again).toEqual({ count: 0 });
+    const read = await waitForInbox(app.api, token, (items) => items.length === 3);
+    expect(read.every((thread) => !thread.unread)).toBe(true);
   }, 60_000);
 
   it('rejects a label folder without a label id', async () => {

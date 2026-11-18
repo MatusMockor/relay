@@ -75,6 +75,7 @@ export class FakeMailServer {
   openConnections = 0;
   failConnect: string | null = null;
   failOperations: string | null = null;
+  failFlagWrites: string | null = null;
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;

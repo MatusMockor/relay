@@ -13,8 +13,9 @@ const syncedAccount = async (
   engine: TestEngine,
   ids: readonly string[],
   overrides: Parameters<typeof seedAccount>[1] = {},
+  serverOptions: Parameters<typeof seedAccount>[2] = {},
 ): Promise<SeededAccount> => {
-  const seeded = await seedAccount(engine, overrides);
+  const seeded = await seedAccount(engine, overrides, serverOptions);
   deliverUnread(seeded, 'INBOX', ids);
   await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
   engine.events.clear();
@@ -140,7 +141,14 @@ describe('FolderReadService', () => {
 
   it('keeps local seen when the provider mirror fails', async () => {
     const engine = createTestEngine();
-    const { server } = await syncedAccount(engine, ['m1', 'm2', 'm3']);
+    const { account, server } = await syncedAccount(
+      engine,
+      ['m1', 'm2', 'm3'],
+      {},
+      {
+        condstore: false,
+      },
+    );
     server.failOperations = 'Server busy';
 
     const result = await engine.services.folderRead.markAllRead(USER_ID, { view: 'inbox' });
@@ -149,5 +157,23 @@ describe('FolderReadService', () => {
     expect(await unreadInbox(engine)).toEqual([]);
     expect(server.record('INBOX', 1).flags.seen).toBe(false);
     expect(pendingOps(engine)).toHaveLength(3);
+
+    server.failOperations = null;
+    server.failFlagWrites = 'STORE rejected';
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await unreadInbox(engine)).toEqual([]);
+    expect(pendingOps(engine)).toHaveLength(3);
+
+    server.failFlagWrites = null;
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await unreadInbox(engine)).toEqual([]);
+    expect([1, 2, 3].map((uid) => server.record('INBOX', uid).flags.seen)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect(pendingOps(engine)).toEqual([]);
   });
 });
