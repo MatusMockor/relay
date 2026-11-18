@@ -1,5 +1,5 @@
 import type { TestConnectionResponse } from '@relay/shared';
-import { Button, Field, Kbd } from '@relay/ui';
+import { Button, Field, Icon } from '@relay/ui';
 import { presetFor } from '../../lib/provider-presets';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { ServerSettings } from './ServerSettings';
@@ -52,7 +52,12 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
         value={values.password}
         onChange={set('password')}
       />
-      {preset?.note === undefined ? null : <p className="note hint">{preset.note}</p>}
+      {preset?.note === undefined ? null : (
+        <p className="note hint">
+          <Icon name="info" size={14} />
+          {preset.note}
+        </p>
+      )}
       <div className="fld-2 even">
         <Field
           id="acc-f-senderName"
@@ -91,7 +96,7 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
       <div className="btns">
         {onCancel === undefined ? null : (
           <Button variant="ghost" onClick={onCancel}>
-            Zrušiť <Kbd keys={['Esc']} />
+            Zrušiť
           </Button>
         )}
         <Button

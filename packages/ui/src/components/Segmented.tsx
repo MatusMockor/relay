@@ -6,7 +6,6 @@ export interface SegmentedOption<V extends string> {
   readonly label: string;
   readonly description?: string;
   readonly disabled?: boolean;
-  readonly badge?: string;
 }
 
 export interface SegmentedProps<V extends string> {
@@ -62,12 +61,7 @@ export function Segmented<V extends string>({
           }}
         >
           {option.description === undefined ? (
-            <>
-              {option.label}
-              {option.badge === undefined ? null : (
-                <small className="seg-badge">{option.badge}</small>
-              )}
-            </>
+            option.label
           ) : (
             <>
               <b>{option.label}</b>

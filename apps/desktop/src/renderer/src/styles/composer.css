@@ -274,8 +274,7 @@
   color: var(--faint);
 }
 .send-hint {
-  color: var(--muted);
-  font-size: var(--fs-xs);
+  display: inline-flex;
+  gap: 3px;
   margin: 0 2px 0 6px;
-  white-space: nowrap;
 }

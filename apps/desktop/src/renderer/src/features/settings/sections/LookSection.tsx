@@ -4,6 +4,7 @@ import { useAppContext } from '../../../data/hooks/services-context';
 import { ALT } from '../../../lib/platform-keys';
 import { type RightTab, setUi, useUiStore } from '../../../state/ui-store';
 import { useLayout } from '../../shell/use-layout';
+import { KeyHint } from '../../shell/KeyHint';
 import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
@@ -61,9 +62,13 @@ export function LookSection() {
       <SettingRow
         title="Priečinky vľavo"
         description={
-          layout.leftVisible
-            ? 'Zobrazené, v úzkom okne sa skryjú samy · skratka ['
-            : 'Skryté, zoznam má viac miesta · skratka ['
+          <KeyHint
+            text={
+              layout.leftVisible
+                ? 'Zobrazené, v úzkom okne sa skryjú samy · skratka [[]'
+                : 'Skryté, zoznam má viac miesta · skratka [[]'
+            }
+          />
         }
       >
         <Switch
@@ -76,7 +81,11 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Pravý panel"
-        description={`${rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'} · skratka I`}
+        description={
+          <KeyHint
+            text={`${rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'} · skratka [I]`}
+          />
+        }
       >
         <Switch
           checked={rightOpen}

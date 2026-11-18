@@ -80,6 +80,9 @@
   margin: -4px 0 0;
 }
 .form .note.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   margin: 0;
   padding: 9px 12px;
   border-radius: 8px;
@@ -105,6 +108,11 @@
 }
 .form .btns .btn {
   height: 34px;
+}
+.form .note.hint svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
 }
 .oauth-btn .g-mark {
   flex: none;
@@ -153,7 +161,14 @@
 }
 .srv-s b {
   flex: none;
-  color: var(--ok);
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--fg2);
+  font-size: var(--fs-2xs);
   font-weight: var(--w-medium);
 }
 .srv-s span {

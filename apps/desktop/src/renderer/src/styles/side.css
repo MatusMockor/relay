@@ -15,6 +15,7 @@
   height: 60px;
   padding: 0 14px;
   align-items: center;
+  border-bottom: 1px solid var(--line-soft);
 }
 .stabs .sp {
   flex: 1;
@@ -35,7 +36,11 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 24px;
+}
+.sbody > .sec {
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft);
 }
 .a-prof {
   display: flex;
@@ -62,11 +67,11 @@
 }
 .sec h4 {
   margin: 0 0 10px;
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: var(--w-semibold);
+  color: var(--fg3);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: var(--w-medium);
 }
 .ai-card {
   border-radius: 10px;
@@ -84,10 +89,10 @@
   align-items: center;
   gap: 6px;
   color: var(--accent);
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  font-weight: var(--w-semibold);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: var(--w-medium);
 }
 .ai-card .h .spark {
   width: 11px;

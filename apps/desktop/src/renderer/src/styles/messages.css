@@ -63,13 +63,13 @@
 .msg .mh {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
 }
 .msg .mh-main {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   flex: 1;
   min-width: 0;
 }
@@ -102,10 +102,11 @@ button.mh-main {
   white-space: nowrap;
 }
 .msg .mh .ibtn {
-  margin-right: -7px;
+  margin: -6px -7px 0 0;
 }
 .msg .mh time {
   margin-left: auto;
+  line-height: 19.5px;
   color: var(--muted);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
@@ -135,6 +136,7 @@ button.mh-main {
   color: var(--fg2);
 }
 .html-mail {
+  max-width: 680px;
   margin-left: 44px;
   display: grid;
   gap: 8px;
@@ -144,6 +146,7 @@ button.mh-main {
   border: 0;
   border-radius: 12px;
   background: #ebebef;
+  filter: brightness(0.88);
   min-height: 80px;
   display: block;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -170,11 +173,11 @@ button.mh-main {
   display: flex;
   gap: 7px;
   align-items: center;
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: var(--w-semibold);
+  color: var(--fg3);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: var(--w-medium);
 }
 .t-next h4 svg {
   color: var(--accent);
@@ -195,9 +198,9 @@ button.mh-main {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 32px;
-  padding: 0 11px 0 6px;
-  border-radius: 99px;
+  height: 30px;
+  padding: 0 12px 0 5px;
+  border-radius: var(--radius-pill);
   background: var(--panel);
   box-shadow: inset 0 0 0 1px var(--line);
   color: var(--fg2);
@@ -206,7 +209,7 @@ button.mh-main {
 .sug.ghost {
   margin-left: auto;
   background: none;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px var(--line-soft);
   color: var(--fg3);
 }
 .sug:hover {

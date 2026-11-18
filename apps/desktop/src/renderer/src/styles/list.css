@@ -1,7 +1,7 @@
 .a-list {
   flex: 1;
   overflow: auto;
-  padding: 0 14px 28px;
+  padding: 6px 14px 28px;
   position: relative;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
   mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
@@ -30,17 +30,15 @@
   background: var(--sel);
   --rowbg: var(--sel);
 }
-.a-row.row-acct {
-  border-radius: 0 8px 8px 0;
-}
 .a-row.row-acct::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: color-mix(in srgb, var(--a) 65%, transparent);
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--a) 75%, transparent);
 }
 .a-row .dot {
   width: 6px;
@@ -86,7 +84,7 @@
   flex: none;
 }
 .a-row .subj {
-  color: var(--fg2);
+  color: var(--fg3);
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -97,7 +95,7 @@
   font-weight: var(--w-semibold);
 }
 .a-row .snip {
-  color: var(--muted);
+  color: var(--fg4);
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
@@ -229,4 +227,11 @@
   .a-row .line > .chip {
     display: none;
   }
+}
+.a-row.unread .snip {
+  color: var(--muted);
+}
+.dense .a-row.row-acct::before {
+  top: 7px;
+  bottom: 7px;
 }

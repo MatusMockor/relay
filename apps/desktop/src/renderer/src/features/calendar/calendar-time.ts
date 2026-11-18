@@ -34,6 +34,9 @@ export const startLabel = (occurrence: CalendarOccurrence, base: Date, offset: n
   return start.getTime() < startOfDay(base, offset).getTime() ? '…' : hm(start);
 };
 
+export const untilLabel = (occurrence: Pick<CalendarOccurrence, 'end' | 'allDay'>) =>
+  occurrence.allDay ? 'Celý deň' : `do ${hm(new Date(occurrence.end))}`;
+
 export const spanLabel = (occurrence: Pick<CalendarOccurrence, 'start' | 'end' | 'allDay'>) => {
   if (occurrence.allDay) {
     return 'Celý deň';

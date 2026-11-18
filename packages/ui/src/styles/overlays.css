@@ -7,6 +7,8 @@
   align-items: flex-start;
   padding: 13vh 16px 0;
   background: var(--scrim);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   animation: ovin 0.12s ease-out;
 }
 .ov.mid {
@@ -15,6 +17,8 @@
 }
 .ov.clear {
   background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   animation: none;
 }
 .surface {

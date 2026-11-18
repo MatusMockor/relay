@@ -5,6 +5,7 @@
   padding: 0 28px 0 32px;
   height: 60px;
   flex: none;
+  border-bottom: 1px solid var(--line-soft);
 }
 .a-tabs {
   display: flex;
@@ -195,7 +196,4 @@
   .srch > span {
     display: none;
   }
-}
-.srch.off {
-  visibility: hidden;
 }

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export interface SettingRowProps {
   readonly title: string;
-  readonly description?: string;
+  readonly description?: ReactNode;
   readonly children?: ReactNode;
 }
 

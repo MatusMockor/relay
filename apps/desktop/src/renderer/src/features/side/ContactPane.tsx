@@ -35,6 +35,11 @@ const useContactSubject = () => {
   return { recipient: composing ? recipient : null, thread };
 };
 
+export const useContactIdle = (): boolean => {
+  const { recipient, thread } = useContactSubject();
+  return recipient === null && thread === null;
+};
+
 function ContactBody() {
   const { recipient, thread } = useContactSubject();
   if (recipient !== null) {

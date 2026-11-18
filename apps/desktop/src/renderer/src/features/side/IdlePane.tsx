@@ -29,7 +29,7 @@ export function IdlePane() {
           <Icon name="calendar" size={16} />
         </span>
         <div>
-          <small>{model.unified ? 'Prehľad dňa · všetky účty' : 'Prehľad dňa'}</small>
+          <small>{model.unified ? 'Prehľad dňa, všetky účty' : 'Prehľad dňa'}</small>
           <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
         </div>
       </div>

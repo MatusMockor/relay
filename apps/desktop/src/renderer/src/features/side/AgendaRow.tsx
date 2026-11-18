@@ -1,6 +1,6 @@
 import type { CalendarOccurrence } from '@relay/shared';
 import { openThread } from '../mail/navigation';
-import { spanLabel, startLabel } from '../calendar/calendar-time';
+import { startLabel, untilLabel } from '../calendar/calendar-time';
 
 const STATUS_NOTE: Partial<Record<NonNullable<CalendarOccurrence['myStatus']>, string>> = {
   'needs-action': 'čaká na odpoveď',
@@ -10,7 +10,7 @@ const STATUS_NOTE: Partial<Record<NonNullable<CalendarOccurrence['myStatus']>, s
 
 const detailOf = (occurrence: CalendarOccurrence): string =>
   [
-    spanLabel(occurrence),
+    untilLabel(occurrence),
     occurrence.location ?? occurrence.organizer?.name ?? occurrence.organizer?.email ?? null,
     occurrence.myStatus === null ? null : (STATUS_NOTE[occurrence.myStatus] ?? null),
   ]

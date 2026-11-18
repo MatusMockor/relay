@@ -1,6 +1,6 @@
 .a-name {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 4px 8px;
   min-width: 0;
@@ -76,11 +76,11 @@
 }
 .day-h small {
   display: block;
-  color: var(--muted);
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  font-weight: var(--w-semibold);
+  color: var(--fg3);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: var(--w-medium);
 }
 .day-h h3 {
   margin: 2px 0 0;

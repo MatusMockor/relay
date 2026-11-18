@@ -19,9 +19,11 @@
   border-radius: 8px;
   background: var(--raised);
   box-shadow: inset 0 0 0 1px var(--line-soft);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .chat-ctx b {
   color: var(--fg2);
@@ -138,10 +140,6 @@
   padding: 10px 14px;
   border-top: 1px solid var(--line-soft);
 }
-.chat-ex .chipb {
-  font-size: var(--fs-sm);
-  padding: 4px 10px;
-}
 .chat-in {
   flex: none;
   margin: 0 14px 14px;
@@ -175,14 +173,14 @@
   padding: 0 2px;
   border: 0;
   background: none;
-  color: var(--accent);
+  color: var(--accent-hover);
   font: inherit;
-  text-decoration: underline;
+  text-decoration: none;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 .ans-link:hover {
-  color: var(--fg);
+  text-decoration: underline;
 }
 .ans-refs {
   display: flex;

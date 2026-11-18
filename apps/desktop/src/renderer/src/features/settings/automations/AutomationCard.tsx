@@ -68,7 +68,9 @@ export function AutomationCard({
             <Icon name="trash" />
           </IconButton>
         ) : (
-          <span className="au-slot" aria-hidden="true" />
+          <span className="au-slot" title="Predvolené pravidlo sa nedá odstrániť, len vypnúť">
+            <Icon name="lock" />
+          </span>
         )}
       </div>
       <RuleSentence
