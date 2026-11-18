@@ -72,6 +72,21 @@ describe('SqliteSettingsRepository', () => {
     expect(await settings.saveIfUnchanged(LOCAL_USER_ID, compact, notified)).toBe(true);
     expect(await settings.find(LOCAL_USER_ID)).toEqual(notified);
   });
+
+  it('fills the Jira defaults into settings stored before they existed', async () => {
+    const { settings } = store.repositories;
+    const legacy = { notifications: 'off', density: 'compact', ai: DEFAULT_USER_SETTINGS.ai };
+    store.database.sqlite
+      .prepare('insert into settings (user_id, value) values (?, ?)')
+      .run(LOCAL_USER_ID, JSON.stringify(legacy));
+
+    const stored = await settings.find(LOCAL_USER_ID);
+
+    expect(stored).toEqual({ ...legacy, jira: { taskEvents: ['mention', 'assigned'] } });
+    const changed = { ...DEFAULT_USER_SETTINGS, density: 'normal' as const };
+    expect(await settings.saveIfUnchanged(LOCAL_USER_ID, stored, changed)).toBe(true);
+    expect(await settings.find(LOCAL_USER_ID)).toEqual(changed);
+  });
 });
 
 describe('SqliteAiResultRepository and SqliteAiJobRepository', () => {

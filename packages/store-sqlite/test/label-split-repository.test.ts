@@ -17,6 +17,7 @@ const buildSplit = (overrides: Partial<Split> = {}): Split => ({
   order: 0,
   rules: [{ type: 'jira', projectKeys: ['REL'] }],
   exclusive: true,
+  hideTasks: false,
   ...overrides,
 });
 
@@ -113,6 +114,7 @@ describe('SqliteSplitRepository', () => {
       name: 'Klienti',
       order: 0,
       exclusive: false,
+      hideTasks: false,
       rules: [{ type: 'fromDomain', domain: 'klient.sk' }],
     });
 

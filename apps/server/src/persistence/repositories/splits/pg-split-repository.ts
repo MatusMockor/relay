@@ -81,6 +81,7 @@ export class PgSplitRepository implements SplitRepository {
               position: sql`excluded.position`,
               rules: sql`excluded.rules`,
               exclusive: sql`excluded.exclusive`,
+              hideTasks: sql`excluded.hide_tasks`,
             },
             setWhere: eq(splits.userId, userId),
           })

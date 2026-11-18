@@ -7,6 +7,7 @@ import { AiSection } from './sections/AiSection';
 import { AutomationsSection } from './sections/AutomationsSection';
 import { CalendarsSection } from './sections/CalendarsSection';
 import { DevicesSection } from './sections/DevicesSection';
+import { JiraSection } from './sections/JiraSection';
 import { KeysSection } from './sections/KeysSection';
 import { LookSection } from './sections/LookSection';
 import { NotificationsSection } from './sections/NotificationsSection';
@@ -24,6 +25,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     accounts: () => <AccountsSection adding={adding} />,
     splits: () => <SplitsSection />,
     automations: () => <AutomationsSection />,
+    jira: () => <JiraSection />,
     sync: () => <SyncSection />,
     notifications: () => <NotificationsSection />,
     ai: () => <AiSection />,

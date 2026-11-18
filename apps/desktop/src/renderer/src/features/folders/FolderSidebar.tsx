@@ -53,6 +53,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
   const openTasks = (tasks.data?.items ?? []).some((task) => task.state !== 'done');
   return (
     <nav className="fold" id="fold" aria-label="Priečinky" style={{ width }}>
+      <div className="fold-bar" />
       <div className="acct">
         <button
           type="button"

@@ -17,6 +17,7 @@ describe('PgThreadRepository', () => {
       order: 0,
       rules: [{ type: 'jira', projectKeys: ['REL'] }],
       exclusive: false,
+      hideTasks: false,
     };
     await context.repositories.splits.replaceAll(seeded.user.id, [split]);
     const label: Label = {
@@ -131,6 +132,7 @@ describe('PgThreadRepository', () => {
       order: 0,
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
+      hideTasks: false,
     };
     await context.repositories.splits.replaceAll(seeded.user.id, [split]);
     const { thread } = await seedThread(context.repositories, seeded, { splitIds: [split.id] });
@@ -168,6 +170,7 @@ describe('PgThreadRepository ownership', () => {
       order: 0,
       rules: [{ type: 'jira', projectKeys: ['REL'] }],
       exclusive: false,
+      hideTasks: false,
     };
     await context.repositories.splits.replaceAll(owner.user.id, [split]);
     const { thread, message } = await seedThread(context.repositories, owner, {

@@ -1,15 +1,19 @@
 import type { ThreadFolderQuery } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
-import { and, eq, lt, or, type SQL, sql } from 'drizzle-orm';
+import { and, eq, lt, not, or, type SQL, sql } from 'drizzle-orm';
 import type { TimeIdPosition } from '../../pagination/time-id-cursor';
-import { messages, threadSplits, threads } from '../../schema';
-import { folderViewCondition } from './folder-view-condition';
+import { messages, splits, threadSplits, threads } from '../../schema';
+import { folderViewCondition, hasOpenTask } from './folder-view-condition';
 import { toFtsMatchExpression } from './fts-match-expression';
 
+const inSplit = (splitId: string): SQL =>
+  sql`exists (select 1 from ${threadSplits} where ${threadSplits.threadId} = ${threads.id} and ${threadSplits.splitId} = ${splitId})`;
+
+const hiddenTaskOfSplit = (splitId: string): SQL =>
+  sql`(exists (select 1 from ${splits} where ${splits.id} = ${splitId} and ${splits.hideTasks} = 1) and ${hasOpenTask})`;
+
 const splitCondition = (splitId: string | null): SQL | undefined =>
-  splitId === null
-    ? undefined
-    : sql`exists (select 1 from ${threadSplits} where ${threadSplits.threadId} = ${threads.id} and ${threadSplits.splitId} = ${splitId})`;
+  splitId === null ? undefined : and(inSplit(splitId), not(hiddenTaskOfSplit(splitId)));
 
 const labelCondition = (labelId: string | null): SQL | undefined =>
   labelId === null

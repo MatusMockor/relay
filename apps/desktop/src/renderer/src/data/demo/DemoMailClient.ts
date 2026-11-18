@@ -234,6 +234,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
             ...patch.ai,
             features: { ...state.settings.ai.features, ...patch.ai?.features },
           },
+          jira: { ...state.settings.jira, ...patch.jira },
         };
         emit({
           type: 'settings.updated',

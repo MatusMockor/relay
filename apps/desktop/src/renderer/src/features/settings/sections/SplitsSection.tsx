@@ -1,5 +1,5 @@
 import type { Split, SplitInput } from '@relay/shared';
-import { Button, Field, Icon, IconButton, Switch } from '@relay/ui';
+import { Button, Field } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
@@ -10,7 +10,7 @@ import { showToast } from '../../../state/toast-store';
 import { useNameColors } from '../../colors/use-name-colors';
 import { useAccountsModel } from '../../mail/use-accounts-model';
 import { SectionHeader } from '../SectionHeader';
-import { describeRule, readableRule } from './split-rules';
+import { SplitRow } from './SplitRow';
 
 const toInput = (split: Split): SplitInput => ({
   id: split.id,
@@ -19,6 +19,7 @@ const toInput = (split: Split): SplitInput => ({
   order: split.order,
   rules: split.rules,
   exclusive: split.exclusive,
+  hideTasks: split.hideTasks,
 });
 
 export function SplitsSection() {
@@ -31,6 +32,10 @@ export function SplitsSection() {
   const [domain, setDomain] = useState('');
   const [saving, setSaving] = useState(false);
   const list = [...(splits.data ?? [])].sort((a, b) => a.order - b.order);
+  const scopeOf = (split: Split): string =>
+    split.accountId === null
+      ? 'Všetky účty'
+      : `Účet ${model.byId.get(split.accountId)?.displayName ?? ''}`;
   const locked = saving || splits.data === undefined;
   const save = (next: SplitInput[]) => {
     if (locked) {
@@ -65,6 +70,7 @@ export function SplitsSection() {
         name: name.trim(),
         order: list.length,
         exclusive: true,
+        hideTasks: false,
         rules: [{ type: 'fromDomain', domain: domain.trim().replace(/^@/, '') }],
       },
     ]);
@@ -77,54 +83,25 @@ export function SplitsSection() {
         Splity rozdelia Doručenú poštu na tematické záložky. Pravidlá bežia pri každej
         synchronizácii, zhora nadol. Všetko ostatné ostáva v Dôležitých.
       </SectionHeader>
-      {list.map((split) => {
-        const account = split.accountId === null ? null : model.byId.get(split.accountId);
-        return (
-          <div className="rule" key={split.id}>
-            <b>
-              <span className="dot-slot">
-                <span className="acc-dot" style={{ ['--a' as string]: colors.of(split.name) }} />
-              </span>
-              {split.name}
-            </b>
-            <p>
-              {split.accountId === null ? 'Všetky účty' : `Účet ${account?.displayName ?? ''}`}
-              {split.exclusive ? ' · vyberie maily z Dôležitých' : ''}
-            </p>
-            <span className="rule-chips" title={split.rules.map(describeRule).join(' OR ')}>
-              {split.rules.map((rule, index) => (
-                <span className="rule-run" key={`${rule.type}-${String(index)}`}>
-                  {index > 0 ? <span className="kw">alebo</span> : null}
-                  <span className="rule-chip">{readableRule(rule)}</span>
-                </span>
-              ))}
-            </span>
-            <span className="cnt">
-              <IconButton
-                label={`Odstrániť split ${split.name}`}
-                disabled={locked}
-                onClick={() => {
-                  save(list.filter((item) => item.id !== split.id).map(toInput));
-                }}
-              >
-                <Icon name="trash" />
-              </IconButton>
-              <Switch
-                checked={split.exclusive}
-                label={`Výlučný split ${split.name}`}
-                disabled={locked}
-                onChange={(exclusive) => {
-                  save(
-                    list.map((item) =>
-                      item.id === split.id ? { ...toInput(item), exclusive } : toInput(item),
-                    ),
-                  );
-                }}
-              />
-            </span>
-          </div>
-        );
-      })}
+      {list.map((split) => (
+        <SplitRow
+          key={split.id}
+          split={split}
+          scope={scopeOf(split)}
+          color={colors.of(split.name)}
+          locked={locked}
+          onRemove={() => {
+            save(list.filter((item) => item.id !== split.id).map(toInput));
+          }}
+          onChange={(flags) => {
+            save(
+              list.map((item) =>
+                item.id === split.id ? { ...toInput(item), ...flags } : toInput(item),
+              ),
+            );
+          }}
+        />
+      ))}
       <div className="split-add">
         <Field
           label="Nový split"

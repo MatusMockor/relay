@@ -1,9 +1,9 @@
 import type { ThreadFolderQuery } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
-import { messageLabels, messages, threadSplits, threads } from '../../schema';
+import { messageLabels, messages, splits, threadSplits, threads } from '../../schema';
 import type { CursorPayload } from '../../support/cursor';
-import { folderViewFilter } from './folder-view-filters';
+import { folderViewFilter, hasOpenTask } from './folder-view-filters';
 import { prefixTsQuery, toSearchTerms } from './search-query';
 
 const splitFilter = (query: ThreadFolderQuery): SQL | undefined => {
@@ -13,6 +13,9 @@ const splitFilter = (query: ThreadFolderQuery): SQL | undefined => {
   return sql`exists(
     select 1 from ${threadSplits}
     where ${threadSplits.threadId} = ${threads.id} and ${threadSplits.splitId} = ${query.splitId}
+  ) and not (
+    exists(select 1 from ${splits} where ${splits.id} = ${query.splitId} and ${splits.hideTasks})
+    and ${hasOpenTask}
   )`;
 };
 

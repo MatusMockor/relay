@@ -92,6 +92,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   const tasks = new TaskService({
     tasks: repositories.tasks,
     threads: repositories.threads,
+    settings: userSettings,
     events,
     clock,
     ids,

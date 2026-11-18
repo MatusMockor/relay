@@ -10,6 +10,7 @@ export const toSplit = (row: SplitRow): Split =>
     order: row.position,
     rules: row.rules,
     exclusive: row.exclusive,
+    hideTasks: row.hideTasks,
   });
 
 export const toSplitRow = (userId: UserId, split: Split): typeof splits.$inferInsert => ({
@@ -20,4 +21,5 @@ export const toSplitRow = (userId: UserId, split: Split): typeof splits.$inferIn
   position: split.order,
   rules: split.rules,
   exclusive: split.exclusive,
+  hideTasks: split.hideTasks,
 });

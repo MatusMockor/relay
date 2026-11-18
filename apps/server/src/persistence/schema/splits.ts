@@ -18,6 +18,7 @@ export const splits = pgTable(
     position: integer('position').notNull(),
     rules: jsonb('rules').$type<SplitRule[]>().notNull(),
     exclusive: boolean('exclusive').notNull(),
+    hideTasks: boolean('hide_tasks').notNull().default(false),
   },
   (table) => [index('splits_user_idx').on(table.userId, table.position)],
 );

@@ -169,6 +169,13 @@
       "when": 1794948890028,
       "tag": "0023_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794997830953,
+      "tag": "0024_split_hide_tasks",
+      "breakpoints": true
     }
   ]
 }

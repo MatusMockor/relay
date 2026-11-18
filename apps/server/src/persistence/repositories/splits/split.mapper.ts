@@ -12,6 +12,7 @@ export const toSplit = (row: SplitRow): Split => ({
   order: row.position,
   rules: row.rules,
   exclusive: row.exclusive,
+  hideTasks: row.hideTasks,
 });
 
 export const toSplitInsert = (split: Split): SplitInsert => ({
@@ -22,4 +23,5 @@ export const toSplitInsert = (split: Split): SplitInsert => ({
   position: split.order,
   rules: split.rules,
   exclusive: split.exclusive,
+  hideTasks: split.hideTasks,
 });

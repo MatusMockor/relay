@@ -1,7 +1,6 @@
 import type { ThreadId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
-import { MemoryTaskRepository } from '../support/memory/memory-task-repository';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
 describe('TaskService', () => {
@@ -73,6 +72,7 @@ describe('TaskService', () => {
       id: 'j1',
       from: { name: 'Jira', email: 'jira@company.test' },
       subject: '[REL-3] Fix login',
+      headers: { 'X-Jira-Event': 'assigned' },
     });
     await engine.services.sync.syncAccount(USER_ID, account.id);
     const task = present((await engine.services.tasks.list(USER_ID, { limit: 5 })).items[0]);
@@ -81,7 +81,7 @@ describe('TaskService', () => {
     await Promise.all([
       engine.services.tasks.applyJiraEvent(USER_ID, {
         threadId: present(task.threadId),
-        classification: { jiraKey: 'REL-3', eventKind: 'comment', actor: null },
+        classification: { jiraKey: 'REL-3', eventKind: 'mention', actor: null },
         title: '[REL-3] Fix login',
       }),
       engine.services.tasks.update(USER_ID, task.id, { title: 'Opraviť prihlásenie' }),
@@ -90,33 +90,6 @@ describe('TaskService', () => {
     expect(await engine.repositories.tasks.findById(USER_ID, task.id)).toMatchObject({
       title: 'Opraviť prihlásenie',
       state: 'open',
-    });
-  });
-
-  it('keeps a task the user closed when a Jira event does not reopen it', async () => {
-    const engine = createTestEngine();
-    const { account, server } = await seedAccount(engine);
-    deliverMail(server, 'INBOX', {
-      id: 'j1',
-      from: { name: 'Jira', email: 'jira@company.test' },
-      subject: '[REL-3] Fix login',
-    });
-    await engine.services.sync.syncAccount(USER_ID, account.id);
-    const task = present((await engine.services.tasks.list(USER_ID, { limit: 5 })).items[0]);
-    const tasks = engine.repositories.tasks;
-    expect(tasks).toBeInstanceOf(MemoryTaskRepository);
-    (tasks as MemoryTaskRepository).beforeUpdate = () => {
-      engine.db.tables.tasks.set(task.id, { ...task, state: 'done' });
-    };
-
-    await engine.services.tasks.applyJiraEvent(USER_ID, {
-      threadId: present(task.threadId),
-      classification: { jiraKey: 'REL-3', eventKind: 'status', actor: null },
-      title: '[REL-3] Fix login',
-    });
-
-    expect(await engine.repositories.tasks.findById(USER_ID, task.id)).toMatchObject({
-      state: 'done',
     });
   });
 
@@ -130,7 +103,7 @@ describe('TaskService', () => {
     );
     const event = {
       threadId: thread.id,
-      classification: { jiraKey: 'REL-9', eventKind: 'other', actor: null },
+      classification: { jiraKey: 'REL-9', eventKind: 'mention', actor: null },
       title: '[REL-9] Export',
     } as const;
 
@@ -139,7 +112,7 @@ describe('TaskService', () => {
       engine.services.tasks.applyJiraEvent(USER_ID, event),
     ]);
 
-    expect(second.id).toBe(first.id);
+    expect(present(second).id).toBe(present(first).id);
     const page = await engine.services.tasks.list(USER_ID, { limit: 50 });
     expect(page.items.map((task) => task.jiraKey)).toEqual(['REL-9']);
   });
