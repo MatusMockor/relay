@@ -1,5 +1,6 @@
 import { composeOverlay } from '../../state/compose-overlay';
 import type { MenuCommand, SettingsSection } from '@relay/shared';
+import { navigateBack } from '../mail/navigate-back';
 import { selectScope } from '../mail/navigation';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { openAboutUnlessBusy } from './open-about';
@@ -32,6 +33,11 @@ export const menuCommandAction = (command: MenuCommand): (() => void) => {
   if (command.command === 'select-scope') {
     return () => {
       selectScope(command.scope);
+    };
+  }
+  if (command.command === 'navigate-back') {
+    return () => {
+      navigateBack('command');
     };
   }
   return openAboutUnlessBusy;

@@ -12,6 +12,7 @@ import {
 } from '../../src/platform/BrowserPlatform';
 import type { Platform } from '../../src/platform/Platform';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
+import { resetBackPresses } from '../../src/features/mail/back-press-gate';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
@@ -37,6 +38,7 @@ export const storageWith = (settings: Partial<DeviceSettings>) =>
 export const resetStores = (): void => {
   cleanup();
   resetLayers();
+  resetBackPresses();
   useSessionStore.setState(INITIAL_SESSION);
   useUiStore.setState(INITIAL_UI);
   useChat.setState({ turns: [], queued: null });
