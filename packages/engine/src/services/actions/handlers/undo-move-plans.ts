@@ -8,6 +8,7 @@ import {
   type LabelChange,
   type LocatedMessage,
   type MoveTarget,
+  type OriginChanges,
   type PlannedMove,
   plan,
   settledState,
@@ -47,6 +48,25 @@ const labelRemovals = (copies: MailCopies, recorded: readonly LocatedMessage[]):
   );
 };
 
+const HELD_KINDS = ['trash-origin', 'spam-origin'] as const;
+
+const heldOrigins = (recorded: readonly LocatedMessage[]): OriginChanges[] =>
+  HELD_KINDS.map((kind) => ({
+    kind,
+    remember: recorded.flatMap(({ message, moveOrigin }) => {
+      const held = moveOrigin?.held;
+      if (held?.kind !== kind) {
+        return [];
+      }
+      return [
+        held.mailboxId === undefined
+          ? { messageId: message.id, role: held.role }
+          : { messageId: message.id, role: held.role, mailboxId: held.mailboxId },
+      ];
+    }),
+    forget: [],
+  }));
+
 const returnedState = (roles: readonly (MailboxRole | undefined)[]): ThreadState => {
   const placed = roles.filter((role) => role !== 'sent');
   if (placed.length > 0 && placed.every((role) => role === 'trash')) {
@@ -69,6 +89,7 @@ export const undoMove: StateMovePlanner = (messages, thread, copies) => {
         remember: [],
         forget: recorded.map(({ message }) => message.id),
       },
+      ...heldOrigins(recorded),
     ],
     labels: labelRemovals(copies, recorded),
   };

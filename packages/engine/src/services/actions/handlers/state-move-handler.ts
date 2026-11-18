@@ -12,6 +12,7 @@ import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
 import { resolveLabelChanges, writeLabelChanges } from './label-change-writer';
 import type { MessageLocator } from './message-locator';
+import { dropSupersededLabelOps } from './superseded-label-ops';
 import { requireUpserted } from './require-upserted';
 import type {
   OriginChanges,
@@ -56,11 +57,8 @@ export class StateMoveHandler {
   }
 
   async execute(context: ThreadActionContext, planner: StateMovePlanner): Promise<ThreadSummary> {
-    const plan = planner(
-      await this.deps.locator.locate(context),
-      context.thread,
-      MailCopies.of(context.account),
-    );
+    const copies = MailCopies.of(context.account);
+    const plan = planner(await this.deps.locator.locate(context), context.thread, copies);
     const labels = await resolveLabelChanges(this.deps.labels, context.userId, plan.labels);
     const accountId = context.account.id;
     const now = this.deps.clock.now().toISOString();
@@ -72,6 +70,13 @@ export class StateMoveHandler {
       if (updated === null) {
         throw new NotFoundError('Thread', context.thread.id);
       }
+      await dropSupersededLabelOps(
+        repositories.pendingWork,
+        accountId,
+        copies,
+        context.messages,
+        labels,
+      );
       const labelOps = await writeLabelChanges(repositories, accountId, labels, now);
       const moveOps = await recordProviderOps(
         repositories.pendingWork,

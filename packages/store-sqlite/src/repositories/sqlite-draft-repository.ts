@@ -4,7 +4,14 @@ import type {
   DraftSendClaim,
   DraftSendRenewal,
 } from '@relay/engine';
-import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  Draft,
+  DraftContent,
+  DraftId,
+  MessageId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 import { and, asc, desc, eq, inArray, type SQL } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
@@ -123,6 +130,15 @@ export class SqliteDraftRepository implements DraftRepository {
           )
           .run().changes > 0,
     );
+  }
+
+  retargetReplies(from: MessageId, to: MessageId): Promise<void> {
+    return this.executor.execute((db) => {
+      db.update(drafts)
+        .set({ inReplyToMessageId: to })
+        .where(eq(drafts.inReplyToMessageId, from))
+        .run();
+    });
   }
 
   private replaceAttachments(

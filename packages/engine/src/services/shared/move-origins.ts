@@ -1,5 +1,5 @@
 import type { AccountId, LabelId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
-import type { MoveOriginWork } from '../../model/pending-work';
+import type { HeldOriginWork, MoveOriginWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
 export type MoveOriginKind = 'trash-origin' | 'spam-origin' | 'move-origin';
@@ -8,6 +8,7 @@ export interface MoveOrigin {
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
+  readonly held?: HeldOriginWork;
 }
 
 export const moveOrigins = async (

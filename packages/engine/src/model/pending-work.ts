@@ -35,11 +35,18 @@ export interface ThreadRefreshWork {
   readonly expungedFromInbox: boolean;
 }
 
+export interface HeldOriginWork {
+  readonly kind: 'trash-origin' | 'spam-origin';
+  readonly role: MailboxRole;
+  readonly mailboxId?: MailboxId;
+}
+
 export interface MoveOriginWork {
   readonly messageId: MessageId;
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
+  readonly held?: HeldOriginWork;
 }
 
 export interface MessageEffectsWork {

@@ -1,5 +1,5 @@
-import type { LabelId, MailboxRole, ThreadState } from '@relay/shared/domain';
-import type { MoveOriginWork } from '../../../model/pending-work';
+import type { LabelId, MailboxRole, Message, ThreadState } from '@relay/shared/domain';
+import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
 import { receivedIn } from './physical-messages';
 import {
@@ -18,19 +18,46 @@ export const isAt = (located: LocatedMessage, target: MoveTarget): boolean =>
     ? located.role === target.role
     : located.mailboxId === target.mailboxId;
 
+export const physicalKeyOf = (copies: MailCopies, message: Message): string =>
+  message.emailId ?? copies.identityOf(message);
+
+const heldOf = ({ role, origin }: LocatedMessage): HeldOriginWork | undefined => {
+  if (origin === undefined || (role !== 'trash' && role !== 'spam')) {
+    return undefined;
+  }
+  const kind = role === 'spam' ? 'spam-origin' : 'trash-origin';
+  return origin.mailboxId === undefined
+    ? { kind, role: origin.role }
+    : { kind, role: origin.role, mailboxId: origin.mailboxId };
+};
+
 export const placementOf = (located: LocatedMessage, labelId?: LabelId): MoveOriginWork[] => {
   const { message, role, mailboxId } = located;
   if (role === undefined) {
     return [];
   }
+  const held = heldOf(located);
   return [
     {
       messageId: message.id,
       role,
       ...(mailboxId === undefined ? {} : { mailboxId }),
       ...(labelId === undefined ? {} : { labelId }),
+      ...(held === undefined ? {} : { held }),
     },
   ];
+};
+
+const physicalGroups = (
+  copies: MailCopies,
+  messages: readonly LocatedMessage[],
+): LocatedMessage[][] => {
+  const groups = new Map<string, LocatedMessage[]>();
+  for (const located of messages) {
+    const key = physicalKeyOf(copies, located.message);
+    groups.set(key, [...(groups.get(key) ?? []), located]);
+  }
+  return [...groups.values()];
 };
 
 export const folderSources = (
@@ -38,7 +65,9 @@ export const folderSources = (
   copies: MailCopies,
   target: MoveTarget,
 ): LocatedMessage[] =>
-  receivedIn(copies, messages, MOVABLE_ROLES).filter((source) => !isAt(source, target));
+  physicalGroups(copies, messages)
+    .flatMap((group) => receivedIn(copies, group, MOVABLE_ROLES))
+    .filter((source) => !isAt(source, target));
 
 export interface MovedThread {
   readonly state: ThreadState;

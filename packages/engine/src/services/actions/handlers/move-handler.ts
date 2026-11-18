@@ -29,13 +29,18 @@ export class MoveHandler {
   async move(context: ThreadActionContext, mailboxId: MailboxId): Promise<ThreadSummary> {
     const target = await this.target(context, mailboxId);
     const planner = await this.planner(context, target);
-    const before = new Date(this.deps.clock.now().getTime() - UNDO_WINDOW_MS).toISOString();
-    await expireMoveOrigins(this.deps.pendingWork, context.account.id, 'move-origin', before);
+    await this.expireUndoRecords(context);
     return this.deps.stateMoves.execute(context, planner);
   }
 
-  undo(context: ThreadActionContext): Promise<ThreadSummary> {
+  async undo(context: ThreadActionContext): Promise<ThreadSummary> {
+    await this.expireUndoRecords(context);
     return this.deps.stateMoves.execute(context, undoMove);
+  }
+
+  private async expireUndoRecords(context: ThreadActionContext): Promise<void> {
+    const before = new Date(this.deps.clock.now().getTime() - UNDO_WINDOW_MS).toISOString();
+    await expireMoveOrigins(this.deps.pendingWork, context.account.id, 'move-origin', before);
   }
 
   private async target(context: ThreadActionContext, mailboxId: MailboxId): Promise<Mailbox> {

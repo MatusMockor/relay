@@ -1,4 +1,11 @@
-import type { Draft, DraftContent, DraftId, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  Draft,
+  DraftContent,
+  DraftId,
+  MessageId,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 import {
   ConflictError,
   type DraftRepository,
@@ -22,6 +29,18 @@ export class MemoryDraftRepository implements DraftRepository {
   findById(userId: UserId, draftId: DraftId): Promise<Draft | null> {
     const stored = this.db.tables.drafts.get(draftId);
     return Promise.resolve(stored?.userId === userId ? stored.draft : null);
+  }
+
+  retargetReplies(from: MessageId, to: MessageId): Promise<void> {
+    this.db.tables.drafts.forEach((stored, draftId) => {
+      if (stored.draft.inReplyToMessageId === from) {
+        this.db.tables.drafts.set(draftId, {
+          ...stored,
+          draft: { ...stored.draft, inReplyToMessageId: to },
+        });
+      }
+    });
+    return Promise.resolve();
   }
 
   findByThread(userId: UserId, threadId: ThreadId): Promise<Draft | null> {

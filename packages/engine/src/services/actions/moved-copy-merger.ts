@@ -3,6 +3,7 @@ import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { labelsMessages } from '../shared/mail-copies';
 import type { MoveOriginKind } from '../shared/move-origins';
 import { PENDING_UID } from '../shared/pending-uid';
 import { SyncJournal } from '../sync/sync-journal';
@@ -41,15 +42,17 @@ const transferOrigins = async (
 export class MovedCopyMerger {
   constructor(private readonly deps: MovedCopyMergerDeps) {}
 
-  async twinOf(moving: Message, target: Mailbox, uid: number): Promise<Message | null> {
-    const located =
-      uid === PENDING_UID
-        ? null
-        : await this.deps.messages.findByLocation({ mailboxId: target.id, uid });
-    if (located !== null && located.id !== moving.id) {
-      return located;
+  async twinOf(
+    account: MailAccount,
+    moving: Message,
+    target: Mailbox,
+    uid: number,
+  ): Promise<Message | null> {
+    if (uid !== PENDING_UID) {
+      const located = await this.deps.messages.findByLocation({ mailboxId: target.id, uid });
+      return located === null || located.id === moving.id ? null : located;
     }
-    if (moving.emailId === null) {
+    if (moving.emailId === null || !labelsMessages(account)) {
       return null;
     }
     const copies = await this.deps.messages.findByEmailId(moving.accountId, moving.emailId);
@@ -60,6 +63,7 @@ export class MovedCopyMerger {
     const journal = new SyncJournal(account.id, this.deps.clock);
     await this.deps.unitOfWork.run(async (repositories) => {
       await transferOrigins(repositories.pendingWork, account.id, moving, twin);
+      await repositories.drafts.retargetReplies(moving.id, twin.id);
       await repositories.messages.deleteByUids(moving.mailboxId, [moving.uid]);
       await journal.touched(repositories.pendingWork, moving.threadId);
       if (twin.threadId !== moving.threadId) {

@@ -112,7 +112,7 @@ export class ProviderOpReplayer {
     const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
     for (const message of batch.messages) {
       const uid = uidMap.get(message.uid) ?? PENDING_UID;
-      const twin = await this.merger.twinOf(message, target, uid);
+      const twin = await this.merger.twinOf(account, message, target, uid);
       if (twin !== null) {
         await this.merger.merge(account, message, twin);
         continue;
