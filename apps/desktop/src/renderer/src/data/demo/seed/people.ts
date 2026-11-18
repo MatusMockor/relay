@@ -37,4 +37,16 @@ export const DEMO_PEOPLE: Readonly<Record<string, DemoPerson>> = {
   mo: { name: 'Mária Hollá', email: 'maria@uctovnictvo-holla.sk', role: 'Účtovníčka' },
   fk: { name: 'Faktúrka', email: 'noreply@fakturka.sk', role: 'Fakturačný systém', bot: true },
   fg: { name: 'Figma', email: 'comments@figma.com', role: 'Notifikácie', bot: true },
+  vy: {
+    name: 'Výherné centrum',
+    email: 'vyhra@super-cena.biz',
+    role: 'Neznámy odosielateľ',
+    bot: true,
+  },
+  kr: {
+    name: 'Krypto Zisk',
+    email: 'info@krypto-zisk.top',
+    role: 'Neznámy odosielateľ',
+    bot: true,
+  },
 };

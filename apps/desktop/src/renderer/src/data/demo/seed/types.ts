@@ -28,7 +28,7 @@ export interface DemoThread {
   readonly sum?: string;
   readonly list?: readonly string[];
   readonly sugs?: readonly (readonly [label: string, body: string])[];
-  readonly state?: 'inbox' | 'done' | 'trash' | 'reminder';
+  readonly state?: 'inbox' | 'done' | 'trash' | 'spam' | 'reminder';
   readonly remindAt?: DemoAt;
   readonly labels?: readonly DemoLabelKey[];
   readonly html?: string;

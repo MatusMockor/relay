@@ -1,5 +1,5 @@
 import type { FolderView } from '@relay/shared/domain';
-import { and, eq, ne, type SQL, sql } from 'drizzle-orm';
+import { and, eq, notInArray, type SQL, sql } from 'drizzle-orm';
 import {
   drafts,
   mailboxes,
@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notTrashed = ne(threads.state, 'trash');
+const notHeld = notInArray(threads.state, ['trash', 'spam']);
 
 const withoutExclusiveSplits = sql`not exists (select 1 from ${threadSplits} inner join ${splits} on ${splits.id} = ${threadSplits.splitId} where ${threadSplits.threadId} = ${threads.id} and ${splits.exclusive} = 1)`;
 
@@ -33,15 +33,17 @@ export const folderViewCondition = (view: FolderView, splitSelected: boolean): S
       return eq(threads.state, 'done');
     case 'trash':
       return eq(threads.state, 'trash');
+    case 'spam':
+      return eq(threads.state, 'spam');
     case 'reminders':
       return eq(threads.state, 'reminder');
     case 'tasks':
-      return and(notTrashed, hasOpenTask);
+      return and(notHeld, hasOpenTask);
     case 'sent':
-      return and(notTrashed, hasSentMessage);
+      return and(notHeld, hasSentMessage);
     case 'drafts':
-      return and(notTrashed, hasDraftRow);
+      return and(notHeld, hasDraftRow);
     case 'scheduled':
-      return and(notTrashed, hasScheduledSend);
+      return and(notHeld, hasScheduledSend);
   }
 };

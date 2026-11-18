@@ -14,6 +14,7 @@ import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { KeywordLabels } from './keyword-labels';
+import { acceptsJiraEvents } from './jira-event-roles';
 import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
 import type { SyncJournal } from './sync-journal';
@@ -135,7 +136,7 @@ export class MessageIngestor {
       headers: parsed.headers,
       jira,
     });
-    if (jira !== null) {
+    if (jira !== null && acceptsJiraEvents(target.mailbox.role)) {
       await journal.jira(work, message.id, {
         threadId: message.threadId,
         classification: jira,

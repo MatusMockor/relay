@@ -7,6 +7,8 @@ export const ThreadActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('undone') }),
   z.object({ type: z.literal('trash') }),
   z.object({ type: z.literal('restore') }),
+  z.object({ type: z.literal('reportSpam') }),
+  z.object({ type: z.literal('notSpam') }),
   z.object({ type: z.literal('markRead') }),
   z.object({ type: z.literal('markUnread') }),
   z.object({ type: z.literal('remind'), at: IsoDateTimeSchema }),

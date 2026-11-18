@@ -25,6 +25,7 @@ export interface FakeMailServerOptions {
   readonly password?: string;
   readonly condstore?: boolean;
   readonly uidplus?: boolean;
+  readonly gmail?: boolean;
 }
 
 export interface DeliveryOptions {
@@ -40,6 +41,7 @@ export class FakeMailServer {
   password: string;
   readonly condstore: boolean;
   readonly uidplus: boolean;
+  readonly gmail: boolean;
   readonly mailboxes = new Map<string, FakeMailbox>();
   readonly createdMailboxes: string[] = [];
   readonly fetchedMessages: { path: string; uid: number }[] = [];
@@ -62,6 +64,7 @@ export class FakeMailServer {
     this.password = options.password ?? 'secret';
     this.condstore = options.condstore ?? true;
     this.uidplus = options.uidplus ?? true;
+    this.gmail = options.gmail ?? false;
   }
 
   addMailbox(path: string, role: MailboxRole, uidValidity = 1): FakeMailbox {

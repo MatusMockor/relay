@@ -26,6 +26,7 @@ export const CREATED_ROLES: ReadonlyMap<string, MailboxRole> = new Map([
   ['Sent', 'sent'],
   ['Trash', 'trash'],
   ['Drafts', 'drafts'],
+  ['Junk', 'spam'],
 ]);
 
 export const toRemote = (mailbox: FakeMailbox): RemoteMailbox => ({

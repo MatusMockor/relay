@@ -10,6 +10,7 @@ export const CREATABLE_MAILBOX_NAMES: Readonly<Partial<Record<MailboxRole, strin
   sent: 'Sent',
   trash: 'Trash',
   drafts: 'Drafts',
+  spam: 'Junk',
 };
 
 export interface RoleMailboxEnsurerDeps {

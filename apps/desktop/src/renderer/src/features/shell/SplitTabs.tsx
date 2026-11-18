@@ -43,7 +43,7 @@ export const splitsInScope = (splits: readonly Split[], scope: string): Split[] 
     .filter((split) => scope === 'all' || split.accountId === null || split.accountId === scope)
     .sort((a, b) => a.order - b.order);
 
-const RESERVED_G = new Set(['I', 'U', 'H', 'E', 'T', 'S', 'D', 'N', 'K']);
+const RESERVED_G = new Set(['I', 'U', 'H', 'E', 'T', 'S', 'D', 'N', 'P', 'K']);
 
 const lettersOf = (value: string): string[] =>
   Array.from(

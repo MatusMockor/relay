@@ -202,6 +202,9 @@ export const useKeyboard = (): void => {
       '#': () => {
         actions.thread.trash(current);
       },
+      '!': () => {
+        actions.thread.toggleSpam(current);
+      },
       Delete: () => {
         actions.thread.trash(current);
       },

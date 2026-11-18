@@ -1,14 +1,27 @@
-import type { FolderView, ThreadAction, ThreadSummary } from '@relay/shared';
+import {
+  type FolderView,
+  isHeldThreadState,
+  type ThreadAction,
+  type ThreadSummary,
+} from '@relay/shared';
 
 export const projectThreadAction = (thread: ThreadSummary, action: ThreadAction): ThreadSummary => {
   if (action.type === 'done') {
     return { ...thread, state: 'done', unread: false, remindAt: null };
   }
-  if (action.type === 'undone' || action.type === 'restore' || action.type === 'cancelReminder') {
+  if (
+    action.type === 'undone' ||
+    action.type === 'restore' ||
+    action.type === 'notSpam' ||
+    action.type === 'cancelReminder'
+  ) {
     return { ...thread, state: 'inbox', remindAt: null };
   }
   if (action.type === 'trash') {
     return { ...thread, state: 'trash', unread: false };
+  }
+  if (action.type === 'reportSpam') {
+    return { ...thread, state: 'spam' };
   }
   if (action.type === 'markRead' || action.type === 'markUnread') {
     return { ...thread, unread: action.type === 'markUnread' };
@@ -29,8 +42,8 @@ export const staysInView = (view: FolderView, thread: ThreadSummary): boolean =>
   if (view === 'reminders') {
     return thread.state === 'reminder';
   }
-  if (view === 'done' || view === 'trash') {
+  if (view === 'done' || view === 'trash' || view === 'spam') {
     return thread.state === view;
   }
-  return thread.state !== 'trash';
+  return !isHeldThreadState(thread.state);
 };

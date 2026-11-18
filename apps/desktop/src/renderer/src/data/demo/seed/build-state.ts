@@ -7,6 +7,7 @@ import { DEMO_ACCOUNTS, DEMO_LABELS } from './catalog';
 import { atTime } from './clock';
 import { demoIds } from './ids';
 import { PERSONAL_THREADS } from './threads-personal';
+import { SPAM_THREADS } from './threads-spam';
 import { WORK_THREADS } from './threads-work';
 import { WORK_THREADS_MORE } from './threads-work-more';
 import type { DemoThread } from './types';
@@ -93,7 +94,7 @@ const buildTasks = (seeds: readonly DemoThread[], now: Date): Task[] =>
   );
 
 export const buildDemoState = (now: Date = new Date()): DemoState => {
-  const seeds = [...WORK_THREADS, ...WORK_THREADS_MORE, ...PERSONAL_THREADS];
+  const seeds = [...WORK_THREADS, ...WORK_THREADS_MORE, ...PERSONAL_THREADS, ...SPAM_THREADS];
   const threads = new Map<string, DemoThreadRecord>(
     seeds.map((seed, order) => [seed.id, buildThreadRecord(seed, now, order)]),
   );

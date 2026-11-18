@@ -13,6 +13,10 @@ const EMPTY: Readonly<Partial<Record<FolderView, readonly [string, string]>>> = 
   sent: ['Zatiaľ nič odoslané', 'Odpovede a nové správy, ktoré pošleš, nájdeš tu.'],
   drafts: ['Žiadne koncepty', 'Rozpísaná správa sa uloží, keď v nej stlačíš [Esc].'],
   scheduled: ['Nič naplánované', 'Pri písaní novej správy zvoľ Naplánovať odoslanie.'],
+  spam: [
+    'Žiadny spam',
+    'Konverzácie nahlásené cez [!] a nevyžiadaná pošta zo servera sa zobrazia tu.',
+  ],
   trash: ['Kôš je prázdny', 'Konverzácie zmazané cez [#] sa presunú sem.'],
   tasks: ['Žiadne úlohy', 'Žiadna úloha z Jiry teraz nečaká na teba.'],
 };

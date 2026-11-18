@@ -1,6 +1,7 @@
 import type { MailboxRole } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import type { MessageRepository } from '../../ports/message-repository';
+import { isHeldRole } from './held-roles';
 import { type WindowEntry, windowEntry } from './initial-window';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { SyncContext } from './sync-context';
@@ -16,12 +17,12 @@ export interface TrashRelativesFound {
   readonly complete: boolean;
 }
 
-const LIVE_ROLES: readonly MailboxRole[] = ['inbox', 'archive'];
+const RELATED_ROLES: readonly MailboxRole[] = ['inbox', 'archive', 'sent'];
 
 const conversationIds = (entries: readonly WindowEntry[]): string[] => [
   ...new Set(
     entries
-      .filter((entry) => entry.pass.role === 'trash')
+      .filter((entry) => isHeldRole(entry.pass.role))
       .flatMap((entry) => [entry.messageId, ...entry.parentIds])
       .filter((id): id is string => id !== null),
   ),
@@ -41,7 +42,7 @@ export class TrashRelatives {
     }
     const entries: WindowEntry[] = [];
     let complete = true;
-    for (const pass of passes.filter((candidate) => LIVE_ROLES.includes(candidate.role))) {
+    for (const pass of passes.filter((candidate) => RELATED_ROLES.includes(candidate.role))) {
       const found = await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
         this.findIn(context, pass, ids, chunk),
       );

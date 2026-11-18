@@ -1,4 +1,10 @@
-import type { Reminder, ThreadId, ThreadSummary, UserId } from '@relay/shared/domain';
+import {
+  isHeldThreadState,
+  type Reminder,
+  type ThreadId,
+  type ThreadSummary,
+  type UserId,
+} from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
@@ -90,7 +96,7 @@ export class ReminderService implements ReminderScheduler {
       if (thread === null) {
         return null;
       }
-      const state = thread.state === 'trash' ? 'trash' : 'inbox';
+      const state = isHeldThreadState(thread.state) ? thread.state : 'inbox';
       return repositories.threads.updateState(reminder.userId, reminder.threadId, {
         state,
         remindAt: null,

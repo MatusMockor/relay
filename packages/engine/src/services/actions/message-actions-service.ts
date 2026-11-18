@@ -59,6 +59,8 @@ export class MessageActionsService implements ThreadReadMarker {
       case 'undone':
       case 'trash':
       case 'restore':
+      case 'reportSpam':
+      case 'notSpam':
         return this.deps.stateMoves.handle(context, action.type);
       case 'markRead':
         return this.deps.readState.markRead(context);

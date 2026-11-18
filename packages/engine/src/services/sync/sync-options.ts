@@ -10,6 +10,6 @@ export interface SyncOptions {
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   initialWindowDays: 30,
   initialMessageLimit: 500,
-  mailboxRoles: ['inbox', 'sent', 'archive', 'trash'],
+  mailboxRoles: ['inbox', 'sent', 'archive', 'trash', 'spam'],
   batchSize: 50,
 };

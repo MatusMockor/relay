@@ -7,6 +7,7 @@ import type { CalendarPartsSink } from './calendar-parts-sink';
 import { completedSyncState } from './completed-sync-state';
 import { conversationOrder, orderEntries } from './conversation-order';
 import { entryKey, fetchChunk } from './initial-chunk';
+import { isHeldRole } from './held-roles';
 import { InitialProgress } from './initial-progress';
 import {
   type InitialWindowDeps,
@@ -56,9 +57,9 @@ const allFetched = (
 ): boolean =>
   [...entries].every((entry) => fetched.has(entryKey(entry.pass.mailbox.id, entry.uid)));
 
-const deferTrash = (chunk: readonly WindowEntry[], failed: Set<MailboxId>): void => {
+const deferHeld = (chunk: readonly WindowEntry[], failed: Set<MailboxId>): void => {
   chunk
-    .filter((entry) => entry.pass.role === 'trash')
+    .filter((entry) => isHeldRole(entry.pass.role))
     .forEach((entry) => failed.add(entry.pass.mailbox.id));
 };
 
@@ -147,7 +148,7 @@ export class InitialSync {
       const ordered = related.size === 0 ? chunk : orderEntries([chunk, [...related]]);
       const fetched = await fetchChunk(context, logger, ordered, failed);
       if (!found.complete || !allFetched(related, fetched)) {
-        deferTrash(chunk, failed);
+        deferHeld(chunk, failed);
       }
       for (const entry of ordered) {
         const mailboxId = entry.pass.mailbox.id;

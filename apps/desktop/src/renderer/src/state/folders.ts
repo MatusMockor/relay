@@ -37,7 +37,16 @@ export const listParamsOf = (folder: Folder, scope: AccountScope, q: string): Th
 
 export interface ViewMeta {
   readonly label: string;
-  readonly icon: 'inbox' | 'task' | 'clock' | 'check' | 'send' | 'file' | 'calendar' | 'trash';
+  readonly icon:
+    | 'inbox'
+    | 'task'
+    | 'clock'
+    | 'check'
+    | 'send'
+    | 'file'
+    | 'calendar'
+    | 'spam'
+    | 'trash';
   readonly g: string;
   readonly sub: string;
   readonly hint?: string;
@@ -72,6 +81,13 @@ export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
     g: 'N',
     sub: 'Odošlú sa automaticky v nastavený čas',
   },
+  spam: {
+    label: 'Spam',
+    icon: 'spam',
+    g: 'P',
+    sub: 'Nevyžiadaná pošta, ktorú označil server alebo ty',
+    hint: '[E] alebo [!] vráti vybranú do Doručenej pošty',
+  },
   trash: {
     label: 'Kôš',
     icon: 'trash',
@@ -89,6 +105,7 @@ export const NAV_VIEWS: readonly FolderView[] = [
   'sent',
   'drafts',
   'scheduled',
+  'spam',
   'trash',
 ];
 

@@ -1,5 +1,6 @@
 import type { ThreadId } from '@relay/shared/domain';
 import type { ThreadRefreshWork } from '../../model/pending-work';
+import type { MailCopies } from '../shared/mail-copies';
 import type { ThreadRefreshHint } from '../shared/thread-refresh';
 import { type MessageRoleOf, syncedThreadState } from './synced-thread-state';
 
@@ -27,9 +28,10 @@ export const mergeThreadWork = (
 export const threadWorkHint = (
   work: ThreadRefreshWork,
   roleOf: MessageRoleOf,
+  copies: MailCopies,
 ): ThreadRefreshHint => ({
   addSplitIds: [...work.addSplitIds],
   ...(work.jiraKey === null ? {} : { jiraKey: work.jiraKey }),
   ...(work.jiraActor === null ? {} : { jiraActor: work.jiraActor }),
-  resolveState: (existing, messages) => syncedThreadState(work, existing, messages, roleOf),
+  resolveState: (existing, messages) => syncedThreadState(work, existing, messages, roleOf, copies),
 });

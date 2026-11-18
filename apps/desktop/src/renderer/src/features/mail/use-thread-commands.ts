@@ -50,11 +50,30 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       },
     });
   };
+  const toggleSpam = (item: ListItem | null) => {
+    if (item?.kind !== 'thread') {
+      return;
+    }
+    const { thread } = item;
+    if (thread.state === 'spam') {
+      apply(thread, { type: 'notSpam' }, 'Nie je spam, presunuté späť', { type: 'reportSpam' });
+      return;
+    }
+    if (thread.state === 'trash') {
+      showToast('Najprv konverzáciu obnov z koša');
+      return;
+    }
+    apply(thread, { type: 'reportSpam' }, 'Nahlásené ako spam', { type: 'notSpam' });
+  };
   const markDone = (item: ListItem | null) => {
     if (item?.kind !== 'thread') {
       return;
     }
     const { thread } = item;
+    if (thread.state === 'spam') {
+      toggleSpam(item);
+      return;
+    }
     if (thread.state === 'done' || thread.state === 'trash') {
       apply(
         thread,
@@ -121,7 +140,7 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     }
     mutation.mutate({ threadId: thread.id, action: { type: 'markRead' } });
   };
-  return { markDone, remind, trash, markRead };
+  return { markDone, toggleSpam, remind, trash, markRead };
 };
 
 export type ThreadCommands = ReturnType<typeof useThreadCommands>;
