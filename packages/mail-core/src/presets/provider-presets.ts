@@ -15,6 +15,7 @@ export type ProviderPresetId =
   | 'atlas'
   | 'aol'
   | 'gmx'
+  | 'gmxcom'
   | 'zoho'
   | 'volny';
 
@@ -170,6 +171,16 @@ export const providerPresets: Readonly<Record<ProviderPresetId, ProviderPreset>>
     domains: ['gmx.net', 'gmx.de', 'gmx.at', 'gmx.ch'],
     imap: tls('imap.gmx.net'),
     smtp: starttls('mail.gmx.net'),
+    supportsOAuth: false,
+    requiresAppPassword: false,
+  },
+  gmxcom: {
+    id: 'gmxcom',
+    label: 'GMX',
+    provider: 'imap',
+    domains: ['gmx.com'],
+    imap: tls('imap.gmx.com'),
+    smtp: starttls('mail.gmx.com'),
     supportsOAuth: false,
     requiresAppPassword: false,
   },
