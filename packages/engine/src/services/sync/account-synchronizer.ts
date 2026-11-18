@@ -9,6 +9,7 @@ import { errorMessage, type MailProviderSessions } from '../shared/mail-provider
 import type { ChangeFlusher } from './change-flusher';
 import { completedSyncState } from './completed-sync-state';
 import type { InitialSync } from './initial-sync';
+import type { LabelRescans } from './label-rescans';
 import type { MailboxEvents } from './mailbox-events';
 import { countsChanged, unchangedSince } from './mailbox-pass';
 import type { MailboxRefresher } from './mailbox-refresher';
@@ -35,6 +36,7 @@ export interface AccountSynchronizerDeps {
   readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
+  readonly rescans: LabelRescans;
   readonly mailboxEvents: MailboxEvents;
   readonly mailboxSync: MailboxSynchronizer;
   readonly initialSync: InitialSync;
@@ -120,7 +122,7 @@ export class AccountSynchronizer {
   private async syncMailboxes(base: SyncContext): Promise<void> {
     const splits = await this.deps.splits.listForAccount(base.userId, base.account.id);
     const context: SyncContext = { ...base, splits };
-    const { mailboxes, rescanLabels } = await this.deps.refresher.refresh(context);
+    const mailboxes = await this.deps.refresher.refresh(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
     await this.deps.flusher.flush(context);
     const selected = selectMailboxes(mailboxes, this.deps.options);
@@ -137,8 +139,11 @@ export class AccountSynchronizer {
     if (passes.some(countsChanged)) {
       await this.deps.mailboxEvents.mailboxesChanged(context);
     }
+    const rescans = await this.deps.rescans.pending(context.account.id);
     const incremental = passes.filter(
-      (pass) => completedSyncState(pass.state) !== null && (rescanLabels || !unchangedSince(pass)),
+      (pass) =>
+        completedSyncState(pass.state) !== null &&
+        (rescans.has(pass.mailbox.id) || !unchangedSince(pass)),
     );
     const fetched = await this.fetchIncremental(context, incremental, {
       holdCalendar: await this.deps.initialSync.holdsCalendar(context, passes),
@@ -148,7 +153,11 @@ export class AccountSynchronizer {
       skipped: fetched.length < incremental.length,
     });
     for (const pass of fetched) {
-      await this.deps.mailboxSync.reconcile(context, pass, rescanLabels);
+      const rescan = rescans.get(pass.mailbox.id);
+      await this.deps.mailboxSync.reconcile(context, pass, rescan !== undefined);
+      if (rescan !== undefined) {
+        await this.deps.rescans.done(rescan);
+      }
     }
     await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);

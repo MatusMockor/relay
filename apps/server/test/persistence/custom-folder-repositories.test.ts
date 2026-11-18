@@ -113,6 +113,24 @@ describe('Postgres repositories for custom folders and Gmail labels', () => {
     await expect(labels.listByKind(seeded.account.id, 'keyword')).resolves.toEqual([keyword]);
   });
 
+  it('reads back a Gmail label whose path is longer than 200 characters', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const path = `Klienti/${'a'.repeat(220)}`;
+    const label: Label = {
+      id: newId('label'),
+      accountId: seeded.account.id,
+      name: path,
+      color: null,
+      kind: 'gmail',
+      remoteName: path,
+    };
+    await context.repositories.labels.upsert(label);
+
+    await expect(
+      context.repositories.labels.listByKind(seeded.account.id, 'gmail'),
+    ).resolves.toEqual([label]);
+  });
+
   it('stores the email id and finds every copy of a message by it', async () => {
     const seeded = await seedAccount(context.repositories);
     const inbox = await seedThread(context.repositories, seeded, {}, { emailId: '1789' });

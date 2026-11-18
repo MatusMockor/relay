@@ -10,6 +10,7 @@ import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
 import type { SyncBackfill } from './sync-backfill';
 import { GmailLabelCatalog } from './gmail-label-catalog';
+import { LabelRescans } from './label-rescans';
 import { MailboxEvents } from './mailbox-events';
 import { MailboxForgetter } from './mailbox-forgetter';
 import { MailboxReconciler } from './mailbox-reconciler';
@@ -93,6 +94,11 @@ export const createSyncComponents = (
     labels: repositories.labels,
     events: shared.events,
   });
+  const rescans = new LabelRescans({
+    pendingWork: repositories.pendingWork,
+    syncStates: repositories.syncStates,
+    clock,
+  });
   const refresher = new MailboxRefresher({
     mailboxes: repositories.mailboxes,
     syncStates: repositories.syncStates,
@@ -100,9 +106,10 @@ export const createSyncComponents = (
       messages: repositories.messages,
       syncStates: repositories.syncStates,
       unitOfWork,
+      rescans,
     }),
     probe: new MailboxStatusProbe(logger),
-    catalog: new GmailLabelCatalog({ labels: repositories.labels, ids }),
+    catalog: new GmailLabelCatalog({ labels: repositories.labels, rescans, ids, logger }),
     events: mailboxEvents,
     ids,
   });
@@ -111,6 +118,7 @@ export const createSyncComponents = (
     pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,
+    rescans,
     mailboxEvents,
     mailboxSync,
     initialSync: fetchers.initialSync,

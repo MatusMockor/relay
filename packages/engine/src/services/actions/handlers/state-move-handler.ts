@@ -1,11 +1,16 @@
-import type { AccountId, ThreadSummary } from '@relay/shared/domain';
+import type { AccountId, MailboxId, MailboxRole, ThreadSummary } from '@relay/shared/domain';
 import { NotFoundError } from '../../../errors';
 import type { Clock } from '../../../ports/clock';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
 import { MailCopies } from '../../shared/mail-copies';
-import { forgetMoveOrigins, moveOrigins, recordMoveOrigins } from '../../shared/move-origins';
+import {
+  forgetMoveOrigins,
+  type MoveOrigin,
+  moveOrigins,
+  recordMoveOrigins,
+} from '../../shared/move-origins';
 import { pendingMoveTargets, recordProviderOps } from '../../shared/provider-ops';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
@@ -24,6 +29,12 @@ export interface StateMoveHandlerDeps {
   readonly mirror: ProviderMirror;
   readonly clock: Clock;
 }
+
+const liveOrigin = (
+  origin: MoveOrigin | undefined,
+  mailboxes: ReadonlyMap<MailboxId, MailboxRole>,
+): MoveOrigin | undefined =>
+  origin?.mailboxId === undefined || mailboxes.has(origin.mailboxId) ? origin : undefined;
 
 const moveChange = (move: PlannedMove) =>
   move.mailboxId === undefined
@@ -93,7 +104,7 @@ export class StateMoveHandler {
         message,
         role,
         mailboxId,
-        origin: origins.get(message.id),
+        origin: liveOrigin(origins.get(message.id), roles),
         moving: pending.has(message.id),
       };
     });

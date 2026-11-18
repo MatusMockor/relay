@@ -140,6 +140,54 @@ describe('realtime cache sync', () => {
     await waitUntil(() => count('threads.list') > lists && count('threads.get') > details);
   });
 
+  it('refetches mailboxes and labels after the realtime connection comes back', async () => {
+    const accountId = AccountIdSchema.parse('acc-1');
+    const fetches = { mailboxes: 0, labels: 0 };
+    const observers = [
+      new QueryObserver(queryClient, {
+        queryKey: queryKeys.mailboxes(accountId),
+        queryFn: () => {
+          fetches.mailboxes += 1;
+          return Promise.resolve([]);
+        },
+      }),
+      new QueryObserver(queryClient, {
+        queryKey: queryKeys.labels(),
+        queryFn: () => {
+          fetches.labels += 1;
+          return Promise.resolve([]);
+        },
+      }),
+    ];
+    const unsubscribes = observers.map((observer) => observer.subscribe(() => undefined));
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <ServicesProvider
+          services={{ mode: 'synced', client, server: null, serverUrl: server.url }}
+        >
+          {children}
+        </ServicesProvider>
+      </QueryClientProvider>
+    );
+    renderHook(
+      () => {
+        useRealtimeSync();
+      },
+      { wrapper },
+    );
+    await waitUntil(() => server.sockets[0]?.messages.length === 1);
+    await waitUntil(() => fetches.mailboxes >= 1 && queryClient.isFetching() === 0);
+    const before = { ...fetches };
+
+    server.sockets[0]?.close();
+    await waitUntil(() => server.sockets[1]?.messages.length === 1);
+
+    await waitUntil(() => fetches.mailboxes > before.mailboxes && fetches.labels > before.labels);
+    unsubscribes.forEach((unsubscribe) => {
+      unsubscribe();
+    });
+  });
+
   it('coalesces thread list refetches during a burst of thread updates', async () => {
     let fetches = 0;
     const observer = new QueryObserver<ThreadPage>(queryClient, {

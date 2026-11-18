@@ -15,7 +15,7 @@ describe('modified UTF-7 decoding', () => {
 });
 
 describe('Gmail label reading', () => {
-  const labels = new Set(['\\Inbox', '"Fakt&APo-ry"', 'Projekty/Alfa', '']);
+  const labels = new Set(['\\Inbox', 'Fakt&APo-ry', 'Projekty/Alfa', '']);
 
   it('returns null without the Gmail extension', () => {
     expect(toGmailLabels({ labels: false, utf8: false }, labels)).toBeNull();
@@ -28,6 +28,10 @@ describe('Gmail label reading', () => {
       '\\Inbox',
     ]);
     expect(toGmailLabels({ labels: true, utf8: false }, undefined)).toEqual([]);
+  });
+
+  it('keeps quotes that are part of the label name', () => {
+    expect(toGmailLabels({ labels: true, utf8: false }, new Set(['"VIP"']))).toEqual(['"VIP"']);
   });
 
   it('leaves labels alone once UTF8=ACCEPT is enabled', () => {

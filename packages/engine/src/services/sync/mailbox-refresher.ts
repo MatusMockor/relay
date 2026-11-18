@@ -11,11 +11,6 @@ import { detectRenames, type MailboxRename } from './mailbox-rename-detector';
 import type { MailboxStatusProbe, MailboxStatuses } from './mailbox-status-probe';
 import type { SyncContext } from './sync-context';
 
-export interface MailboxRefresh {
-  readonly mailboxes: readonly Mailbox[];
-  readonly rescanLabels: boolean;
-}
-
 export interface MailboxRefresherDeps {
   readonly mailboxes: MailboxRepository;
   readonly syncStates: SyncStateRepository;
@@ -39,7 +34,7 @@ const labelRenames = (renames: readonly MailboxRename[]): LabelRename[] =>
 export class MailboxRefresher {
   constructor(private readonly deps: MailboxRefresherDeps) {}
 
-  async refresh(context: SyncContext): Promise<MailboxRefresh> {
+  async refresh(context: SyncContext): Promise<Mailbox[]> {
     const accountId = context.account.id;
     const existing = await this.deps.mailboxes.listForSync(accountId);
     const remote = await context.provider.listMailboxes();
@@ -63,9 +58,9 @@ export class MailboxRefresher {
     const current = [...stored, ...appeared];
     context.mailboxRoles.clear();
     current.forEach((mailbox) => context.mailboxRoles.set(mailbox.id, mailbox.role));
-    const labels = await this.deps.catalog.sync(context, current, labelRenames(renames));
-    await this.announce(context, sameMailboxes(existing, current), labels.changed);
-    return { mailboxes: current, rescanLabels: labels.added };
+    const labelsChanged = await this.deps.catalog.sync(context, current, labelRenames(renames));
+    await this.announce(context, sameMailboxes(existing, current), labelsChanged);
+    return current;
   }
 
   private probe(

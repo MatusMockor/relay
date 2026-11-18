@@ -1,6 +1,7 @@
-import type { AccountId, LabelId } from '@relay/shared/domain';
+import type { AccountId, Label, LabelId } from '@relay/shared/domain';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { LabelRepository } from '../../ports/label-repository';
+import { isValidLabel } from './valid-label';
 
 export interface LabelSource {
   readonly keywords: readonly string[];
@@ -52,18 +53,27 @@ export class MessageLabelsResolver {
     const resolved: LabelId[] = [];
     for (const keyword of new Set(keywords.filter(isUserKeyword))) {
       const known = await labels.findByRemoteName(accountId, 'keyword', keyword);
-      const label =
-        known ??
-        (await labels.upsert({
-          id: this.ids.generate('label'),
-          accountId,
-          name: keyword,
-          color: null,
-          kind: 'keyword',
-          remoteName: keyword,
-        }));
-      resolved.push(label.id);
+      const label = known ?? (await this.created(labels, accountId, keyword));
+      if (label !== null) {
+        resolved.push(label.id);
+      }
     }
     return resolved;
+  }
+
+  private async created(
+    labels: LabelRepository,
+    accountId: AccountId,
+    keyword: string,
+  ): Promise<Label | null> {
+    const label: Label = {
+      id: this.ids.generate('label'),
+      accountId,
+      name: keyword,
+      color: null,
+      kind: 'keyword',
+      remoteName: keyword,
+    };
+    return isValidLabel(label) ? labels.upsert(label) : null;
   }
 }

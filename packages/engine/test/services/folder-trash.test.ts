@@ -49,10 +49,39 @@ describe('trash and spam for mail filed in a custom folder', () => {
     server.removeMailbox('Faktúry');
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    await apply(engine, thread, 'restore');
+    expect((await apply(engine, thread, 'restore')).state).toBe('inbox');
 
     expect(server.mailbox('INBOX').messages.size).toBe(1);
     expect(server.mailbox('Trash').messages.size).toBe(0);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(present(engine.db.tables.threads.get(thread.id)).state).toBe('inbox');
+  });
+
+  it('returns folder mail to the inbox on not spam when the folder is gone', async () => {
+    const engine = createTestEngine();
+    const { account, server, thread } = await folderThread(engine);
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'reportSpam' });
+    server.removeMailbox('Faktúry');
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const back = await engine.services.actions.apply(USER_ID, thread.id, { type: 'notSpam' });
+
+    expect(back.state).toBe('inbox');
+    expect(server.mailbox('INBOX').messages.size).toBe(1);
+  });
+
+  it('reopens folder mail by moving it to the inbox', async () => {
+    const engine = createTestEngine();
+    const { account, server, thread } = await folderThread(engine);
+
+    expect(
+      (await engine.services.actions.apply(USER_ID, thread.id, { type: 'undone' })).state,
+    ).toBe('inbox');
+
+    expect(server.mailbox('Faktúry').messages.size).toBe(0);
+    expect(server.mailbox('INBOX').messages.size).toBe(1);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(present(engine.db.tables.threads.get(thread.id)).state).toBe('inbox');
   });
 
   it('reports folder mail as spam and returns it to the folder on not spam', async () => {

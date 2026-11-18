@@ -110,6 +110,10 @@ export interface CalendarRebuildPartWork {
   readonly parts: readonly string[];
 }
 
+export interface LabelRescanWork {
+  readonly mailboxId: MailboxId;
+}
+
 export interface PendingWorkPayloads {
   readonly 'provider-op': ProviderOpWork;
   readonly 'thread-refresh': ThreadRefreshWork;
@@ -123,6 +127,7 @@ export interface PendingWorkPayloads {
   readonly 'calendar-rebuild-part': CalendarRebuildPartWork;
   readonly 'trash-origin': MoveOriginWork;
   readonly 'spam-origin': MoveOriginWork;
+  readonly 'label-rescan': LabelRescanWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

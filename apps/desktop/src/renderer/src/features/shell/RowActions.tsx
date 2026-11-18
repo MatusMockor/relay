@@ -21,11 +21,17 @@ const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: 
 const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', key: '!' };
 
 const HELD_VIEWS: readonly FolderView[] = ['trash', 'spam'];
+const MIXED_VIEWS: readonly FolderView[] = ['mailbox', 'label'];
 
-const actionView = (view: FolderView, item: ListItem): string =>
-  HELD_VIEWS.includes(view) && item.kind === 'thread' && item.thread.state !== view
-    ? item.thread.state
-    : view;
+const actionView = (view: FolderView, item: ListItem): string => {
+  if (item.kind !== 'thread') {
+    return view;
+  }
+  if (MIXED_VIEWS.includes(view)) {
+    return item.thread.state;
+  }
+  return HELD_VIEWS.includes(view) && item.thread.state !== view ? item.thread.state : view;
+};
 
 const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   const map: Record<string, ActionSpec[]> = {

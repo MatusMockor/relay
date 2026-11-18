@@ -74,7 +74,7 @@ describe('ImapMailProvider against a scripted Gmail IMAP server', () => {
 
     expect(changes.map(({ uid, labels }) => ({ uid, labels }))).toEqual([
       { uid: 5, labels: ['Projekty/Alfa', '\\Important', '\\Inbox'] },
-      { uid: 7, labels: ['Archive'] },
+      { uid: 7, labels: ['"VIP"', 'Archive'] },
     ]);
     const fetches = stub.commands.filter((command) => command.includes('UID FETCH'));
     expect(fetches).toHaveLength(1);

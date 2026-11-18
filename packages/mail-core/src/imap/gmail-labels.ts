@@ -18,11 +18,7 @@ export const labelReadingOf = (client: LabelCapabilityClient): LabelReading => (
   utf8: client.enabled.has('UTF8=ACCEPT') || client.enabled.has('IMAP4REV2'),
 });
 
-const unquoted = (value: string): string =>
-  value.length >= 2 && value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
-
-const decodedLabel = (value: string, reading: LabelReading): string => {
-  const label = unquoted(value);
+const decodedLabel = (label: string, reading: LabelReading): string => {
   if (reading.utf8 || label.startsWith('\\')) {
     return label;
   }

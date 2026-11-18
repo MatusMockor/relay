@@ -138,6 +138,21 @@ describe('SQLite repositories for custom folders and Gmail labels', () => {
     ]);
   });
 
+  it('reads back a Gmail label whose path is longer than 200 characters', async () => {
+    const path = `Klienti/${'a'.repeat(220)}`;
+    const label = {
+      id: labelId('l-long'),
+      accountId: work.account.id,
+      name: path,
+      color: null,
+      kind: 'gmail' as const,
+      remoteName: path,
+    };
+    await store.repositories.labels.upsert(label);
+
+    expect(await store.repositories.labels.listByKind(work.account.id, 'gmail')).toEqual([label]);
+  });
+
   it('stores the email id and finds every copy of a message by it', async () => {
     const { messages } = store.repositories;
     await messages.upsert(

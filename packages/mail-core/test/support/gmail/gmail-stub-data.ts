@@ -38,7 +38,7 @@ export const gmailMailboxes = (): StubMailbox[] => [
   mailbox('[Gmail]/All Mail', ['\\All', '\\HasNoChildren'], 11, [
     message(5, '1790000000000000001', ['\\Inbox', '\\Important', 'Projekty/Alfa'], 'Alfa'),
     message(6, '1790000000000000002', ['\\Inbox', 'Fakt&APo-ry'], 'Faktura'),
-    message(7, '1790000000000000003', ['Archive'], 'Archived'),
+    message(7, '1790000000000000003', ['Archive', '"VIP"'], 'Archived'),
   ]),
   mailbox('[Gmail]/Drafts', ['\\Drafts', '\\HasNoChildren'], 12),
   mailbox('[Gmail]/Important', ['\\HasNoChildren', '\\Important'], 13),

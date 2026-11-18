@@ -46,7 +46,8 @@ export function AccountFolderGroup({
   grouped,
 }: AccountFolderGroupProps) {
   const folder = useUiStore((state) => state.folder);
-  const shut = useUiStore((state) => state.collapsed[`acct:${account.id}`] === true);
+  const collapsed = useUiStore((state) => state.collapsed[`acct:${account.id}`] === true);
+  const shut = grouped && collapsed;
   const colors = useNameColors();
   const folders = useMemo(() => buildFolderTree(mailboxEntries(mailboxes)), [mailboxes]);
   const labelTree = useMemo(() => buildFolderTree(labelEntries(labels)), [labels]);

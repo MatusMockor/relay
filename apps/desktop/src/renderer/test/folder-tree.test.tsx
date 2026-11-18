@@ -98,6 +98,22 @@ describe('folder tree', () => {
     ]);
   });
 
+  it('keeps full paths when hiding the INBOX prefix would merge two folders', () => {
+    const tree = buildFolderTree(
+      mailboxEntries([
+        mailbox('Projects', { delimiter: '.' }),
+        mailbox('INBOX.Projects', { delimiter: '.' }),
+      ]),
+    );
+
+    expect(shapeOf(tree)).toEqual([
+      { name: 'INBOX', real: false, children: [leaf('Projects')] },
+      leaf('Projects'),
+    ]);
+    expect(tree.map((node) => node.value?.path ?? null)).toEqual([null, 'Projects']);
+    expect(tree[0]?.children[0]?.value?.path).toBe('INBOX.Projects');
+  });
+
   it('keeps only custom subscribed folders unless the server reports no subscriptions', () => {
     const subscribed = [
       mailbox('INBOX', { role: 'inbox' }),
