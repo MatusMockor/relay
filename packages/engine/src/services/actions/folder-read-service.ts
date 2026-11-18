@@ -12,7 +12,7 @@ import { chunked } from '../shared/chunked';
 import type { EngineEvents } from '../shared/engine-events';
 import { yieldToEventLoop } from '../shared/event-loop';
 import type { PendingProviderOp } from '../shared/provider-ops';
-import type { FlagWriter } from './handlers/flag-writer';
+import type { FlagWriter, StagedFlagWrite } from './handlers/flag-writer';
 import type { ProviderMirror } from './provider-mirror';
 
 export interface FolderThreadLister {
@@ -30,7 +30,7 @@ export interface FolderReadServiceDeps {
 }
 
 interface ChunkReadResult {
-  readonly threads: ThreadSummary[];
+  readonly writes: StagedFlagWrite[];
   readonly ops: PendingProviderOp[];
 }
 
@@ -92,10 +92,11 @@ export class FolderReadService {
       this.stageChunk(repositories, userId, account, threads),
     );
     await this.deps.mirror.apply(account, result.ops);
-    for (const thread of result.threads) {
+    for (const { thread } of result.writes) {
       await this.deps.events.emit(userId, 'thread.upserted', { thread });
     }
-    return result.threads.length;
+    await this.deps.flags.publishCounts({ userId, account }, result.writes);
+    return result.writes.length;
   }
 
   private async stageChunk(
@@ -104,7 +105,7 @@ export class FolderReadService {
     account: MailAccount,
     threads: readonly ThreadSummary[],
   ): Promise<ChunkReadResult> {
-    const result: ChunkReadResult = { threads: [], ops: [] };
+    const result: ChunkReadResult = { writes: [], ops: [] };
     for (const thread of threads) {
       const messages = await repositories.messages.listByThread(userId, thread.id);
       const targets = messages.filter((message) => !message.flags.seen);
@@ -113,7 +114,7 @@ export class FolderReadService {
       }
       const context = { userId, thread, account, messages };
       const staged = await this.deps.flags.stage(repositories, context, targets, 'seen', true);
-      result.threads.push(staged.thread);
+      result.writes.push(staged);
       result.ops.push(...staged.ops);
     }
     return result;

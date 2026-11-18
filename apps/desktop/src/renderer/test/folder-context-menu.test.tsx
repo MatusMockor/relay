@@ -153,6 +153,9 @@ describe('folder context menu', () => {
     await waitFor(() => {
       expect(toastText()).toContain('Označené ako prečítané: 1');
     });
+    await waitFor(() => {
+      expect(within(efabrica).getByRole('button', { name: /Beta/ }).querySelector('.n')).toBeNull();
+    });
     const beta = await client.listThreads({
       view: 'mailbox',
       mailboxId: demoIds.folder('efa', 'beta'),

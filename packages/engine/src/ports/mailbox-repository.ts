@@ -20,6 +20,7 @@ export interface MailboxRepository {
   upsertMany(accountId: AccountId, mailboxes: readonly Mailbox[]): Promise<Mailbox[]>;
   deleteMissing(accountId: AccountId, keepPaths: readonly string[]): Promise<MailboxId[]>;
   updateCounts(mailboxId: MailboxId, counts: MailboxCounts): Promise<void>;
+  adjustUnreadCount(mailboxId: MailboxId, delta: number): Promise<void>;
   relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void>;
   relocateTree(accountId: AccountId, fromPath: string, target: MailboxLocation): Promise<void>;
   saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void>;

@@ -2,6 +2,7 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ReminderScheduler } from '../reminders/reminder-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
+import { MailboxEvents } from '../sync/mailbox-events';
 import { FolderReadService, type FolderThreadLister } from './folder-read-service';
 import { FlagWriter } from './handlers/flag-writer';
 import { LabelHandler } from './handlers/label-handler';
@@ -37,7 +38,12 @@ export const createMessageActionComponents = (
     replayer: shared.replayer,
     logger,
   });
-  const flags = new FlagWriter({ unitOfWork, mirror, clock });
+  const mailboxEvents = new MailboxEvents({
+    mailboxes: repositories.mailboxes,
+    labels: repositories.labels,
+    events: shared.events,
+  });
+  const flags = new FlagWriter({ unitOfWork, mirror, clock, mailboxEvents });
   const locator = new MessageLocator(repositories.mailboxes, repositories.pendingWork);
   const stateMoves = new StateMoveHandler({
     locator,

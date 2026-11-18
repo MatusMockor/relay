@@ -58,6 +58,24 @@ describe('SqliteMailboxRepository and SqliteSyncStateRepository', () => {
     ]);
   });
 
+  it('adjusts the unread count without going below zero', async () => {
+    const { mailboxes } = store.repositories;
+    await mailboxes.upsertMany(account, [
+      buildMailbox(),
+      buildMailbox({ id: mailboxId('mbx-sent'), name: 'Sent', path: 'Sent', role: 'sent' }),
+    ]);
+    const inbox = mailboxId('mbx-inbox');
+    await mailboxes.updateCounts(inbox, { unreadCount: 3, totalCount: 10 });
+
+    await mailboxes.adjustUnreadCount(inbox, -2);
+    expect(await mailboxes.findById(inbox)).toMatchObject({ unreadCount: 1, totalCount: 10 });
+    await mailboxes.adjustUnreadCount(inbox, -5);
+    expect(await mailboxes.findById(inbox)).toMatchObject({ unreadCount: 0 });
+    await mailboxes.adjustUnreadCount(inbox, 2);
+    expect(await mailboxes.findById(inbox)).toMatchObject({ unreadCount: 2 });
+    expect(await mailboxes.findById(mailboxId('mbx-sent'))).toMatchObject({ unreadCount: 0 });
+  });
+
   it('saves, replaces and deletes the sync state of a mailbox', async () => {
     const { mailboxes, syncStates } = store.repositories;
     await mailboxes.upsertMany(account, [buildMailbox()]);

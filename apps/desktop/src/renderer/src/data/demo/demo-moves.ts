@@ -10,6 +10,7 @@ import type {
 } from '@relay/shared';
 import { MailClientError } from '../errors';
 import { projectThreadAction } from '../thread-projection';
+import { applyReadFlags } from './demo-read-flags';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 interface DemoMoveOrigin {
@@ -34,6 +35,7 @@ export class DemoMoves {
     if (action.type === 'undoMove') {
       return this.undo(record);
     }
+    record.messages = applyReadFlags(record.messages, action);
     record.summary = projectThreadAction(record.summary, action);
     return record.summary;
   }

@@ -60,6 +60,15 @@ export class MemoryMailboxRepository implements MailboxRepository {
     return Promise.resolve();
   }
 
+  adjustUnreadCount(mailboxId: MailboxId, delta: number): Promise<void> {
+    const mailbox = this.db.tables.mailboxes.get(mailboxId);
+    if (mailbox !== undefined) {
+      const unreadCount = Math.max(0, mailbox.unreadCount + delta);
+      this.db.tables.mailboxes.set(mailboxId, { ...mailbox, unreadCount });
+    }
+    return Promise.resolve();
+  }
+
   relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
     const mailbox = this.db.tables.mailboxes.get(mailboxId);
     if (mailbox !== undefined) {

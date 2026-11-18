@@ -101,6 +101,15 @@ export class SqliteMailboxRepository implements MailboxRepository {
     });
   }
 
+  adjustUnreadCount(mailboxId: MailboxId, delta: number): Promise<void> {
+    return this.executor.execute((db) => {
+      db.update(mailboxes)
+        .set({ unreadCount: sql`max(${mailboxes.unreadCount} + ${delta}, 0)` })
+        .where(eq(mailboxes.id, mailboxId))
+        .run();
+    });
+  }
+
   relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
     return this.executor.execute((db) => {
       db.update(mailboxes)
