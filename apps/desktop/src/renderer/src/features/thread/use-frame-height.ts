@@ -31,6 +31,7 @@ export function useFrameHeight(ref: RefObject<HTMLIFrameElement | null>) {
     }
     observer.current = new ResizeObserver(measure);
     observer.current.observe(document.body);
+    observer.current.observe(frame);
   }, [ref]);
 
   return { height, onLoad };

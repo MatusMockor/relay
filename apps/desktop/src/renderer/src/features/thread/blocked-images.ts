@@ -44,6 +44,27 @@ const blockSource = (source: Element): boolean => {
   return removed;
 };
 
+const hasRetainedSource = (image: Element): boolean =>
+  image.parentElement?.tagName === 'PICTURE' &&
+  image.parentElement.querySelector(':scope > source') !== null;
+
+const replaceBlockedSrc = (image: Element, hasPermittedCandidate: boolean): void => {
+  const width = dimensionOf(image, 'width');
+  const height = dimensionOf(image, 'height');
+  if (width !== null && height !== null) {
+    image.setAttribute('src', placeholderImage(width, height));
+    image.setAttribute('data-relay-blocked', '');
+    return;
+  }
+  image.setAttribute('src', EMPTY_IMAGE);
+  if (hasPermittedCandidate) {
+    image.setAttribute('data-relay-blocked', '');
+    return;
+  }
+  image.setAttribute('style', 'display:none!important');
+  image.setAttribute('data-relay-blocked', 'hidden');
+};
+
 const blockImage = (image: Element): boolean => {
   const src = (image.getAttribute('src') ?? '').trim();
   const remoteSrc = isRemoteUrl(src);
@@ -55,16 +76,7 @@ const blockImage = (image: Element): boolean => {
   if (usableSrc || (!remoteSrc && local > 0)) {
     return true;
   }
-  const width = dimensionOf(image, 'width');
-  const height = dimensionOf(image, 'height');
-  if (width === null || height === null) {
-    image.setAttribute('src', EMPTY_IMAGE);
-    image.setAttribute('style', 'display:none');
-    image.setAttribute('data-relay-blocked', 'hidden');
-    return true;
-  }
-  image.setAttribute('src', placeholderImage(width, height));
-  image.setAttribute('data-relay-blocked', '');
+  replaceBlockedSrc(image, local > 0 || hasRetainedSource(image));
   return true;
 };
 

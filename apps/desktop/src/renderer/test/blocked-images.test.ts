@@ -33,7 +33,7 @@ describe('blocked remote images', () => {
 
     expect(html).not.toContain('cdn.example.com');
     expect(image?.getAttribute('data-relay-blocked')).toBe('hidden');
-    expect(image?.getAttribute('style')).toBe('display:none');
+    expect(image?.getAttribute('style')).toBe('display:none!important');
   });
 
   it('keeps inline and attached images untouched', () => {
@@ -110,5 +110,26 @@ describe('blocked remote images', () => {
 
     expect(buildMailDocument(html, true)).toContain('https://cdn.example.com/a.png');
     expect(buildMailDocument(html, false)).not.toContain('https://cdn.example.com/a.png');
+  });
+
+  it('keeps an unsized image visible when it still has a permitted candidate', () => {
+    const fromSrcset = imagesOf(
+      withBlockedImagePlaceholders(
+        '<img src="https://cdn.example.com/a.png" srcset="data:image/png;base64,AA 1x">',
+      ),
+    );
+    const fromPicture = imagesOf(
+      withBlockedImagePlaceholders(
+        '<picture><source srcset="data:image/png;base64,AA"><img src="https://cdn.example.com/b.png"></picture>',
+      ),
+    );
+
+    expect([...fromSrcset, ...fromPicture].map((image) => image.getAttribute('style'))).toEqual([
+      null,
+      null,
+    ]);
+    expect(
+      [...fromSrcset, ...fromPicture].map((image) => image.getAttribute('data-relay-blocked')),
+    ).toEqual(['', '']);
   });
 });
