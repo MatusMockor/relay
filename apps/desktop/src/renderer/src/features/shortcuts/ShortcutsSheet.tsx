@@ -54,8 +54,8 @@ export const SHORTCUT_GROUPS: readonly (readonly [
   [
     'Účty',
     [
-      ['Všetky účty', [`${MOD}1`]],
-      ['Ďalšie účty', [`${MOD}2`, '…', `${MOD}9`]],
+      ['Účty v poradí', [`${MOD}1`, '…', `${MOD}9`]],
+      ['Všetky účty', [`${MOD}0`]],
       ['Prepínač účtov', ['klik vľavo hore']],
     ],
   ],
