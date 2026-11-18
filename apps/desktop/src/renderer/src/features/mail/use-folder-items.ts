@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDrafts, useScheduled, useThreadList } from '../../data/hooks/use-mail-queries';
-import { listParamsOf } from '../../state/folders';
+import { listParamsOf, usesThreadList } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { draftItems, type ListItem, scheduledItems, threadItem } from './list-items';
 
@@ -15,7 +15,7 @@ export const useFolderItems = (): FolderItems => {
   const query = useUiStore((state) => state.query);
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
-  const threads = useThreadList(listParamsOf(folder, scope, query), !isDrafts && !isScheduled);
+  const threads = useThreadList(listParamsOf(folder, scope, query), usesThreadList(folder));
   const drafts = useDrafts();
   const scheduled = useScheduled();
   return useMemo(() => {

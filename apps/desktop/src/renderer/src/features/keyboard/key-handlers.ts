@@ -1,6 +1,7 @@
 import type { Split, ThreadDetail } from '@relay/shared';
 import { type Folder, folderKey, MAIN_TAB_LABEL } from '../../state/folders';
 import type { AccountScope } from '../../state/folders';
+import { ALL_ACCOUNTS_DIGIT } from '../folders/account-shortcut';
 
 export const isTyping = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) {
@@ -45,8 +46,10 @@ export const scopeForDigit = (
   digit: number,
   accountIds: readonly string[],
 ): AccountScope | null => {
-  const ids: AccountScope[] = ['all', ...(accountIds as AccountScope[])];
-  return ids[digit - 1] ?? null;
+  if (digit === ALL_ACCOUNTS_DIGIT) {
+    return accountIds.length > 1 ? 'all' : null;
+  }
+  return (accountIds[digit - 1] as AccountScope | undefined) ?? null;
 };
 
 export const suggestionAt = (detail: ThreadDetail | undefined, index: number): string | null =>

@@ -53,9 +53,9 @@ describe('buildTrayMenu', () => {
       'Nová správa',
       '---',
       'Otvoriť s účtom',
-      'Všetky účty',
       'Práca',
       'Domov',
+      'Všetky účty',
       '---',
       'Synchronizovať teraz',
       'Pozastaviť notifikácie',
@@ -70,27 +70,27 @@ describe('buildTrayMenu', () => {
 
   it('lists every account with its unread count and checks the active scope', () => {
     expect(choices(buildTrayMenu(snapshot()))).toEqual([
-      { label: 'Všetky účty', sublabel: '5 neprečítaných', checked: true },
       { label: 'Práca', sublabel: 'jana@firma.sk - 3', checked: false },
       { label: 'Domov', sublabel: 'jana@gmail.com - 2', checked: false },
+      { label: 'Všetky účty', sublabel: '5 neprečítaných', checked: true },
     ]);
     expect(
       choices(buildTrayMenu(snapshot({ scope: home.id }))).map((item) => item.checked),
-    ).toEqual([false, false, true]);
+    ).toEqual([false, true, false]);
   });
 
   it('leaves out unread counts it does not know', () => {
     const remote = { ...home, unread: null };
     expect(choices(buildTrayMenu(snapshot({ accounts: [work, remote] })))).toEqual([
-      { label: 'Všetky účty', sublabel: null, checked: true },
       { label: 'Práca', sublabel: 'jana@firma.sk - 3', checked: false },
       { label: 'Domov', sublabel: 'jana@gmail.com', checked: false },
+      { label: 'Všetky účty', sublabel: null, checked: true },
     ]);
   });
 
   it('falls back to all accounts when the active scope points at a removed account', () => {
     const items = buildTrayMenu(snapshot({ scope: AccountIdSchema.parse('acc_gone') }));
-    expect(choices(items).map((item) => item.checked)).toEqual([true, false, false]);
+    expect(choices(items).map((item) => item.checked)).toEqual([false, false, true]);
   });
 
   it('shows a single account checked without the all accounts row', () => {
@@ -243,7 +243,7 @@ describe('buildTrayMenu', () => {
         buildTrayMenu(
           snapshot({ accounts: [accountOverview({ unread }), { ...home, unread: 0 }] }),
         ),
-      )[0]?.sublabel;
+      ).at(-1)?.sublabel;
     expect([total(0), total(1), total(2), total(4), total(5)]).toEqual([
       '0 neprečítaných',
       '1 neprečítaná',

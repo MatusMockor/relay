@@ -32,6 +32,9 @@ export const viewOf = (folder: Folder): FolderView => {
   return folder.kind === 'inbox' ? 'inbox' : folder.kind;
 };
 
+export const usesThreadList = (folder: Folder): boolean =>
+  folder.kind !== 'view' || (folder.view !== 'drafts' && folder.view !== 'scheduled');
+
 export const isAccountFolder = (folder: Folder): boolean =>
   folder.kind === 'label' || folder.kind === 'mailbox';
 
@@ -65,55 +68,20 @@ export interface ViewMeta {
     | 'folder'
     | 'label';
   readonly g: string;
-  readonly sub: string;
-  readonly hint?: string;
 }
 
 export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
-  inbox: { label: 'Doručená pošta', icon: 'inbox', g: 'I', sub: '' },
-  tasks: { label: 'Úlohy', icon: 'task', g: 'U', sub: 'Úlohy z Jiry a z AI, ktoré čakajú na teba' },
-  reminders: {
-    label: 'Pripomenuté',
-    icon: 'clock',
-    g: 'H',
-    sub: 'Vrátia sa do Doručenej pošty v nastavený čas',
-  },
-  done: {
-    label: 'Hotovo',
-    icon: 'check',
-    g: 'E',
-    sub: 'Vybavené konverzácie',
-    hint: '[E] vráti vybranú späť',
-  },
-  sent: { label: 'Odoslané', icon: 'send', g: 'T', sub: 'Tvoje odpovede a nové správy' },
-  drafts: {
-    label: 'Koncepty',
-    icon: 'file',
-    g: 'D',
-    sub: 'Rozpísané odpovede a správy, [Esc] ich uloží sem',
-  },
-  scheduled: {
-    label: 'Naplánované',
-    icon: 'calendar',
-    g: 'N',
-    sub: 'Odošlú sa automaticky v nastavený čas',
-  },
-  spam: {
-    label: 'Spam',
-    icon: 'spam',
-    g: 'P',
-    sub: 'Nevyžiadaná pošta, ktorú označil server alebo ty',
-    hint: '[E] alebo [!] vráti vybranú do Doručenej pošty',
-  },
-  trash: {
-    label: 'Kôš',
-    icon: 'trash',
-    g: 'K',
-    sub: 'Zmazané konverzácie',
-    hint: '[E] obnoví vybranú',
-  },
-  mailbox: { label: 'Priečinok', icon: 'folder', g: '', sub: '' },
-  label: { label: 'Štítok', icon: 'label', g: '', sub: '' },
+  inbox: { label: 'Doručená pošta', icon: 'inbox', g: 'I' },
+  tasks: { label: 'Úlohy', icon: 'task', g: 'U' },
+  reminders: { label: 'Pripomenuté', icon: 'clock', g: 'H' },
+  done: { label: 'Hotovo', icon: 'check', g: 'E' },
+  sent: { label: 'Odoslané', icon: 'send', g: 'T' },
+  drafts: { label: 'Koncepty', icon: 'file', g: 'D' },
+  scheduled: { label: 'Naplánované', icon: 'calendar', g: 'N' },
+  spam: { label: 'Spam', icon: 'spam', g: 'P' },
+  trash: { label: 'Kôš', icon: 'trash', g: 'K' },
+  mailbox: { label: 'Priečinok', icon: 'folder', g: '' },
+  label: { label: 'Štítok', icon: 'label', g: '' },
 };
 
 export const NAV_VIEWS: readonly NavView[] = [

@@ -1,5 +1,5 @@
 import { composeOverlay } from '../../state/compose-overlay';
-import { AccountSquare, FolderIcon, Icon, Spark } from '@relay/ui';
+import { FolderIcon, Icon, Spark } from '@relay/ui';
 import type { ThreadState } from '@relay/shared';
 import type { ReactNode } from 'react';
 import { useSplits } from '../../data/hooks/use-mail-queries';
@@ -8,13 +8,13 @@ import { NAV_VIEWS, VIEW_META } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { centerRect } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
-import { openRight, openSearch, selectFolder, selectScope, toggleRight } from '../mail/navigation';
-import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
+import { openRight, openSearch, selectFolder, toggleRight } from '../mail/navigation';
+import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
 import { threadComposeCommands } from './thread-compose-commands';
 import { threadSpamCommand } from './thread-spam-command';
-import { accountCount } from '../../lib/text';
+import { scopeCommands } from './scope-commands';
 
 export interface Command {
   readonly id: string;
@@ -139,25 +139,7 @@ export const useCommands = (): Command[] => {
         openRight('ai');
       },
     },
-    ...(model.multi
-      ? [null, ...model.accounts].map((account, index) => ({
-          id: `scope-${account?.id ?? 'all'}`,
-          label: `Účet: ${account?.displayName ?? 'Všetky účty'}`,
-          sub: account?.email ?? accountCount(model.accounts.length),
-          keys: index < 9 ? [`${MOD}${String(index + 1)}`] : [],
-          icon: (
-            <AccountSquare
-              account={account === null ? null : accountLike(account)}
-              all={model.accounts.map(accountLike)}
-              small
-            />
-          ),
-          alias: `ucet ucty account prepnut ${account?.email ?? 'vsetky'}`,
-          run: () => {
-            selectScope(account?.id ?? 'all');
-          },
-        }))
-      : []),
+    ...scopeCommands(model),
     {
       id: 'add-account',
       label: 'Pridať účet',

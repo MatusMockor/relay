@@ -1,9 +1,9 @@
 import type { MailAccount } from '@relay/shared';
 import { AccountSquare, type AnchorRect, Icon, Kbd, Popover } from '@relay/ui';
 import { useState } from 'react';
-import { MOD } from '../../lib/platform-keys';
 import { isControlTarget } from '../keyboard/focus-target';
 import { accountLike } from '../mail/use-accounts-model';
+import { accountShortcutKeys } from './account-shortcut';
 import { accountCount } from '../../lib/text';
 
 export interface AccountMenuProps {
@@ -18,6 +18,11 @@ export interface AccountMenuProps {
   readonly onClose: () => void;
 }
 
+function AccountShortcut({ id, index }: { readonly id: string; readonly index: number }) {
+  const keys = accountShortcutKeys(id === 'all', index);
+  return keys.length === 0 ? null : <Kbd keys={keys} />;
+}
+
 export function AccountMenu({
   anchor,
   title,
@@ -29,7 +34,7 @@ export function AccountMenu({
   onAdd,
   onClose,
 }: AccountMenuProps) {
-  const ids = [...(withAll ? ['all'] : []), ...accounts.map((account) => account.id as string)];
+  const ids = [...accounts.map((account) => account.id as string), ...(withAll ? ['all'] : [])];
   const [cursor, setCursor] = useState(Math.max(0, ids.indexOf(current)));
   const pick = (id: string | undefined) => {
     if (id === undefined) {
@@ -99,7 +104,7 @@ export function AccountMenu({
               </span>
             ) : null}
             {count > 0 ? <span className="wh">{count}</span> : null}
-            {withAll && index < 9 ? <Kbd keys={[`${MOD}${String(index + 1)}`]} /> : null}
+            {withAll ? <AccountShortcut id={id} index={index} /> : null}
           </button>
         );
       })}
