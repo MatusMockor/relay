@@ -60,6 +60,20 @@ describe('tray commands asked while the remembered account is restored', () => {
     expect(await composeSender()).toBe('Od: Freelance, meno@studio.sk. Zmeniť účet');
   });
 
+  it('falls back to all accounts in a message asked during boot when the remembered account is gone', async () => {
+    window.localStorage.setItem(SCOPE_KEY, JSON.stringify(AccountIdSchema.parse('acc-gone')));
+    const desktop = startTrayDesktop();
+    desktop.menuCommands.request({ command: 'compose' });
+
+    await bootAfterDelivery(desktop);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().overlay).toMatchObject({ kind: 'compose', scope: 'all' });
+    });
+    expect(useUiStore.getState().scope).toBe('all');
+    expect(await composeSender()).toMatch(/^Od: .+@/);
+  });
+
   it('keeps and remembers the account picked in the tray during boot', async () => {
     const desktop = startTrayDesktop();
     desktop.menuCommands.request({ command: 'select-scope', scope: WORK });
