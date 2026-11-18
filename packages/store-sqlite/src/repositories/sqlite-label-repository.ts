@@ -1,5 +1,12 @@
 import type { LabelRepository } from '@relay/engine';
-import type { AccountId, Label, LabelId, LabelKind, UserId } from '@relay/shared/domain';
+import {
+  type AccountId,
+  type Label,
+  type LabelId,
+  type LabelKind,
+  labelNameKey,
+  type UserId,
+} from '@relay/shared/domain';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
@@ -36,7 +43,7 @@ export class SqliteLabelRepository implements LabelRepository {
       const row = db
         .select()
         .from(labels)
-        .where(and(eq(labels.accountId, accountId), eq(labels.name, name)))
+        .where(and(eq(labels.accountId, accountId), eq(labels.nameKey, labelNameKey(name))))
         .get();
       return row === undefined ? null : toLabel(row);
     });
@@ -77,13 +84,15 @@ export class SqliteLabelRepository implements LabelRepository {
 
   upsert(label: Label): Promise<Label> {
     return this.executor.execute((db) => {
+      const nameKey = labelNameKey(label.name);
       db.insert(labels)
-        .values(label)
+        .values({ ...label, nameKey })
         .onConflictDoUpdate({
           target: labels.id,
           set: {
             accountId: label.accountId,
             name: label.name,
+            nameKey,
             color: label.color,
             kind: label.kind,
             remoteName: label.remoteName,

@@ -1,9 +1,17 @@
 import { ConflictError, type LabelRepository } from '@relay/engine';
-import type { AccountId, Label, LabelId, LabelKind, UserId } from '@relay/shared/domain';
+import {
+  type AccountId,
+  type Label,
+  type LabelId,
+  type LabelKind,
+  labelNameKey,
+  type UserId,
+} from '@relay/shared/domain';
 import { and, asc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { labels } from '../../schema';
 import { findAccountOwner } from '../../support/account-owner';
+import { isUniqueViolation } from '../../support/postgres-errors';
 import { toLabel, toLabelInsert } from './label.mapper';
 
 export class PgLabelRepository implements LabelRepository {
@@ -35,7 +43,7 @@ export class PgLabelRepository implements LabelRepository {
     const [row] = await this.db
       .select()
       .from(labels)
-      .where(and(eq(labels.accountId, accountId), eq(labels.name, name)));
+      .where(and(eq(labels.accountId, accountId), eq(labels.nameKey, labelNameKey(name))));
     return row === undefined ? null : toLabel(row);
   }
 
@@ -68,20 +76,30 @@ export class PgLabelRepository implements LabelRepository {
 
   async upsert(label: Label): Promise<Label> {
     const userId = await findAccountOwner(this.db, label.accountId);
+    const insert = toLabelInsert(userId, label);
     const [row] = await this.db
       .insert(labels)
-      .values(toLabelInsert(userId, label))
+      .values(insert)
       .onConflictDoUpdate({
         target: labels.id,
         set: {
-          name: label.name,
-          color: label.color,
-          kind: label.kind,
-          remoteName: label.remoteName,
+          name: insert.name,
+          nameKey: insert.nameKey,
+          color: insert.color,
+          kind: insert.kind,
+          remoteName: insert.remoteName,
         },
         setWhere: eq(labels.userId, userId),
       })
-      .returning();
+      .returning()
+      .catch((error: unknown) => {
+        if (isUniqueViolation(error)) {
+          throw new ConflictError(`Label ${label.name} conflicts with an existing label`, {
+            cause: error,
+          });
+        }
+        throw error;
+      });
     if (row === undefined) {
       throw new ConflictError(`Label ${label.id} belongs to another user`);
     }

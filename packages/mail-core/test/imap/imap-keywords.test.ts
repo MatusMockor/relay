@@ -27,25 +27,25 @@ describe('IMAP keywords against GreenMail', () => {
     }
   };
 
-  it('stores encoded keywords and reads them back as readable names', async () => {
+  it('stores and reads keyword identities exactly as the server keeps them', async () => {
     await appendMail('first');
 
     await harness.provider.setKeywords('INBOX', [1], {
-      add: ['Faktúry', 'Moje veci', 'relay-done'],
+      add: ['Fakt&c3ba-ry', 'A&B-C', 'relay-done'],
       remove: [],
     });
 
-    expect(await rawKeywords('INBOX', 1)).toEqual(['Fakt&APo-ry', 'Moje&ACA-veci', 'relay-done']);
+    expect(await rawKeywords('INBOX', 1)).toEqual(['A&B-C', 'Fakt&c3ba-ry', 'relay-done']);
     expect((await harness.provider.fetchMessage('INBOX', 1))?.keywords).toEqual([
-      'Faktúry',
-      'Moje veci',
+      'A&B-C',
+      'Fakt&c3ba-ry',
       'relay-done',
     ]);
 
-    await harness.provider.setKeywords('INBOX', [1], { add: [], remove: ['Moje veci'] });
+    await harness.provider.setKeywords('INBOX', [1], { add: [], remove: ['A&B-C'] });
 
     expect((await harness.provider.fetchMessage('INBOX', 1))?.keywords).toEqual([
-      'Faktúry',
+      'Fakt&c3ba-ry',
       'relay-done',
     ]);
   });
@@ -56,20 +56,21 @@ describe('IMAP keywords against GreenMail', () => {
     await appendMail('one');
     await appendMail('two');
     await appendMail('three', 'Archive');
-    await harness.provider.setKeywords('INBOX', [1, 2], { add: ['Faktúry', 'kept'], remove: [] });
-    await harness.provider.setKeywords('Archive', [1], { add: ['Faktúry'], remove: [] });
+    const keyword = 'Fakt&c3ba-ry';
+    await harness.provider.setKeywords('INBOX', [1, 2], { add: [keyword, 'kept'], remove: [] });
+    await harness.provider.setKeywords('Archive', [1], { add: [keyword], remove: [] });
 
-    await harness.provider.purgeKeyword('INBOX', 'Faktúry');
+    await harness.provider.purgeKeyword('INBOX', keyword);
 
     expect((await harness.provider.fetchMessage('INBOX', 1))?.keywords).toEqual(['kept']);
     expect((await harness.provider.fetchMessage('INBOX', 2))?.keywords).toEqual(['kept']);
-    expect((await harness.provider.fetchMessage('Archive', 1))?.keywords).toEqual(['Faktúry']);
+    expect((await harness.provider.fetchMessage('Archive', 1))?.keywords).toEqual([keyword]);
   });
 
   it('purges an empty mailbox without sending a store', async () => {
     const admin = await harness.admin();
     await admin.mailboxCreate('Empty');
 
-    await expect(harness.provider.purgeKeyword('Empty', 'Faktúry')).resolves.toBeUndefined();
+    await expect(harness.provider.purgeKeyword('Empty', 'Fakt&c3ba-ry')).resolves.toBeUndefined();
   });
 });

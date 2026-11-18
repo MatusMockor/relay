@@ -6,6 +6,7 @@ import type { ThreadActionContext } from '../thread-action-context';
 import { labelChange } from './gmail-move-plans';
 import { writeLabelChanges } from './label-change-writer';
 import type { MessageLocator } from './message-locator';
+import { dropSupersededLabelOps } from './superseded-label-ops';
 
 export type LabelWrite = (
   repositories: Repositories,
@@ -41,12 +42,16 @@ export const gmailWrite = async (
 ): Promise<LabelWrite> => {
   const ids = new Set(targets.map((message) => message.id));
   const located = (await locator.locate(context)).filter(({ message }) => ids.has(message.id));
-  const changes = labelChange(MailCopies.of(context.account), label.id, add, located);
-  return (repositories, accountId, now) =>
-    writeLabelChanges(
-      repositories,
+  const copies = MailCopies.of(context.account);
+  const changes = labelChange(copies, label.id, add, located).map((change) => ({ label, change }));
+  return async (repositories, accountId, now) => {
+    await dropSupersededLabelOps(
+      repositories.pendingWork,
       accountId,
-      changes.map((change) => ({ label, change })),
-      now,
+      copies,
+      context.messages,
+      changes,
     );
+    return writeLabelChanges(repositories, accountId, changes, now);
+  };
 };

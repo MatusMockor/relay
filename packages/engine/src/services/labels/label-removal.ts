@@ -3,6 +3,7 @@ import type { ProviderChange } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { Repositories } from '../../ports/repositories';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { keywordKey } from './keyword-codec';
 import { refreshThread, type ThreadRefreshOutcome } from '../shared/thread-refresh';
 
 export interface LabelRemovalDeps {
@@ -33,7 +34,7 @@ const queuePurge = async (repositories: Repositories, label: Label, now: string)
   await repositories.pendingWork.put({
     accountId: label.accountId,
     kind: 'keyword-purge',
-    ref: label.remoteName,
+    ref: keywordKey(label.remoteName),
     payload: { keyword: label.remoteName, mailboxIds: states.map((state) => state.mailboxId) },
     createdAt: now,
   });

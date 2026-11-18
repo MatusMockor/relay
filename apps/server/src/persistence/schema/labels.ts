@@ -20,9 +20,10 @@ export const labels = pgTable(
     color: text('color'),
     kind: text('kind').$type<LabelKind>().notNull().default('keyword'),
     remoteName: text('remote_name').notNull(),
+    nameKey: text('name_key').notNull().default(''),
   },
   (table) => [
-    uniqueIndex('labels_account_name_unique').on(table.accountId, table.name),
+    uniqueIndex('labels_account_name_key_unique').on(table.accountId, table.nameKey),
     uniqueIndex('labels_account_kind_remote_unique').on(
       table.accountId,
       table.kind,

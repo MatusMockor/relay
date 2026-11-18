@@ -2,7 +2,6 @@ import { ProviderError } from '@relay/engine';
 import type { MailboxObject } from 'imapflow';
 import type { ImapConnection } from './imap-connection';
 import { requireAccepted } from './imap-results';
-import { encodeKeyword } from './keyword-codec';
 import { type FlagNames, storeOnClient } from './message-writes';
 
 const STORE = { operation: 'store keywords', retryOnDisconnect: true } as const;
@@ -30,13 +29,9 @@ export const storeKeywords = async (
   if (uids.length === 0 || (keywords.add.length === 0 && keywords.remove.length === 0)) {
     return;
   }
-  const encoded = {
-    add: keywords.add.map(encodeKeyword),
-    remove: keywords.remove.map(encodeKeyword),
-  };
   await connection.withMailbox(path, STORE, async (client, mailbox) => {
-    requireKeywordSupport(mailbox, encoded.add);
-    await storeOnClient(client, uids, encoded);
+    requireKeywordSupport(mailbox, keywords.add);
+    await storeOnClient(client, uids, keywords);
   });
 };
 
@@ -51,6 +46,6 @@ export const purgeKeyword = (
     }
     requireAccepted(
       'purge keyword',
-      await client.messageFlagsRemove('1:*', [encodeKeyword(keyword)], { uid: true }),
+      await client.messageFlagsRemove('1:*', [keyword], { uid: true }),
     );
   });

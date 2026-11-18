@@ -18,14 +18,14 @@ const syncedThread = async (engine: TestEngine, keywords: readonly string[] = []
 const labelsOf = (engine: TestEngine, accountId: AccountId) =>
   engine.repositories.labels.list(USER_ID, accountId);
 
-const pending = (engine: TestEngine, kind: string) =>
-  [...engine.db.tables.pendingWork.values()].filter((work) => work.kind === kind);
+const namesOf = async (engine: TestEngine, accountId: AccountId) =>
+  (await labelsOf(engine, accountId)).map(({ name, remoteName }) => [name, remoteName]);
 
 const lastLabels = (engine: TestEngine): readonly Label[] =>
   engine.events.ofType('labels.updated').at(-1)?.data.labels ?? [];
 
 describe('LabelService for keyword labels', () => {
-  it('creates a local label without contacting the server and writes it as a keyword', async () => {
+  it('creates a local label and writes it as an encoded keyword identity', async () => {
     const engine = createTestEngine();
     const { account, server, thread } = await syncedThread(engine);
 
@@ -34,7 +34,7 @@ describe('LabelService for keyword labels', () => {
       name: '  Faktúry  ',
     });
 
-    expect(label).toMatchObject({ name: 'Faktúry', remoteName: 'Faktúry', kind: 'keyword' });
+    expect(label).toMatchObject({ name: 'Faktúry', remoteName: 'Fakt&c3ba-ry', kind: 'keyword' });
     expect(label.color).toBeNull();
     expect(server.createdMailboxes).toEqual([]);
     expect(lastLabels(engine).map((item) => item.name)).toEqual(['Faktúry']);
@@ -43,24 +43,68 @@ describe('LabelService for keyword labels', () => {
       type: 'addLabel',
       labelId: label.id,
     });
-    expect(server.record('INBOX', 1).keywords).toEqual(['Faktúry']);
+    expect(server.record('INBOX', 1).keywords).toEqual(['Fakt&c3ba-ry']);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
-    expect((await labelsOf(engine, account.id)).map((item) => item.id)).toEqual([label.id]);
+    expect(await labelsOf(engine, account.id)).toEqual([label]);
   });
 
-  it('rejects names that are empty, too long or already used ignoring case', async () => {
+  it('rejects names that are empty, too long, reserved or already used ignoring case', async () => {
     const engine = createTestEngine();
     const { account } = await syncedThread(engine, ['Klienti']);
     const create = (name: string) =>
       engine.services.labelAdmin.create(USER_ID, { accountId: account.id, name });
+    const reserved = { code: 'validation_failed', message: 'Tento názov je vyhradený serverom.' };
 
     await expect(create('   ')).rejects.toMatchObject({ code: 'validation_failed' });
     await expect(create('x'.repeat(101))).rejects.toMatchObject({ code: 'validation_failed' });
+    await expect(create('$Work')).rejects.toMatchObject(reserved);
+    await expect(create('Junk')).rejects.toMatchObject(reserved);
+    await expect(create('NonJunk')).rejects.toMatchObject(reserved);
     await expect(create('KLIENTI')).rejects.toMatchObject({
       code: 'conflict',
       message: 'Štítok s týmto názvom už existuje.',
     });
+  });
+
+  it('keeps a label named like a system flag across syncs because it is encoded', async () => {
+    const engine = createTestEngine();
+    const { account, server, thread } = await syncedThread(engine);
+    const label = await engine.services.labelAdmin.create(USER_ID, {
+      accountId: account.id,
+      name: '\\Pseudo',
+    });
+
+    await engine.services.actions.apply(USER_ID, thread.id, {
+      type: 'addLabel',
+      labelId: label.id,
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(server.record('INBOX', 1).keywords).toEqual(['&5c-Pseudo']);
+    expect(server.record('Archive', 1).keywords).toEqual(['&5c-Pseudo']);
+    const messages = await engine.repositories.messages.listByThread(USER_ID, thread.id);
+    expect(messages.map((message) => message.labelIds)).toEqual([[label.id], [label.id]]);
+  });
+
+  it('lets only one of two concurrent creates or renames with the same name win', async () => {
+    const engine = createTestEngine();
+    const { account } = await syncedThread(engine, ['alpha', 'beta']);
+    const create = (name: string) =>
+      engine.services.labelAdmin.create(USER_ID, { accountId: account.id, name });
+
+    const created = await Promise.allSettled([create('Test'), create('TEST')]);
+    const [alpha, beta] = await labelsOf(engine, account.id);
+    const renamed = await Promise.allSettled([
+      engine.services.labelAdmin.update(USER_ID, present(alpha).id, { name: 'Spolu' }),
+      engine.services.labelAdmin.update(USER_ID, present(beta).id, { name: 'SPOLU' }),
+    ]);
+
+    for (const results of [created, renamed]) {
+      expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+      const rejected = results.find((result) => result.status === 'rejected');
+      expect(rejected?.reason).toMatchObject({ code: 'conflict' });
+    }
   });
 
   it('renames only the display name and changes the colour locally', async () => {
@@ -73,12 +117,8 @@ describe('LabelService for keyword labels', () => {
       color: '#ff8800',
     });
 
-    expect(renamed).toMatchObject({
-      id: label.id,
-      name: 'Klienti s.r.o.',
-      remoteName: 'clients',
-      color: '#ff8800',
-    });
+    expect(renamed).toMatchObject({ name: 'Klienti s.r.o.', remoteName: 'clients' });
+    expect(renamed.color).toBe('#ff8800');
     expect(server.record('INBOX', 1).keywords).toEqual(['clients']);
     expect(lastLabels(engine)).toEqual([renamed]);
 
@@ -86,81 +126,40 @@ describe('LabelService for keyword labels', () => {
     expect(await labelsOf(engine, account.id)).toEqual([renamed]);
   });
 
-  it('deletes the label, refreshes its threads and purges the keyword everywhere', async () => {
+  it('keeps the exact server keyword of foreign labels and writes it back unchanged', async () => {
     const engine = createTestEngine();
-    const { account, server, thread } = await syncedThread(engine, ['clients', 'kept']);
-    const [clients] = (await labelsOf(engine, account.id)).filter((l) => l.name === 'clients');
-    const label = present(clients);
-
-    await engine.services.labelAdmin.remove(USER_ID, label.id);
-
-    expect(server.keywordPurges.map(({ path }) => path).sort()).toEqual([
-      'Archive',
-      'INBOX',
-      'Sent',
-      'Trash',
+    const { account, server, thread } = await syncedThread(engine, ['A&B-C', 'Fakt&c3ba-ry']);
+    expect(await namesOf(engine, account.id)).toEqual([
+      ['A&B-C', 'A&B-C'],
+      ['Faktúry', 'Fakt&c3ba-ry'],
     ]);
-    expect(server.record('INBOX', 1).keywords).toEqual(['kept']);
-    expect(server.record('Archive', 1).keywords).toEqual(['kept']);
-    expect(pending(engine, 'keyword-purge')).toEqual([]);
-    const upserted = engine.events.ofType('thread.upserted').map((e) => e.data.thread);
-    expect(upserted.map((item) => item.id)).toEqual([thread.id]);
-    expect(upserted[0]?.labelIds).not.toContain(label.id);
-    expect(lastLabels(engine).map((item) => item.name)).toEqual(['kept']);
+    const [foreign] = await labelsOf(engine, account.id);
 
-    await engine.services.sync.syncAccount(USER_ID, account.id);
-    expect((await labelsOf(engine, account.id)).map((item) => item.name)).toEqual(['kept']);
+    await engine.services.actions.apply(USER_ID, thread.id, {
+      type: 'removeLabel',
+      labelId: present(foreign).id,
+    });
+
+    expect(server.record('INBOX', 1).keywords).toEqual(['Fakt&c3ba-ry']);
   });
 
-  it('keeps the purge queued while offline and runs it on the next sync', async () => {
+  it('treats keywords that differ only in case as one label', async () => {
     const engine = createTestEngine();
-    const { account, server } = await syncedThread(engine, ['clients']);
-    const label = present((await labelsOf(engine, account.id))[0]);
-    server.failOperations = 'connection reset';
-
-    await engine.services.labelAdmin.remove(USER_ID, label.id);
-
-    expect(await labelsOf(engine, account.id)).toEqual([]);
-    expect(pending(engine, 'keyword-purge')).toHaveLength(1);
-
-    server.failOperations = null;
-    await engine.services.sync.syncAccount(USER_ID, account.id);
-
-    expect(pending(engine, 'keyword-purge')).toEqual([]);
-    expect(server.record('INBOX', 1).keywords).toEqual([]);
-    expect(await labelsOf(engine, account.id)).toEqual([]);
-  });
-
-  it('does not bring the label back from keywords still waiting to be purged', async () => {
-    const engine = createTestEngine();
-    const { account, server } = await syncedThread(engine, ['clients']);
-    const label = present((await labelsOf(engine, account.id))[0]);
-    server.failKeywordPurge = 'STORE rejected';
-    await engine.services.labelAdmin.remove(USER_ID, label.id);
-    server.updateKeywords('INBOX', 1, ['clients', 'fresh']);
+    const { account, server } = await syncedThread(engine, ['Clients']);
+    server.updateKeywords('Archive', 1, ['CLIENTS']);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect((await labelsOf(engine, account.id)).map((item) => item.name)).toEqual(['fresh']);
-    expect(pending(engine, 'keyword-purge')).toHaveLength(1);
-
-    server.failKeywordPurge = null;
-    await engine.services.sync.syncAccount(USER_ID, account.id);
-
-    expect(pending(engine, 'keyword-purge')).toEqual([]);
-    expect(server.record('INBOX', 1).keywords).toEqual(['fresh']);
-  });
-
-  it('cancels a queued purge when a label with the same keyword is created again', async () => {
-    const engine = createTestEngine();
-    const { account, server } = await syncedThread(engine, ['clients']);
-    const label = present((await labelsOf(engine, account.id))[0]);
-    server.failOperations = 'connection reset';
-    await engine.services.labelAdmin.remove(USER_ID, label.id);
-
-    await engine.services.labelAdmin.create(USER_ID, { accountId: account.id, name: 'clients' });
-
-    expect(pending(engine, 'keyword-purge')).toEqual([]);
+    const labels = await labelsOf(engine, account.id);
+    expect(labels.map(({ name }) => name)).toEqual(['Clients']);
+    const messages = [...engine.db.tables.messages.values()];
+    expect(messages.map((message) => message.labelIds)).toEqual([
+      [present(labels[0]).id],
+      [present(labels[0]).id],
+    ]);
+    await expect(
+      engine.services.labelAdmin.create(USER_ID, { accountId: account.id, name: 'cLiEnTs' }),
+    ).rejects.toMatchObject({ code: 'conflict' });
   });
 
   it('adopts a new server keyword whose name is taken by a renamed label', async () => {
@@ -168,14 +167,13 @@ describe('LabelService for keyword labels', () => {
     const { account, server } = await syncedThread(engine, ['clients']);
     const label = present((await labelsOf(engine, account.id))[0]);
     await engine.services.labelAdmin.update(USER_ID, label.id, { name: 'VIP' });
-    server.updateKeywords('INBOX', 1, ['clients', 'VIP']);
+    server.updateKeywords('INBOX', 1, ['clients', 'vip']);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    const synced = await labelsOf(engine, account.id);
-    expect(synced.map(({ name, remoteName }) => [name, remoteName])).toEqual([
+    expect(await namesOf(engine, account.id)).toEqual([
       ['VIP', 'clients'],
-      ['VIP (2)', 'VIP'],
+      ['vip (2)', 'vip'],
     ]);
   });
 

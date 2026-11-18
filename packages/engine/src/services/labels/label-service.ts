@@ -14,7 +14,8 @@ import { publishThreadOutcomes } from '../shared/thread-refresh';
 import type { GmailLabelAdmin } from './gmail-label-admin';
 import type { LabelAnnouncer } from './label-announcer';
 import { labelKindOf } from './label-kind';
-import { acceptedLabelName } from './label-name-policy';
+import { keywordKey } from './keyword-codec';
+import { acceptedLabelName, asNameConflict, remoteNameOf } from './label-name-policy';
 import type { LabelRemoval } from './label-removal';
 
 export interface LabelServiceDeps {
@@ -39,7 +40,7 @@ export class LabelService {
     const account = await this.requireAccount(userId, body.accountId);
     const kind = await labelKindOf(this.deps.mailboxes, account);
     const others = await this.deps.labels.list(userId, account.id);
-    const name = acceptedLabelName({ name: body.name, kind, others, becomesRemoteName: true });
+    const name = acceptedLabelName({ name: body.name, kind, others, newIdentity: true });
     const color = body.color ?? null;
     const label =
       kind === 'gmail'
@@ -53,8 +54,10 @@ export class LabelService {
     const label = await this.requireLabel(userId, labelId);
     const account = await this.requireAccount(userId, label.accountId);
     const renamed = await this.renamed(userId, account, label, patch.name);
-    const saved = await this.deps.labels.upsert(
-      patch.color === undefined ? renamed : { ...renamed, color: patch.color },
+    const saved = await asNameConflict(
+      this.deps.labels.upsert(
+        patch.color === undefined ? renamed : { ...renamed, color: patch.color },
+      ),
     );
     await this.deps.announcer.announce(userId, account.id, renamed.remoteName !== label.remoteName);
     return saved;
@@ -90,7 +93,7 @@ export class LabelService {
       name,
       kind: label.kind,
       others,
-      becomesRemoteName: label.kind === 'gmail',
+      newIdentity: label.kind === 'gmail',
     });
     if (label.kind === 'keyword') {
       return { ...label, name: accepted };
@@ -103,18 +106,22 @@ export class LabelService {
     name: string,
     color: string | null,
   ): Promise<Label> {
-    const purge = await this.deps.pendingWork.find({ accountId, kind: 'keyword-purge', ref: name });
+    const remoteName = remoteNameOf('keyword', name);
+    const ref = keywordKey(remoteName);
+    const purge = await this.deps.pendingWork.find({ accountId, kind: 'keyword-purge', ref });
     if (purge !== null) {
       await this.deps.pendingWork.remove([purge]);
     }
-    return this.deps.labels.upsert({
-      id: this.deps.ids.generate('label'),
-      accountId,
-      name,
-      color,
-      kind: 'keyword',
-      remoteName: name,
-    });
+    return asNameConflict(
+      this.deps.labels.upsert({
+        id: this.deps.ids.generate('label'),
+        accountId,
+        name,
+        color,
+        kind: 'keyword',
+        remoteName,
+      }),
+    );
   }
 
   private async purge(account: MailAccount): Promise<void> {

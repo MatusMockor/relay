@@ -16,6 +16,8 @@ const TAGGED: MailSpec = {
   date: DATE,
 };
 
+const PLAIN: MailSpec = { id: 'g9', labels: ['\\Inbox'], emailId: 'gm-9', date: DATE };
+
 const gmailAccount = async (engine: TestEngine) => {
   const seeded = await seedAccount(engine, { settings: GMAIL_SETTINGS }, { gmail: true });
   seeded.server.addMailbox('Projekty', 'label', 501);
@@ -95,6 +97,39 @@ describe('LabelService for Gmail labels', () => {
       [parent.id, child.id].sort(),
       [parent.id, child.id].sort(),
     ]);
+  });
+
+  it('retargets label writes queued for the renamed tree', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await gmailAccount(engine);
+    deliverMail(server, 'INBOX', PLAIN);
+    deliverMail(server, 'Archive', PLAIN);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const child = await findLabel(engine, account.id, 'Projekty/Alfa');
+    const parent = await findLabel(engine, account.id, 'Projekty');
+    const plain = present(
+      [...engine.db.tables.threads.values()].find((thread) => thread.subject === 'Subject g9'),
+    );
+    server.failOperations = 'connection reset';
+    await engine.services.actions.apply(USER_ID, plain.id, {
+      type: 'addLabel',
+      labelId: child.id,
+    });
+    server.failOperations = null;
+
+    await engine.services.labelAdmin.update(USER_ID, parent.id, { name: 'Práca' });
+
+    const queued = await engine.repositories.pendingWork.list(account.id, 'provider-op');
+    expect(queued.map((work) => work.payload.change)).toEqual([
+      { kind: 'label', label: 'Práca/Alfa', value: true },
+    ]);
+    expect(queued.map((work) => work.ref.endsWith(':label:Práca/Alfa'))).toEqual([true]);
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(server.labelWrites.at(-1)).toMatchObject({ add: ['Práca/Alfa'] });
+    const messages = await engine.repositories.messages.listByThread(USER_ID, plain.id);
+    expect(messages.map((message) => message.labelIds)).toEqual([[child.id], [child.id]]);
   });
 
   it('deletes the label on Gmail, keeps the mail and clears it from local threads', async () => {

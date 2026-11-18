@@ -16,3 +16,5 @@ export const LabelSchema = z.object({
   remoteName: z.string().min(1).max(LABEL_NAME_MAX_LENGTH),
 });
 export type Label = z.infer<typeof LabelSchema>;
+
+export const labelNameKey = (name: string): string => name.normalize('NFC').toLocaleLowerCase('sk');

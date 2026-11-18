@@ -17,7 +17,7 @@ export const decodeModifiedUtf7 = (value: string): string =>
 
 const UNPRINTABLE_OR_SHIFT = /[^ -~]+|&/g;
 
-export const encodeShift = (text: string): string => {
+const encodeShift = (text: string): string => {
   const bytes = Buffer.alloc(text.length * 2);
   for (let index = 0; index < text.length; index += 1) {
     bytes.writeUInt16BE(text.charCodeAt(index), index * 2);

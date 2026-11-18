@@ -26,6 +26,7 @@ export const createLabelService = (
       labels: repositories.labels,
       mailboxes: repositories.mailboxes,
       sessions: shared.sessions,
+      unitOfWork: deps.unitOfWork,
       ids,
     }),
     sessions: shared.sessions,

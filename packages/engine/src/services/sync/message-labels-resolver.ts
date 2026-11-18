@@ -2,22 +2,14 @@ import type { AccountId, Label, LabelId } from '@relay/shared/domain';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { LabelRepository } from '../../ports/label-repository';
 import type { Repositories } from '../../ports/repositories';
+import { decodeKeyword, keywordKey } from '../labels/keyword-codec';
+import { isUserKeyword } from '../shared/user-keyword';
 import { isValidLabel } from './valid-label';
 
 export interface LabelSource {
   readonly keywords: readonly string[];
   readonly labels: readonly string[] | null;
 }
-
-const DENIED_KEYWORDS: ReadonlySet<string> = new Set(['junk', 'nonjunk', 'notjunk']);
-
-const isUserKeyword = (keyword: string): boolean => {
-  const trimmed = keyword.trim();
-  if (trimmed === '' || trimmed.startsWith('\\') || trimmed.startsWith('$')) {
-    return false;
-  }
-  return !DENIED_KEYWORDS.has(trimmed.toLowerCase());
-};
 
 type LabelStores = Pick<Repositories, 'labels' | 'pendingWork'>;
 
@@ -53,15 +45,22 @@ export class MessageLabelsResolver {
     accountId: AccountId,
     keywords: readonly string[],
   ): Promise<LabelId[]> {
-    const resolved: LabelId[] = [];
-    for (const keyword of new Set(keywords.filter(isUserKeyword))) {
-      const known = await stores.labels.findByRemoteName(accountId, 'keyword', keyword);
-      const label = known ?? (await this.adopted(stores, accountId, keyword));
+    const wanted = keywords.filter(isUserKeyword);
+    if (wanted.length === 0) {
+      return [];
+    }
+    const known = await stores.labels.listByKind(accountId, 'keyword');
+    const byKey = new Map(known.map((label) => [keywordKey(label.remoteName), label]));
+    const resolved = new Set<LabelId>();
+    for (const keyword of wanted) {
+      const key = keywordKey(keyword);
+      const label = byKey.get(key) ?? (await this.adopted(stores, accountId, keyword));
       if (label !== null) {
-        resolved.push(label.id);
+        byKey.set(key, label);
+        resolved.add(label.id);
       }
     }
-    return resolved;
+    return [...resolved];
   }
 
   private async adopted(
@@ -69,7 +68,8 @@ export class MessageLabelsResolver {
     accountId: AccountId,
     keyword: string,
   ): Promise<Label | null> {
-    const purge = await stores.pendingWork.find({ accountId, kind: 'keyword-purge', ref: keyword });
+    const ref = keywordKey(keyword);
+    const purge = await stores.pendingWork.find({ accountId, kind: 'keyword-purge', ref });
     return purge === null ? this.created(stores.labels, accountId, keyword) : null;
   }
 
@@ -81,7 +81,7 @@ export class MessageLabelsResolver {
     const label: Label = {
       id: this.ids.generate('label'),
       accountId,
-      name: await this.freeName(labels, accountId, keyword),
+      name: await this.freeName(labels, accountId, decodeKeyword(keyword)),
       color: null,
       kind: 'keyword',
       remoteName: keyword,
@@ -92,10 +92,10 @@ export class MessageLabelsResolver {
   private async freeName(
     labels: LabelRepository,
     accountId: AccountId,
-    keyword: string,
+    base: string,
   ): Promise<string> {
     for (let suffix = 1; ; suffix += 1) {
-      const name = suffix === 1 ? keyword : `${keyword} (${String(suffix)})`;
+      const name = suffix === 1 ? base : `${base} (${String(suffix)})`;
       if ((await labels.findByName(accountId, name)) === null) {
         return name;
       }

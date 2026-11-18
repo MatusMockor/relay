@@ -127,6 +127,7 @@ export interface LabelRescanWork {
 export interface KeywordPurgeWork {
   readonly keyword: string;
   readonly mailboxIds: readonly MailboxId[];
+  readonly purgedAt?: string;
 }
 
 export interface PendingWorkPayloads {

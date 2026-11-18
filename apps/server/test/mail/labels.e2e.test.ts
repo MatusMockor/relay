@@ -34,7 +34,7 @@ describe('label management over the server', () => {
     await ownerImap.append(
       'INBOX',
       rawMail({ from: 'uctovnik@firma.test', to: owner.email, subject: INVOICE, body: 'Ahoj' }),
-      ['Fakt&APo-ry'],
+      ['Fakt&c3ba-ry'],
     );
     app = await startTestApp({ env: { JOBS_ENABLED: 'true' } });
   });
@@ -53,7 +53,7 @@ describe('label management over the server', () => {
     const account = await addImapAccount(app.api, token, owner);
     const [invoice] = await waitForInbox(app.api, token, (items) => items.length === 1);
     const [synced] = await labels(token, account.id);
-    expect(synced).toMatchObject({ name: 'Faktúry', remoteName: 'Faktúry', kind: 'keyword' });
+    expect(synced).toMatchObject({ name: 'Faktúry', remoteName: 'Fakt&c3ba-ry', kind: 'keyword' });
     expect(invoice?.labelIds).toEqual([synced?.id]);
     if (invoice === undefined) {
       return;
@@ -78,19 +78,19 @@ describe('label management over the server', () => {
       token,
     );
     expect([...labelled.labelIds].sort()).toEqual([created.id, synced?.id].sort());
-    expect(await inboxFlags(ownerImap)).toEqual(['Fakt&APo-ry', 'Moje&ACA-veci']);
+    expect(await inboxFlags(ownerImap)).toEqual(['Fakt&c3ba-ry', 'Moje&20-veci']);
 
     const renamed = await app.api.ok(
       api.labels.update,
       { params: { id: created.id }, body: { name: 'Osobné' } },
       token,
     );
-    expect(renamed).toMatchObject({ id: created.id, name: 'Osobné', remoteName: 'Moje veci' });
+    expect(renamed).toMatchObject({ id: created.id, name: 'Osobné', remoteName: 'Moje&20-veci' });
 
     await app.api.ok(api.labels.remove, { params: { id: created.id } }, token);
 
     expect((await labels(token, account.id)).map((label) => label.name)).toEqual(['Faktúry']);
-    expect(await inboxFlags(ownerImap)).toEqual(['Fakt&APo-ry']);
+    expect(await inboxFlags(ownerImap)).toEqual(['Fakt&c3ba-ry']);
     const missing = await app.api.fail(api.labels.remove, { params: { id: created.id } }, token);
     expect(missing.status).toBe(404);
   }, 60_000);

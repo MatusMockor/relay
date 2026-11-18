@@ -92,6 +92,7 @@ export class AccountSynchronizer {
       });
       return { accountId: account.id, ok: false, error: message, ...stats };
     }
+    await this.deps.replayer.expireKeywordPurges(account.id, startedAt);
     const syncedAt = this.deps.clock.now().toISOString();
     await reporter.status(userId, account.id, 'connected', { error: null, lastSyncedAt: syncedAt });
     await reporter.progress(userId, account.id, {

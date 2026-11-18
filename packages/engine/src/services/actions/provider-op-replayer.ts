@@ -1,4 +1,4 @@
-import type { MailAccount, Mailbox, Message } from '@relay/shared/domain';
+import type { AccountId, MailAccount, Mailbox, Message } from '@relay/shared/domain';
 import { PartialMoveError } from '../../errors';
 import type { ProviderChange } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
@@ -57,6 +57,10 @@ export class ProviderOpReplayer {
 
   purgeKeywords(account: MailAccount, provider: MailProvider): Promise<void> {
     return this.serializer.run(account.id, () => this.purger.purgePending(account, provider));
+  }
+
+  expireKeywordPurges(accountId: AccountId, syncStartedAt: string): Promise<void> {
+    return this.serializer.run(accountId, () => this.purger.expire(accountId, syncStartedAt));
   }
 
   replay(

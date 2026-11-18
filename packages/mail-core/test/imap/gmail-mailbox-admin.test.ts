@@ -65,7 +65,7 @@ describe('mailbox management against a scripted Gmail IMAP server', () => {
   it('rejects custom keywords when the mailbox does not permit them', async () => {
     await start({ permanentFlags: '\\Seen \\Flagged' });
 
-    const stored = provider.setKeywords('INBOX', [1], { add: ['Faktúry'], remove: [] });
+    const stored = provider.setKeywords('INBOX', [1], { add: ['Fakt&c3ba-ry'], remove: [] });
 
     await expect(stored).rejects.toBeInstanceOf(ProviderError);
     await expect(stored).rejects.toThrow('Server nepodporuje vlastné štítky');
@@ -75,8 +75,8 @@ describe('mailbox management against a scripted Gmail IMAP server', () => {
   it('still removes keywords when the mailbox does not permit new ones', async () => {
     await start({ permanentFlags: '\\Seen \\Flagged' });
 
-    await provider.setKeywords('INBOX', [1], { add: [], remove: ['Faktúry'] });
+    await provider.setKeywords('INBOX', [1], { add: [], remove: ['Fakt&c3ba-ry'] });
 
-    expect(sent(stub, 'UID STORE')).toEqual(['UID STORE 1 -FLAGS (Fakt&APo-ry)']);
+    expect(sent(stub, 'UID STORE')).toEqual(['UID STORE 1 -FLAGS (Fakt&c3ba-ry)']);
   });
 });

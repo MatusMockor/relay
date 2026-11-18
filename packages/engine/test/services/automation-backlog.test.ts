@@ -53,28 +53,25 @@ describe('applying an automation to existing mail', () => {
     const setup = await folderSetup();
     deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra 1' });
     await syncNow(setup);
-    const gmail = await setup.engine.repositories.labels.upsert({
+    const extra = await setup.engine.repositories.labels.upsert({
       ...setup.label,
-      id: LabelIdSchema.parse('label_gmail_clients'),
+      id: LabelIdSchema.parse('label_extra_clients'),
       name: 'Klienti',
-      kind: 'gmail',
       remoteName: 'Klienti',
     });
     const rule = await saveRule(setup, {
-      actions: [{ type: 'addLabel', labelId: gmail.id }, { type: 'markRead' }],
+      actions: [{ type: 'addLabel', labelId: extra.id }, { type: 'markRead' }],
     });
     const apply = () => setup.engine.services.automations.applyToExisting(USER_ID, rule.id);
+    await setup.engine.repositories.labels.delete(USER_ID, extra.id);
 
     await expect(apply()).resolves.toEqual({ matched: 1, applied: 0, failed: 1 });
     expect(failedActions(setup.engine)).toEqual(['addLabel']);
     expect(threadBySubject(setup.engine, 'Faktúra 1').unread).toBe(false);
-    await setup.engine.repositories.labels.upsert({ ...gmail, kind: 'keyword' });
-    expect((await setup.engine.repositories.labels.findById(USER_ID, gmail.id))?.kind).toBe(
-      'keyword',
-    );
+    await setup.engine.repositories.labels.upsert(extra);
 
     await expect(apply()).resolves.toEqual({ matched: 1, applied: 1, failed: 0 });
-    expect(threadBySubject(setup.engine, 'Faktúra 1').labelIds).toEqual([gmail.id]);
+    expect(threadBySubject(setup.engine, 'Faktúra 1').labelIds).toEqual([extra.id]);
     await expect(apply()).resolves.toEqual({ matched: 1, applied: 0, failed: 0 });
   });
 

@@ -1,27 +1,49 @@
 import { LABEL_DISPLAY_NAME_MAX_LENGTH } from '@relay/shared/api';
-import type { Label, LabelKind } from '@relay/shared/domain';
 import { ConflictError, ValidationError } from '../../errors';
+import { type Label, type LabelKind, labelNameKey } from '@relay/shared/domain';
+import { isUserKeyword } from '../shared/user-keyword';
+import { encodeKeyword, keywordKey } from './keyword-codec';
 
 export interface LabelNameCandidate {
   readonly name: string;
   readonly kind: LabelKind;
   readonly others: readonly Label[];
-  readonly becomesRemoteName: boolean;
+  readonly newIdentity: boolean;
 }
+
+export const LABEL_NAME_TAKEN = 'Štítok s týmto názvom už existuje.';
 
 const GMAIL_RESERVED_PREFIX = '[gmail]';
 
-const folded = (value: string): string => value.toLocaleLowerCase('sk');
-
 const isReservedGmailName = (name: string): boolean =>
-  folded(name).startsWith(GMAIL_RESERVED_PREFIX) || name.includes('\\');
+  labelNameKey(name).startsWith(GMAIL_RESERVED_PREFIX) || name.includes('\\');
 
-const clashes = (candidate: LabelNameCandidate, name: string): boolean =>
-  candidate.others.some(
+export const remoteNameOf = (kind: LabelKind, name: string): string =>
+  kind === 'keyword' ? encodeKeyword(name) : name;
+
+const clashes = (candidate: LabelNameCandidate, name: string): boolean => {
+  const remote = keywordKey(remoteNameOf(candidate.kind, name));
+  return candidate.others.some(
     (label) =>
-      folded(label.name) === folded(name) ||
-      (candidate.becomesRemoteName && label.kind === candidate.kind && label.remoteName === name),
+      labelNameKey(label.name) === labelNameKey(name) ||
+      (candidate.newIdentity &&
+        label.kind === candidate.kind &&
+        keywordKey(label.remoteName) === remote),
   );
+};
+
+const requireAllowed = (candidate: LabelNameCandidate, name: string): void => {
+  if (candidate.kind === 'gmail' && isReservedGmailName(name)) {
+    throw new ValidationError('Názov Gmail štítka nesmie začínať „[Gmail]“ ani obsahovať „\\“.');
+  }
+  if (
+    candidate.kind === 'keyword' &&
+    candidate.newIdentity &&
+    !isUserKeyword(encodeKeyword(name))
+  ) {
+    throw new ValidationError('Tento názov je vyhradený serverom.');
+  }
+};
 
 export const acceptedLabelName = (candidate: LabelNameCandidate): string => {
   const name = candidate.name.trim();
@@ -30,11 +52,20 @@ export const acceptedLabelName = (candidate: LabelNameCandidate): string => {
       `Názov štítka musí mať 1 až ${String(LABEL_DISPLAY_NAME_MAX_LENGTH)} znakov.`,
     );
   }
-  if (candidate.kind === 'gmail' && isReservedGmailName(name)) {
-    throw new ValidationError('Názov Gmail štítka nesmie začínať „[Gmail]“ ani obsahovať „\\“.');
-  }
+  requireAllowed(candidate, name);
   if (clashes(candidate, name)) {
-    throw new ConflictError('Štítok s týmto názvom už existuje.');
+    throw new ConflictError(LABEL_NAME_TAKEN);
   }
   return name;
+};
+
+export const asNameConflict = async <Result>(work: Promise<Result>): Promise<Result> => {
+  try {
+    return await work;
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      throw new ConflictError(LABEL_NAME_TAKEN, { cause: error });
+    }
+    throw error;
+  }
 };
