@@ -45,7 +45,6 @@ export function FolderSidebar({ width }: { readonly width: number }) {
   const scope = useUiStore((state) => state.scope);
   const labels = useLabels();
   const tasks = useTasks();
-  const mode = useSessionStore((state) => state.services?.mode);
   const name = model.current?.displayName ?? 'Všetky účty';
   const sub = model.current?.email ?? accountCount(model.accounts.length);
   const scopedLabels = (labels.data ?? []).filter(
@@ -100,7 +99,6 @@ export function FolderSidebar({ width }: { readonly width: number }) {
       <FolderNav labels={scopedLabels} showTasks={openTasks} />
       <div className="fold-foot">
         <ModeStatus />
-        {mode === 'demo' ? <span className="proto">Ukážkové dáta</span> : null}
       </div>
     </nav>
   );

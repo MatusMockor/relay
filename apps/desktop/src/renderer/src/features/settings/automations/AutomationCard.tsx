@@ -39,8 +39,8 @@ export function AutomationCard({
               onChange({ name });
             }}
           />
+          <span className="scope">{account?.displayName ?? 'Všetky účty'}</span>
           {rule.preset !== null ? <span className="scope">predvolené</span> : null}
-          {account === null ? null : <span className="scope synced">{account.displayName}</span>}
         </b>
         <ModelPicker
           value={input.ai}

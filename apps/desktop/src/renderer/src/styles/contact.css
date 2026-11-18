@@ -50,14 +50,6 @@
 .c-rcpt span:last-child {
   flex: none;
 }
-.app.composing > .side {
-  position: relative;
-  z-index: 51;
-}
-.app.composing .ov.mid {
-  padding-left: calc(var(--fold-w, 0px) + 16px);
-  padding-right: calc(var(--side-w, 0px) + 16px);
-}
 .dot-l {
   display: inline-flex;
   align-items: center;

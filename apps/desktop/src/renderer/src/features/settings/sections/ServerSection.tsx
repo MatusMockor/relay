@@ -30,7 +30,6 @@ export function ServerSection() {
       </SectionHeader>
       <SettingRow
         title="Režim"
-        scope="device"
         description={
           active === null
             ? 'Bez účtu, dáta ostávajú na tomto zariadení'
@@ -51,7 +50,7 @@ export function ServerSection() {
         />
       </SettingRow>
       {saved.map((server) => (
-        <SettingRow key={server.url} title={server.name} description={server.url} scope="device">
+        <SettingRow key={server.url} title={server.name} description={server.url}>
           {server.url === active ? (
             <Status tone="ok" label="Aktívny" />
           ) : (

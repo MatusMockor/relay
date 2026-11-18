@@ -82,7 +82,6 @@ function AccountCard({
       </SettingRow>
       <SettingRow
         title="Interval synchronizácie"
-        scope="synced"
         description={`Každých ${String(Math.round(account.syncIntervalSeconds / 60))} min`}
       >
         <Segmented
@@ -96,7 +95,6 @@ function AccountCard({
       </SettingRow>
       <SettingRow
         title="Hlavný účet"
-        scope="synced"
         description="Predvolený odosielateľ, keď píšeš zo zobrazenia Všetky účty"
       >
         <Switch
@@ -111,11 +109,7 @@ function AccountCard({
           }}
         />
       </SettingRow>
-      <SettingRow
-        title="Farba"
-        scope="synced"
-        description="Bodka pri mailoch v zobrazení Všetky účty"
-      >
+      <SettingRow title="Farba" description="Bodka pri mailoch v zobrazení Všetky účty">
         <span className="swatches">
           {COLORS.map((color) => (
             <button
@@ -168,7 +162,7 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
   }
   return (
     <>
-      <SectionHeader title="Účty" stored>
+      <SectionHeader title="Účty">
         Každý účet sa synchronizuje samostatne. Heslá a tokeny ostávajú na serveri alebo v
         zabezpečenom úložisku zariadenia.
       </SectionHeader>

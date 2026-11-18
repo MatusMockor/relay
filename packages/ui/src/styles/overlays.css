@@ -6,7 +6,7 @@
   justify-content: center;
   align-items: flex-start;
   padding: 13vh 16px 0;
-  background: rgba(6, 7, 10, 0.58);
+  background: var(--scrim);
   animation: ovin 0.12s ease-out;
 }
 .ov.mid {
@@ -141,7 +141,7 @@
 }
 .toast {
   position: fixed;
-  left: 50%;
+  left: calc(var(--fold-w, 0px) + (100% - var(--fold-w, 0px) - var(--side-w, 0px)) / 2);
   bottom: 28px;
   transform: translateX(-50%);
   z-index: 70;

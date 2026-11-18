@@ -1,6 +1,6 @@
 import { type Address, displaySubject, type Task, type ThreadSummary } from '@relay/shared';
 import { Button, Icon, Spark } from '@relay/ui';
-import { useTasks } from '../../data/hooks/use-mail-queries';
+import { useTasks, useUserSettings } from '../../data/hooks/use-mail-queries';
 import { listTimeLabel } from '../../lib/dates';
 import { plural } from '../../lib/text';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -73,8 +73,10 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
     new Set([thread.id, ...related.map((item) => item.id)]),
     jira,
   );
-  const address = actor === null ? person.email : `Jira · ${person.email}`;
-  const summaryShown = useUiStore((state) => state.openThreadId === thread.id);
+  const address = actor === null ? person.email : `cez Jira · ${person.email}`;
+  const inThread = useUiStore((state) => state.openThreadId === thread.id);
+  const inList = useUserSettings().data?.ai.features.oneLiners ?? true;
+  const summaryShown = inThread || inList;
   return (
     <>
       <ContactHeader

@@ -52,7 +52,7 @@ export const WORK_THREADS: readonly DemoThread[] = [
     list: ['Overiť scope withTrashed v OrderRepository', 'Odpovedať Petrovi v Jire'],
     task: { title: 'Filtrovanie objednávok v API', what: 'čaká na teba', state: 'waiting' },
     msgs: [
-      ['mh', [-3, 14, 10], 'Martin zmenil stav: In Progress → In Review'],
+      ['mh', [-3, 14, 10], 'Martin zmenil stav z Rozpracované na Na kontrole'],
       [
         'pn',
         [0, 8, 31],

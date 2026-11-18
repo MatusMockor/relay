@@ -27,14 +27,13 @@ export function SyncSection() {
     .at(-1);
   return (
     <>
-      <SectionHeader title="Synchronizácia" stored>
+      <SectionHeader title="Synchronizácia">
         {client.kind === 'remote'
           ? 'Server sa pozerá na nové maily nepretržite cez IMAP IDLE.'
           : 'Appka sa pozerá na nové maily, kým beží.'}
       </SectionHeader>
       <SettingRow
         title="Interval"
-        scope="synced"
         description={
           list.length === 0 ? 'Zatiaľ žiadny účet' : `Každý účet má vlastný interval: ${summary}.`
         }

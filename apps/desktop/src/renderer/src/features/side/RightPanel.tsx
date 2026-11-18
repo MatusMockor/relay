@@ -4,7 +4,7 @@ import { type RightTab, useUiStore } from '../../state/ui-store';
 import { openRight } from '../mail/navigation';
 import { AiChatPane } from './AiChatPane';
 import { CalendarPane } from './CalendarPane';
-import { ContactPane } from './ContactPane';
+import { ContactPane, useContactIdle } from './ContactPane';
 
 const TABS = [
   {
@@ -24,10 +24,11 @@ const TABS = [
 
 export function RightPanel({ width }: { readonly width: number }) {
   const tab = useUiStore((state) => state.rightTab);
+  const idle = useContactIdle() && tab === 'contact';
   return (
     <aside className="side" id="side" aria-label="Pravý panel" style={{ width }}>
       <Tabs<RightTab>
-        className="stabs"
+        className={idle ? 'stabs idle' : 'stabs'}
         label="Pravý panel"
         items={TABS}
         active={tab}

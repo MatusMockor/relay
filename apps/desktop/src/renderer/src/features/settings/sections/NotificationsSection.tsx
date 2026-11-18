@@ -1,7 +1,7 @@
 import { Segmented } from '@relay/ui';
 import type { NotificationMode } from '@relay/shared';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
-import { SettingRow } from '../SettingRow';
+import { SettingsGroup } from '../SettingsGroup';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
 
@@ -17,27 +17,20 @@ export function NotificationsSection() {
   const mode = settings.data?.notifications ?? 'off';
   return (
     <>
-      <SectionHeader title="Notifikácie" stored>
+      <SectionHeader title="Notifikácie">
         Relay ťa vyruší, len keď o to stojíš. Predvolene je ticho.
       </SectionHeader>
-      <SettingRow title="Notifikácie na ploche" description="Platí pre všetky účty a splity">
-        <Segmented<NotificationMode>
-          label="Notifikácie"
-          value={mode}
-          options={MODES.map(([value, label]) => ({ value, label }))}
-          onChange={(value) => {
-            update.mutate({ notifications: value });
-          }}
-        />
-      </SettingRow>
-      <ul className="modes">
-        {MODES.map(([value, label, text]) => (
-          <li key={value} className={value === mode ? 'on' : undefined}>
-            <b>{label}</b>
-            <span>{text}</span>
-          </li>
-        ))}
-      </ul>
+      <SettingsGroup title="Notifikácie na ploche" />
+      <Segmented<NotificationMode>
+        label="Notifikácie"
+        variant="cards"
+        value={mode}
+        options={MODES.map(([value, label, description]) => ({ value, label, description }))}
+        onChange={(value) => {
+          update.mutate({ notifications: value });
+        }}
+      />
+      <p className="sh-note">Platí pre všetky účty a splity.</p>
     </>
   );
 }

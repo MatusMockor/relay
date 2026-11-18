@@ -13,7 +13,7 @@ export function AutomationsSection() {
   const locked = editor.saving || editor.loading;
   return (
     <>
-      <SectionHeader title="Automatizácie" stored>
+      <SectionHeader title="Automatizácie">
         Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Platí iba pre nové
         maily.
       </SectionHeader>
@@ -50,7 +50,6 @@ export function AutomationsSection() {
       </div>
       <SettingRow
         title="Pravidlá sa synchronizujú"
-        scope="synced"
         description="Rovnaké automatizácie platia na všetkých zariadeniach."
       />
     </>

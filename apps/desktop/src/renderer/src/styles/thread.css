@@ -139,6 +139,10 @@
   align-self: flex-start;
   justify-self: start;
 }
+.sum-ask.more {
+  margin-left: -11px;
+  color: var(--fg3);
+}
 .t-sum p.sum-wait {
   color: var(--muted);
   display: flex;

@@ -39,7 +39,7 @@ function SubscriptionRow({ subscription }: { readonly subscription: CalendarSubs
       });
   };
   return (
-    <SettingRow title={subscription.name} description={describe(subscription)} scope="synced">
+    <SettingRow title={subscription.name} description={describe(subscription)}>
       <button
         type="button"
         className="cal-swatch on"
@@ -92,7 +92,7 @@ export function CalendarsSection() {
   const subscriptions = useCalendarSubscriptions();
   return (
     <>
-      <SectionHeader title="Kalendáre" stored>
+      <SectionHeader title="Kalendáre">
         Pozvánky z mailov sa do kalendára pridávajú samé.
       </SectionHeader>
       <FailedInvitations />

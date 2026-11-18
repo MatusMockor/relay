@@ -14,6 +14,7 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
 import { SplitsSection } from './sections/SplitsSection';
 import { SyncSection } from './sections/SyncSection';
+import { StorageNote } from './StorageNote';
 
 const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
   ['server', 'Server'],
@@ -56,7 +57,6 @@ export function SettingsSheet({
   readonly adding: boolean;
 }) {
   const synced = useSessionStore((state) => state.services?.mode === 'synced');
-  const mode = useSessionStore((state) => state.services?.mode);
   const visible = SECTIONS.filter(([key]) => key !== 'devices' || synced);
   const go = (next: SettingsSection) => {
     setUi({ overlay: { kind: 'settings', section: next, adding: false } });
@@ -95,7 +95,7 @@ export function SettingsSheet({
             {label}
           </button>
         ))}
-        {mode === 'demo' ? <span className="proto">Ukážkové dáta</span> : null}
+        <StorageNote />
       </nav>
       <div className="sh-main">{render(section, adding)}</div>
     </Sheet>

@@ -17,6 +17,10 @@
   align-items: center;
   border-bottom: 1px solid var(--line-soft);
 }
+.stabs.idle .stab.on {
+  background: none;
+  color: var(--muted);
+}
 .stabs .sp {
   flex: 1;
 }
@@ -105,6 +109,7 @@
 }
 .mini > * {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
   padding: 6px 0;
@@ -117,12 +122,14 @@
 .mini > button:hover span:first-child {
   color: var(--fg);
 }
-.mini > * span:last-child {
+.mini > * > span:last-child {
+  flex: none;
   color: var(--muted);
   white-space: nowrap;
   font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
 }
-.mini > * span:first-child {
+.mini > * > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

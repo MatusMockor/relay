@@ -131,7 +131,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px;
+  margin-top: 8px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line-soft);
 }
 .cmp-f .sp {
   flex: 1;
@@ -242,11 +244,6 @@
 }
 .nm .cmp-ai {
   margin: 4px 14px 0;
-}
-.nm .cmp-f {
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--line-soft);
-  margin-top: 8px;
 }
 .from-btn {
   display: inline-flex;

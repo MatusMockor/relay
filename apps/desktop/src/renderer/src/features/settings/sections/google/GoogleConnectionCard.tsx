@@ -35,11 +35,7 @@ export function GoogleConnectionCard({ connection, onReconnect }: GoogleConnecti
   const status = CONNECTION_STATUS[connection.status];
   return (
     <section className="gcal" aria-label={`Google kalendár ${connection.email}`}>
-      <SettingRow
-        title={connection.email}
-        description={describeConnection(connection, new Date())}
-        scope="synced"
-      >
+      <SettingRow title={connection.email} description={describeConnection(connection, new Date())}>
         <Status tone={status.tone} label={status.label} />
         {connection.status === 'reauthorize' ? (
           <Button

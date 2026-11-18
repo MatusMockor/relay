@@ -10,7 +10,7 @@
 }
 .a-row {
   display: grid;
-  grid-template-columns: 6px clamp(128px, 21cqi, 212px) minmax(0, 1fr) auto;
+  grid-template-columns: 6px clamp(120px, 15cqi, 184px) minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
   height: var(--row-h);
@@ -30,15 +30,15 @@
   background: var(--sel);
   --rowbg: var(--sel);
 }
-.a-row.sel::before {
-  content: '';
+.acc-stripe {
   position: absolute;
   left: 0;
-  top: 11px;
-  bottom: 11px;
+  top: 12px;
+  bottom: 12px;
   width: 2px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--a);
+  opacity: 0.6;
 }
 .a-row .dot {
   width: 6px;
@@ -48,7 +48,7 @@
   box-shadow: 0 0 0 3px rgba(142, 162, 255, 0.12);
 }
 .a-row .who {
-  color: var(--fg2);
+  color: var(--fg3);
   font-weight: var(--w-regular);
   white-space: nowrap;
   overflow: hidden;
@@ -84,7 +84,7 @@
   flex: none;
 }
 .a-row .subj {
-  color: var(--fg2);
+  color: var(--fg3);
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -133,14 +133,9 @@
 .st-ok::before {
   background: var(--ok);
 }
-.a-row .when {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--dot-gap);
-  min-width: 46px;
-}
 .a-row time {
+  min-width: 40px;
+  text-align: right;
   color: var(--muted);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
@@ -149,9 +144,6 @@
 .a-row.unread time {
   color: var(--fg2);
   font-weight: var(--w-medium);
-}
-.a-row:hover .when .acc-dot {
-  visibility: hidden;
 }
 .a-row .acts {
   position: absolute;
@@ -198,9 +190,9 @@
 .dense .a-row {
   border-radius: 7px;
 }
-.dense .a-row.sel::before {
-  top: 8px;
-  bottom: 8px;
+.dense .acc-stripe {
+  top: 9px;
+  bottom: 9px;
 }
 .dense .a-day {
   padding: 12px 14px 4px 32px;

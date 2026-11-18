@@ -1,8 +1,7 @@
 import { displaySubject, type FolderView, type MailAccount, type Task } from '@relay/shared';
-import { AccountDot, cx } from '@relay/ui';
+import { cx } from '@relay/ui';
 import { jiraActorOf } from '../mail/jira-display';
 import type { ListItem } from '../mail/list-items';
-import { accountLike } from '../mail/use-accounts-model';
 import { RowActions } from '../shell/RowActions';
 import { Highlight } from './Highlight';
 
@@ -100,6 +99,13 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
         onOpen(item);
       }}
     >
+      {context.unified && context.account !== undefined ? (
+        <span
+          className="acc-stripe"
+          style={{ ['--a' as string]: context.account.color }}
+          title={context.account.displayName}
+        />
+      ) : null}
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
         <span
@@ -122,12 +128,7 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
           </span>
         ) : null}
       </span>
-      <span className="when">
-        <time>{context.time}</time>
-        {context.unified && context.account !== undefined ? (
-          <AccountDot account={accountLike(context.account)} title={context.account.displayName} />
-        ) : null}
-      </span>
+      <time>{context.time}</time>
       <span className="acts">
         <RowActions item={item} inRow />
       </span>

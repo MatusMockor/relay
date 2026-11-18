@@ -4,6 +4,7 @@ import { moveRovingFocus, rovingTabIndex } from './roving-focus';
 export interface SegmentedOption<V extends string> {
   readonly value: V;
   readonly label: string;
+  readonly description?: string;
 }
 
 export interface SegmentedProps<V extends string> {
@@ -11,6 +12,8 @@ export interface SegmentedProps<V extends string> {
   readonly value: V;
   readonly label: string;
   readonly onChange: (value: V) => void;
+  readonly variant?: 'inline' | 'cards';
+  readonly disabled?: boolean;
 }
 
 export function Segmented<V extends string>({
@@ -18,6 +21,8 @@ export function Segmented<V extends string>({
   value,
   label,
   onChange,
+  variant = 'inline',
+  disabled = false,
 }: SegmentedProps<V>) {
   const selected = options.findIndex((option) => option.value === value);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -34,7 +39,13 @@ export function Segmented<V extends string>({
     onChange(option.value);
   };
   return (
-    <div className="seg" role="radiogroup" aria-label={label} onKeyDown={onKeyDown}>
+    <div
+      className={variant === 'cards' ? 'seg cards' : 'seg'}
+      role="radiogroup"
+      aria-label={label}
+      aria-disabled={disabled || undefined}
+      onKeyDown={onKeyDown}
+    >
       {options.map((option, index) => (
         <button
           key={option.value}
@@ -43,11 +54,19 @@ export function Segmented<V extends string>({
           aria-checked={option.value === value}
           tabIndex={rovingTabIndex(index, selected)}
           className={option.value === value ? 'on' : undefined}
+          disabled={disabled}
           onClick={() => {
             onChange(option.value);
           }}
         >
-          {option.label}
+          {option.description === undefined ? (
+            option.label
+          ) : (
+            <>
+              <b>{option.label}</b>
+              <span>{option.description}</span>
+            </>
+          )}
         </button>
       ))}
     </div>

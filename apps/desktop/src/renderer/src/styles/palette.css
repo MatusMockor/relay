@@ -119,3 +119,10 @@
 .pop-in .pv.ok {
   color: var(--accent);
 }
+.pal mark {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  color: var(--accent-hover);
+  font-weight: var(--w-semibold);
+}

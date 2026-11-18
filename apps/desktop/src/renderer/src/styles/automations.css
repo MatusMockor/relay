@@ -68,6 +68,12 @@
 .sent .kw {
   color: var(--muted);
 }
+.tk-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 .tk,
 .tk-g {
   display: inline-flex;

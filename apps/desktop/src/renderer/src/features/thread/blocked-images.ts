@@ -20,8 +20,8 @@ export const placeholderImage = (width: number, height: number): string => {
   const y = (height - icon) / 2;
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${String(width)}" height="${String(height)}" viewBox="0 0 ${String(width)} ${String(height)}">`,
-    `<rect width="100%" height="100%" rx="6" fill="#e7e8ed"/>`,
-    `<g transform="translate(${String(x)} ${String(y)}) scale(${String(icon / 16)})" fill="none" stroke="#9ea3b0" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">`,
+    `<rect width="100%" height="100%" rx="6" fill="#dadbe2"/>`,
+    `<g transform="translate(${String(x)} ${String(y)}) scale(${String(icon / 16)})" fill="none" stroke="#8d92a0" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">`,
     '<rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="M14 11l-3.5-3.5L4 13"/>',
     '</g></svg>',
   ].join('');

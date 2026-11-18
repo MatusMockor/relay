@@ -1,5 +1,5 @@
 import type { MailAccount, ThreadDetail } from '@relay/shared';
-import { AccountDot, type AnchorRect, Button, ConfirmDialog, Kbd, Spark } from '@relay/ui';
+import { AccountDot, type AnchorRect, Button, ConfirmDialog, Spark } from '@relay/ui';
 import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { useClient } from '../../data/hooks/services-context';
@@ -169,11 +169,11 @@ export function ReplyComposer({
           Upraviť s AI
         </Button>
         <span className="sp" />
-        <Button variant="ghost" title="Uložiť ako koncept (Esc)" onClick={save}>
+        <Button title="Uložiť ako koncept (Esc)" onClick={save}>
           Zavrieť
         </Button>
-        <Button variant="primary" onClick={askSend}>
-          Odoslať <Kbd keys={[`${MOD}↵`]} />
+        <Button variant="primary" onClick={askSend} title={`Odoslať (${MOD}Enter)`}>
+          Odoslať
         </Button>
       </div>
       {confirming && account !== undefined ? (

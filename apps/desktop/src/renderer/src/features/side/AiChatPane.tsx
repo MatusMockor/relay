@@ -9,6 +9,7 @@ import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
 import { setChatDraft, useChat } from './chat-store';
 import { RUNNERS, runnerLabelOf } from './runner-labels';
+import { doneStepLabel } from './step-labels';
 import { useChatRuns } from './use-chat-runs';
 
 export function AiChatPane() {
@@ -87,16 +88,14 @@ export function AiChatPane() {
           <div className="turn" key={turn.id}>
             <div className="bub">{turn.question}</div>
             <div className="steps">
-              {turn.steps.map((step, index) => (
-                <div
-                  key={index}
-                  className={
-                    turn.status === 'running' && index === turn.steps.length - 1 ? 'run' : undefined
-                  }
-                >
-                  {step}
-                </div>
-              ))}
+              {turn.steps.map((step, index) => {
+                const running = turn.status === 'running' && index === turn.steps.length - 1;
+                return (
+                  <div key={index} className={running ? 'run' : undefined}>
+                    {running ? step : doneStepLabel(step)}
+                  </div>
+                );
+              })}
             </div>
             {turn.answer === '' ? null : (
               <ChatAnswer

@@ -102,8 +102,13 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
         >
           {busy === 'test' ? 'Testujem…' : 'Otestovať pripojenie'}
         </Button>
-        <Button variant="primary" type="submit" disabled={busy !== null}>
-          {busy === 'add' ? 'Pripájam…' : 'Pridať účet'} <Kbd keys={['↵']} />
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={busy !== null}
+          title="Pridať účet (Enter)"
+        >
+          {busy === 'add' ? 'Pripájam…' : 'Pridať účet'}
         </Button>
       </div>
     </form>

@@ -51,16 +51,6 @@
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
-.sh-main::after {
-  content: '';
-  position: sticky;
-  bottom: 0;
-  display: block;
-  height: 40px;
-  margin: 0 -32px -40px;
-  background: linear-gradient(to bottom, transparent, var(--panel));
-  pointer-events: none;
-}
 .sh-head {
   position: sticky;
   top: 0;

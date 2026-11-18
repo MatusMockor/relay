@@ -1,5 +1,4 @@
 import type { AutomationCondition } from '@relay/shared';
-import { Fragment } from 'react';
 import { describeCondition } from './automation-labels';
 import { ConditionForm } from './ConditionForm';
 import { TokenPopover } from './TokenPopover';
@@ -23,12 +22,8 @@ export function ConditionTokens({
   return (
     <>
       {conditions.map((condition, index) => (
-        <Fragment key={`${condition.type}-${String(index)}`}>
-          {index > 0 ? (
-            <>
-              <span className="kw">a</span>{' '}
-            </>
-          ) : null}
+        <span className="tk-run" key={`${condition.type}-${String(index)}`}>
+          {index > 0 ? <span className="kw">a</span> : null}
           <span className="tk-g c">
             <TokenPopover
               className="tk c"
@@ -60,8 +55,8 @@ export function ConditionTokens({
             >
               ×
             </button>
-          </span>{' '}
-        </Fragment>
+          </span>
+        </span>
       ))}
       <TokenPopover
         className="tk add"

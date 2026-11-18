@@ -56,12 +56,12 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     key: 'API-74',
     split: 'jira',
     labels: ['jira'],
-    subj: 'Stav: In Progress → In Review',
+    subj: 'Stav zmenený na Na kontrole',
     msgs: [
       [
         'mh',
         [0, 8, 2],
-        'Martin zmenil stav: In Progress → In Review\n\nDokumentácia OAuth pre partnerov',
+        'Martin zmenil stav z Rozpracované na Na kontrole\n\nDokumentácia OAuth pre partnerov',
       ],
     ],
   },
@@ -111,7 +111,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
         'Ahoj, tento týždeň sa pozrieme na CSS anchor positioning v praxi, nové View Transitions a päť tipov, ako zrýchliť build.',
       ],
     ],
-    html: '<div style="font-family:Georgia,serif;max-width:560px"><img src="https://frontend-tyzdennik.sk/banner-212.png" alt="Frontend týždenník" width="560" height="120"><h2 style="color:#1d2a5b">Č. 212: CSS anchor positioning v praxi</h2><p>Ahoj,</p><p>tento týždeň sa pozrieme na <b>CSS anchor positioning</b> v praxi, nové <i>View Transitions</i> medzi stránkami a päť tipov, ako zrýchliť build vo veľkých projektoch.</p><p><a href="https://frontend-tyzdennik.sk/212">Čítať celé číslo</a></p><p style="color:#888;font-size:12px">Príjemné čítanie, redakcia</p></div>',
+    html: '<div style="font-family:Helvetica,Arial,sans-serif;max-width:560px"><img src="https://frontend-tyzdennik.sk/banner-212.png" alt="Frontend týždenník" width="560" height="120"><h2 style="color:#1d2a5b">Č. 212: CSS anchor positioning v praxi</h2><p>Ahoj,</p><p>tento týždeň sa pozrieme na <b>CSS anchor positioning</b> v praxi, nové <i>View Transitions</i> medzi stránkami a päť tipov, ako zrýchliť build vo veľkých projektoch.</p><p><a href="https://frontend-tyzdennik.sk/212">Čítať celé číslo</a></p><p style="color:#888;font-size:12px">Príjemné čítanie, redakcia</p></div>',
   },
   {
     id: 'z-release',

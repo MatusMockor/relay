@@ -1,4 +1,4 @@
-import { Button, Icon, Kbd, Spark } from '@relay/ui';
+import { Button, Icon, Spark } from '@relay/ui';
 import { MOD } from '../../lib/platform-keys';
 
 export interface ComposeFooterProps {
@@ -35,8 +35,8 @@ export function ComposeFooter({ empty, onAi, onAttach, onSchedule, onSend }: Com
         <Icon name="clock" />
         Naplánovať odoslanie
       </Button>
-      <Button variant="primary" onClick={onSend}>
-        Odoslať <Kbd keys={[`${MOD}↵`]} />
+      <Button variant="primary" onClick={onSend} title={`Odoslať (${MOD}Enter)`}>
+        Odoslať
       </Button>
     </div>
   );

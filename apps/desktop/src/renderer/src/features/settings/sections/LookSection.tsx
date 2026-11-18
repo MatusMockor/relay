@@ -7,6 +7,8 @@ import { useLayout } from '../../shell/use-layout';
 import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
+import { SettingsGroup } from '../SettingsGroup';
+import { ThemeRow } from './ThemeRow';
 
 export function LookSection() {
   const settings = useUserSettings();
@@ -17,12 +19,12 @@ export function LookSection() {
   const density = settings.data?.density ?? 'normal';
   return (
     <>
-      <SectionHeader title="Vzhľad" stored>
-        Ako hustý je zoznam a ktoré panely vidíš. Rozloženie si Relay pamätá aj po zatvorení.
+      <SectionHeader title="Vzhľad">
+        Ako hustý je zoznam a ktoré panely vidíš. Rozloženie panelov platí len pre toto zariadenie.
       </SectionHeader>
+      <SettingsGroup title="Zoznam" />
       <SettingRow
         title="Hustota zoznamu"
-        scope="synced"
         description={
           density === 'compact'
             ? 'Nižšie riadky, zmestí sa viac mailov naraz'
@@ -41,9 +43,10 @@ export function LookSection() {
           }}
         />
       </SettingRow>
+      <ThemeRow />
+      <SettingsGroup title="Toto zariadenie" />
       <SettingRow
         title="Šírky panelov"
-        scope="device"
         description="Šírku zmeníš potiahnutím okraja panela, dvojklik na okraj ju vráti"
       >
         <Button
@@ -57,7 +60,6 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Priečinky vľavo"
-        scope="device"
         description={
           layout.leftVisible
             ? 'Zobrazené, v úzkom okne sa skryjú samy'
@@ -75,7 +77,6 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Pravý panel"
-        scope="device"
         description={rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'}
       >
         <Kbd keys={['I']} />
@@ -89,7 +90,6 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Záložka pravého panela"
-        scope="device"
         description={`Prepínaš aj cez ${ALT}1, ${ALT}2 a ${ALT}3`}
       >
         <Segmented<RightTab>
@@ -104,9 +104,6 @@ export function LookSection() {
             setUi({ rightTab: value, rightOpen: true });
           }}
         />
-      </SettingRow>
-      <SettingRow title="Téma" description="Relay má zatiaľ jednu tému, tmavú">
-        <span className="ro-val">Tmavá</span>
       </SettingRow>
     </>
   );

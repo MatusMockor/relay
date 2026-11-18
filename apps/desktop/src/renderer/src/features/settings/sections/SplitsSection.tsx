@@ -86,7 +86,7 @@ export function SplitsSection() {
   };
   return (
     <>
-      <SectionHeader title="Split Inbox" stored>
+      <SectionHeader title="Split Inbox">
         Splity rozdelia Doručenú poštu na tematické záložky. Pravidlá bežia pri každej
         synchronizácii, zhora nadol. Všetko ostatné ostáva v Dôležitých.
       </SectionHeader>

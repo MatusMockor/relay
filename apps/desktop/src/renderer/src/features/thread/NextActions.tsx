@@ -71,7 +71,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
   const own = (
     <button
       type="button"
-      className={bot ? 'sug lead' : 'sug own'}
+      className="sug"
       onClick={() => {
         reply();
       }}
