@@ -1,4 +1,12 @@
-import type { AiRunnerKind, Automation, AutomationInput, AutomationPreset } from '@relay/shared';
+import {
+  type AccountId,
+  type AiRunnerKind,
+  type Automation,
+  type AutomationAction,
+  type AutomationInput,
+  type AutomationPreset,
+  isParameterizedAction,
+} from '@relay/shared';
 
 export interface EditableRule {
   readonly key: string;
@@ -36,8 +44,22 @@ export const newRule = (key: string, runner: AiRunnerKind, order: number): Edita
     order,
     conditions: [],
     ai: { runner, model: null, effort: null, instructions: null },
-    actions: ['task'],
+    actions: [{ type: 'task' }],
   },
 });
 
 export const isComplete = (rule: EditableRule): boolean => rule.input.conditions.length > 0;
+
+const DEFAULT_ACTIONS: AutomationAction[] = [{ type: 'task' }];
+
+export const scopeChange = (
+  actions: readonly AutomationAction[],
+  from: AccountId | null,
+  to: AccountId | null,
+): RuleChange => {
+  if (from === to) {
+    return { accountId: to };
+  }
+  const kept = actions.filter((action) => !isParameterizedAction(action));
+  return { accountId: to, actions: kept.length === 0 ? DEFAULT_ACTIONS : kept };
+};

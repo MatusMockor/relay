@@ -3,19 +3,17 @@ import type { AutomationMatcher } from '../../ports/automation-matcher';
 import type { AutomationRepository } from '../../ports/automation-repository';
 import type { AutomationRunRepository } from '../../ports/automation-run-repository';
 import type { Clock } from '../../ports/clock';
-import type { Logger } from '../../ports/logger';
-import { errorMessage } from '../shared/mail-provider-sessions';
+import { matchSubjectOf } from '../../subjects/match-subject';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from '../sync/sync-arrivals';
-import { ACTION_ORDER, type AutomationActionHandlers } from './automation-action';
+import type { AutomationActionExecutor } from './automation-action-executor';
 import { appliesToAccount } from './automation-presets';
 
 export interface AutomationRunnerDeps {
   readonly automations: AutomationRepository;
   readonly runs: AutomationRunRepository;
   readonly matcher: AutomationMatcher;
-  readonly handlers: AutomationActionHandlers;
+  readonly executor: AutomationActionExecutor;
   readonly clock: Clock;
-  readonly logger: Logger;
 }
 
 export class AutomationRunner implements SyncArrivalListener {
@@ -46,7 +44,7 @@ export class AutomationRunner implements SyncArrivalListener {
   ): Promise<void> {
     const { message } = arrival;
     const matches = await this.deps.matcher.matches({
-      message: { from: message.from, subject: message.subject, headers: arrival.headers },
+      message: matchSubjectOf(message, arrival.headers),
       jira: arrival.jira,
       conditions: automation.conditions,
     });
@@ -62,17 +60,6 @@ export class AutomationRunner implements SyncArrivalListener {
     if (!claimed) {
       return;
     }
-    for (const action of ACTION_ORDER.filter((item) => automation.actions.includes(item))) {
-      await this.deps.handlers[action]
-        .run({ userId, automation, arrival })
-        .catch((error: unknown) => {
-          this.deps.logger.warn('An automation action failed', {
-            automationId: automation.id,
-            action,
-            messageId: message.id,
-            error: errorMessage(error),
-          });
-        });
-    }
+    await this.deps.executor.execute({ userId, automation, arrival }, automation.actions);
   }
 }

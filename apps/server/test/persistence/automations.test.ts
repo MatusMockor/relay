@@ -17,7 +17,7 @@ const buildAutomation = (userId: UserId, overrides: Partial<Automation> = {}): A
     { type: 'jiraEvent', kind: 'assigned' },
   ],
   ai: { runner: 'codex', model: 'gpt-6-astra', effort: 'high', instructions: 'Iba úlohy.' },
-  actions: ['task', 'pin'],
+  actions: [{ type: 'task' }, { type: 'pin' }],
   ...overrides,
 });
 

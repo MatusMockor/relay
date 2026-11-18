@@ -8,6 +8,12 @@ import type {
   SplitMatchSubject,
 } from '../../../src';
 
+const recipientsOf = (field: 'to' | 'cc' | 'any', message: SplitMatchSubject): string[] => {
+  const to = field === 'cc' ? [] : (message.to ?? []);
+  const cc = field === 'to' ? [] : (message.cc ?? []);
+  return [...to, ...cc].map((address) => address.email.toLowerCase());
+};
+
 const matchesCondition = (
   rule: AutomationCondition,
   message: SplitMatchSubject,
@@ -33,6 +39,14 @@ const matchesCondition = (
       );
     case 'jiraEvent':
       return jira?.eventKind === rule.kind;
+    case 'recipient':
+      return recipientsOf(rule.field, message).some((email) =>
+        rule.match === 'domain'
+          ? email.endsWith(`@${rule.value.toLowerCase()}`)
+          : email === rule.value.toLowerCase(),
+      );
+    case 'hasAttachment':
+      return message.hasAttachments === true;
   }
 };
 

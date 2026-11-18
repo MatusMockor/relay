@@ -1,17 +1,28 @@
-import type { AutomationCondition, AutomationConditionType, JiraEventKind } from '@relay/shared';
+import type {
+  AutomationCondition,
+  AutomationConditionType,
+  JiraEventKind,
+  RecipientField,
+} from '@relay/shared';
 import { Button, Field } from '@relay/ui';
 import { useState } from 'react';
-import { CONDITION_TYPE_LABELS, JIRA_EVENT_LABELS } from './automation-labels';
+import {
+  CONDITION_TYPE_LABELS,
+  JIRA_EVENT_LABELS,
+  RECIPIENT_FIELD_LABELS,
+} from './automation-labels';
 import { type ConditionDraft, conditionOf, draftOf, EMPTY_CONDITION } from './condition-draft';
 
 const TYPES = Object.keys(CONDITION_TYPE_LABELS) as AutomationConditionType[];
 const KINDS = Object.keys(JIRA_EVENT_LABELS) as JiraEventKind[];
+const FIELDS = Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[];
 
 const VALUE_LABELS: Partial<Record<AutomationConditionType, [string, string]>> = {
   fromAddress: ['Adresa', 'tibor@firma.sk'],
   fromDomain: ['Doména', 'firma.sk'],
   header: ['Hlavička', 'List-Id'],
   jira: ['Projekty', 'ECOM, OPS (prázdne = všetky)'],
+  recipient: ['Adresa alebo doména', 'faktury@firma.sk alebo firma.sk'],
 };
 
 export interface ConditionFormProps {
@@ -72,6 +83,23 @@ export function ConditionForm({ initial, onSave }: ConditionFormProps) {
             {KINDS.map((kind) => (
               <option key={kind} value={kind}>
                 {JIRA_EVENT_LABELS[kind]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {draft.type === 'recipient' ? (
+        <label className="fld">
+          <span>Pole</span>
+          <select
+            value={draft.field}
+            onChange={(event) => {
+              set({ field: event.target.value as RecipientField });
+            }}
+          >
+            {FIELDS.map((field) => (
+              <option key={field} value={field}>
+                {RECIPIENT_FIELD_LABELS[field]}
               </option>
             ))}
           </select>

@@ -13,7 +13,10 @@ import {
   UpdateDraftBodySchema,
 } from '../api/endpoints/compose';
 import { LabelListQuerySchema } from '../api/endpoints/labels';
-import { ReplaceAutomationsBodySchema } from '../api/endpoints/automations';
+import {
+  ApplyAutomationResponseSchema,
+  ReplaceAutomationsBodySchema,
+} from '../api/endpoints/automations';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
@@ -31,6 +34,7 @@ import {
   AccountIdSchema,
   AiJobIdSchema,
   AttachmentIdSchema,
+  AutomationIdSchema,
   DraftIdSchema,
   ScheduledSendIdSchema,
   TaskIdSchema,
@@ -111,6 +115,10 @@ export const localInvokeChannels = {
   'local.automations.replace': invokeChannel(
     ReplaceAutomationsBodySchema,
     z.array(AutomationSchema),
+  ),
+  'local.automations.apply': invokeChannel(
+    z.object({ automationId: AutomationIdSchema }),
+    ApplyAutomationResponseSchema,
   ),
   'local.drafts.list': invokeChannel(z.undefined(), z.array(DraftSchema)),
   'local.drafts.create': invokeChannel(CreateDraftBodySchema, DraftSchema),

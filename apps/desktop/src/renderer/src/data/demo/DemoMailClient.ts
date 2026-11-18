@@ -5,6 +5,7 @@ import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
+import { createDemoAutomationApply } from './demo-automation-apply';
 import { createDemoAutomations } from './demo-automations';
 import { createDemoCalendarClient } from './demo-calendar';
 import { demoSend, newDraftKey } from './demo-compose';
@@ -185,7 +186,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     ...createDemoAttachments(state, now),
-    ...createDemoAutomations(state, now),
+    ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted)),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
       Promise.resolve(state.scheduled.filter((item) => item.status === 'pending')),

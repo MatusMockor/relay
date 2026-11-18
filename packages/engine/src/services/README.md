@@ -56,7 +56,7 @@ Ports: `TaskRepository`, `ThreadRepository`, `EventPublisher`, `Clock`, `IdGener
 
 List and replace splits (validating regex rules), re-evaluate split membership for existing threads after a change.
 
-Ports: `SplitRepository`, `ThreadRepository`, `MessageRepository` (`listMatchSubjects` returns the stored from / subject / headers), `SplitMatcher`, `UnitOfWork`, `IdGenerator`
+Ports: `SplitRepository`, `ThreadRepository`, `MessageRepository` (`listMatchSubjects` returns the stored from / to / cc / subject / headers and whether the message has a file attachment), `SplitMatcher`, `UnitOfWork`, `IdGenerator`
 
 ### `AiService`
 

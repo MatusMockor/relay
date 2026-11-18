@@ -1,10 +1,13 @@
 import type { MailAccount } from '@relay/shared';
 import { IconButton, Icon, Switch } from '@relay/ui';
+import { describeAction } from './action-targets';
+import { ApplyToExisting } from './ApplyToExisting';
 import { isComplete, type EditableRule, type RuleChange } from './editable-rule';
 import { InstructionsBox } from './InstructionsBox';
 import { ModelPicker } from './ModelPicker';
 import { RuleName } from './RuleName';
 import { RuleSentence } from './RuleSentence';
+import { useActionTargets } from './use-action-targets';
 
 export interface AutomationCardProps {
   readonly rule: EditableRule;
@@ -26,6 +29,7 @@ export function AutomationCard({
   onEngage,
 }: AutomationCardProps) {
   const { input } = rule;
+  const targets = useActionTargets(input.accountId, accounts);
   return (
     <section className={editing ? 'au ed' : 'au'} aria-label={`Pravidlo ${input.name}`}>
       <div className="au-h">
@@ -66,6 +70,7 @@ export function AutomationCard({
       <RuleSentence
         rule={rule}
         accounts={accounts}
+        targets={targets}
         disabled={disabled}
         onChange={onChange}
         onEngage={onEngage}
@@ -88,7 +93,20 @@ export function AutomationCard({
             onChange({ ai: { ...input.ai, ...choice } });
           }}
         />
+        {rule.saved && input.id !== undefined ? (
+          <ApplyToExisting
+            automationId={input.id}
+            name={input.name}
+            actions={input.actions}
+            disabled={disabled}
+          />
+        ) : null}
       </div>
+      {input.actions.some((action) => describeAction(action, targets).broken) ? (
+        <p className="au-hint" role="status">
+          Cieľ niektorej akcie už neexistuje. Pravidlo ostatné akcie vykoná, túto preskočí.
+        </p>
+      ) : null}
       {isComplete(rule) ? null : (
         <p className="au-hint" role="status">
           Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.

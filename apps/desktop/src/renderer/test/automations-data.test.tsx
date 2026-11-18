@@ -49,6 +49,7 @@ describe('automation data hooks on the demo client', () => {
     expect(current.map((item) => [item.name, item.preset])).toEqual([
       ['Jira spomenutia', null],
       ['Tibor', null],
+      ['GitLab do Projektov', null],
       ['Jira tasky', 'jiraTasks'],
     ]);
     const preset = toAutomationInput(required(current.find((item) => item.preset !== null)));
@@ -63,7 +64,7 @@ describe('automation data hooks on the demo client', () => {
           order: 9,
           conditions: [{ type: 'fromAddress', address: 'tibor@efabrica.sk' }],
           ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: null },
-          actions: ['task', 'archive'],
+          actions: [{ type: 'task' }, { type: 'archive' }],
         },
       ]);
     });

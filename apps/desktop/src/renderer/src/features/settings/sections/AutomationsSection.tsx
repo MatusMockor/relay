@@ -14,8 +14,8 @@ export function AutomationsSection() {
   return (
     <>
       <SectionHeader title="Automatizácie">
-        Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Platí iba pre nové
-        maily.
+        Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Poštové akcie môžeš
+        použiť aj na maily, ktoré už sú v doručenej pošte.
       </SectionHeader>
       {editor.rules.map((rule) => (
         <AutomationCard

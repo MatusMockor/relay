@@ -7,12 +7,18 @@ import { PERMISSIVE_PATTERN_POLICY } from '../splits/split-rule-validator';
 import type { JiraTaskSink } from '../sync/jira-task-sink';
 import type { TaskService } from '../tasks/task-service';
 import { SummaryAutomationAction, TaskAutomationAction } from './ai-automation-actions';
+import { AutomationActionExecutor } from './automation-action-executor';
+import { AutomationBacklog } from './automation-backlog';
+import { AutomationBacklogMatcher } from './automation-backlog-matcher';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
+import { AutomationTargetValidator } from './automation-target-validator';
 import { JiraTaskAutomation } from './jira-task-automation';
 import {
+  AddLabelAutomationAction,
   ArchiveAutomationAction,
   MarkReadAutomationAction,
+  MoveToAutomationAction,
   NotifyAutomationAction,
   PinAutomationAction,
 } from './mail-automation-actions';
@@ -34,6 +40,19 @@ export const createAutomationComponents = (
   },
 ): AutomationComponents => {
   const { repositories } = deps;
+  const executor = new AutomationActionExecutor(
+    {
+      notify: new NotifyAutomationAction(shared.events),
+      summary: new SummaryAutomationAction(shared.factory),
+      task: new TaskAutomationAction(shared.factory),
+      markRead: new MarkReadAutomationAction(shared.actions),
+      pin: new PinAutomationAction(shared.actions),
+      addLabel: new AddLabelAutomationAction(shared.actions),
+      moveTo: new MoveToAutomationAction(shared.actions),
+      archive: new ArchiveAutomationAction(shared.actions),
+    },
+    deps.logger,
+  );
   return {
     service: new AutomationService({
       automations: repositories.automations,
@@ -42,21 +61,26 @@ export const createAutomationComponents = (
       events: shared.events,
       ids: deps.idGenerator,
       patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
+      targets: new AutomationTargetValidator(repositories.mailboxes, repositories.labels),
+      backlog: new AutomationBacklog({
+        accounts: repositories.accounts,
+        messages: repositories.messages,
+        runs: repositories.automationRuns,
+        matcher: new AutomationBacklogMatcher({
+          messages: repositories.messages,
+          threads: repositories.threads,
+          matcher: deps.automationMatcher,
+        }),
+        executor,
+        clock: deps.clock,
+      }),
     }),
     runner: new AutomationRunner({
       automations: repositories.automations,
       runs: repositories.automationRuns,
       matcher: deps.automationMatcher,
-      handlers: {
-        notify: new NotifyAutomationAction(shared.events),
-        summary: new SummaryAutomationAction(shared.factory),
-        task: new TaskAutomationAction(shared.factory),
-        markRead: new MarkReadAutomationAction(shared.actions),
-        pin: new PinAutomationAction(shared.actions),
-        archive: new ArchiveAutomationAction(shared.actions),
-      },
+      executor,
       clock: deps.clock,
-      logger: deps.logger,
     }),
     jiraTasks: new JiraTaskAutomation({
       automations: repositories.automations,

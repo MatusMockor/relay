@@ -1,4 +1,4 @@
-import type { Message } from '@relay/shared/domain';
+import type { AutomationActionOf, Message } from '@relay/shared/domain';
 import type { MessageActionsService } from '../actions/message-actions-service';
 import type { EngineEvents } from '../shared/engine-events';
 import type { AutomationActionContext, AutomationActionHandler } from './automation-action';
@@ -47,5 +47,31 @@ export class ArchiveAutomationAction implements AutomationActionHandler {
 
   async run({ userId, arrival }: AutomationActionContext): Promise<void> {
     await this.actions.apply(userId, arrival.message.threadId, { type: 'done' });
+  }
+}
+
+export class MoveToAutomationAction
+  implements AutomationActionHandler<AutomationActionOf<'moveTo'>>
+{
+  constructor(private readonly actions: MessageActionsService) {}
+
+  async run(
+    { userId, arrival }: AutomationActionContext,
+    { mailboxId }: AutomationActionOf<'moveTo'>,
+  ): Promise<void> {
+    await this.actions.apply(userId, arrival.message.threadId, { type: 'move', mailboxId });
+  }
+}
+
+export class AddLabelAutomationAction
+  implements AutomationActionHandler<AutomationActionOf<'addLabel'>>
+{
+  constructor(private readonly actions: MessageActionsService) {}
+
+  async run(
+    { userId, arrival }: AutomationActionContext,
+    { labelId }: AutomationActionOf<'addLabel'>,
+  ): Promise<void> {
+    await this.actions.apply(userId, arrival.message.threadId, { type: 'addLabel', labelId });
   }
 }

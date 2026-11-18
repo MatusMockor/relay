@@ -183,6 +183,13 @@
       "when": 1795017416282,
       "tag": "0025_custom_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795027233436,
+      "tag": "0026_automation_action_objects",
+      "breakpoints": true
     }
   ]
 }

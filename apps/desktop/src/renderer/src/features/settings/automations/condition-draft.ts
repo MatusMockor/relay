@@ -3,6 +3,7 @@ import {
   AutomationConditionSchema,
   type AutomationConditionType,
   type JiraEventKind,
+  type RecipientField,
 } from '@relay/shared';
 
 export interface ConditionDraft {
@@ -10,6 +11,7 @@ export interface ConditionDraft {
   readonly value: string;
   readonly pattern: string;
   readonly kind: JiraEventKind;
+  readonly field: RecipientField;
 }
 
 export const EMPTY_CONDITION: ConditionDraft = {
@@ -17,6 +19,17 @@ export const EMPTY_CONDITION: ConditionDraft = {
   value: '',
   pattern: '',
   kind: 'mention',
+  field: 'to',
+};
+
+const recipientOf = (field: RecipientField, value: string) => {
+  const address = /^[^@\s]+@[^@\s]+$/.test(value);
+  return {
+    type: 'recipient',
+    field,
+    match: address ? 'address' : 'domain',
+    value: address ? value : value.replace(/^@/, ''),
+  };
 };
 
 export const draftOf = (condition: AutomationCondition): ConditionDraft => {
@@ -40,6 +53,17 @@ export const draftOf = (condition: AutomationCondition): ConditionDraft => {
   if (condition.type === 'jira') {
     return { ...EMPTY_CONDITION, type: condition.type, value: condition.projectKeys.join(', ') };
   }
+  if (condition.type === 'recipient') {
+    return {
+      ...EMPTY_CONDITION,
+      type: condition.type,
+      value: condition.value,
+      field: condition.field,
+    };
+  }
+  if (condition.type === 'hasAttachment') {
+    return { ...EMPTY_CONDITION, type: condition.type };
+  }
   return { ...EMPTY_CONDITION, type: condition.type, kind: condition.kind };
 };
 
@@ -59,6 +83,8 @@ const candidateOf = (draft: ConditionDraft): unknown => {
     header: () => ({ type: 'header', name: value, pattern }),
     jira: () => ({ type: 'jira', projectKeys: projectKeys(value) }),
     jiraEvent: () => ({ type: 'jiraEvent', kind: draft.kind }),
+    recipient: () => recipientOf(draft.field, value),
+    hasAttachment: () => ({ type: 'hasAttachment' }),
   };
   return shapes[draft.type]();
 };

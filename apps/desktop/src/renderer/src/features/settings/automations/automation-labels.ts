@@ -1,11 +1,12 @@
 import type {
-  AutomationAction,
   AutomationCondition,
   AutomationConditionType,
   JiraEventKind,
+  RecipientField,
+  SimpleAutomationActionType,
 } from '@relay/shared';
 
-export const ACTION_LABELS: Readonly<Record<AutomationAction, string>> = {
+export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>> = {
   summary: 'AI zhrnutie',
   task: 'Vytvoriť úlohu',
   notify: 'Notifikácia',
@@ -14,7 +15,7 @@ export const ACTION_LABELS: Readonly<Record<AutomationAction, string>> = {
   archive: 'Archivovať',
 };
 
-export const ACTIONS: readonly AutomationAction[] = [
+export const SIMPLE_ACTIONS: readonly SimpleAutomationActionType[] = [
   'summary',
   'task',
   'notify',
@@ -38,6 +39,20 @@ export const CONDITION_TYPE_LABELS: Readonly<Record<AutomationConditionType, str
   header: 'Hlavička',
   jira: 'Jira projekt',
   jiraEvent: 'Jira udalosť',
+  recipient: 'Príjemca',
+  hasAttachment: 'Má prílohu',
+};
+
+export const RECIPIENT_FIELD_LABELS: Readonly<Record<RecipientField, string>> = {
+  to: 'Komu',
+  cc: 'Kópia',
+  any: 'Komu alebo kópia',
+};
+
+const RECIPIENT_PHRASES: Readonly<Record<RecipientField, string>> = {
+  to: 'komu je',
+  cc: 'v kópii je',
+  any: 'príjemca je',
 };
 
 export const describeCondition = (condition: AutomationCondition): string => {
@@ -57,6 +72,12 @@ export const describeCondition = (condition: AutomationCondition): string => {
     return condition.projectKeys.length === 0
       ? 'z Jiry'
       : `projekt je ${condition.projectKeys.join(', ')}`;
+  }
+  if (condition.type === 'recipient') {
+    return `${RECIPIENT_PHRASES[condition.field]} ${condition.value}`;
+  }
+  if (condition.type === 'hasAttachment') {
+    return 'má prílohu';
   }
   return `Jira udalosť je ${JIRA_EVENT_LABELS[condition.kind]}`;
 };

@@ -1,5 +1,9 @@
-import type { AutomationInput, ReplaceAutomationsBody } from '@relay/shared/api';
-import type { Automation, UserId } from '@relay/shared/domain';
+import type {
+  ApplyAutomationResponse,
+  AutomationInput,
+  ReplaceAutomationsBody,
+} from '@relay/shared/api';
+import type { Automation, AutomationId, UserId } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { AutomationRepository } from '../../ports/automation-repository';
@@ -9,7 +13,9 @@ import type { EngineEvents } from '../shared/engine-events';
 import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { assertRulePatterns } from '../splits/split-rule-validator';
+import type { AutomationBacklog } from './automation-backlog';
 import { hasJiraTasksPreset, jiraTasksPreset } from './automation-presets';
+import type { AutomationTargetValidator } from './automation-target-validator';
 
 export interface AutomationServiceDeps {
   readonly automations: AutomationRepository;
@@ -18,6 +24,8 @@ export interface AutomationServiceDeps {
   readonly events: EngineEvents;
   readonly ids: IdGenerator;
   readonly patterns: SplitPatternPolicy;
+  readonly targets: AutomationTargetValidator;
+  readonly backlog: AutomationBacklog;
 }
 
 export class AutomationService {
@@ -33,6 +41,15 @@ export class AutomationService {
     return this.serializer.run(userId, () => this.replaceNow(userId, body));
   }
 
+  async applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
+    const stored = await this.deps.automations.listByUser(userId);
+    const automation = stored.find((item) => item.id === id);
+    if (automation === undefined) {
+      throw new NotFoundError('Automation', id);
+    }
+    return this.deps.backlog.apply(userId, automation);
+  }
+
   private async replaceNow(userId: UserId, body: ReplaceAutomationsBody): Promise<Automation[]> {
     body.automations.forEach((input) => {
       assertRulePatterns(
@@ -43,6 +60,7 @@ export class AutomationService {
     await this.assertAccounts(userId, body.automations);
     const current = await this.seeded(userId);
     const known = new Map(current.map((automation) => [automation.id, automation]));
+    await this.deps.targets.assert(userId, body.automations, known);
     const automations = body.automations.map((input): Automation => {
       if (input.id !== undefined && !known.has(input.id)) {
         throw new ValidationError(`Unknown automation id ${input.id}`);

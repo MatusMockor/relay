@@ -21,7 +21,7 @@ describe('automation actions', () => {
     const setup = await syncedSetup();
     await addAutomations(setup.engine, [
       automationInput({
-        actions: ['summary'],
+        actions: [{ type: 'summary' }],
         ai: { runner: 'codex', model: 'gpt-6-astra', effort: 'high', instructions: null },
       }),
     ]);
@@ -60,7 +60,7 @@ describe('automation actions', () => {
     const setup = await syncedSetup();
     const saved = await addAutomations(setup.engine, [
       automationInput({
-        actions: ['task'],
+        actions: [{ type: 'task' }],
         ai: {
           runner: 'claude',
           model: 'claude-opus-5-5',
@@ -107,7 +107,7 @@ describe('automation actions', () => {
 
   it('falls back to the runner default for a stored model that left the catalog', async () => {
     const setup = await syncedSetup();
-    await addAutomations(setup.engine, [automationInput({ actions: ['summary'] })]);
+    await addAutomations(setup.engine, [automationInput({ actions: [{ type: 'summary' }] })]);
     const stored = await setup.engine.repositories.automations.listByUser(USER_ID);
     await setup.engine.repositories.automations.replaceAll(
       USER_ID,
@@ -129,7 +129,7 @@ describe('automation actions', () => {
 
   it('creates no task when the AI finds nothing to do', async () => {
     const setup = await syncedSetup();
-    await addAutomations(setup.engine, [automationInput({ actions: ['task'] })]);
+    await addAutomations(setup.engine, [automationInput({ actions: [{ type: 'task' }] })]);
     setup.engine.claude.respondWith((request) =>
       verdict({
         threadId: request.input.kind === 'automationTask' ? request.input.threadId : ('x' as never),
@@ -150,7 +150,9 @@ describe('automation actions', () => {
   it('notifies, marks read, pins and archives the new mail', async () => {
     const setup = await syncedSetup();
     await addAutomations(setup.engine, [
-      automationInput({ actions: ['archive', 'pin', 'markRead', 'notify'] }),
+      automationInput({
+        actions: [{ type: 'archive' }, { type: 'pin' }, { type: 'markRead' }, { type: 'notify' }],
+      }),
     ]);
     deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra' });
 
