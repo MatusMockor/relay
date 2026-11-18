@@ -1,4 +1,4 @@
-import type { Logger } from '@relay/engine';
+import type { Clock, Logger } from '@relay/engine';
 import { PeriodicRunner } from '../background/periodic-runner';
 import type { Timers } from '../platform/timers';
 import type { AppUpdater } from '../updates/app-updater';
@@ -17,6 +17,7 @@ export interface AppUpdatesInput {
   readonly availability: UpdateAvailability;
   readonly loadUpdater: () => Promise<AppUpdater>;
   readonly timers: Timers;
+  readonly clock: Clock;
   readonly logger: Logger;
   readonly timing?: UpdateTiming;
 }
@@ -34,6 +35,7 @@ export const createAppUpdates = (input: AppUpdatesInput): AppUpdates => {
     availability: input.availability,
     logger: input.logger,
     timers: input.timers,
+    clock: input.clock,
   });
   const runner = new PeriodicRunner(
     () => service.check(),

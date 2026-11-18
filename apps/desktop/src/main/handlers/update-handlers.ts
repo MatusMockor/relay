@@ -7,6 +7,10 @@ const MAX_BUFFERED_STATUSES = 50;
 
 export const createUpdateInvokeHandlers = (updates: UpdateService): IpcInvokeHandlers => ({
   'app.update.status': () => updates.status(),
+  'app.update.check': () => {
+    void updates.check();
+    return { ok: true as const };
+  },
   'app.update.install': () => {
     updates.install();
     return { ok: true as const };

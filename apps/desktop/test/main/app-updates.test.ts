@@ -18,6 +18,7 @@ const setup = (availability: UpdateAvailability) => {
       return Promise.resolve(updater);
     },
     timers: time,
+    clock: time,
     logger: createTestLogger().logger,
     timing: TIMING,
   });
@@ -64,6 +65,7 @@ describe('scheduled update checks', () => {
           : Promise.resolve(updater);
       },
       timers: time,
+      clock: time,
       logger: createTestLogger().logger,
       timing: TIMING,
     });
@@ -72,6 +74,9 @@ describe('scheduled update checks', () => {
     expect(updates.service.status()).toEqual({ kind: 'error', failed: 'check' });
     await time.advance(TIMING.intervalMs);
     expect(updater.checks).toBe(1);
-    expect(updates.service.status()).toEqual({ kind: 'idle' });
+    expect(updates.service.status()).toEqual({
+      kind: 'current',
+      checkedAt: time.now().toISOString(),
+    });
   });
 });

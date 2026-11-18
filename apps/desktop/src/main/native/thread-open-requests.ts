@@ -1,30 +1,17 @@
 import type { ThreadId } from '@relay/shared/domain';
 import type { NotificationOpened } from '@relay/shared/ipc';
-import { EventHub } from '../events/event-hub';
-import { streamHub } from '../events/hub-stream';
+import { LatestRequestFeed } from '../events/latest-request-feed';
 
 const MAX_BUFFERED_REQUESTS = 10;
 
 export class ThreadOpenRequests {
-  private readonly hub = new EventHub<NotificationOpened>();
-  private pending: NotificationOpened | null = null;
+  private readonly feed = new LatestRequestFeed<NotificationOpened>(MAX_BUFFERED_REQUESTS);
 
   request(threadId: ThreadId): void {
-    const request = { threadId };
-    if (this.hub.listenerCount === 0) {
-      this.pending = request;
-      return;
-    }
-    this.hub.publish(request);
+    this.feed.request({ threadId });
   }
 
   stream(signal: AbortSignal): AsyncGenerator<NotificationOpened> {
-    return streamHub(this.hub, signal, MAX_BUFFERED_REQUESTS, () => this.takePending());
-  }
-
-  private takePending(): readonly NotificationOpened[] {
-    const pending = this.pending;
-    this.pending = null;
-    return pending === null ? [] : [pending];
+    return this.feed.stream(signal);
   }
 }

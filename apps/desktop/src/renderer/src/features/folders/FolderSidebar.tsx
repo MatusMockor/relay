@@ -6,6 +6,7 @@ import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { FolderNav } from './FolderNav';
 import { rectOf } from './rect';
 import { accountCount } from '../../lib/text';
+import { AppVersionStatus } from '../updates/AppVersionStatus';
 
 function ModeStatus() {
   const services = useSessionStore((state) => state.services);
@@ -100,6 +101,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
       <FolderNav labels={scopedLabels} showTasks={openTasks} />
       <div className="fold-foot">
         <ModeStatus />
+        <AppVersionStatus />
       </div>
     </nav>
   );

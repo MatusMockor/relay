@@ -53,6 +53,24 @@ describe('ipc channel map', () => {
     expect(ipcInvokeChannels['app.update.install'].input.safeParse(undefined).success).toBe(true);
   });
 
+  it('accepts the checking and up to date statuses only with a valid check time', () => {
+    const { event } = ipcStreamChannels['app.update.events'];
+    expect(event.safeParse({ kind: 'checking' }).success).toBe(true);
+    expect(
+      event.safeParse({ kind: 'current', checkedAt: '2026-11-18T09:30:00.000Z' }).success,
+    ).toBe(true);
+    expect(event.safeParse({ kind: 'current' }).success).toBe(false);
+    expect(event.safeParse({ kind: 'current', checkedAt: 'yesterday' }).success).toBe(false);
+    expect(ipcInvokeChannels['app.update.check'].input.safeParse(undefined).success).toBe(true);
+    expect(ipcInvokeChannels['app.update.check'].output.safeParse({ ok: true }).success).toBe(true);
+  });
+
+  it('accepts only known menu commands for the renderer', () => {
+    const { event } = ipcStreamChannels['app.menu.command'];
+    expect(event.safeParse({ command: 'open-about' }).success).toBe(true);
+    expect(event.safeParse({ command: 'quit' }).success).toBe(false);
+  });
+
   it('makes input optional only for channels without input', () => {
     expectTypeOf<IpcInvokeArgs<'app.getInfo'>>().toEqualTypeOf<[]>();
     expectTypeOf<IpcInvokeArgs<'secure.get'>>().toEqualTypeOf<[input: { key: string }]>();

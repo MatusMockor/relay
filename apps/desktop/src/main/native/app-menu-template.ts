@@ -4,7 +4,18 @@ export interface AppMenuOptions {
   readonly platform: NodeJS.Platform;
   readonly appName: string;
   readonly isDevelopment: boolean;
+  readonly onCheckForUpdates: () => void;
 }
+
+export const CHECK_FOR_UPDATES_ID = 'check-for-updates';
+
+const checkForUpdatesItem = (onCheck: () => void): MenuItemConstructorOptions => ({
+  id: CHECK_FOR_UPDATES_ID,
+  label: 'Skontrolovať aktualizácie…',
+  click: () => {
+    onCheck();
+  },
+});
 
 const editMenu = (platform: NodeJS.Platform): MenuItemConstructorOptions => ({
   label: 'Upraviť',
@@ -41,10 +52,11 @@ const viewMenu = (isDevelopment: boolean): MenuItemConstructorOptions => ({
   ],
 });
 
-const macAppMenu = (appName: string): MenuItemConstructorOptions => ({
+const macAppMenu = (appName: string, onCheck: () => void): MenuItemConstructorOptions => ({
   label: appName,
   submenu: [
     { role: 'about', label: `O aplikácii ${appName}` },
+    checkForUpdatesItem(onCheck),
     { type: 'separator' },
     { role: 'services', label: 'Služby' },
     { type: 'separator' },
@@ -76,10 +88,20 @@ export const buildAppMenuTemplate = (options: AppMenuOptions): MenuItemConstruct
   ];
   if (options.platform === 'darwin') {
     return [
-      macAppMenu(options.appName),
+      macAppMenu(options.appName, options.onCheckForUpdates),
       { label: 'Súbor', submenu: [{ role: 'close', label: 'Zavrieť okno' }] },
       ...common,
     ];
   }
-  return [{ label: 'Súbor', submenu: [{ role: 'quit', label: 'Ukončiť' }] }, ...common];
+  return [
+    {
+      label: 'Súbor',
+      submenu: [
+        checkForUpdatesItem(options.onCheckForUpdates),
+        { type: 'separator' },
+        { role: 'quit', label: 'Ukončiť' },
+      ],
+    },
+    ...common,
+  ];
 };

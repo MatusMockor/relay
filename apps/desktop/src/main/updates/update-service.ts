@@ -1,4 +1,4 @@
-import { ConflictError, type Logger } from '@relay/engine';
+import { type Clock, ConflictError, type Logger } from '@relay/engine';
 import type { UpdateStatus } from '@relay/shared/ipc';
 import { EventHub } from '../events/event-hub';
 import type { TimerHandle, Timers } from '../platform/timers';
@@ -10,6 +10,7 @@ export interface UpdateServiceDeps {
   readonly availability: UpdateAvailability;
   readonly logger: Logger;
   readonly timers: Timers;
+  readonly clock: Clock;
   readonly installTimeoutMs?: number;
 }
 
@@ -21,6 +22,7 @@ interface InstallAttempt {
 
 const BUSY: ReadonlySet<UpdateStatus['kind']> = new Set([
   'disabled',
+  'checking',
   'downloading',
   'ready',
   'installing',
@@ -106,6 +108,7 @@ export class UpdateService {
   }
 
   private async checkAndDownload(): Promise<void> {
+    this.transition({ kind: 'checking' });
     const found = await this.deps.updater.check().catch((error: unknown) => {
       this.deps.logger.warn('The update check failed', { error });
       return 'failed' as const;
@@ -115,7 +118,7 @@ export class UpdateService {
       return;
     }
     if (found === null) {
-      this.transition({ kind: 'idle' });
+      this.transition({ kind: 'current', checkedAt: this.deps.clock.now().toISOString() });
       return;
     }
     this.deps.logger.info('An update is available', { version: found.version });

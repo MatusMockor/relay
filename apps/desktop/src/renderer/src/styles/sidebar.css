@@ -101,6 +101,21 @@
 .fold-foot .stat:hover {
   color: var(--fg2);
 }
+.fold-foot .app-ver {
+  font-size: var(--fs-2xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.fold-foot .app-ver:hover {
+  color: var(--fg2);
+}
+.fold-foot .app-ver.accent {
+  color: var(--accent);
+  font-weight: var(--w-semibold);
+}
+.fold-foot .app-ver.accent:hover {
+  color: var(--accent-hover);
+}
 .fold-foot .proto {
   font-size: var(--fs-xs);
   color: var(--muted);

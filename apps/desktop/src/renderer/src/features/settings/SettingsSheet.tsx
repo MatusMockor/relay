@@ -1,6 +1,7 @@
 import { Icon, IconButton, Kbd, Sheet } from '@relay/ui';
 import { type ReactNode, useRef } from 'react';
 import { type SettingsSection, setUi } from '../../state/ui-store';
+import { AboutSection } from './sections/AboutSection';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
 import { AiSection } from './sections/AiSection';
@@ -32,6 +33,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     look: () => <LookSection />,
     keys: () => <KeysSection />,
     calendars: () => <CalendarsSection />,
+    about: () => <AboutSection />,
   };
   return map[section]();
 };

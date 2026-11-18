@@ -17,7 +17,8 @@ export type SettingsSection =
   | 'ai'
   | 'look'
   | 'keys'
-  | 'calendars';
+  | 'calendars'
+  | 'about';
 
 export interface ComposeInit {
   readonly draftId?: string;

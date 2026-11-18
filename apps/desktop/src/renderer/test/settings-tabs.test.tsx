@@ -53,9 +53,7 @@ describe('settings sections as tabs', () => {
       fireEvent.keyDown(next, { key: 'End' });
     });
 
-    expect(document.activeElement).toBe(
-      within(tablist).getByRole('tab', { name: 'Klávesové skratky' }),
-    );
+    expect(document.activeElement).toBe(within(tablist).getByRole('tab', { name: 'O aplikácii' }));
   });
 
   it('renders settings groups as level three headings', async () => {

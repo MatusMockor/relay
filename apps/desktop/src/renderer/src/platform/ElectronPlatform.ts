@@ -1,4 +1,9 @@
-import { DEFAULT_DEVICE_SETTINGS, type IpcResult, type RelayBridge } from '@relay/shared';
+import {
+  DEFAULT_DEVICE_SETTINGS,
+  type IpcResult,
+  MenuCommandSchema,
+  type RelayBridge,
+} from '@relay/shared';
 import { MailClientError } from '../data/errors';
 import { MainProcessSession } from '../data/remote/MainProcessSession';
 import type { Platform } from './Platform';
@@ -36,10 +41,24 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
     },
     subscribeToUpdates: (listener) =>
       bridge.subscribe('app.update.events', { onEvent: listener, onError: () => undefined }),
+    checkForUpdates: async () => {
+      await unwrap(bridge.invoke('app.update.check'));
+    },
     installUpdate: async () => {
       await unwrap(bridge.invoke('app.update.install'));
     },
     subscribeToThreadOpens: (listener) => threadOpens.subscribe(listener),
+    subscribeToMenuCommands: (listener) =>
+      bridge.subscribe('app.menu.command', {
+        onEvent: (event) => {
+          const parsed = MenuCommandSchema.safeParse(event);
+          if (!parsed.success) {
+            return;
+          }
+          listener(parsed.data.command);
+        },
+        onError: () => undefined,
+      }),
   };
 };
 
