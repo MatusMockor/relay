@@ -18,6 +18,8 @@ export interface MailProvider {
   connect(): Promise<void>;
   listMailboxes(): Promise<RemoteMailbox[]>;
   createMailbox(name: string): Promise<RemoteMailbox>;
+  renameMailbox(path: string, newPath: string): Promise<RemoteMailbox>;
+  deleteMailbox(path: string): Promise<void>;
   status(mailboxPath: string): Promise<RemoteMailboxStatus>;
   fetchSince(mailboxPath: string, cursor: RemoteSyncCursor | null): AsyncIterable<RawMessage>;
   fetchUids(
@@ -49,6 +51,7 @@ export interface MailProvider {
     uids: readonly number[],
     mutation: { readonly add: readonly string[]; readonly remove: readonly string[] },
   ): Promise<void>;
+  purgeKeyword(mailboxPath: string, keyword: string): Promise<void>;
   setLabels(mailboxPath: string, uids: readonly number[], mutation: LabelMutation): Promise<void>;
   move(mailboxPath: string, uids: readonly number[], targetPath: string): Promise<MoveResult>;
   append(

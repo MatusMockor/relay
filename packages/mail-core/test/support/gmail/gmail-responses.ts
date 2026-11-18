@@ -10,9 +10,14 @@ export const listResponse = (verb: string, mailboxes: readonly StubMailbox[]): s
 const uidNextOf = (mailbox: StubMailbox): number =>
   Math.max(0, ...mailbox.messages.map(({ uid }) => uid)) + 1;
 
-export const selectResponse = (mailbox: StubMailbox): string[] => [
+const ALL_PERMANENT_FLAGS = '\\Answered \\Flagged \\Draft \\Deleted \\Seen \\*';
+
+export const selectResponse = (
+  mailbox: StubMailbox,
+  options: { readonly permanentFlags?: string },
+): string[] => [
   '* FLAGS (\\Answered \\Flagged \\Draft \\Deleted \\Seen)',
-  '* OK [PERMANENTFLAGS (\\Answered \\Flagged \\Draft \\Deleted \\Seen \\*)] Flags permitted.',
+  `* OK [PERMANENTFLAGS (${options.permanentFlags ?? ALL_PERMANENT_FLAGS})] Flags permitted.`,
   `* ${String(mailbox.messages.length)} EXISTS`,
   '* 0 RECENT',
   `* OK [UIDVALIDITY ${String(mailbox.uidValidity)}] UIDs valid.`,

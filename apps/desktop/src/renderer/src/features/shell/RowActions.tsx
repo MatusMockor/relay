@@ -8,8 +8,8 @@ import type { ListItem } from '../mail/list-items';
 import { useMailActions } from '../mail/MailActionsProvider';
 
 interface ActionSpec {
-  readonly id: 'done' | 'remind' | 'reply' | 'move' | 'spam' | 'trash';
-  readonly icon: StrokeIconName | 'folder';
+  readonly id: 'done' | 'remind' | 'reply' | 'move' | 'labels' | 'spam' | 'trash';
+  readonly icon: StrokeIconName | 'folder' | 'label';
   readonly label: string;
   readonly key: string;
 }
@@ -18,6 +18,7 @@ const DONE: ActionSpec = { id: 'done', icon: 'check', label: 'Hotovo', key: 'E' 
 const REMIND: ActionSpec = { id: 'remind', icon: 'clock', label: 'Pripomenúť', key: 'H' };
 const REPLY: ActionSpec = { id: 'reply', icon: 'reply', label: 'Odpovedať', key: 'R' };
 const MOVE: ActionSpec = { id: 'move', icon: 'folder', label: 'Presunúť do…', key: 'V' };
+const LABELS: ActionSpec = { id: 'labels', icon: 'label', label: 'Štítok…', key: 'L' };
 const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: '#' };
 const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', key: '!' };
 
@@ -44,7 +45,8 @@ const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
     scheduled: [{ ...TRASH, icon: 'draft', label: 'Zrušiť plán, presunúť do Konceptov' }],
   };
   return (
-    map[view] ?? (inRow ? [DONE, REMIND, REPLY, MOVE] : [DONE, REMIND, REPLY, MOVE, SPAM, TRASH])
+    map[view] ??
+    (inRow ? [DONE, REMIND, REPLY, MOVE] : [DONE, REMIND, REPLY, MOVE, LABELS, SPAM, TRASH])
   );
 };
 
@@ -71,8 +73,8 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
     if (item.kind !== 'thread') {
       return;
     }
-    if (spec.id === 'move') {
-      setUi({ overlay: { kind: 'move', threadId: item.thread.id } });
+    if (spec.id === 'move' || spec.id === 'labels') {
+      setUi({ overlay: { kind: spec.id, threadId: item.thread.id } });
       return;
     }
     if (spec.id === 'remind') {
@@ -97,7 +99,11 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
             run(spec, event);
           }}
         >
-          {spec.icon === 'folder' ? <FolderIcon name="folder" /> : <Icon name={spec.icon} />}
+          {spec.icon === 'folder' || spec.icon === 'label' ? (
+            <FolderIcon name={spec.icon} />
+          ) : (
+            <Icon name={spec.icon} />
+          )}
         </button>
       ))}
     </>

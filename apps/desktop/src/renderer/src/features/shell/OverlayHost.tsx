@@ -3,6 +3,7 @@ import { undoLast, useToastStore } from '../../state/toast-store';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { ComposeHost } from '../compose/ComposeSheet';
 import { AccountMenu } from '../folders/AccountMenu';
+import { LabelHost } from '../labels/LabelHost';
 import { MoveHost } from '../mail/MoveHost';
 import { selectScope } from '../mail/navigation';
 import { useAccountsModel } from '../mail/use-accounts-model';
@@ -58,6 +59,7 @@ export function OverlayHost() {
       <ComposeHost />
       <ReminderHost />
       <MoveHost />
+      <LabelHost />
       <AccountsPopover />
       {toast === null ? null : (
         <Toast key={toast.id} message={toast.message} onUndo={toast.undo ? undoLast : undefined} />

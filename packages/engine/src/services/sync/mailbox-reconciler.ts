@@ -89,7 +89,7 @@ export class MailboxReconciler {
       }
       await this.deps.unitOfWork.run(async (repositories) => {
         const labelIds = await this.deps.labelsResolver.resolve(
-          repositories.labels,
+          repositories,
           context.account.id,
           change,
         );

@@ -26,6 +26,7 @@ export * from './compose/scheduled-send-service';
 export * from './compose/send-service';
 export * from './inbox/inbox-query-service';
 export * from './inbox/label-query-service';
+export * from './labels/label-service';
 export * from './reminders/reminder-service';
 export * from './settings/settings-service';
 export * from './splits/split-service';

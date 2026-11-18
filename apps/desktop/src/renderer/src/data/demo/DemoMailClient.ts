@@ -8,6 +8,7 @@ import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
 import { createDemoAutomations } from './demo-automations';
 import { createDemoCalendarClient } from './demo-calendar';
+import { createDemoLabels } from './demo-labels';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
@@ -119,10 +120,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         );
         return { checklist: found.checklist };
       }),
-    listLabels: (accountId) =>
-      Promise.resolve(
-        state.labels.filter((label) => accountId === undefined || label.accountId === accountId),
-      ),
+    ...createDemoLabels(state, now, emit),
     listAccounts: () => Promise.resolve([...state.accounts]),
     listMailboxes: (accountId) => Promise.resolve(demoMailboxesOf(state, accountId)),
     createAccount: (body) =>

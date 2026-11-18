@@ -12,6 +12,7 @@ import {
   GoogleCalendarService,
   InboxQueryService,
   LabelQueryService,
+  LabelService,
   MessageActionsService,
   ReminderService,
   SettingsService,
@@ -39,6 +40,7 @@ const service = <Key extends keyof EngineServices>(
 const SERVICE_PROVIDERS: Provider[] = [
   service(InboxQueryService, 'inbox'),
   service(LabelQueryService, 'labels'),
+  service(LabelService, 'labelAdmin'),
   service(ThreadQueryService, 'threads'),
   service(ThreadAiPreparer, 'threadAi'),
   service(ThreadChecklistService, 'checklist'),
@@ -66,6 +68,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   exports: [
     InboxQueryService,
     LabelQueryService,
+    LabelService,
     ThreadQueryService,
     ThreadAiPreparer,
     ThreadChecklistService,

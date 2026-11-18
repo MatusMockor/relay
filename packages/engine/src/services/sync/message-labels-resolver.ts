@@ -1,6 +1,9 @@
 import type { AccountId, Label, LabelId } from '@relay/shared/domain';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { LabelRepository } from '../../ports/label-repository';
+import type { Repositories } from '../../ports/repositories';
+import { decodeKeyword, keywordKey } from '../labels/keyword-codec';
+import { isUserKeyword } from '../shared/user-keyword';
 import { isValidLabel } from './valid-label';
 
 export interface LabelSource {
@@ -8,26 +11,18 @@ export interface LabelSource {
   readonly labels: readonly string[] | null;
 }
 
-const DENIED_KEYWORDS: ReadonlySet<string> = new Set(['junk', 'nonjunk', 'notjunk']);
-
-const isUserKeyword = (keyword: string): boolean => {
-  const trimmed = keyword.trim();
-  if (trimmed === '' || trimmed.startsWith('\\') || trimmed.startsWith('$')) {
-    return false;
-  }
-  return !DENIED_KEYWORDS.has(trimmed.toLowerCase());
-};
+type LabelStores = Pick<Repositories, 'labels' | 'pendingWork'>;
 
 const isUserLabel = (label: string): boolean => label.trim() !== '' && !label.startsWith('\\');
 
 export class MessageLabelsResolver {
   constructor(private readonly ids: IdGenerator) {}
 
-  resolve(labels: LabelRepository, accountId: AccountId, source: LabelSource): Promise<LabelId[]> {
+  resolve(stores: LabelStores, accountId: AccountId, source: LabelSource): Promise<LabelId[]> {
     if (source.labels !== null) {
-      return this.gmailLabels(labels, accountId, source.labels);
+      return this.gmailLabels(stores.labels, accountId, source.labels);
     }
-    return this.keywordLabels(labels, accountId, source.keywords);
+    return this.keywordLabels(stores, accountId, source.keywords);
   }
 
   private async gmailLabels(
@@ -46,19 +41,36 @@ export class MessageLabelsResolver {
   }
 
   private async keywordLabels(
-    labels: LabelRepository,
+    stores: LabelStores,
     accountId: AccountId,
     keywords: readonly string[],
   ): Promise<LabelId[]> {
-    const resolved: LabelId[] = [];
-    for (const keyword of new Set(keywords.filter(isUserKeyword))) {
-      const known = await labels.findByRemoteName(accountId, 'keyword', keyword);
-      const label = known ?? (await this.created(labels, accountId, keyword));
+    const wanted = keywords.filter(isUserKeyword);
+    if (wanted.length === 0) {
+      return [];
+    }
+    const known = await stores.labels.listByKind(accountId, 'keyword');
+    const byKey = new Map(known.map((label) => [keywordKey(label.remoteName), label]));
+    const resolved = new Set<LabelId>();
+    for (const keyword of wanted) {
+      const key = keywordKey(keyword);
+      const label = byKey.get(key) ?? (await this.adopted(stores, accountId, keyword));
       if (label !== null) {
-        resolved.push(label.id);
+        byKey.set(key, label);
+        resolved.add(label.id);
       }
     }
-    return resolved;
+    return [...resolved];
+  }
+
+  private async adopted(
+    stores: LabelStores,
+    accountId: AccountId,
+    keyword: string,
+  ): Promise<Label | null> {
+    const ref = keywordKey(keyword);
+    const purge = await stores.pendingWork.find({ accountId, kind: 'keyword-purge', ref });
+    return purge === null ? this.created(stores.labels, accountId, keyword) : null;
   }
 
   private async created(
@@ -69,11 +81,24 @@ export class MessageLabelsResolver {
     const label: Label = {
       id: this.ids.generate('label'),
       accountId,
-      name: keyword,
+      name: await this.freeName(labels, accountId, decodeKeyword(keyword)),
       color: null,
       kind: 'keyword',
       remoteName: keyword,
     };
     return isValidLabel(label) ? labels.upsert(label) : null;
+  }
+
+  private async freeName(
+    labels: LabelRepository,
+    accountId: AccountId,
+    base: string,
+  ): Promise<string> {
+    for (let suffix = 1; ; suffix += 1) {
+      const name = suffix === 1 ? base : `${base} (${String(suffix)})`;
+      if ((await labels.findByName(accountId, name)) === null) {
+        return name;
+      }
+    }
   }
 }

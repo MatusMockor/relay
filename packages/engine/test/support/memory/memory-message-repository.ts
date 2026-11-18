@@ -94,6 +94,13 @@ export class MemoryMessageRepository implements MessageRepository {
     return Promise.resolve(match?.threadId ?? null);
   }
 
+  listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]> {
+    const threadIds = this.all()
+      .filter((message) => message.labelIds.includes(labelId))
+      .map((message) => message.threadId);
+    return Promise.resolve([...new Set(threadIds)]);
+  }
+
   listUids(mailboxId: MailboxId): Promise<number[]> {
     return Promise.resolve(
       this.all()

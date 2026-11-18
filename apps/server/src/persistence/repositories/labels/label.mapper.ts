@@ -1,4 +1,4 @@
-import type { Label, UserId } from '@relay/shared/domain';
+import { type Label, labelNameKey, type UserId } from '@relay/shared/domain';
 import type { labels } from '../../schema';
 
 type LabelRow = typeof labels.$inferSelect;
@@ -18,6 +18,7 @@ export const toLabelInsert = (userId: UserId, label: Label): LabelInsert => ({
   userId,
   accountId: label.accountId,
   name: label.name,
+  nameKey: labelNameKey(label.name),
   color: label.color,
   kind: label.kind,
   remoteName: label.remoteName,

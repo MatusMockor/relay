@@ -8,6 +8,7 @@ export const SettingsSectionSchema = z.enum([
   'devices',
   'accounts',
   'splits',
+  'labels',
   'automations',
   'jira',
   'sync',

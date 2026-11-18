@@ -1,5 +1,12 @@
-import type { AccountId, Label, LabelId, LabelKind, UserId } from '@relay/shared/domain';
-import type { LabelRepository } from '../../../src';
+import {
+  type AccountId,
+  type Label,
+  type LabelId,
+  type LabelKind,
+  labelNameKey,
+  type UserId,
+} from '@relay/shared/domain';
+import { ConflictError, type LabelRepository } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
 export class MemoryLabelRepository implements LabelRepository {
@@ -24,7 +31,10 @@ export class MemoryLabelRepository implements LabelRepository {
   }
 
   findByName(accountId: AccountId, name: string): Promise<Label | null> {
-    const match = this.all().find((label) => label.accountId === accountId && label.name === name);
+    const key = labelNameKey(name);
+    const match = this.all().find(
+      (label) => label.accountId === accountId && labelNameKey(label.name) === key,
+    );
     return Promise.resolve(match ?? null);
   }
 
@@ -49,6 +59,16 @@ export class MemoryLabelRepository implements LabelRepository {
   }
 
   upsert(label: Label): Promise<Label> {
+    const key = labelNameKey(label.name);
+    const clash = this.all().some(
+      (other) =>
+        other.id !== label.id &&
+        other.accountId === label.accountId &&
+        labelNameKey(other.name) === key,
+    );
+    if (clash) {
+      return Promise.reject(new ConflictError(`Label ${label.name} already exists`));
+    }
     this.db.tables.labels.set(label.id, label);
     return Promise.resolve(label);
   }

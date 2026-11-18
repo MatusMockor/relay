@@ -13,6 +13,7 @@ import { InvitationCards } from './InvitationCards';
 import { CollapsedMessage, MessageView } from './MessageView';
 import { NextActions } from './NextActions';
 import { ReplyComposer } from './ReplyComposer';
+import { ThreadLabels } from './ThreadLabels';
 
 const toggle = (key: string) => {
   setUi((state) => ({ expanded: { ...state.expanded, [key]: state.expanded[key] !== true } }));
@@ -102,6 +103,7 @@ export function ThreadView() {
             : displaySubject(detail.thread.subject, detail.thread.jiraKey)}
         </h1>
         <ThreadMeta detail={detail} own={own} />
+        <ThreadLabels thread={detail.thread} />
         <AiSummary detail={detail} pending={pending.includes('summary')} />
         <InvitationCards threadId={detail.thread.id} />
         <div className="t-stack">
