@@ -92,7 +92,7 @@ export class SqliteLabelRepository implements LabelRepository {
           set: {
             accountId: label.accountId,
             name: label.name,
-            nameKey,
+            nameKey: sql`case when ${labels.name} = ${label.name} then ${labels.nameKey} else ${nameKey} end`,
             color: label.color,
             kind: label.kind,
             remoteName: label.remoteName,

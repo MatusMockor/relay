@@ -7,7 +7,7 @@ import {
   labelNameKey,
   type UserId,
 } from '@relay/shared/domain';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { labels } from '../../schema';
 import { findAccountOwner } from '../../support/account-owner';
@@ -84,7 +84,7 @@ export class PgLabelRepository implements LabelRepository {
         target: labels.id,
         set: {
           name: insert.name,
-          nameKey: insert.nameKey,
+          nameKey: sql`case when ${labels.name} = ${insert.name} then ${labels.nameKey} else ${insert.nameKey} end`,
           color: insert.color,
           kind: insert.kind,
           remoteName: insert.remoteName,

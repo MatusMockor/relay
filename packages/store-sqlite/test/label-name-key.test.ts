@@ -1,7 +1,8 @@
 import { ConflictError } from '@relay/engine';
 import { AccountIdSchema, LabelIdSchema } from '@relay/shared/domain';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createSqliteRepositories, migrate, openDatabase } from '../src';
+import { createSqliteRepositories, migrate, openDatabase, type SqliteDatabase } from '../src';
+import { repairLabelNameKeys } from '../src/database/repair-label-name-keys';
 import { insertLegacyAccount } from './support/legacy-account';
 import { writeMigrationsBefore } from './support/partial-migrations';
 import { seedAccount } from './support/seed';
@@ -41,7 +42,7 @@ describe('case-insensitive label names in SQLite', () => {
     store.database.close();
   });
 
-  it('backfills keys and keeps existing names that collide ignoring case', async () => {
+  const legacyDatabase = (names: readonly (readonly [string, string])[]) => {
     const directory = createTempDirectory();
     directories.push(directory);
     const database = openDatabase(':memory:');
@@ -52,21 +53,64 @@ describe('case-insensitive label names in SQLite', () => {
     const insert = database.sqlite.prepare(
       `insert into labels (id, account_id, name, color, kind, remote_name) values (?, ?, ?, null, 'keyword', ?)`,
     );
-    insert.run('l-a', account.id, 'Clients', 'Clients');
-    insert.run('l-b', account.id, 'clients', 'clients-2');
-
+    names.forEach(([id, name]) => insert.run(id, account.id, name, `${name}-${id}`));
     migrate(database);
+    return { database, account };
+  };
 
-    const keys = database.sqlite.prepare(`select id, name_key from labels order by id`).all() as {
+  const keysOf = (database: SqliteDatabase) =>
+    database.sqlite.prepare(`select id, name_key from labels order by id`).all() as {
       id: string;
       name_key: string;
     }[];
-    expect(keys).toEqual([
-      { id: 'l-a', name_key: 'clients' },
-      { id: 'l-b', name_key: 'clients#l-b' },
+
+  it('backfills keys with runtime normalization and a collision-proof suffix', async () => {
+    const { database, account } = legacyDatabase([
+      ['l-a', 'Clients'],
+      ['l-b', 'clients'],
+      ['l-c', 'clients#l-b'],
+      ['l-d', 'Účty'],
+      ['l-e', 'U\u0301ČTY'],
     ]);
-    const repositories = createSqliteRepositories(database);
-    expect((await repositories.labels.findByName(account.id, 'CLIENTS'))?.id).toBe('l-a');
+
+    expect(keysOf(database)).toEqual([
+      { id: 'l-a', name_key: 'clients' },
+      { id: 'l-b', name_key: 'clients\u0001l-b' },
+      { id: 'l-c', name_key: 'clients#l-b' },
+      { id: 'l-d', name_key: 'účty' },
+      { id: 'l-e', name_key: 'účty\u0001l-e' },
+    ]);
+    expect(repairLabelNameKeys(database)).toBe(0);
+    const { labels } = createSqliteRepositories(database);
+    expect((await labels.findByName(account.id, 'CLIENTS'))?.id).toBe('l-a');
+    expect((await labels.findByName(account.id, 'ÚČTY'))?.id).toBe('l-d');
+    database.close();
+  });
+
+  it('keeps the stored key when a colliding legacy label changes only its colour', async () => {
+    const { database, account } = legacyDatabase([
+      ['l-a', 'Clients'],
+      ['l-b', 'clients'],
+    ]);
+    const { labels } = createSqliteRepositories(database);
+    const legacy = {
+      id: labelId('l-b'),
+      accountId: account.id,
+      name: 'clients',
+      kind: 'keyword' as const,
+      remoteName: 'clients-l-b',
+    };
+
+    await labels.upsert({ ...legacy, color: '#ff0000' });
+    await expect(labels.upsert({ ...legacy, name: 'CLIENTS', color: null })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+    await labels.upsert({ ...legacy, name: 'Zákazníci', color: null });
+
+    expect(keysOf(database)).toEqual([
+      { id: 'l-a', name_key: 'clients' },
+      { id: 'l-b', name_key: 'zákazníci' },
+    ]);
     database.close();
   });
 });

@@ -2,7 +2,7 @@ const ATOM_SPECIALS: ReadonlySet<string> = new Set(['(', ')', '{', '%', '*', '"'
 const SHIFTED = /&([0-9A-Fa-f]*)-/;
 
 const isAtomChar = (char: string): boolean =>
-  char >= '!' && char <= '~' && !ATOM_SPECIALS.has(char);
+  char >= '!' && char <= '~' && char !== '&' && !ATOM_SPECIALS.has(char);
 
 const isAtom = (value: string): boolean => {
   for (const char of value) {
@@ -22,10 +22,7 @@ const shift = (run: string): string => {
 };
 
 const unshift = (hex: string): string | null => {
-  if (hex === '') {
-    return '&';
-  }
-  if (hex.length % 2 !== 0) {
+  if (hex === '' || hex.length % 2 !== 0) {
     return null;
   }
   const bytes = Uint8Array.from(hex.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
@@ -45,9 +42,8 @@ export const encodeKeyword = (name: string): string => {
   let encoded = '';
   let run = '';
   for (const char of name) {
-    if (char === '&' || !isAtomChar(char)) {
-      encoded += char === '&' ? `${shift(run)}&-` : '';
-      run = char === '&' ? '' : `${run}${char}`;
+    if (!isAtomChar(char)) {
+      run = `${run}${char}`;
       continue;
     }
     encoded += `${shift(run)}${char}`;
