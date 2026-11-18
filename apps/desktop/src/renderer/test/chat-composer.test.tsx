@@ -77,7 +77,7 @@ describe('AI chat composer', () => {
     resetStores();
   });
 
-  it('replaces the runner toggle with a model trigger and runs on the default model', async () => {
+  it('replaces the runner toggle with a model trigger and runs the model and reasoning it shows', async () => {
     const pane = openAiPane();
 
     expect(within(pane).queryByRole('group', { name: 'Spustiť cez' })).toBeNull();
@@ -86,8 +86,22 @@ describe('AI chat composer', () => {
     expect(await ask(pane, 'Čo dnes vybaviť?', requests)).toMatchObject({
       input: { kind: 'chatAnswer', question: 'Čo dnes vybaviť?' },
       runner: 'claude',
-      model: null,
-      effort: null,
+      model: 'claude-opus-5-5',
+      effort: 'medium',
+    });
+  });
+
+  it('runs the default reasoning of a picked model without touching the reasoning menu', async () => {
+    const pane = openAiPane();
+    click(within(openModelMenu(pane)).getByRole('button', { name: 'Codex' }));
+    press('1');
+
+    expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Codex, GPT-6.1 Sol');
+    expect(reasoningTrigger(pane).textContent).toBe('Stredný');
+    expect(await ask(pane, 'Zhrň neprečítané', requests)).toMatchObject({
+      runner: 'codex',
+      model: 'gpt-6.1-sol',
+      effort: 'medium',
     });
   });
 
@@ -112,7 +126,7 @@ describe('AI chat composer', () => {
     expect(await ask(pane, 'Zhrň neprečítané', requests)).toMatchObject({
       runner: 'codex',
       model: 'gpt-6-astra',
-      effort: null,
+      effort: 'medium',
     });
   });
 
@@ -136,7 +150,7 @@ describe('AI chat composer', () => {
     expect(reasoningTrigger(pane).textContent).toBe('Vysoký');
     expect(await ask(pane, 'Čo dnes vybaviť?', requests)).toMatchObject({
       runner: 'claude',
-      model: null,
+      model: 'claude-opus-5-5',
       effort: 'high',
     });
   });

@@ -2,7 +2,7 @@ import type { AiJobInput, ThreadId } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
-import type { ModelChoice } from '../ai/model-choice/model-choice';
+import { effectiveEffort, effectiveModel, type ModelChoice } from '../ai/model-choice/model-choice';
 import { startTurn, trackTurn, updateTurn, useChat } from './chat-store';
 import { reduceTurn } from './chat-turn-reducer';
 import { systemTimeZone } from '../calendar/calendar-time';
@@ -23,8 +23,9 @@ export const useChatRuns = ({ choice, runnerLabel, threadId }: ChatRunOptions) =
   const start = (question: string, input: AiJobInput) => {
     const id = startTurn(question);
     const started = performance.now();
-    const { runner, model, effort } = choice;
-    const stop = client.runAi({ input, runner, model, effort }, (event) => {
+    const model = effectiveModel(choice);
+    const effort = effectiveEffort(choice);
+    const stop = client.runAi({ input, runner: choice.runner, model, effort }, (event) => {
       updateTurn(id, reduceTurn(event, runnerLabel, started));
       if (event.type === 'completed' && event.output.kind === 'createTask') {
         void queryClient.invalidateQueries({ queryKey: queryKeys.taskLists() });
