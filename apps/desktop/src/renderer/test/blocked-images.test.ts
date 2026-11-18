@@ -154,14 +154,51 @@ describe('blocked remote images', () => {
     expect(visibilityOf(document)).toEqual({ style: null, blocked: '' });
   });
 
-  it('hides an unsized fallback whose picture source has an unsupported type', () => {
-    const document = parse(
-      withBlockedImagePlaceholders(
-        `<picture><source type="image/x-unknown" srcset="${PIXEL}"><img src="https://cdn.example.com/b.png"></picture>`,
+  it('keeps the image of a picture source with a loosely written image type', () => {
+    const documents = ['image/jpg', 'image/jpeg; charset=utf-8'].map((type) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<picture><source type="${type}" srcset="${PIXEL}"><img src="https://cdn.example.com/b.png"></picture>`,
+        ),
       ),
     );
 
-    expect(visibilityOf(document)).toEqual({ style: 'display:none!important', blocked: 'hidden' });
+    expect(documents.map(visibilityOf)).toEqual([
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+    ]);
+  });
+
+  it('keeps an unsized image whose permitted candidate uses a lenient descriptor', () => {
+    const documents = ['.5x', '100w 100h', '2.5e0x'].map((descriptor) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} ${descriptor}">`,
+        ),
+      ),
+    );
+
+    expect(documents.map(visibilityOf)).toEqual([
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+      { style: null, blocked: '' },
+    ]);
+  });
+
+  it('hides an unsized fallback whose only candidates have a zero or negative size', () => {
+    const documents = ['0x', '-5w', '0w'].map((descriptor) =>
+      parse(
+        withBlockedImagePlaceholders(
+          `<img src="https://cdn.example.com/a.png" srcset="${PIXEL} ${descriptor}">`,
+        ),
+      ),
+    );
+
+    expect(documents.map((document) => visibilityOf(document).blocked)).toEqual([
+      'hidden',
+      'hidden',
+      'hidden',
+    ]);
   });
 
   it('counts only srcset candidates the browser can select', () => {
