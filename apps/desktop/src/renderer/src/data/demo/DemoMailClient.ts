@@ -15,6 +15,7 @@ import { requestDemoSummary } from './demo-summary';
 import { demoTaskFromAi } from './demo-tasks';
 import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
+import { createDemoMarkRead } from './demo-mark-read';
 import { DemoMoves } from './demo-moves';
 import { queryThreads } from './demo-query';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
@@ -103,6 +104,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     requestThreadSummary: (threadId) => run(() => requestDemoSummary(state, record(threadId))),
     applyThreadAction: (threadId, action) =>
       run(() => upserted(moves.apply(record(threadId), action))),
+    ...createDemoMarkRead(state, moves, upserted),
     getUnsubscribeOptions: (threadId) =>
       run(() => demoUnsubscribeOptions(record(threadId).summary)),
     unsubscribe: (threadId, url) =>

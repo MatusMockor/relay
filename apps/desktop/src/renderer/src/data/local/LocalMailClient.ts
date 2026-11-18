@@ -37,6 +37,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
       unwrap(bridge.invoke('local.threads.requestSummary', { threadId, timeZone })),
     applyThreadAction: (threadId, action) =>
       unwrap(bridge.invoke('local.threads.action', { threadId, action })),
+    markFolderRead: (folder) => unwrap(bridge.invoke('local.threads.markFolderRead', folder)),
     getUnsubscribeOptions: (threadId) =>
       unwrap(bridge.invoke('local.threads.unsubscribeOptions', { threadId })),
     unsubscribe: (threadId, url) =>

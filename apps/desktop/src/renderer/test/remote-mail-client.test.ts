@@ -177,6 +177,22 @@ describe('RemoteMailClient', () => {
     });
   });
 
+  it('marks a whole folder read on the server', async () => {
+    server.handle('threads.markFolderRead', () => ({ body: { count: 4 } }));
+    const result = await connect().markFolderRead({
+      view: 'mailbox',
+      mailboxId: MailboxIdSchema.parse('mbx-alfa'),
+    });
+    expect(result).toEqual({ count: 4 });
+    expect(server.requests.at(-1)).toMatchObject({
+      key: 'threads.markFolderRead',
+      method: 'POST',
+      url: '/threads/mark-read',
+      authorization: 'Bearer access-1',
+      body: { view: 'mailbox', mailboxId: 'mbx-alfa' },
+    });
+  });
+
   it('downloads attachment bytes without parsing them as JSON', async () => {
     const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]);
     server.handle('attachments.content', () => ({

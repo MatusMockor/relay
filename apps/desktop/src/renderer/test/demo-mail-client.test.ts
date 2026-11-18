@@ -4,10 +4,12 @@ import {
   AttachmentIdSchema,
   CreateAccountBodySchema,
   DraftIdSchema,
+  type RealtimeEvent,
   ThreadIdSchema,
 } from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
+import { buildDemoState } from '../src/data/demo/seed/build-state';
 
 const NOW = new Date(2026, 10, 19, 9, 41);
 const EFA = AccountIdSchema.parse('acc-efa');
@@ -164,6 +166,36 @@ describe('demo mail client', () => {
       jobs: [],
     });
     expect((await client.getThread(threadId)).aiSummary).not.toBeNull();
+  });
+
+  it('marks every unread thread of one folder read and leaves the others alone', async () => {
+    const state = buildDemoState(NOW);
+    const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0, state });
+    const events: RealtimeEvent[] = [];
+    client.subscribe((event) => events.push(event));
+    const before = await client.listThreads({ view: 'inbox', limit: 100 });
+    const unreadIds = before.items.filter((thread) => thread.unread).map((thread) => thread.id);
+    expect(unreadIds.length).toBeGreaterThan(0);
+    const inboxIds = new Set(before.items.map((thread) => thread.id));
+    const unreadElsewhere = () =>
+      [...state.threads.values()]
+        .filter((record) => !inboxIds.has(record.summary.id) && record.summary.unread)
+        .map((record) => record.summary.id);
+    const elsewhere = unreadElsewhere();
+    expect(elsewhere.length).toBeGreaterThan(0);
+
+    const result = await client.markFolderRead({ view: 'inbox' });
+
+    expect(result).toEqual({ count: unreadIds.length });
+    const after = await client.listThreads({ view: 'inbox', limit: 100 });
+    expect(after.items.some((thread) => thread.unread)).toBe(false);
+    expect(unreadElsewhere()).toEqual(elsewhere);
+    await expect
+      .poll(() =>
+        events.flatMap((event) => (event.type === 'thread.upserted' ? [event.data.thread.id] : [])),
+      )
+      .toEqual(unreadIds);
+    expect(await client.markFolderRead({ view: 'inbox' })).toEqual({ count: 0 });
   });
 
   it('stops running AI work when it is disposed', async () => {

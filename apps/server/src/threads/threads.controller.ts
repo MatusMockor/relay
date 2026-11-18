@@ -1,5 +1,6 @@
 import { Controller } from '@nestjs/common';
 import {
+  FolderReadService,
   InboxQueryService,
   MessageActionsService,
   ThreadAiPreparer,
@@ -7,7 +8,13 @@ import {
   ThreadQueryService,
   UnsubscribeService,
 } from '@relay/engine';
-import { api, type ChecklistResponse, type OkResponse, type ThreadPage } from '@relay/shared/api';
+import {
+  api,
+  type ChecklistResponse,
+  type MarkFolderReadResponse,
+  type OkResponse,
+  type ThreadPage,
+} from '@relay/shared/api';
 import type {
   ThreadAiState,
   ThreadDetail,
@@ -25,6 +32,7 @@ export class ThreadsController {
     private readonly inbox: InboxQueryService,
     private readonly threads: ThreadQueryService,
     private readonly actions: MessageActionsService,
+    private readonly folderRead: FolderReadService,
     private readonly checklist: ThreadChecklistService,
     private readonly threadAi: ThreadAiPreparer,
     private readonly unsubscribes: UnsubscribeService,
@@ -36,6 +44,14 @@ export class ThreadsController {
     @ApiRequest(api.threads.list) request: RequestOf<typeof api.threads.list>,
   ): Promise<ThreadPage> {
     return this.inbox.list(principal.userId, request.query);
+  }
+
+  @ApiRoute(api.threads.markFolderRead)
+  markFolderRead(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.threads.markFolderRead) request: RequestOf<typeof api.threads.markFolderRead>,
+  ): Promise<MarkFolderReadResponse> {
+    return this.folderRead.markAllRead(principal.userId, request.body);
   }
 
   @ApiRoute(api.threads.get)
