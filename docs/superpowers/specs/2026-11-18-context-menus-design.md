@@ -27,6 +27,12 @@ Pravý klik na priečinok v bočnom paneli a na konverzáciu v zozname otvorí n
 - B) Vlastné React menu nad `Popover` z `@relay/ui`. Plne testovateľné v rendereri a s kbd hintami, ale nevyzerá ako macOS. Zamietnuté, používateľ chce správanie ako macOS Mail.
 - Pre hromadné označenie: slučka v rendereri nad načítanými riadkami zamietnutá (neúplné, N volaní). Jediná rozumná cesta je engine use case nad celým priečinkom.
 
+## Doplnené po prieskume main (PR #60)
+
+- Main už má Popover menu na pravý klik pre IMAP priečinky a Gmail štítky (`features/folders/edit/FolderMenu.tsx`: Nový podpriečinok, Premenovať, Presunúť do…, Zmazať). Rozhodnutie používateľa: **natívne všade**. Toto menu sa prerobí na natívne a dostane navrchu "Označiť všetko ako prečítané".
+- Renderer beží aj v prehliadači (`BrowserPlatform`, používajú ho aj renderer testy). Tam sa to isté menu (rovnaký zoznam položiek) vykreslí cez `Popover` ako záloha.
+- Menu priečinka dostanú aj IMAP priečinky (`mailbox`) a Spam. Menu konverzácie v Spame: Nie je spam, Presunúť do koša. V Odoslaných: len prečítané/neprečítané a Presunúť do koša.
+
 ## Návrh
 
 1. **IPC `context-menu`** (`packages/shared/src/ipc`): request-response kanál so zod schémou položiek (`id`, `label`, `enabled`, `type: 'normal' | 'separator'`), odpoveď `{ id: string } | null`. Main proces (`apps/desktop/src/main/native`) postaví `Menu` z položiek a zavolá `popup` pre okno odosielateľa; resolve pri kliku alebo pri zatvorení menu (`callback`). Renderer volá cez abstrakciu (port), aby sa v testoch dala nahradiť.
