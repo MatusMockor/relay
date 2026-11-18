@@ -145,7 +145,9 @@ describe('top bar search field', () => {
     type(TOKEN);
 
     await waitFor(() => {
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(100);
+      const options = screen.getAllByRole('option');
+      expect(options.length).toBeGreaterThan(100);
+      expect(options.every((option) => option.textContent.includes(TOKEN))).toBe(true);
     });
     expect(field().querySelector('.srch-count')).toBeNull();
     expect(screen.getByRole('button', { name: 'Vymazať hľadanie' })).toBeDefined();
