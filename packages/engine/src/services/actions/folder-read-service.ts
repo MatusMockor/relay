@@ -8,7 +8,9 @@ import type { AccountId, MailAccount, ThreadSummary, UserId } from '@relay/share
 import type { AccountRepository } from '../../ports/account-repository';
 import type { Repositories } from '../../ports/repositories';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { chunked } from '../shared/chunked';
 import type { EngineEvents } from '../shared/engine-events';
+import { yieldToEventLoop } from '../shared/event-loop';
 import type { PendingProviderOp } from '../shared/provider-ops';
 import type { FlagWriter } from './handlers/flag-writer';
 import type { ProviderMirror } from './provider-mirror';
@@ -27,7 +29,7 @@ export interface FolderReadServiceDeps {
   readonly pageSize: number;
 }
 
-interface AccountReadResult {
+interface ChunkReadResult {
   readonly threads: ThreadSummary[];
   readonly ops: PendingProviderOp[];
 }
@@ -71,8 +73,23 @@ export class FolderReadService {
     if (account === null) {
       return 0;
     }
+    let count = 0;
+    for (const [index, batch] of chunked(threads, this.deps.pageSize).entries()) {
+      if (index > 0) {
+        await yieldToEventLoop();
+      }
+      count += await this.markChunk(userId, account, batch);
+    }
+    return count;
+  }
+
+  private async markChunk(
+    userId: UserId,
+    account: MailAccount,
+    threads: readonly ThreadSummary[],
+  ): Promise<number> {
     const result = await this.deps.unitOfWork.run((repositories) =>
-      this.stageAccount(repositories, userId, account, threads),
+      this.stageChunk(repositories, userId, account, threads),
     );
     await this.deps.mirror.apply(account, result.ops);
     for (const thread of result.threads) {
@@ -81,13 +98,13 @@ export class FolderReadService {
     return result.threads.length;
   }
 
-  private async stageAccount(
+  private async stageChunk(
     repositories: Repositories,
     userId: UserId,
     account: MailAccount,
     threads: readonly ThreadSummary[],
-  ): Promise<AccountReadResult> {
-    const result: AccountReadResult = { threads: [], ops: [] };
+  ): Promise<ChunkReadResult> {
+    const result: ChunkReadResult = { threads: [], ops: [] };
     for (const thread of threads) {
       const messages = await repositories.messages.listByThread(userId, thread.id);
       const targets = messages.filter((message) => !message.flags.seen);

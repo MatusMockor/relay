@@ -6,6 +6,7 @@ import { requireAccepted } from './imap-results';
 import { toImapFlags, toImapFlagsFromState } from './message-flags';
 import { moveOnClient } from './message-move';
 import { rollbackMove } from './move-rollback';
+import { chunk } from './uid-batches';
 import { UncommittedCopyError } from './uncommitted-copy-error';
 
 export interface FlagNames {
@@ -18,7 +19,9 @@ export type FlagStoreClient = Pick<ImapFlow, 'messageFlagsAdd' | 'messageFlagsRe
 const STORE = { operation: 'store flags', retryOnDisconnect: true } as const;
 const MOVE = { operation: 'move', retryOnDisconnect: false } as const;
 
-export const storeOnClient = async (
+export const STORE_BATCH_SIZE = 500;
+
+const storeBatch = async (
   client: FlagStoreClient,
   uids: readonly number[],
   flags: FlagNames,
@@ -34,6 +37,17 @@ export const storeOnClient = async (
       'store flags',
       await client.messageFlagsRemove([...uids], [...flags.remove], { uid: true }),
     );
+  }
+};
+
+export const storeOnClient = async (
+  client: FlagStoreClient,
+  uids: readonly number[],
+  flags: FlagNames,
+  batchSize = STORE_BATCH_SIZE,
+): Promise<void> => {
+  for (const batch of chunk(uids, batchSize)) {
+    await storeBatch(client, batch, flags);
   }
 };
 

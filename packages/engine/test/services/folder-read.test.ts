@@ -59,6 +59,30 @@ describe('FolderReadService', () => {
     expect(await unreadInbox(engine)).toEqual([]);
   });
 
+  it('marks and mirrors a big folder in bounded chunks', async () => {
+    const engine = createTestEngine({ actions: { folderReadPageSize: 2 } });
+    const { server } = await syncedAccount(engine, ['m1', 'm2', 'm3', 'm4', 'm5']);
+    const connectionsBefore = server.connections;
+
+    const result = await engine.services.folderRead.markAllRead(USER_ID, { view: 'inbox' });
+
+    expect(result).toEqual({ count: 5 });
+    expect(server.connections - connectionsBefore).toBe(3);
+    expect([1, 2, 3, 4, 5].every((uid) => server.record('INBOX', uid).flags.seen)).toBe(true);
+    expect(engine.events.ofType('thread.upserted')).toHaveLength(5);
+  });
+
+  it('yields to the event loop between chunks', async () => {
+    const engine = createTestEngine({ actions: { folderReadPageSize: 2 } });
+    await syncedAccount(engine, ['m1', 'm2', 'm3', 'm4', 'm5']);
+    const upsertedAtTimer: number[] = [];
+    setTimeout(() => upsertedAtTimer.push(engine.events.ofType('thread.upserted').length), 0);
+
+    await engine.services.folderRead.markAllRead(USER_ID, { view: 'inbox' });
+
+    expect(upsertedAtTimer).toEqual([2]);
+  });
+
   it('respects the account scope', async () => {
     const engine = createTestEngine();
     const first = await syncedAccount(engine, ['a1']);
