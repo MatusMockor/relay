@@ -40,7 +40,7 @@ export function AutomationCard({
             }}
           />
           <span className="scope">{account?.displayName ?? 'Všetky účty'}</span>
-          {rule.preset !== null ? <span className="scope">predvolené</span> : null}
+          {rule.preset !== null ? <span className="scope">Predvolené</span> : null}
         </b>
         <ModelPicker
           value={input.ai}

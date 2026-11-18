@@ -273,3 +273,9 @@
   flex: none;
   color: var(--faint);
 }
+.send-hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  margin: 0 2px 0 6px;
+  white-space: nowrap;
+}

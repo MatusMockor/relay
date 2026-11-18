@@ -1,5 +1,6 @@
 import { Button, Icon, Spark } from '@relay/ui';
 import { MOD } from '../../lib/platform-keys';
+import { SendHint } from './SendHint';
 
 export interface ComposeFooterProps {
   readonly empty: boolean;
@@ -35,6 +36,7 @@ export function ComposeFooter({ empty, onAi, onAttach, onSchedule, onSend }: Com
         <Icon name="clock" />
         Naplánovať odoslanie
       </Button>
+      <SendHint />
       <Button variant="primary" onClick={onSend} title={`Odoslať (${MOD}Enter)`}>
         Odoslať
       </Button>

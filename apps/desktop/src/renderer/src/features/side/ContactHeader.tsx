@@ -7,6 +7,7 @@ export interface ContactHeaderProps {
   readonly name: string;
   readonly seed: string;
   readonly subtitle: string;
+  readonly meta?: string;
   readonly accountId: AccountId;
   readonly tag?: string;
   readonly children?: ReactNode;
@@ -16,6 +17,7 @@ export function ContactHeader({
   name,
   seed,
   subtitle,
+  meta,
   accountId,
   tag,
   children,
@@ -29,7 +31,8 @@ export function ContactHeader({
         <h3>{name}</h3>
         {tag === undefined ? null : <span className="a-tag">{tag}</span>}
       </div>
-      <p>{subtitle}</p>
+      <p className="a-sub">{subtitle}</p>
+      {meta === undefined ? null : <p>{meta}</p>}
       {account === undefined ? null : (
         <p className="a-acct">
           <AccountDot account={accountLike(account)} />

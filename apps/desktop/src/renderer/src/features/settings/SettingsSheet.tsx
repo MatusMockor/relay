@@ -1,6 +1,5 @@
-import { Sheet } from '@relay/ui';
+import { Icon, IconButton, Kbd, Sheet } from '@relay/ui';
 import type { ReactNode } from 'react';
-import { useSessionStore } from '../../session/session-store';
 import { type SettingsSection, setUi } from '../../state/ui-store';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
@@ -14,22 +13,7 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
 import { SplitsSection } from './sections/SplitsSection';
 import { SyncSection } from './sections/SyncSection';
-import { StorageNote } from './StorageNote';
-
-const SECTIONS: readonly (readonly [SettingsSection, string])[] = [
-  ['server', 'Server'],
-  ['account', 'Relay účet'],
-  ['devices', 'Zariadenia'],
-  ['accounts', 'Účty'],
-  ['splits', 'Split Inbox'],
-  ['automations', 'Automatizácie'],
-  ['sync', 'Synchronizácia'],
-  ['calendars', 'Kalendáre'],
-  ['notifications', 'Notifikácie'],
-  ['ai', 'AI'],
-  ['look', 'Vzhľad'],
-  ['keys', 'Klávesové skratky'],
-];
+import { SettingsNav } from './SettingsNav';
 
 const render = (section: SettingsSection, adding: boolean): ReactNode => {
   const map: Record<SettingsSection, () => ReactNode> = {
@@ -56,8 +40,6 @@ export function SettingsSheet({
   readonly section: SettingsSection;
   readonly adding: boolean;
 }) {
-  const synced = useSessionStore((state) => state.services?.mode === 'synced');
-  const visible = SECTIONS.filter(([key]) => key !== 'devices' || synced);
   const go = (next: SettingsSection) => {
     setUi({ overlay: { kind: 'settings', section: next, adding: false } });
   };
@@ -80,23 +62,13 @@ export function SettingsSheet({
   };
   return (
     <Sheet label="Nastavenia" className="sheet" onClose={close} onKey={onKey}>
-      <nav className="sh-nav" aria-label="Sekcie nastavení">
-        <h3>Nastavenia</h3>
-        {visible.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={key === section ? 'on' : undefined}
-            aria-current={key === section ? 'page' : undefined}
-            onClick={() => {
-              go(key);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-        <StorageNote />
-      </nav>
+      <SettingsNav section={section} onSelect={go} />
+      <div className="sh-close">
+        <Kbd keys={['Esc']} />
+        <IconButton label="Zavrieť nastavenia" onClick={close}>
+          <Icon name="x" />
+        </IconButton>
+      </div>
       <div className="sh-main">{render(section, adding)}</div>
     </Sheet>
   );

@@ -73,7 +73,6 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
     new Set([thread.id, ...related.map((item) => item.id)]),
     jira,
   );
-  const address = actor === null ? person.email : `cez Jira · ${person.email}`;
   const inThread = useUiStore((state) => state.openThreadId === thread.id);
   const inList = useUserSettings().data?.ai.features.oneLiners ?? true;
   const summaryShown = inThread || inList;
@@ -82,7 +81,10 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
       <ContactHeader
         name={name}
         seed={actor ?? person.email}
-        subtitle={`${address} · ${conversations(related.length + 1)}`}
+        subtitle={person.email}
+        meta={[actor === null ? null : 'cez Jira', conversations(related.length + 1)]
+          .filter((part) => part !== null)
+          .join(' · ')}
         accountId={thread.accountId}
       >
         {actions ? <ContactActions person={person} name={name} /> : null}
@@ -97,6 +99,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
         </div>
       )}
       <MiniSection
+        stacked
         title="Súvisí v Jire"
         rows={jira.map((task) => ({
           key: task.id,

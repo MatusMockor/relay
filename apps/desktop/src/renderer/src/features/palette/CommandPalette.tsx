@@ -125,7 +125,9 @@ export function CommandPalette() {
               <span className="key">{item.thread.jiraKey} </span>
             )}
             <Highlight text={item.thread.subject} query={query} />
-            <small>{item.thread.participants[0]?.name ?? ''}</small>
+            <small>
+              <Highlight text={item.thread.participants[0]?.name ?? ''} query={query} />
+            </small>
           </span>
         </>
       )}

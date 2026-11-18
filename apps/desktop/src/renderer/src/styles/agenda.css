@@ -98,8 +98,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ev.past {
-  opacity: 0.45;
+.ev.past time,
+.ev.past .eb span {
+  color: var(--muted);
+}
+.ev.past .eb b {
+  color: var(--fg3);
+  font-weight: var(--w-regular);
+}
+.ev.past .eb {
+  border-left-color: color-mix(in srgb, var(--c, var(--line)) 40%, transparent);
 }
 .ev-empty {
   color: var(--muted);

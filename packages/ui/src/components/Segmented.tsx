@@ -5,6 +5,8 @@ export interface SegmentedOption<V extends string> {
   readonly value: V;
   readonly label: string;
   readonly description?: string;
+  readonly disabled?: boolean;
+  readonly badge?: string;
 }
 
 export interface SegmentedProps<V extends string> {
@@ -54,13 +56,18 @@ export function Segmented<V extends string>({
           aria-checked={option.value === value}
           tabIndex={rovingTabIndex(index, selected)}
           className={option.value === value ? 'on' : undefined}
-          disabled={disabled}
+          disabled={disabled || option.disabled === true}
           onClick={() => {
             onChange(option.value);
           }}
         >
           {option.description === undefined ? (
-            option.label
+            <>
+              {option.label}
+              {option.badge === undefined ? null : (
+                <small className="seg-badge">{option.badge}</small>
+              )}
+            </>
           ) : (
             <>
               <b>{option.label}</b>

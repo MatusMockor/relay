@@ -1,5 +1,6 @@
 import { FolderIcon } from '@relay/ui';
 import { folderIconOf } from '../folders/folder-icons';
+import { labelHue } from '../folders/label-colors';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
@@ -25,7 +26,7 @@ export function FolderTitle() {
         <h2>
           <span
             className="lbl-dot"
-            style={{ ['--d' as string]: label?.color ?? 'var(--accent)' }}
+            style={{ ['--d' as string]: labelHue(labels.data ?? [], folder.labelId) }}
           />
           {label?.name ?? 'Štítok'}
           {count > 0 ? <b>{count}</b> : null}

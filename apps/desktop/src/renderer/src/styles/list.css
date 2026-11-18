@@ -30,15 +30,17 @@
   background: var(--sel);
   --rowbg: var(--sel);
 }
-.acc-stripe {
+.a-row.row-acct {
+  border-radius: 0 8px 8px 0;
+}
+.a-row.row-acct::before {
+  content: '';
   position: absolute;
   left: 0;
-  top: 12px;
-  bottom: 12px;
+  top: 0;
+  bottom: 0;
   width: 2px;
-  border-radius: 2px;
-  background: var(--a);
-  opacity: 0.6;
+  background: color-mix(in srgb, var(--a) 65%, transparent);
 }
 .a-row .dot {
   width: 6px;
@@ -84,7 +86,7 @@
   flex: none;
 }
 .a-row .subj {
-  color: var(--fg3);
+  color: var(--fg2);
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -189,10 +191,6 @@
 }
 .dense .a-row {
   border-radius: 7px;
-}
-.dense .acc-stripe {
-  top: 9px;
-  bottom: 9px;
 }
 .dense .a-day {
   padding: 12px 14px 4px 32px;

@@ -43,9 +43,8 @@ describe('contact pane for a person', () => {
       expect(within(sidePane()).getByRole('heading', { level: 3 }).textContent).toBe('Lucia Hrubá');
     });
     await waitFor(() => {
-      expect(within(sidePane()).getByText(/^lucia\.hruba@firma\.sk · /).textContent).toBe(
-        'lucia.hruba@firma.sk · 2 konverzácie',
-      );
+      expect(within(sidePane()).getByText('lucia.hruba@firma.sk')).toBeDefined();
+      expect(within(sidePane()).getByText('2 konverzácie')).toBeDefined();
     });
     expect(within(sidePane()).queryByRole('heading', { name: 'Kontakt' })).toBeNull();
     expect(within(sidePane()).getByRole('button', { name: /Napísať/ })).toBeDefined();

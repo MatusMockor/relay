@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { useClient } from '../../data/hooks/services-context';
 import { MOD } from '../../lib/platform-keys';
+import { SendHint } from '../compose/SendHint';
 import { showToast } from '../../state/toast-store';
 import { type ReplyState, setUi } from '../../state/ui-store';
 import { rewriteText } from '../ai/run-ai';
@@ -172,6 +173,7 @@ export function ReplyComposer({
         <Button title="Uložiť ako koncept (Esc)" onClick={save}>
           Zavrieť
         </Button>
+        <SendHint />
         <Button variant="primary" onClick={askSend} title={`Odoslať (${MOD}Enter)`}>
           Odoslať
         </Button>

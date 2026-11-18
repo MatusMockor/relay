@@ -3,22 +3,16 @@ import { SettingRow } from '../SettingRow';
 
 type Theme = 'dark' | 'light' | 'system';
 
-const THEMES: readonly { readonly value: Theme; readonly label: string }[] = [
+const THEMES = [
   { value: 'dark', label: 'Tmavá' },
-  { value: 'light', label: 'Svetlá' },
-  { value: 'system', label: 'Systém' },
-];
+  { value: 'light', label: 'Svetlá', disabled: true, badge: 'čoskoro' },
+  { value: 'system', label: 'Systém', disabled: true, badge: 'čoskoro' },
+] as const;
 
 export function ThemeRow() {
   return (
-    <SettingRow title="Téma" description="Svetlá téma a téma podľa systému prídu čoskoro">
-      <Segmented<Theme>
-        label="Téma"
-        value="dark"
-        options={THEMES}
-        disabled
-        onChange={() => undefined}
-      />
+    <SettingRow title="Téma" description="Farby aplikácie">
+      <Segmented<Theme> label="Téma" value="dark" options={THEMES} onChange={() => undefined} />
     </SettingRow>
   );
 }

@@ -46,6 +46,11 @@
   flex: 1;
   min-width: 0;
 }
+.m-c .av {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
 .m-c time {
   flex: none;
   font-size: var(--fs-sm);
@@ -96,6 +101,9 @@ button.mh-main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.msg .mh .ibtn {
+  margin-right: -7px;
+}
 .msg .mh time {
   margin-left: auto;
   color: var(--muted);
@@ -138,8 +146,7 @@ button.mh-main {
   background: #ebebef;
   min-height: 80px;
   display: block;
-  outline: 6px solid rgba(255, 255, 255, 0.035);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .img-note {
   display: flex;
@@ -195,6 +202,12 @@ button.mh-main {
   box-shadow: inset 0 0 0 1px var(--line);
   color: var(--fg2);
   font-size: var(--fs-sm);
+}
+.sug.ghost {
+  margin-left: auto;
+  background: none;
+  box-shadow: none;
+  color: var(--fg3);
 }
 .sug:hover {
   background: var(--hover);

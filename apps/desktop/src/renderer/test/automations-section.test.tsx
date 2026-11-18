@@ -50,7 +50,9 @@ describe('Nastavenia > Automatizácie', () => {
       'Keďna eFabrica príde mail, kde Jira udalosť je Spomenutie×aprojekt je ECOM×+ podmienka',
       'PotomAI zhrnutie× Vytvoriť task× + akcia',
     ]);
-    expect(within(card(sheet, 'Jira tasky')).getByText('predvolené')).toBeDefined();
+    expect(
+      within(card(sheet, 'Jira tasky')).getByText('Predvolené', { selector: '.scope' }),
+    ).toBeDefined();
     click(within(card(sheet, 'Tibor')).getByRole('switch', { name: 'Pravidlo Tibor zapnuté' }));
     await settle();
 

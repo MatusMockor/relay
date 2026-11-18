@@ -1,4 +1,5 @@
 .sheet {
+  position: relative;
   width: min(920px, 100%);
   height: min(720px, calc(100vh - 56px));
   display: grid;
@@ -15,7 +16,7 @@
   overflow: auto;
 }
 .sh-nav h3 {
-  margin: 0 0 14px 10px;
+  margin: 0 0 6px 10px;
   font-size: var(--fs-md);
   font-weight: var(--w-semibold);
   letter-spacing: var(--ls-tight);
@@ -46,7 +47,7 @@
   color: var(--muted);
 }
 .sh-main {
-  padding: 0 32px 48px;
+  padding: 0 32px;
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
@@ -135,4 +136,44 @@
   flex: none;
   color: var(--fg2);
   font-size: var(--fs-base);
+}
+.sh-main::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 28px;
+  background: linear-gradient(to bottom, rgba(16, 19, 25, 0), var(--panel));
+  pointer-events: none;
+}
+.sh-close {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sh-grp {
+  display: grid;
+  gap: 1px;
+}
+.sh-grp h5 {
+  margin: 14px 10px 4px;
+  color: var(--muted);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  font-weight: var(--w-semibold);
+}
+.sh-nav button svg {
+  flex: none;
+  color: var(--muted);
+}
+.sh-nav button.on svg {
+  color: var(--fg2);
+}
+.sh-head {
+  padding-right: 96px;
 }

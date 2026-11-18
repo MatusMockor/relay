@@ -91,21 +91,24 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
           : '';
   return (
     <div
-      className={cx('a-row', thread?.unread === true && 'unread', selected && 'sel')}
+      className={cx(
+        'a-row',
+        thread?.unread === true && 'unread',
+        selected && 'sel',
+        context.unified && context.account !== undefined && 'row-acct',
+      )}
       data-row={item.key}
       role="option"
       aria-selected={selected}
+      style={
+        context.unified && context.account !== undefined
+          ? { ['--a' as string]: context.account.color }
+          : undefined
+      }
       onClick={() => {
         onOpen(item);
       }}
     >
-      {context.unified && context.account !== undefined ? (
-        <span
-          className="acc-stripe"
-          style={{ ['--a' as string]: context.account.color }}
-          title={context.account.displayName}
-        />
-      ) : null}
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
         <span

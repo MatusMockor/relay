@@ -64,6 +64,7 @@ export function IdlePane() {
         }))}
       />
       <MiniSection
+        stacked
         title="Otvorené úlohy"
         rows={open.slice(0, 5).map((task) => ({
           key: task.id,

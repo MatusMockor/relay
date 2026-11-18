@@ -55,6 +55,7 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
   const inThread = useUiStore((state) => state.openThreadId !== null);
   const searchOpen = useUiStore((state) => state.searchOpen);
   const rightOpen = useUiStore((state) => state.rightOpen);
+  const palette = useUiStore((state) => state.overlay?.kind === 'palette');
   const inbox = folder.kind === 'inbox' || (folder.kind === 'view' && folder.view === 'tasks');
   return (
     <div className="a-top">
@@ -74,7 +75,12 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
         {searchOpen && !inThread ? (
           <SearchBox />
         ) : (
-          <button type="button" className="srch" title="Hľadať (/)" onClick={openSearch}>
+          <button
+            type="button"
+            className={palette ? 'srch off' : 'srch'}
+            title="Hľadať (/)"
+            onClick={openSearch}
+          >
             <Icon name="search" size={14} />
             <span>Hľadať</span>
             <Kbd keys={['/']} />

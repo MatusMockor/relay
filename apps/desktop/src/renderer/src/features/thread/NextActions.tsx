@@ -68,10 +68,10 @@ export function NextActions({ detail, pending }: NextActionsProps) {
       </button>
     </>
   );
-  const own = (
+  const own = (ghost: boolean) => (
     <button
       type="button"
-      className="sug"
+      className={ghost ? 'sug ghost' : 'sug'}
       onClick={() => {
         reply();
       }}
@@ -94,7 +94,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         </span>
         <div className="sugs">
           {quick}
-          {own}
+          {own(false)}
         </div>
       </div>
     );
@@ -103,9 +103,9 @@ export function NextActions({ detail, pending }: NextActionsProps) {
     return (
       <div className="t-next">
         <div className="sugs">
-          {bot ? own : null}
+          {bot ? own(false) : null}
           {quick}
-          {bot ? null : own}
+          {bot ? null : own(false)}
         </div>
       </div>
     );
@@ -131,7 +131,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
             {suggestion.label}
           </button>
         ))}
-        {own}
+        {own(true)}
       </div>
     </div>
   );

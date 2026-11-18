@@ -173,8 +173,9 @@
 }
 .ins textarea {
   width: 100%;
-  min-height: 34px;
-  resize: vertical;
+  min-height: 42px;
+  resize: none;
+  field-sizing: content;
   background: transparent;
   border: 0;
   color: inherit;

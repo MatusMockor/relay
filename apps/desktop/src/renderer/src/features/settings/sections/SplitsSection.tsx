@@ -1,4 +1,4 @@
-import type { Split, SplitInput, SplitRule } from '@relay/shared';
+import type { Split, SplitInput } from '@relay/shared';
 import { AccountDot, Button, Field, Icon, IconButton, Switch } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -9,22 +9,7 @@ import { useSplits } from '../../../data/hooks/use-mail-queries';
 import { showToast } from '../../../state/toast-store';
 import { accountLike, useAccountsModel } from '../../mail/use-accounts-model';
 import { SectionHeader } from '../SectionHeader';
-
-export const describeRule = (rule: SplitRule): string => {
-  if (rule.type === 'fromDomain') {
-    return `from:@${rule.domain}`;
-  }
-  if (rule.type === 'fromAddress') {
-    return `from:${rule.address}`;
-  }
-  if (rule.type === 'subjectRegex') {
-    return `subject:/${rule.pattern}/${rule.caseSensitive ? '' : 'i'}`;
-  }
-  if (rule.type === 'header') {
-    return `header:${rule.name}~${rule.pattern}`;
-  }
-  return `jira:${rule.projectKeys.join(',') || '*'}`;
-};
+import { describeRule, readableRule } from './split-rules';
 
 const toInput = (split: Split): SplitInput => ({
   id: split.id,
@@ -96,7 +81,9 @@ export function SplitsSection() {
           <div className="rule" key={split.id}>
             <b>
               <span className="dot-slot">
-                {account === null || account === undefined ? null : (
+                {account === null || account === undefined ? (
+                  <span className="acc-dot" />
+                ) : (
                   <AccountDot account={accountLike(account)} />
                 )}
               </span>
@@ -106,7 +93,14 @@ export function SplitsSection() {
               {split.accountId === null ? 'Všetky účty' : `Účet ${account?.displayName ?? ''}`}
               {split.exclusive ? ' · vyberie maily z Dôležitých' : ''}
             </p>
-            <span className="mono">{split.rules.map(describeRule).join(' OR ')}</span>
+            <span className="rule-chips" title={split.rules.map(describeRule).join(' OR ')}>
+              {split.rules.map((rule, index) => (
+                <span className="rule-run" key={`${rule.type}-${String(index)}`}>
+                  {index > 0 ? <span className="kw">alebo</span> : null}
+                  <span className="rule-chip">{readableRule(rule)}</span>
+                </span>
+              ))}
+            </span>
             <span className="cnt">
               <Switch
                 checked={split.exclusive}

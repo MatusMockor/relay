@@ -62,7 +62,7 @@
   scrollbar-color: var(--line) transparent;
 }
 .t-col {
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 22px 36px 72px;
   display: flex;

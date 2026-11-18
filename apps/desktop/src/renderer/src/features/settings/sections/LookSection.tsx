@@ -1,4 +1,4 @@
-import { Button, Kbd, Segmented, Switch } from '@relay/ui';
+import { Button, Segmented, Switch } from '@relay/ui';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAppContext } from '../../../data/hooks/services-context';
 import { ALT } from '../../../lib/platform-keys';
@@ -62,11 +62,10 @@ export function LookSection() {
         title="Priečinky vľavo"
         description={
           layout.leftVisible
-            ? 'Zobrazené, v úzkom okne sa skryjú samy'
-            : 'Skryté, zoznam má viac miesta'
+            ? 'Zobrazené, v úzkom okne sa skryjú samy · skratka ['
+            : 'Skryté, zoznam má viac miesta · skratka ['
         }
       >
-        <Kbd keys={['[']} />
         <Switch
           checked={layout.leftVisible}
           label="Priečinky vľavo"
@@ -77,9 +76,8 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Pravý panel"
-        description={rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'}
+        description={`${rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'} · skratka I`}
       >
-        <Kbd keys={['I']} />
         <Switch
           checked={rightOpen}
           label="Pravý panel"

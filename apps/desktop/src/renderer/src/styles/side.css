@@ -15,11 +15,6 @@
   height: 60px;
   padding: 0 14px;
   align-items: center;
-  border-bottom: 1px solid var(--line-soft);
-}
-.stabs.idle .stab.on {
-  background: none;
-  color: var(--muted);
 }
 .stabs .sp {
   flex: 1;
@@ -151,4 +146,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.mini.stack > * {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 8px 0;
+}
+.mini.stack > * > span:last-child {
+  font-size: var(--fs-xs);
 }
