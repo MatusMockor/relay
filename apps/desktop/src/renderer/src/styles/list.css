@@ -38,7 +38,7 @@
   box-shadow: 0 0 0 3px rgba(142, 162, 255, 0.12);
 }
 .a-row .who {
-  color: #b8bcc7;
+  color: #aeb3be;
   font-weight: var(--w-regular);
   white-space: nowrap;
   overflow: hidden;
@@ -74,7 +74,7 @@
   flex: none;
 }
 .a-row .subj {
-  color: var(--fg2);
+  color: #aeb3be;
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -131,7 +131,15 @@
 }
 .when-acc {
   display: inline-flex;
-  opacity: 0.8;
+}
+.when-acc .acc-sq {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: var(--w-semibold);
+  background: color-mix(in srgb, var(--a) 22%, var(--bg));
+  color: color-mix(in srgb, var(--a) 55%, #fff);
 }
 .a-row time {
   min-width: 40px;

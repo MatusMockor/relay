@@ -57,8 +57,10 @@
   color: var(--fg2);
 }
 .runner button.on {
-  background: var(--raised);
+  background: var(--sel);
+  box-shadow: inset 0 0 0 1px #343c52;
   color: var(--fg);
+  font-weight: var(--w-semibold);
 }
 .chat-log {
   flex: 1;
@@ -186,7 +188,7 @@
 }
 .ans-link {
   display: inline;
-  padding: 0 2px;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--accent-hover);

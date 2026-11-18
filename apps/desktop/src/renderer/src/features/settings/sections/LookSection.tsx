@@ -81,7 +81,7 @@ export function LookSection() {
         title="Pravý panel"
         description={
           <KeyHint
-            text={`${rightOpen ? 'Kontakt, AI a Kalendár vedľa zoznamu' : 'Skrytý'} · skratka [I]`}
+            text={`${rightOpen ? 'Kontakt alebo Prehľad, AI a Kalendár vedľa zoznamu' : 'Skrytý'} · skratka [I]`}
           />
         }
       >
@@ -95,7 +95,7 @@ export function LookSection() {
       </SettingRow>
       <SettingRow
         title="Záložka pravého panela"
-        description={`Prepínaš aj cez ${ALT}1, ${ALT}2 a ${ALT}3`}
+        description={<KeyHint text={`Prepínaš aj cez [${ALT}1], [${ALT}2] a [${ALT}3]`} />}
       >
         <Segmented<RightTab>
           label="Záložka pravého panela"

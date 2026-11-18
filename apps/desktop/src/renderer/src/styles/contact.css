@@ -5,8 +5,12 @@
   gap: 4px 8px;
   min-width: 0;
 }
-.a-name h3 {
+.a-prof .a-name h3 {
+  margin: 0;
   overflow-wrap: anywhere;
+}
+.a-name {
+  margin-top: 4px;
 }
 .a-tag {
   display: inline-flex;

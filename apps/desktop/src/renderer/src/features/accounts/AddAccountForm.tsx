@@ -67,7 +67,7 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
             value={values.senderName}
             onChange={set('senderName')}
           />
-          <p className="note">Uvidia ho príjemcovia v poli Od.</p>
+          <p className="note">Uvidia ho príjemcovia v poli Od</p>
         </div>
         <div className="fld-n">
           <Field
@@ -77,7 +77,7 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
             value={values.name}
             onChange={set('name')}
           />
-          <p className="note">Len pre teba v aplikácii.</p>
+          <p className="note">Len pre teba v aplikácii</p>
         </div>
       </div>
       <ServerSettings

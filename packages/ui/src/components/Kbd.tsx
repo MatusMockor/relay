@@ -4,7 +4,7 @@ export interface KbdProps {
 
 const SYMBOLS = new Set(['⇧', '⌘', '⌥', '⌃', '⌫']);
 
-function EnterGlyph() {
+export function EnterGlyph() {
   return (
     <svg width="10" height="10" viewBox="0 0 10 10" aria-label="Enter" role="img">
       <path

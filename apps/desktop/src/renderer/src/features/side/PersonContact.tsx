@@ -124,7 +124,7 @@ export function PersonContact({ thread, person, actions }: PersonContactProps) {
         }))}
       />
       <MiniSection
-        title="Otvorené tasky"
+        title="Otvorené úlohy"
         rows={open.map((task) => ({
           key: task.id,
           left: task.title,

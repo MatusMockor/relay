@@ -48,7 +48,7 @@ describe('Nastavenia > Automatizácie', () => {
     expect(within(mentions).getByRole('button', { name: 'Účet: eFabrica' })).toBeDefined();
     expect([...mentions.querySelectorAll('.sent-r')].map((row) => row.textContent)).toEqual([
       'Keďna eFabrica príde mail, kde Jira udalosť je Spomenutie×aprojekt je ECOM×+ podmienka',
-      'PotomAI zhrnutie× Vytvoriť task× + akcia',
+      'PotomAI zhrnutie× Vytvoriť úlohu× + akcia',
     ]);
     expect(
       within(card(sheet, 'Jira tasky')).getByText('Predvolené', { selector: '.scope' }),

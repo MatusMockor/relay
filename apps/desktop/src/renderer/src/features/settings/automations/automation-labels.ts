@@ -7,7 +7,7 @@ import type {
 
 export const ACTION_LABELS: Readonly<Record<AutomationAction, string>> = {
   summary: 'AI zhrnutie',
-  task: 'Vytvoriť task',
+  task: 'Vytvoriť úlohu',
   notify: 'Notifikácia',
   markRead: 'Označiť ako prečítané',
   pin: 'Pripnúť',

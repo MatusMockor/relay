@@ -30,7 +30,7 @@ export function NotificationsSection() {
           update.mutate({ notifications: value });
         }}
       />
-      <p className="sh-note">Platí pre všetky účty a splity.</p>
+      <p className="sh-note">Platí pre všetky účty a splity</p>
     </>
   );
 }

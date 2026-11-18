@@ -60,8 +60,8 @@
 .t-scroll {
   flex: 1;
   overflow: auto;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }

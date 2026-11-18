@@ -24,7 +24,7 @@ const runnerStatus = (info: AiRunnerInfo | undefined) => {
     return <Status tone="off" label="Nenainštalované" />;
   }
   if (info.authenticated === false) {
-    return <Status tone="off" label="Čaká na prihlásenie" />;
+    return <Status tone="warn" label="Čaká na prihlásenie" />;
   }
   return (
     <Status
@@ -51,9 +51,13 @@ function RunnerRows({
             key={kind}
             title={RUNNER_LABEL[kind]}
             description={
-              info?.installed === true && info.authenticated === false
-                ? `Prihlás sa v termináli príkazom ${kind}, potom sa stav obnoví sám`
-                : (info?.executablePath ?? `${kind} CLI`)
+              info?.installed === true && info.authenticated === false ? (
+                <>
+                  Prihlás sa v termináli príkazom <code>{kind}</code>, potom sa stav obnoví sám
+                </>
+              ) : (
+                <code>{info?.executablePath ?? `${kind} CLI`}</code>
+              )
             }
           >
             {runnerStatus(info)}

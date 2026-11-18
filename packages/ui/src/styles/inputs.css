@@ -47,8 +47,10 @@
   color: var(--fg2);
 }
 .seg button.on {
-  background: var(--raised);
+  background: var(--sel);
+  box-shadow: inset 0 0 0 1px #343c52;
   color: var(--fg);
+  font-weight: var(--w-semibold);
 }
 .seg button:disabled {
   cursor: not-allowed;
@@ -56,8 +58,8 @@
 }
 .seg.cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   padding: 0;
   border: 0;
   background: none;
@@ -67,7 +69,7 @@
   display: grid;
   gap: 4px;
   align-content: start;
-  padding: 14px 14px 16px 42px;
+  padding: 13px 16px 14px 44px;
   border-radius: 10px;
   box-shadow: inset 0 0 0 1px var(--line);
   text-align: left;
@@ -123,6 +125,9 @@
 }
 .stat.bad i {
   background: var(--bad);
+}
+.stat.warn i {
+  background: var(--warn);
 }
 .stat.busy i {
   background: var(--accent);

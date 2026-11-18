@@ -100,6 +100,15 @@ export function SplitsSection() {
               ))}
             </span>
             <span className="cnt">
+              <IconButton
+                label={`Odstrániť split ${split.name}`}
+                disabled={locked}
+                onClick={() => {
+                  save(list.filter((item) => item.id !== split.id).map(toInput));
+                }}
+              >
+                <Icon name="trash" />
+              </IconButton>
               <Switch
                 checked={split.exclusive}
                 label={`Výlučný split ${split.name}`}
@@ -112,15 +121,6 @@ export function SplitsSection() {
                   );
                 }}
               />
-              <IconButton
-                label={`Odstrániť split ${split.name}`}
-                disabled={locked}
-                onClick={() => {
-                  save(list.filter((item) => item.id !== split.id).map(toInput));
-                }}
-              >
-                <Icon name="trash" />
-              </IconButton>
             </span>
           </div>
         );

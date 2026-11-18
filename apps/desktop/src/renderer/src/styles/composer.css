@@ -274,7 +274,19 @@
   color: var(--faint);
 }
 .btn-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   margin-left: 2px;
   opacity: 0.65;
   font-weight: var(--w-medium);
+}
+.btn-hint svg {
+  width: 11px;
+  height: 11px;
+}
+.cmp-h .to-chip {
+  flex: none;
+  padding-right: 10px;
+  color: var(--fg);
 }

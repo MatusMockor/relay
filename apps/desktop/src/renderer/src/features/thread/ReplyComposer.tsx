@@ -1,5 +1,5 @@
 import type { MailAccount, ThreadDetail } from '@relay/shared';
-import { AccountSquare, type AnchorRect, Button, ConfirmDialog, Spark } from '@relay/ui';
+import { AccountSquare, type AnchorRect, Avatar, Button, ConfirmDialog, Spark } from '@relay/ui';
 import { useEffect, useRef, useState } from 'react';
 import { describeError } from '../../data/errors';
 import { useClient } from '../../data/hooks/services-context';
@@ -100,7 +100,10 @@ export function ReplyComposer({
     <div className={`cmp${reply.busy ? ' busy' : ''}`} id="cmp">
       <div className="cmp-h">
         <span>Pre</span>
-        <b>{recipientName}</b>
+        <span className="to-chip">
+          <Avatar name={recipientName} seed={recipient?.email} size="sm" />
+          {recipientName}
+        </span>
         {model.multi && account !== undefined ? (
           <button
             type="button"

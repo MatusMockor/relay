@@ -40,15 +40,6 @@ export function AutomationCard({
           />
           {rule.preset !== null ? <span className="scope">Predvolené</span> : null}
         </b>
-        <Switch
-          checked={input.enabled}
-          label={`Pravidlo ${input.name} zapnuté`}
-          disabled={disabled}
-          onChange={(enabled) => {
-            onEngage();
-            onChange({ enabled });
-          }}
-        />
         {rule.preset === null ? (
           <IconButton
             label={`Odstrániť pravidlo ${input.name}`}
@@ -62,6 +53,15 @@ export function AutomationCard({
             <Icon name="lock" />
           </span>
         )}
+        <Switch
+          checked={input.enabled}
+          label={`Pravidlo ${input.name} zapnuté`}
+          disabled={disabled}
+          onChange={(enabled) => {
+            onEngage();
+            onChange({ enabled });
+          }}
+        />
       </div>
       <RuleSentence
         rule={rule}

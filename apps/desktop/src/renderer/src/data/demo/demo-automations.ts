@@ -30,7 +30,7 @@ export const buildDemoAutomations = (): Automation[] => [
       model: 'gpt-6.1-sol',
       effort: 'high',
       instructions:
-        'Task vytvor iba ak odo mňa niekto niečo chce. Presun do sprintu a zmeny priority ignoruj.',
+        'Úlohu vytvor, len ak odo mňa niekto niečo chce. Presun do sprintu a zmeny priority ignoruj.',
     },
     actions: ['summary', 'task'],
   },
