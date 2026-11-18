@@ -61,8 +61,8 @@ function RunnerRows({
             description={
               info?.installed === true && info.authenticated === false ? (
                 <>
-                  Prihlás sa {SIGN_IN_PLACE[where]} príkazom <code>{kind}</code>, potom sa stav
-                  obnoví sám
+                  Prihlás sa {SIGN_IN_PLACE[where]} príkazom <code>{kind}</code>, potom Nastavenia
+                  zavri a znova otvor
                 </>
               ) : (
                 <code>{info?.executablePath ?? `${kind} CLI`}</code>
