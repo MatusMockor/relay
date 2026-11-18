@@ -1,6 +1,7 @@
 import type { Logger } from '@relay/engine';
 import { app, autoUpdater as nativeUpdater } from 'electron';
 import { type AppUpdates, createAppUpdates } from '../composition/app-updates';
+import { systemClock } from '../infra/system-clock';
 import { systemTimers } from '../platform/timers';
 import type { AppUpdater } from '../updates/app-updater';
 import { ElectronUpdaterAdapter, type UpdaterLike } from '../updates/electron-updater-adapter';
@@ -59,6 +60,7 @@ export const electronAppUpdates = (logger: Logger): AppUpdates => {
     }),
     loadUpdater: () => loadElectronUpdater(updateLogger),
     timers: systemTimers,
+    clock: systemClock,
     logger: updateLogger,
   });
 };

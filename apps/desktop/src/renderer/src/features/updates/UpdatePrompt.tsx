@@ -56,7 +56,7 @@ export function UpdatePrompt() {
     return (
       <PromptFrame
         title="Aktualizáciu sa nepodarilo nainštalovať"
-        detail="Relay to skúsi znova pri ďalšej kontrole aktualizácií."
+        detail="Skontroluj aktualizácie znova a keď bude pripravená, zvoľ Reštartovať a aktualizovať."
       >
         <Button variant="ghost" onClick={dismiss}>
           Zavrieť

@@ -33,6 +33,7 @@ const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
       ['ai', 'AI', 'spark'],
       ['look', 'Vzhľad', 'palette'],
       ['keys', 'Klávesové skratky', 'keyboard'],
+      ['about', 'O aplikácii', 'info'],
     ],
   ],
 ];

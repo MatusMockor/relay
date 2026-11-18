@@ -1,7 +1,11 @@
 import type { RealtimeEvent } from '@relay/shared/realtime';
+import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it } from 'vitest';
 import { EventHub } from '../../src/main/events/event-hub';
-import { buildAppMenuTemplate } from '../../src/main/native/app-menu-template';
+import {
+  buildAppMenuTemplate,
+  CHECK_FOR_UPDATES_ID,
+} from '../../src/main/native/app-menu-template';
 import { UnreadBadgeUpdater } from '../../src/main/native/unread-badge-updater';
 import { fitWindowState } from '../../src/main/native/window-bounds';
 import { ManualTime } from './support/manual-time';
@@ -45,6 +49,7 @@ describe('buildAppMenuTemplate', () => {
       platform: 'darwin',
       appName: 'Relay',
       isDevelopment: false,
+      onCheckForUpdates: () => undefined,
     });
     expect(template[0]?.label).toBe('Relay');
     expect(roles(template, 'Súbor')).toEqual(['close']);
@@ -66,10 +71,64 @@ describe('buildAppMenuTemplate', () => {
       platform: 'linux',
       appName: 'Relay',
       isDevelopment: true,
+      onCheckForUpdates: () => undefined,
     });
     expect(roles(template, 'Súbor')).toEqual(['quit']);
     expect(roles(template, 'Upraviť')).toContain('selectAll');
     expect(roles(template, 'Zobraziť')).toContain('toggleDevTools');
+  });
+
+  const submenuOf = (template: ReturnType<typeof buildAppMenuTemplate>, label: string) => {
+    const menu = template.find((item) => item.label === label);
+    return Array.isArray(menu?.submenu) ? menu.submenu : [];
+  };
+
+  const press = (item: MenuItemConstructorOptions | undefined): void => {
+    expect(item?.click).toBeTypeOf('function');
+    if (item?.click === undefined) {
+      return;
+    }
+    Reflect.apply(item.click, undefined, []);
+  };
+
+  const menuWithCheck = (platform: NodeJS.Platform) => {
+    const calls = { count: 0 };
+    const template = buildAppMenuTemplate({
+      platform,
+      appName: 'Relay',
+      isDevelopment: false,
+      onCheckForUpdates: () => {
+        calls.count += 1;
+      },
+    });
+    return { template, calls };
+  };
+
+  it('offers the update check right under About on macOS', () => {
+    const { template, calls } = menuWithCheck('darwin');
+    const items = submenuOf(template, 'Relay');
+    expect(items[0]?.role).toBe('about');
+    const check = items[1];
+    expect(check?.id).toBe(CHECK_FOR_UPDATES_ID);
+    expect(check?.label).toBe('Skontrolovať aktualizácie…');
+    press(check);
+    expect(calls.count).toBe(1);
+    expect(submenuOf(template, 'Súbor').some((item) => item.id === CHECK_FOR_UPDATES_ID)).toBe(
+      false,
+    );
+  });
+
+  it('offers the update check above quit in the Linux file menu', () => {
+    const { template, calls } = menuWithCheck('linux');
+    const items = submenuOf(template, 'Súbor');
+    expect(items.map((item) => item.id ?? item.role ?? item.type)).toEqual([
+      CHECK_FOR_UPDATES_ID,
+      'separator',
+      'quit',
+    ]);
+    const check = items[0];
+    press(check);
+    expect(calls.count).toBe(1);
   });
 });
 

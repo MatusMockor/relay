@@ -1,4 +1,4 @@
-import type { AppInfo, DeviceSettings, DeviceSettingsPatch } from '@relay/shared';
+import type { AppInfo, DeviceSettings, DeviceSettingsPatch, UpdateStatus } from '@relay/shared';
 import { MailClientError } from '../data/errors';
 import { RendererTokenSession } from '../data/remote/RendererTokenSession';
 import { canonicalServerUrl, MemoryTokenStore, type TokenStore } from '../data/remote/TokenStore';
@@ -7,6 +7,8 @@ import type { Platform } from './Platform';
 import { saveBlobAs } from './save-file';
 
 export const DEVICE_SETTINGS_KEY = 'relay.device-settings';
+
+const BROWSER_UPDATE_STATUS: UpdateStatus = { kind: 'disabled', reason: 'unsupported-platform' };
 
 const googleUnavailable = () =>
   Promise.reject(
@@ -95,9 +97,14 @@ export const createBrowserPlatform = (
     authorizeGoogle: googleUnavailable,
     authorizeGoogleCalendar: googleUnavailable,
     cancelGoogleAuthorization: () => Promise.resolve(),
-    subscribeToUpdates: () => () => undefined,
+    subscribeToUpdates: (listener) => {
+      listener(BROWSER_UPDATE_STATUS);
+      return () => undefined;
+    },
+    checkForUpdates: () => Promise.resolve(),
     installUpdate: () => Promise.resolve(),
     subscribeToThreadOpens: () => () => undefined,
+    subscribeToMenuCommands: () => () => undefined,
     subscribeToFullScreen: () => () => undefined,
   };
 };

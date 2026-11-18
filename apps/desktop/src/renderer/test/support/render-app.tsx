@@ -56,6 +56,7 @@ export const renderApp = (
     readonly demo?: () => MailClient;
     readonly platform?: Platform;
     readonly queryClient?: QueryClient;
+    readonly now?: () => Date;
   } = {},
 ): RenderedApp => {
   const platform =
@@ -68,6 +69,7 @@ export const renderApp = (
       platform={platform}
       session={session}
       undoSendMs={40}
+      now={options.now}
       createQueryClient={() => options.queryClient ?? testQueryClient()}
     />,
   );

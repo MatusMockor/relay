@@ -23,6 +23,7 @@ import { createSettingsHandlers } from '../handlers/local/settings-handlers';
 import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-handlers';
 import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
+import { createMenuCommandStreamHandlers } from '../handlers/menu-command-handlers';
 import { mergeInvokeHandlers, mergeStreamHandlers } from '../handlers/merge-handlers';
 import { createNotificationStreamHandlers } from '../handlers/notification-handlers';
 import { createOAuthHandlers } from '../handlers/oauth-handlers';
@@ -39,6 +40,7 @@ import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
 import type { AttachmentPicker } from '../files/attachment-picker';
+import type { MenuCommandRequests } from '../native/menu-command-requests';
 import type { ThreadOpenRequests } from '../native/thread-open-requests';
 import type { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
 import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
@@ -67,6 +69,7 @@ export interface MainProcessContext {
   readonly attachmentPicker?: AttachmentPicker;
   readonly updates?: UpdateService;
   readonly threadOpens?: ThreadOpenRequests;
+  readonly menuCommands?: MenuCommandRequests;
   readonly fullScreen?: FullScreenState;
 }
 
@@ -123,6 +126,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.local, (local) => createEventStreamHandlers(local.hub)),
       optional(context.updates, createUpdateStreamHandlers),
       optional(context.threadOpens, createNotificationStreamHandlers),
+      optional(context.menuCommands, createMenuCommandStreamHandlers),
       optional(context.fullScreen, createWindowStreamHandlers),
     ),
     errorReporter(context.logger),

@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import { appInvokeChannels, appStreamChannels } from './app-channels';
 import { attachmentInvokeChannels } from './attachment-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
+import { menuStreamChannels } from './menu-channels';
 import { notificationStreamChannels } from './notification-channels';
 import { calendarInvokeChannels } from './calendar-channels';
 import { googleCalendarInvokeChannels } from './google-calendar-channels';
@@ -25,6 +26,7 @@ export const ipcStreamChannels = {
   ...localStreamChannels,
   ...updateStreamChannels,
   ...notificationStreamChannels,
+  ...menuStreamChannels,
   ...windowStreamChannels,
 };
 

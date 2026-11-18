@@ -31,6 +31,7 @@ const macDesktop = () => {
     availability: { enabled: true },
     logger,
     timers: time,
+    clock: time,
   });
   stub.available = '0.2.0';
   return { stub, native, time, updates };

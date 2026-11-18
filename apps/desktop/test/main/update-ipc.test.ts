@@ -24,11 +24,13 @@ const nextStreamId = () => {
 
 const setup = () => {
   const updater = new InMemoryAppUpdater();
+  const time = new ManualTime();
   const updates = new UpdateService({
     updater,
     availability: { enabled: true },
     logger: createTestLogger().logger,
-    timers: new ManualTime(),
+    timers: time,
+    clock: time,
   });
   const bridge = createRelayBridge(
     new InMemoryIpc(composeIpc({ app: appMetadata, updates })),
@@ -61,6 +63,7 @@ describe('update status over IPC', () => {
     unsubscribe();
     expect(received).toEqual([
       { kind: 'idle' },
+      { kind: 'checking' },
       { kind: 'downloading', version: '0.2.0', percent: 0 },
       { kind: 'ready', version: '0.2.0' },
     ]);

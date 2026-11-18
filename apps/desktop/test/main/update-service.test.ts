@@ -31,6 +31,7 @@ describe('UpdateService', () => {
       availability,
       logger: createTestLogger().logger,
       timers: time,
+      clock: time,
     });
     created.changes.subscribe((status) => {
       seen.push(status);
@@ -53,11 +54,68 @@ describe('UpdateService', () => {
     expect(updater.checks).toBe(0);
   });
 
-  it('stays idle when the feed has nothing newer', async () => {
+  it('starts idle before the first check', () => {
+    expect(service().status()).toEqual({ kind: 'idle' });
+  });
+
+  it('reports a running check and then that the app is up to date', async () => {
     const updates = service();
     await updates.check();
-    expect(updates.status()).toEqual({ kind: 'idle' });
+    expect(seen).toEqual([
+      { kind: 'checking' },
+      { kind: 'current', checkedAt: '2026-11-15T08:00:00.000Z' },
+    ]);
     expect(updater.checks).toBe(1);
+  });
+
+  it('records the time of every check that finds nothing newer', async () => {
+    const updates = service();
+    await updates.check();
+    await time.advance(90_000);
+    await updates.check();
+    expect(updates.status()).toEqual({ kind: 'current', checkedAt: '2026-11-15T08:01:30.000Z' });
+    expect(updater.checks).toBe(2);
+  });
+
+  it('reports checking, the download and then the ready update for a newer version', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    await downloadUntilReady(updates);
+    expect(seen).toEqual([
+      { kind: 'checking' },
+      { kind: 'downloading', version: '0.2.0', percent: 0 },
+      { kind: 'ready', version: '0.2.0' },
+    ]);
+  });
+
+  it('joins a check that is already running instead of starting another', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    const first = updates.check();
+    expect(updates.status()).toEqual({ kind: 'checking' });
+    const second = updates.check();
+    expect(second).toBe(first);
+    await settle();
+    updater.completeDownload();
+    await Promise.all([first, second]);
+    expect(updater.checks).toBe(1);
+    expect(seen.filter((status) => status.kind === 'checking')).toHaveLength(1);
+  });
+
+  it('ignores a check while an update is downloading or ready', async () => {
+    const updates = service();
+    updater.publish('0.2.0');
+    const checking = updates.check();
+    await settle();
+    expect(updates.status().kind).toBe('downloading');
+    expect(updates.check()).toBe(checking);
+    updater.completeDownload();
+    await checking;
+    const before = seen.length;
+    await updates.check();
+    expect(updater.checks).toBe(1);
+    expect(seen).toHaveLength(before);
+    expect(updates.status()).toEqual({ kind: 'ready', version: '0.2.0' });
   });
 
   it('downloads a newer version in the background and reports the progress', async () => {
@@ -72,6 +130,7 @@ describe('UpdateService', () => {
     updater.completeDownload();
     await checking;
     expect(seen).toEqual([
+      { kind: 'checking' },
       { kind: 'downloading', version: '0.2.0', percent: 0 },
       { kind: 'downloading', version: '0.2.0', percent: 12 },
       { kind: 'downloading', version: '0.2.0', percent: 13 },
@@ -162,7 +221,7 @@ describe('UpdateService', () => {
     const updates = service();
     await updates.check();
     updater.reportFailure(new Error('net::ERR_INTERNET_DISCONNECTED'));
-    expect(updates.status()).toEqual({ kind: 'idle' });
+    expect(updates.status()).toEqual({ kind: 'current', checkedAt: '2026-11-15T08:00:00.000Z' });
   });
 
   it('reports an install that fails after the restart was requested', async () => {

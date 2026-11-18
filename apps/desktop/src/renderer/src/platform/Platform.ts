@@ -8,6 +8,7 @@ import type {
   GoogleAuthorizeOutput,
   GoogleCalendarAuthorizeInput,
   GoogleCalendarAuthorizeOutput,
+  MenuCommandKind,
   RelayBridge,
   ThreadId,
   UpdateStatus,
@@ -37,8 +38,10 @@ export interface Platform {
     input: GoogleCalendarAuthorizeInput,
   ): Promise<GoogleCalendarAuthorizeOutput>;
   subscribeToUpdates(listener: (status: UpdateStatus) => void): () => void;
+  checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
   subscribeToThreadOpens(listener: (threadId: ThreadId) => void): () => void;
+  subscribeToMenuCommands(listener: (command: MenuCommandKind) => void): () => void;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
 }
 

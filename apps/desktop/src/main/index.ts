@@ -20,6 +20,7 @@ import { PickedFileReader } from './files/picked-file-reader';
 import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
+import { MenuCommandRequests } from './native/menu-command-requests';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { ThreadOpenRequests } from './native/thread-open-requests';
@@ -65,6 +66,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   hardenSession(session.defaultSession);
   const updates = electronAppUpdates(logger);
   const threadOpens = new ThreadOpenRequests();
+  const menuCommands = new MenuCommandRequests();
   const fullScreen = new FullScreenState();
 
   const unregisterIpc = registerIpc(
@@ -81,6 +83,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
       updates: updates.service,
       threadOpens,
+      menuCommands,
       fullScreen,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
@@ -117,7 +120,14 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     timers: systemTimers,
     logger,
   });
-  const shell = startNativeShell(runtime, windows, threadOpens, logger);
+  const shell = startNativeShell({
+    runtime,
+    windows,
+    threadOpens,
+    menuCommands,
+    updates: updates.service,
+    logger,
+  });
   await runtime.start();
   await windows.open();
   await background.start();

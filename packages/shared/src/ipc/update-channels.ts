@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { OkResponseSchema } from '../api/common';
+import { IsoDateTimeSchema } from '../domain/primitives';
 import { invokeChannel, streamChannel } from './define';
 
 export const UpdateVersionSchema = z
@@ -18,6 +19,8 @@ export type UpdateDisabledReason = z.infer<typeof UpdateDisabledReasonSchema>;
 export const UpdateStatusSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('disabled'), reason: UpdateDisabledReasonSchema }),
   z.object({ kind: z.literal('idle') }),
+  z.object({ kind: z.literal('checking') }),
+  z.object({ kind: z.literal('current'), checkedAt: IsoDateTimeSchema }),
   z.object({
     kind: z.literal('downloading'),
     version: UpdateVersionSchema,
@@ -31,6 +34,7 @@ export type UpdateStatus = z.infer<typeof UpdateStatusSchema>;
 
 export const updateInvokeChannels = {
   'app.update.status': invokeChannel(z.undefined(), UpdateStatusSchema),
+  'app.update.check': invokeChannel(z.undefined(), OkResponseSchema),
   'app.update.install': invokeChannel(z.undefined(), OkResponseSchema),
 };
 
