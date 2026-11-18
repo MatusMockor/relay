@@ -1,18 +1,13 @@
 import { RELAY_RELEASES_URL, RELAY_REPOSITORY_URL } from '@relay/shared';
 import { Button } from '@relay/ui';
-import { describeError } from '../../../data/errors';
 import { useAppContext } from '../../../data/hooks/services-context';
-import { showToast } from '../../../state/toast-store';
+import { reportUpdateFailure } from '../../updates/report-update-failure';
 import { describeUpdateStatus } from '../../updates/update-status-view';
 import { useAppInfo } from '../../updates/use-app-info';
 import { useUpdateStatus } from '../../updates/use-update-status';
 import { SectionHeader } from '../SectionHeader';
 import { SettingRow } from '../SettingRow';
 import { SettingsGroup } from '../SettingsGroup';
-
-const reportFailure = (error: unknown): void => {
-  showToast(describeError(error));
-};
 
 export function AboutSection() {
   const { platform, now } = useAppContext();
@@ -27,12 +22,15 @@ export function AboutSection() {
       </SectionHeader>
       <SettingRow title={name} description={`Verzia ${info?.version ?? '…'}`} />
       <SettingsGroup title="Aktualizácie" />
+      <span className="sr-only" role="status">
+        {view.announcement}
+      </span>
       <SettingRow title={view.title} description={view.detail ?? undefined}>
         {view.canInstall ? (
           <Button
             variant="primary"
             onClick={() => {
-              platform.installUpdate().catch(reportFailure);
+              platform.installUpdate().catch(reportUpdateFailure);
             }}
           >
             Reštartovať a aktualizovať
@@ -41,7 +39,7 @@ export function AboutSection() {
           <Button
             disabled={!view.canCheck}
             onClick={() => {
-              platform.checkForUpdates().catch(reportFailure);
+              platform.checkForUpdates().catch(reportUpdateFailure);
             }}
           >
             Skontrolovať aktualizácie

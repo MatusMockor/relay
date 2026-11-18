@@ -64,7 +64,7 @@ describe('manual update checks over IPC', () => {
   });
 
   it('starts a check without waiting for it and streams the outcome', async () => {
-    const { bridge, time } = setup();
+    const { bridge, updater, updates, time } = setup();
     const received: UpdateStatus[] = [];
     const unsubscribe = bridge.subscribe('app.update.events', {
       onEvent: (status) => {
@@ -72,13 +72,21 @@ describe('manual update checks over IPC', () => {
       },
     });
     await settle();
+    updater.holdChecks();
     expect(await bridge.invoke('app.update.check')).toEqual({ ok: true, data: { ok: true } });
+    expect(updater.checkHeld).toBe(true);
+    expect(updates.status()).toEqual({ kind: 'checking' });
+    const startedAt = time.now().toISOString();
+    await time.advance(5_000);
+    updater.releaseCheck();
     await settle();
     unsubscribe();
+    const finishedAt = time.now().toISOString();
+    expect(finishedAt).not.toBe(startedAt);
     expect(received).toEqual([
       { kind: 'idle' },
       { kind: 'checking' },
-      { kind: 'current', checkedAt: time.now().toISOString() },
+      { kind: 'current', checkedAt: finishedAt },
     ]);
   });
 
@@ -92,7 +100,7 @@ describe('manual update checks over IPC', () => {
     expect(updater.checks).toBe(1);
   });
 
-  it('drops a menu command when no window is listening', async () => {
+  it('keeps a menu command until a window starts listening', async () => {
     const { bridge, menuCommands } = setup();
     menuCommands.request('open-about');
     const received: MenuCommand[] = [];
@@ -103,7 +111,7 @@ describe('manual update checks over IPC', () => {
     });
     await settle();
     unsubscribe();
-    expect(received).toEqual([]);
+    expect(received).toEqual([{ command: 'open-about' }]);
   });
 
   it('opens the about section and checks when the menu item is used', async () => {

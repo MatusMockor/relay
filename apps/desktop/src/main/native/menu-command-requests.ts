@@ -1,17 +1,16 @@
 import type { MenuCommand, MenuCommandKind } from '@relay/shared/ipc';
-import { EventHub } from '../events/event-hub';
-import { streamHub } from '../events/hub-stream';
+import { LatestRequestFeed } from '../events/latest-request-feed';
 
 const MAX_BUFFERED_COMMANDS = 10;
 
 export class MenuCommandRequests {
-  private readonly hub = new EventHub<MenuCommand>();
+  private readonly feed = new LatestRequestFeed<MenuCommand>(MAX_BUFFERED_COMMANDS);
 
   request(command: MenuCommandKind): void {
-    this.hub.publish({ command });
+    this.feed.request({ command });
   }
 
   stream(signal: AbortSignal): AsyncGenerator<MenuCommand> {
-    return streamHub(this.hub, signal, MAX_BUFFERED_COMMANDS);
+    return this.feed.stream(signal);
   }
 }

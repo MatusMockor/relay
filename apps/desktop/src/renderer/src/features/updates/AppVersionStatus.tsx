@@ -1,5 +1,6 @@
 import { useAppContext } from '../../data/hooks/services-context';
 import { openAbout } from './open-about';
+import { reportUpdateFailure } from './report-update-failure';
 import { useAppInfo } from './use-app-info';
 import { describeUpdateStatus } from './update-status-view';
 import { useUpdateStatus } from './use-update-status';
@@ -18,7 +19,7 @@ export function AppVersionStatus() {
         className="app-ver accent"
         title={view.title}
         onClick={() => {
-          platform.installUpdate().catch(() => undefined);
+          platform.installUpdate().catch(reportUpdateFailure);
         }}
       >
         {label}

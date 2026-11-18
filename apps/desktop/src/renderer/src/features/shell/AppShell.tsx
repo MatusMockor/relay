@@ -11,7 +11,6 @@ import { MailActionsProvider } from '../mail/MailActionsProvider';
 import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
-import { useMenuCommands } from '../updates/use-menu-commands';
 import { useLayoutPersistence } from './layout-persistence';
 import { OverlayHost } from './OverlayHost';
 import { TopBar } from './TopBar';
@@ -26,7 +25,6 @@ function Shell() {
   useRealtimeSync();
   useRemoteAutomationNotifications();
   useNotificationNavigation();
-  useMenuCommands();
   const commit = useLayoutPersistence();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);

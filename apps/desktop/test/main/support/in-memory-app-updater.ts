@@ -17,6 +17,8 @@ export class InMemoryAppUpdater implements AppUpdater {
   private checkFailure: Error | null = null;
   private installFailure: Error | null = null;
   private pending: PendingDownload | null = null;
+  private holding = false;
+  private heldCheck: (() => void) | null = null;
   private readonly failureListeners: UpdaterFailureListener[] = [];
 
   publish(version: string): void {
@@ -31,8 +33,34 @@ export class InMemoryAppUpdater implements AppUpdater {
     this.installFailure = error;
   }
 
+  holdChecks(): void {
+    this.holding = true;
+  }
+
+  releaseCheck(): void {
+    const held = this.heldCheck;
+    this.holding = false;
+    this.heldCheck = null;
+    held?.();
+  }
+
+  get checkHeld(): boolean {
+    return this.heldCheck !== null;
+  }
+
   check(): Promise<AvailableUpdate | null> {
     this.checks += 1;
+    if (!this.holding) {
+      return this.answerCheck();
+    }
+    return new Promise<AvailableUpdate | null>((resolve, reject) => {
+      this.heldCheck = () => {
+        this.answerCheck().then(resolve, reject);
+      };
+    });
+  }
+
+  private answerCheck(): Promise<AvailableUpdate | null> {
     if (this.checkFailure !== null) {
       return Promise.reject(this.checkFailure);
     }

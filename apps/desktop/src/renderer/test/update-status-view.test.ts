@@ -23,7 +23,8 @@ describe('describeUpdateStatus', () => {
   it('tells when the app is up to date and when it was checked', () => {
     const checkedAt = new Date(2026, 10, 18, 9, 30).toISOString();
     expect(describeUpdateStatus({ kind: 'current', checkedAt }, NOW)).toEqual({
-      title: 'Máš najnovšiu verziu',
+      title: 'Nie je dostupná žiadna aktualizácia',
+      announcement: 'Nie je dostupná žiadna aktualizácia',
       detail: 'Naposledy skontrolované: 9:30',
       compact: null,
       canCheck: true,
@@ -36,9 +37,17 @@ describe('describeUpdateStatus', () => {
       describeUpdateStatus({ kind: 'downloading', version: '0.2.0', percent: 42 }, NOW),
     ).toMatchObject({
       title: 'Sťahujem verziu 0.2.0 (42 %)',
+      announcement: 'Sťahujem verziu 0.2.0',
       compact: 'Sťahujem 42 %',
       canCheck: false,
     });
+  });
+
+  it('announces a download once instead of on every percent', () => {
+    const early = describeUpdateStatus({ kind: 'downloading', version: '0.2.0', percent: 5 }, NOW);
+    const late = describeUpdateStatus({ kind: 'downloading', version: '0.2.0', percent: 90 }, NOW);
+    expect(early.announcement).toBe('Sťahujem verziu 0.2.0');
+    expect(late.announcement).toBe(early.announcement);
   });
 
   it('offers the install once the update is ready', () => {
@@ -73,8 +82,11 @@ describe('describeUpdateStatus', () => {
     expect(describeUpdateStatus({ kind: 'error', failed: 'download' }, NOW).title).toBe(
       'Aktualizáciu sa nepodarilo stiahnuť',
     );
-    expect(describeUpdateStatus({ kind: 'error', failed: 'install' }, NOW).title).toBe(
-      'Aktualizáciu sa nepodarilo nainštalovať',
-    );
+    expect(describeUpdateStatus({ kind: 'error', failed: 'install' }, NOW)).toMatchObject({
+      title: 'Aktualizáciu sa nepodarilo nainštalovať',
+      announcement: 'Aktualizáciu sa nepodarilo nainštalovať',
+      detail:
+        'Skontroluj aktualizácie znova a keď bude pripravená, zvoľ Reštartovať a aktualizovať.',
+    });
   });
 });

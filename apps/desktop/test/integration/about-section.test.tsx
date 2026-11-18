@@ -1,17 +1,27 @@
 // @vitest-environment jsdom
 import './support/node-abort-globals';
+import type { MenuCommandKind } from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { composeIpc } from '../../src/main/composition/compose-ipc';
 import { MenuCommandRequests } from '../../src/main/native/menu-command-requests';
 import { UpdateService } from '../../src/main/updates/update-service';
 import { createRelayBridge } from '../../src/preload/create-bridge';
-import { createBrowserPlatform } from '../../src/renderer/src/platform/BrowserPlatform';
+import {
+  createBrowserPlatform,
+  type KeyValueStorage,
+} from '../../src/renderer/src/platform/BrowserPlatform';
 import { createElectronPlatform } from '../../src/renderer/src/platform/ElectronPlatform';
 import type { Platform } from '../../src/renderer/src/platform/Platform';
 import { hm } from '../../src/renderer/src/lib/dates';
+import { useSessionStore } from '../../src/renderer/src/session/session-store';
 import { setUi, useUiStore } from '../../src/renderer/src/state/ui-store';
-import { renderApp, resetStores, storageWith } from '../../src/renderer/test/support/render-app';
+import {
+  memoryStorage,
+  renderApp,
+  resetStores,
+  storageWith,
+} from '../../src/renderer/test/support/render-app';
 import { InMemoryIpc } from '../main/in-memory-ipc';
 import { InMemoryAppUpdater } from '../main/support/in-memory-app-updater';
 import { ManualTime } from '../main/support/manual-time';
@@ -27,7 +37,7 @@ const appMetadata = {
 
 let streams = 0;
 
-const startDesktop = () => {
+const startDesktop = (storage: KeyValueStorage = storageWith({ mode: 'local' })) => {
   const updater = new InMemoryAppUpdater();
   const time = new ManualTime('2026-11-18T09:30:00.000Z');
   const updates = new UpdateService({
@@ -47,18 +57,23 @@ const startDesktop = () => {
   );
   const desktop = createElectronPlatform(bridge);
   const opened: string[] = [];
+  const menuDeliveries: MenuCommandKind[] = [];
   const platform: Platform = {
-    ...createBrowserPlatform(storageWith({ mode: 'local' })),
+    ...createBrowserPlatform(storage),
     appInfo: () => desktop.appInfo(),
     subscribeToUpdates: (listener) => desktop.subscribeToUpdates(listener),
     checkForUpdates: () => desktop.checkForUpdates(),
     installUpdate: () => desktop.installUpdate(),
-    subscribeToMenuCommands: (listener) => desktop.subscribeToMenuCommands(listener),
+    subscribeToMenuCommands: (listener) =>
+      desktop.subscribeToMenuCommands((command) => {
+        listener(command);
+        menuDeliveries.push(command);
+      }),
     openExternal: (url) => {
       opened.push(url);
     },
   };
-  return { updater, updates, menuCommands, platform, opened, time };
+  return { updater, updates, menuCommands, platform, opened, menuDeliveries, time };
 };
 
 const renderDesktop = async (desktop: ReturnType<typeof startDesktop>) => {
@@ -84,6 +99,15 @@ const openAboutFromSidebar = async () => {
   return screen.getByRole('tabpanel', { name: 'O aplikácii' });
 };
 
+const expectAnnounced = async (about: HTMLElement, text: string) => {
+  await waitFor(() => {
+    expect(within(about).getByRole('status').textContent).toBe(text);
+  });
+  expect(within(about).getAllByText(text)).toHaveLength(2);
+};
+
+const ABOUT_OVERLAY = { kind: 'settings', section: 'about', adding: false };
+
 const enabledCheckButton = async (about: HTMLElement) => {
   const button = within(about).getByRole('button', { name: 'Skontrolovať aktualizácie' });
   await waitFor(() => {
@@ -107,7 +131,7 @@ describe('about Relay and manual update checks', () => {
     const about = await openAboutFromSidebar();
     expect(within(about).getByRole('heading', { name: 'O aplikácii' })).toBeDefined();
     expect(within(about).getByText('Verzia 0.1.3')).toBeDefined();
-    expect(await within(about).findByText('Automatické aktualizácie')).toBeDefined();
+    await expectAnnounced(about, 'Automatické aktualizácie');
   });
 
   it('checks for updates and reports that Relay is up to date', async () => {
@@ -118,7 +142,7 @@ describe('about Relay and manual update checks', () => {
     act(() => {
       fireEvent.click(check);
     });
-    expect(await within(about).findByText('Máš najnovšiu verziu')).toBeDefined();
+    await expectAnnounced(about, 'Nie je dostupná žiadna aktualizácia');
     expect(
       within(about).getByText(`Naposledy skontrolované: ${hm(desktop.time.now())}`),
     ).toBeDefined();
@@ -141,15 +165,22 @@ describe('about Relay and manual update checks', () => {
       desktop.updater.progress(42);
     });
     expect(await within(about).findByText('Sťahujem verziu 0.2.0 (42 %)')).toBeDefined();
+    expect(within(about).getByRole('status').textContent).toBe('Sťahujem verziu 0.2.0');
+    act(() => {
+      desktop.updater.progress(43);
+    });
+    expect(await within(about).findByText('Sťahujem verziu 0.2.0 (43 %)')).toBeDefined();
+    expect(within(about).getByRole('status').textContent).toBe('Sťahujem verziu 0.2.0');
     expect(within(about).getByRole('button', { name: 'Skontrolovať aktualizácie' })).toHaveProperty(
       'disabled',
       true,
     );
-    expect(within(footer()).getByRole('button', { name: 'Sťahujem 42 %' })).toBeDefined();
+    expect(within(footer()).getByRole('button', { name: 'Sťahujem 43 %' })).toBeDefined();
     act(() => {
       desktop.updater.completeDownload();
     });
-    expect(await within(about).findByText('Verzia 0.2.0 je pripravená')).toBeDefined();
+    await expectAnnounced(about, 'Verzia 0.2.0 je pripravená');
+    expect(within(about).getByRole('status').querySelector('button')).toBeNull();
     const update = within(footer()).getByRole('button', { name: 'Aktualizovať' });
     expect(update.className).toContain('accent');
     act(() => {
@@ -187,13 +218,48 @@ describe('about Relay and manual update checks', () => {
       desktop.menuCommands.request('open-about');
     });
     await waitFor(() => {
-      expect(useUiStore.getState().overlay).toEqual({
-        kind: 'settings',
-        section: 'about',
-        adding: false,
-      });
+      expect(useUiStore.getState().overlay).toEqual(ABOUT_OVERLAY);
     });
     expect(screen.getByRole('tabpanel', { name: 'O aplikácii' })).toBeDefined();
+  });
+
+  it('opens the about section asked for before the new window was listening', async () => {
+    const desktop = startDesktop();
+    desktop.menuCommands.request('open-about');
+    let finishBoot = (): void => undefined;
+    const bootHeld = new Promise<void>((resolve) => {
+      finishBoot = resolve;
+    });
+    const platform: Platform = {
+      ...desktop.platform,
+      deviceSettings: async () => {
+        await bootHeld;
+        return desktop.platform.deviceSettings();
+      },
+    };
+    renderApp({ platform, now: () => desktop.time.now() });
+    await waitFor(() => {
+      expect(desktop.menuDeliveries).toEqual(['open-about']);
+    });
+    expect(useSessionStore.getState().phase).toBe('booting');
+    expect(useUiStore.getState().overlay).toBeNull();
+    finishBoot();
+    expect(await screen.findByRole('tabpanel', { name: 'O aplikácii' })).toBeDefined();
+    expect(useUiStore.getState().overlay).toEqual(ABOUT_OVERLAY);
+  });
+
+  it('ignores the app menu while the user is still onboarding', async () => {
+    const desktop = startDesktop(memoryStorage());
+    renderApp({ platform: desktop.platform, now: () => desktop.time.now() });
+    await screen.findByRole('button', { name: /Pripojiť k serveru/ });
+    act(() => {
+      desktop.menuCommands.request('open-about');
+    });
+    await waitFor(() => {
+      expect(desktop.menuDeliveries).toEqual(['open-about']);
+    });
+    expect(useSessionStore.getState().phase).toBe('onboarding');
+    expect(useUiStore.getState().overlay).toBeNull();
   });
 
   it('keeps an open settings section when the app menu asks for about', async () => {
@@ -205,8 +271,8 @@ describe('about Relay and manual update checks', () => {
     act(() => {
       desktop.menuCommands.request('open-about');
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitFor(() => {
+      expect(desktop.menuDeliveries).toEqual(['open-about']);
     });
     expect(useUiStore.getState().overlay).toEqual({
       kind: 'settings',

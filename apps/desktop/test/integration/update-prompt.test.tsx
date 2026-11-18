@@ -107,6 +107,11 @@ describe('update prompt', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Reštartovať' }));
     });
     expect(await screen.findByText('Aktualizáciu sa nepodarilo nainštalovať')).toBeDefined();
+    expect(
+      screen.getByText(
+        'Skontroluj aktualizácie znova a keď bude pripravená, zvoľ Reštartovať a aktualizovať.',
+      ),
+    ).toBeDefined();
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Zavrieť' }));
     });

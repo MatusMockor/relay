@@ -3,6 +3,7 @@ import { listTimeLabel } from '../../lib/dates';
 
 export interface UpdateStatusView {
   readonly title: string;
+  readonly announcement: string;
   readonly detail: string | null;
   readonly compact: string | null;
   readonly canCheck: boolean;
@@ -22,7 +23,7 @@ const FAILURES: Readonly<Record<Status<'error'>['failed'], readonly [string, str
   download: ['Aktualizáciu sa nepodarilo stiahnuť', 'Skús to znova o chvíľu.'],
   install: [
     'Aktualizáciu sa nepodarilo nainštalovať',
-    'Relay to skúsi znova pri ďalšej kontrole aktualizácií.',
+    'Skontroluj aktualizácie znova a keď bude pripravená, zvoľ Reštartovať a aktualizovať.',
   ],
 };
 
@@ -32,6 +33,7 @@ const view = (
   rest: Partial<UpdateStatusView> = {},
 ): UpdateStatusView => ({
   title,
+  announcement: title,
   detail,
   compact: null,
   canCheck: false,
@@ -47,9 +49,11 @@ const describeFailure = (status: Status<'error'>): UpdateStatusView => {
 };
 
 const describeCurrent = (status: Status<'current'>, now: Date): UpdateStatusView =>
-  view('Máš najnovšiu verziu', `Naposledy skontrolované: ${listTimeLabel(status.checkedAt, now)}`, {
-    canCheck: true,
-  });
+  view(
+    'Nie je dostupná žiadna aktualizácia',
+    `Naposledy skontrolované: ${listTimeLabel(status.checkedAt, now)}`,
+    { canCheck: true },
+  );
 
 export const describeUpdateStatus = (status: UpdateStatus | null, now: Date): UpdateStatusView => {
   if (status === null) {
@@ -70,7 +74,10 @@ export const describeUpdateStatus = (status: UpdateStatus | null, now: Date): Up
       return view(
         `Sťahujem verziu ${status.version} (${String(status.percent)} %)`,
         'Po stiahnutí ju nainštaluješ reštartom aplikácie.',
-        { compact: `Sťahujem ${String(status.percent)} %` },
+        {
+          announcement: `Sťahujem verziu ${status.version}`,
+          compact: `Sťahujem ${String(status.percent)} %`,
+        },
       );
     case 'ready':
       return view(`Verzia ${status.version} je pripravená`, 'Nainštaluje sa po reštarte.', {
