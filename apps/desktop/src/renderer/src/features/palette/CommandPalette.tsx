@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { listTimeLabel } from '../../lib/dates';
-import { foldText, fuzzyScore } from '../../lib/text';
+import { fuzzyScore } from '../../lib/text';
 import { setUi } from '../../state/ui-store';
 import { isControlTarget } from '../keyboard/focus-target';
 import { Highlight } from '../list/Highlight';
@@ -130,11 +130,6 @@ export function CommandPalette() {
               <Highlight text={item.thread.participants[0]?.name ?? ''} query={query} />
             </small>
           </span>
-          {foldText(`${item.thread.subject} ${item.thread.participants[0]?.name ?? ''}`).includes(
-            foldText(query.trim()),
-          ) ? null : (
-            <small className="hit">v texte</small>
-          )}
           <span className="wh">{listTimeLabel(item.thread.lastMessageAt, new Date())}</span>
         </>
       )}

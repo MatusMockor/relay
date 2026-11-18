@@ -25,6 +25,7 @@ export interface NamedLabel {
 
 export interface NameColors {
   readonly of: (name: string) => string;
+  readonly labelHues: ReadonlyMap<string, string>;
 }
 
 const keyOf = (name: string): string => name.trim().toLocaleLowerCase('sk');
@@ -32,24 +33,53 @@ const keyOf = (name: string): string => name.trim().toLocaleLowerCase('sk');
 export const accountHue = (color: string): string =>
   color.toLowerCase() === ACCENT ? ACCENT_STAND_IN : color;
 
-export const createNameColors = (
-  accounts: readonly ColoredName[],
-  labels: readonly NamedLabel[],
-): NameColors => {
+const accountColorsOf = (accounts: readonly ColoredName[]): Map<string, string> => {
   const colors = new Map<string, string>();
   for (const account of accounts) {
     if (!colors.has(keyOf(account.name))) {
       colors.set(keyOf(account.name), accountHue(account.color));
     }
   }
-  const taken = new Set([...colors.values()].map((color) => color.toLowerCase()));
-  const palette = NAME_HUES.filter((hue) => !taken.has(hue));
-  const fresh = [...labels]
+  return colors;
+};
+
+const labelKeysOf = (labels: readonly NamedLabel[], colors: ReadonlyMap<string, string>) =>
+  [...labels]
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((label) => keyOf(label.name))
     .filter((key, index, keys) => !colors.has(key) && keys.indexOf(key) === index);
-  fresh.forEach((key, index) => {
-    colors.set(key, palette[index % palette.length] ?? NEUTRAL);
-  });
-  return { of: (name) => colors.get(keyOf(name)) ?? NEUTRAL };
+
+const assignLabelHues = (
+  keys: readonly string[],
+  palette: readonly string[],
+  previous: ReadonlyMap<string, string>,
+): Map<string, string> => {
+  const kept = new Map(
+    keys.flatMap((key) => {
+      const hue = previous.get(key);
+      return hue !== undefined && palette.includes(hue) ? [[key, hue] as const] : [];
+    }),
+  );
+  const used = new Set(kept.values());
+  const free = palette.filter((hue) => !used.has(hue));
+  let overflow = 0;
+  return new Map(
+    keys.map((key) => {
+      const hue = kept.get(key) ?? free.shift() ?? palette[overflow++ % palette.length];
+      return [key, hue ?? NEUTRAL] as const;
+    }),
+  );
+};
+
+export const createNameColors = (
+  accounts: readonly ColoredName[],
+  labels: readonly NamedLabel[],
+  previous: ReadonlyMap<string, string> = new Map(),
+): NameColors => {
+  const colors = accountColorsOf(accounts);
+  const taken = new Set([...colors.values()].map((color) => color.toLowerCase()));
+  const palette = NAME_HUES.filter((hue) => !taken.has(hue));
+  const labelHues = assignLabelHues(labelKeysOf(labels, colors), palette, previous);
+  const all = new Map([...colors, ...labelHues]);
+  return { of: (name) => all.get(keyOf(name)) ?? NEUTRAL, labelHues };
 };

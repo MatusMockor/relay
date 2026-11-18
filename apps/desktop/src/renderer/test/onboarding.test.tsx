@@ -59,6 +59,7 @@ describe('onboarding', () => {
     renderApp({ storage });
     await screen.findByRole('button', { name: /Pripojiť k serveru/ });
     click(/Pripojiť k serveru/);
+    expect(screen.getByRole('button', { name: 'Pokračovať Enter' })).toBeDefined();
     click(/Pokračovať/);
     expect(screen.getByRole('alert').textContent).toContain('Zadaj adresu servera');
     type(field('Adresa servera'), 'http://127.0.0.1:1');

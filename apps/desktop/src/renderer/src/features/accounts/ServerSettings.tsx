@@ -51,7 +51,7 @@ export function ServerSettings({ values, open, onToggle, onChange }: ServerSetti
           />
           <Field
             id="acc-f-imapPort"
-            label="Port"
+            label="Port IMAP"
             inputMode="numeric"
             value={values.imapPort}
             onChange={onChange('imapPort')}
@@ -67,7 +67,7 @@ export function ServerSettings({ values, open, onToggle, onChange }: ServerSetti
           />
           <Field
             id="acc-f-smtpPort"
-            label="Port"
+            label="Port SMTP"
             inputMode="numeric"
             value={values.smtpPort}
             onChange={onChange('smtpPort')}

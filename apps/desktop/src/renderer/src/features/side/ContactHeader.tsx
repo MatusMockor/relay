@@ -31,7 +31,9 @@ export function ContactHeader({
         <h3>{name}</h3>
         {tag === undefined ? null : <span className="a-tag">{tag}</span>}
       </div>
-      <p className="a-sub">{subtitle}</p>
+      <p className="a-sub" title={subtitle}>
+        {subtitle}
+      </p>
       {meta === undefined ? null : <p>{meta}</p>}
       {account === undefined ? null : (
         <p className="a-acct">

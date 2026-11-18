@@ -14,10 +14,8 @@ export interface ModelPickerProps {
 
 export function ModelPicker({ value, onChange, onOpen, disabled = false }: ModelPickerProps) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
-  const effort = value.effort === null ? null : AI_EFFORT_LABELS[value.effort];
-  const summary = [RUNNER_LABELS[value.runner], modelLabel(value), effort]
-    .filter((part) => part !== null)
-    .join(', ');
+  const effort = value.effort === null ? 'Predvolené' : AI_EFFORT_LABELS[value.effort];
+  const summary = [RUNNER_LABELS[value.runner], modelLabel(value), effort].join(', ');
   return (
     <>
       <button
@@ -34,7 +32,7 @@ export function ModelPicker({ value, onChange, onOpen, disabled = false }: Model
       >
         <ProviderIcon runner={value.runner} />
         {modelLabel(value)}
-        <span className="ef">{effort ?? 'Predvolené'}</span>
+        <span className="ef">{effort}</span>
         <Icon name="down" size={12} />
       </button>
       {anchor === null ? null : (

@@ -7,12 +7,14 @@ export function SummaryChecklist({ detail }: { readonly detail: ThreadDetail }) 
   if (detail.checklist.length === 0) {
     return null;
   }
-  const done = detail.checklist.filter((item) => item.done).length;
+  const done = String(detail.checklist.filter((item) => item.done).length);
+  const total = String(detail.checklist.length);
   return (
     <>
-      <div className="chk-h" aria-hidden="true">
+      <div className="chk-h">
         <span>Ďalšie kroky</span>
-        <span>{`${String(done)}/${String(detail.checklist.length)}`}</span>
+        <span className="sr-only">{`Dokončené ${done} z ${total}`}</span>
+        <span aria-hidden="true">{`${done}/${total}`}</span>
       </div>
       <ul>
         {detail.checklist.map((item) => (

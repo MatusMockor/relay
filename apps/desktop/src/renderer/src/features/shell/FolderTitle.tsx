@@ -26,7 +26,9 @@ export function FolderTitle() {
       <div className="a-title">
         <h2>
           <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label?.name ?? '') }} />
-          {label?.name ?? 'Štítok'}
+          <span className="a-tt" title={label?.name ?? 'Štítok'}>
+            {label?.name ?? 'Štítok'}
+          </span>
           {count > 0 ? <b>{count}</b> : null}
         </h2>
         <span className="sub">{`Štítok${model.multi ? ` účtu ${model.accountName(label?.accountId ?? '')}` : ''} · konverzácie v Doručenej pošte`}</span>
@@ -36,16 +38,19 @@ export function FolderTitle() {
   const view = viewOf(folder);
   const meta = VIEW_META[view];
   const hint = count > 0 ? meta.hint : undefined;
-  const text = [meta.sub, hint, where].filter((part) => part !== undefined && part !== '');
+  const text = [meta.sub, hint].filter((part) => part !== undefined && part !== '');
   return (
     <div className="a-title">
       <h2>
         <FolderIcon name={folderIconOf(view)} />
-        {meta.label}
+        <span className="a-tt" title={meta.label}>
+          {meta.label}
+        </span>
         {count > 0 ? <b>{count}</b> : null}
       </h2>
       <span className="sub">
         <KeyHint text={text.join(' · ')} />
+        {where === '' ? null : `${text.length > 0 ? ' · ' : ''}${where}`}
       </span>
     </div>
   );

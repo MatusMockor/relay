@@ -102,7 +102,9 @@ export function ReplyComposer({
         <span>Pre</span>
         <span className="to-chip">
           <Avatar name={recipientName} seed={recipient?.email} size="sm" />
-          {recipientName}
+          <span className="to-n" title={recipientName}>
+            {recipientName}
+          </span>
         </span>
         {model.multi && account !== undefined ? (
           <button

@@ -1,5 +1,5 @@
 import { Icon, IconButton, Kbd, Sheet } from '@relay/ui';
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef } from 'react';
 import { type SettingsSection, setUi } from '../../state/ui-store';
 import { AccountSection } from './sections/AccountSection';
 import { AccountsSection } from './sections/AccountsSection';
@@ -13,7 +13,8 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
 import { SplitsSection } from './sections/SplitsSection';
 import { SyncSection } from './sections/SyncSection';
-import { SettingsNav } from './SettingsNav';
+import { SETTINGS_PANEL_ID, SettingsNav, settingsTabId } from './SettingsNav';
+import { useHeaderClearance } from './use-header-clearance';
 
 const render = (section: SettingsSection, adding: boolean): ReactNode => {
   const map: Record<SettingsSection, () => ReactNode> = {
@@ -40,6 +41,8 @@ export function SettingsSheet({
   readonly section: SettingsSection;
   readonly adding: boolean;
 }) {
+  const main = useRef<HTMLDivElement>(null);
+  useHeaderClearance(main, `${section}:${String(adding)}`);
   const go = (next: SettingsSection) => {
     setUi({ overlay: { kind: 'settings', section: next, adding: false } });
   };
@@ -64,12 +67,20 @@ export function SettingsSheet({
     <Sheet label="Nastavenia" className="sheet" onClose={close} onKey={onKey}>
       <SettingsNav section={section} onSelect={go} />
       <div className="sh-close">
-        <Kbd keys={['Esc']} />
+        {adding ? null : <Kbd keys={['Esc']} />}
         <IconButton label="Zavrieť nastavenia" onClick={close}>
           <Icon name="x" />
         </IconButton>
       </div>
-      <div className="sh-main">{render(section, adding)}</div>
+      <div
+        ref={main}
+        className="sh-main"
+        id={SETTINGS_PANEL_ID}
+        role="tabpanel"
+        aria-labelledby={settingsTabId(section)}
+      >
+        {render(section, adding)}
+      </div>
     </Sheet>
   );
 }

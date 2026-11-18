@@ -26,7 +26,7 @@ export function MessageView({
   const header = (
     <>
       {mine ? (
-        <MeAvatar />
+        <MeAvatar name={message.from?.name ?? message.from?.email} />
       ) : (
         <Avatar
           name={message.from?.name ?? message.from?.email ?? '?'}
@@ -79,7 +79,7 @@ export function CollapsedMessage({
   return (
     <button type="button" className="m-c" onClick={onExpand}>
       {mine ? (
-        <MeAvatar size="sm" />
+        <MeAvatar size="sm" name={message.from?.name ?? message.from?.email} />
       ) : (
         <Avatar
           name={message.from?.name ?? message.from?.email ?? '?'}

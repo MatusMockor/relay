@@ -55,7 +55,7 @@ describe('thread AI in synced mode', () => {
     await openFirstThread(server, [thread]);
 
     expect(await screen.findByText('AI pripravuje návrhy odpovedí…')).toBeDefined();
-    expect(await screen.findByRole('button', { name: SUMMARY_ASK })).toBeDefined();
+    expect(await screen.findByRole('button', { name: 'Zhrnúť vlákno' })).toBeDefined();
     expect(screen.queryByRole('region', { name: 'Zhrnutie' })).toBeNull();
     expect(screen.queryByText('AI pripravuje zhrnutie…')).toBeNull();
     await waitFor(() => {

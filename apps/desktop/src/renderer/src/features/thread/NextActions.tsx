@@ -129,7 +129,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
               }}
             >
               <Kbd keys={[String(index + 1)]} />
-              {suggestion.label}
+              <span className="sug-l">{suggestion.label}</span>
             </button>
           ))}
         </div>

@@ -29,6 +29,8 @@ export function ThreadNav() {
   const step = useStepThread();
   const label = useFolderLabel();
   const index = items.findIndex((item) => item.key === openThreadId);
+  const atFirst = index === 0;
+  const atLast = index === items.length - 1;
   return (
     <div className="t-nav">
       <button type="button" className="t-back" title="Späť do zoznamu (Esc)" onClick={backToList}>
@@ -48,8 +50,11 @@ export function ThreadNav() {
             className="act"
             title="Predchádzajúca (K)"
             aria-label="Predchádzajúca"
-            aria-disabled={index === 0 || undefined}
+            aria-disabled={atFirst || undefined}
             onClick={() => {
+              if (atFirst) {
+                return;
+              }
               step(-1);
             }}
           >
@@ -60,8 +65,11 @@ export function ThreadNav() {
             className="act"
             title="Ďalšia (J)"
             aria-label="Ďalšia"
-            aria-disabled={index === items.length - 1 || undefined}
+            aria-disabled={atLast || undefined}
             onClick={() => {
+              if (atLast) {
+                return;
+              }
               step(1);
             }}
           >

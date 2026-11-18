@@ -1,6 +1,11 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { withBlockedImagePlaceholders } from '../src/features/thread/blocked-images';
 import { buildMailDocument } from '../src/features/thread/html-mail';
+
+const imagesOf = (html: string): HTMLImageElement[] => [
+  ...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('img'),
+];
 
 const svgOf = (html: string): string => {
   const match = /src="data:image\/svg\+xml,([^"]*)"/.exec(html);
@@ -33,6 +38,69 @@ describe('blocked remote images', () => {
     const inline = '<img src="cid:logo@mail" alt="Logo">';
 
     expect(withBlockedImagePlaceholders(inline)).toBe(inline);
+  });
+
+  it('reads the real src after an alt that contains a closing bracket', () => {
+    const html = withBlockedImagePlaceholders(
+      '<img alt="A > B" src="https://cdn.example.com/a.png" width="40" height="40">',
+    );
+    const [image] = imagesOf(html);
+
+    expect(html).not.toContain('cdn.example.com');
+    expect(image?.getAttribute('alt')).toBe('A > B');
+    expect(image?.hasAttribute('data-relay-blocked')).toBe(true);
+  });
+
+  it('leaves text that looks like a src inside another attribute intact', () => {
+    const html = withBlockedImagePlaceholders(
+      '<img title="src=https://cdn.example.com/x.png" src="https://cdn.example.com/a.png">',
+    );
+    const [image] = imagesOf(html);
+
+    expect(image?.getAttribute('title')).toBe('src=https://cdn.example.com/x.png');
+    expect(image?.getAttribute('src')).toMatch(/^data:image\/svg\+xml,/);
+  });
+
+  it('keeps a CID fallback and drops the remote srcset candidates', () => {
+    const html = withBlockedImagePlaceholders(
+      '<img src="cid:logo@mail" srcset="https://cdn.example.com/logo@2x.png 2x, cid:logo2x@mail 3x">',
+    );
+    const [image] = imagesOf(html);
+
+    expect(html).not.toContain('cdn.example.com');
+    expect(image?.getAttribute('src')).toBe('cid:logo@mail');
+    expect(image?.getAttribute('srcset')).toBe('cid:logo2x@mail 3x');
+    expect(image?.hasAttribute('data-relay-blocked')).toBe(false);
+  });
+
+  it('gives an image with only a remote srcset a placeholder', () => {
+    const html = withBlockedImagePlaceholders(
+      '<img srcset="https://cdn.example.com/a.png 1x, https://cdn.example.com/a@2x.png 2x">',
+    );
+    const [image] = imagesOf(html);
+
+    expect(html).not.toContain('cdn.example.com');
+    expect(image?.hasAttribute('srcset')).toBe(false);
+    expect(image?.hasAttribute('data-relay-blocked')).toBe(true);
+  });
+
+  it('removes remote picture sources so the placeholder fallback renders', () => {
+    const html = withBlockedImagePlaceholders(
+      [
+        '<picture>',
+        '<source media="(min-width: 600px)" srcset="https://cdn.example.com/wide.png">',
+        '<source srcset="https://cdn.example.com/b.webp 1x, cid:b@mail 2x" type="image/webp">',
+        '<img src="https://cdn.example.com/b.png" alt="Banner">',
+        '</picture>',
+      ].join(''),
+    );
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+
+    expect(html).not.toContain('cdn.example.com');
+    expect([...parsed.querySelectorAll('source')].map((source) => source.srcset)).toEqual([
+      'cid:b@mail 2x',
+    ]);
+    expect(parsed.querySelector('img')?.hasAttribute('data-relay-blocked')).toBe(true);
   });
 
   it('shows the original images once remote images are allowed', () => {

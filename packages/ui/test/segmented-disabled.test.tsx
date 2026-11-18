@@ -58,5 +58,34 @@ describe('Segmented with disabled options', () => {
 
     expect(picked).toEqual([]);
     expect(tabIndexes()).toEqual([-1, -1, -1]);
+    expect(
+      screen.getAllByRole('radio').map((radio) => (radio as HTMLButtonElement).disabled),
+    ).toEqual([true, true, true]);
+  });
+});
+
+describe('Segmented cards with descriptions', () => {
+  it('names each card by its label and describes it by the supporting text', () => {
+    render(
+      <Segmented<'all' | 'none'>
+        label="Upozornenia"
+        value="all"
+        variant="cards"
+        options={[
+          { value: 'all', label: 'Všetky', description: 'Každý nový mail' },
+          { value: 'none', label: 'Žiadne' },
+        ]}
+        onChange={() => {}}
+      />,
+    );
+
+    const all = screen.getByRole('radio', { name: 'Všetky' });
+    expect(all.getAttribute('aria-describedby')).not.toBeNull();
+    expect(document.getElementById(all.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Každý nový mail',
+    );
+    const none = screen.getByRole('radio', { name: 'Žiadne' });
+    expect(none.hasAttribute('aria-labelledby')).toBe(false);
+    expect(none.hasAttribute('aria-describedby')).toBe(false);
   });
 });

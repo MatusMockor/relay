@@ -59,7 +59,7 @@ describe('settings', () => {
     });
     const sheet = screen.getByRole('dialog', { name: 'Nastavenia' });
     act(() => {
-      fireEvent.click(within(sheet).getByRole('button', { name: 'Server' }));
+      fireEvent.click(within(sheet).getByRole('tab', { name: 'Server' }));
     });
     expect(await within(sheet).findByText('Aktívny')).toBeDefined();
     act(() => {
@@ -84,7 +84,7 @@ describe('settings', () => {
     });
     act(() => {
       fireEvent.click(
-        within(screen.getByRole('dialog', { name: 'Nastavenia' })).getByRole('button', {
+        within(screen.getByRole('dialog', { name: 'Nastavenia' })).getByRole('tab', {
           name: 'Zariadenia',
         }),
       );

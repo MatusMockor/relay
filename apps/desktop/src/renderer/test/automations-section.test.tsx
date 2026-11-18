@@ -46,10 +46,21 @@ describe('Nastavenia > Automatizácie', () => {
     const mentions = card(sheet, 'Jira spomenutia');
 
     expect(within(mentions).getByRole('button', { name: 'Účet: eFabrica' })).toBeDefined();
-    expect([...mentions.querySelectorAll('.sent-r')].map((row) => row.textContent)).toEqual([
-      'Keďna eFabrica príde mail, kde Jira udalosť je Spomenutie×aprojekt je ECOM×+ podmienka',
-      'PotomAI zhrnutie× Vytvoriť úlohu× + akcia',
+    expect(within(mentions).getByText('Keď')).toBeDefined();
+    expect(within(mentions).getByText('Potom')).toBeDefined();
+    expect(
+      within(mentions)
+        .getAllByRole('button', { name: /^Upraviť podmienku / })
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual([
+      'Upraviť podmienku Jira udalosť je Spomenutie',
+      'Upraviť podmienku projekt je ECOM',
     ]);
+    expect(
+      within(mentions)
+        .getAllByRole('button', { name: /^Zmeniť akciu / })
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['Zmeniť akciu AI zhrnutie', 'Zmeniť akciu Vytvoriť úlohu']);
     expect(
       within(card(sheet, 'Jira tasky')).getByText('Predvolené', { selector: '.scope' }),
     ).toBeDefined();

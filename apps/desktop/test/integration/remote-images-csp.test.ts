@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { RENDERER_CSP } from '../../renderer-csp';
 import { buildMailDocument, mailCsp } from '../../src/renderer/src/features/thread/html-mail';

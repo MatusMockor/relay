@@ -102,6 +102,29 @@ describe('settings in synced mode', () => {
     expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server', 'Lokálne']);
   });
 
+  it('tells the user to sign in to a server runner on the Relay server', async () => {
+    server.handle('ai.runners', () => ({
+      body: [
+        {
+          runner: 'claude',
+          location: 'server',
+          installed: true,
+          authenticated: false,
+          version: null,
+          executablePath: '/usr/bin/claude',
+        },
+      ],
+    }));
+    renderApp({ platform: await syncedPlatform() });
+    await waitForSync();
+    const sheet = openSection('ai');
+
+    expect(
+      await within(sheet).findByText(/Prihlás sa v termináli na serveri Relay príkazom/),
+    ).toBeDefined();
+    expect(within(sheet).getByRole('heading', { level: 3, name: 'Na serveri' })).toBeDefined();
+  });
+
   it('sends settings changes one at a time', async () => {
     const firstSave = gate();
     const updates = () => server.requests.filter((request) => request.key === 'settings.update');

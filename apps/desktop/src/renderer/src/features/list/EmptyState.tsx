@@ -71,9 +71,8 @@ export function NoHits({ query }: { readonly query: string }) {
         </span>
         <h2>Nič sa nenašlo</h2>
         <p>
-          <KeyHint
-            text={`Pre „${query.trim()}“ tu nie je žiadna konverzácia. Skús iný priečinok, alebo hľadanie zruš klávesom [Esc].`}
-          />
+          {`Pre „${query.trim()}“ tu nie je žiadna konverzácia. `}
+          <KeyHint text="Skús iný priečinok, alebo hľadanie zruš klávesom [Esc]." />
         </p>
       </div>
     </div>

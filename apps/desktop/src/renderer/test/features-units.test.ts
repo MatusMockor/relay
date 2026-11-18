@@ -19,15 +19,15 @@ describe('account form autofill', () => {
       smtpHost: 'smtp.example.org',
       smtpPort: '587',
     };
-    const next = withGuessedServers(typed, 'meno@gmail.co');
+    const next = withGuessedServers(typed, new Set(['smtpHost', 'smtpPort']));
     expect(next.smtpHost).toBe('smtp.example.org');
     expect(next.smtpPort).toBe('587');
     expect(next.imapHost).toBe('imap.gmail.com');
   });
 
   it('replaces fields that still hold the previous guess', () => {
-    const first = withGuessedServers({ ...EMPTY_ACCOUNT_FORM, email: 'meno@gmail.com' }, '');
-    const second = withGuessedServers({ ...first, email: 'meno@outlook.com' }, 'meno@gmail.com');
+    const first = withGuessedServers({ ...EMPTY_ACCOUNT_FORM, email: 'meno@gmail.com' }, new Set());
+    const second = withGuessedServers({ ...first, email: 'meno@outlook.com' }, new Set());
     expect(second.imapHost).not.toBe('imap.gmail.com');
     expect(second.smtpHost).not.toBe('smtp.gmail.com');
   });

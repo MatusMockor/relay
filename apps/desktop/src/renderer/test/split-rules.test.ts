@@ -4,6 +4,7 @@ import { describeRule, readableRule } from '../src/features/settings/sections/sp
 describe('split rule rendering', () => {
   it('reads sender and Jira rules in Slovak', () => {
     expect(readableRule({ type: 'fromDomain', domain: 'firma.sk' })).toBe('od @firma.sk');
+    expect(readableRule({ type: 'fromDomain', domain: ' @FIRMA.sk' })).toBe('od @FIRMA.sk');
     expect(readableRule({ type: 'fromAddress', address: 'jana@firma.sk' })).toBe(
       'od jana@firma.sk',
     );
@@ -14,11 +15,23 @@ describe('split rule rendering', () => {
   });
 
   it('describes a header presence rule without the pattern', () => {
-    expect(readableRule({ type: 'header', name: 'List-Unsubscribe', pattern: '.+' })).toBe(
+    expect(readableRule({ type: 'header', name: 'List-Unsubscribe', pattern: '.*' })).toBe(
       'má hlavičku List-Unsubscribe',
+    );
+    expect(readableRule({ type: 'header', name: 'X-Tag', pattern: '.+' })).toBe(
+      'má neprázdnu hlavičku X-Tag',
     );
     expect(readableRule({ type: 'header', name: 'X-Tag', pattern: 'news' })).toBe(
       'hlavička X-Tag zodpovedá /news/',
+    );
+  });
+
+  it('shows the case mode of a subject rule', () => {
+    expect(readableRule({ type: 'subjectRegex', pattern: '^faktúra', caseSensitive: false })).toBe(
+      'predmet zodpovedá /^faktúra/, ignoruje veľkosť písmen',
+    );
+    expect(readableRule({ type: 'subjectRegex', pattern: '^faktúra', caseSensitive: true })).toBe(
+      'predmet zodpovedá /^faktúra/, rozlišuje veľkosť písmen',
     );
   });
 

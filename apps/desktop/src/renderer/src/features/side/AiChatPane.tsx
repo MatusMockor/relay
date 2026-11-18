@@ -9,7 +9,7 @@ import { useMailActions } from '../mail/MailActionsProvider';
 import { ChatAnswer } from './ChatAnswer';
 import { setChatDraft, useChat } from './chat-store';
 import { RUNNERS, runnerLabelOf } from './runner-labels';
-import { doneStepLabel } from './step-labels';
+import { finishedStepLabel } from './step-labels';
 import { useChatRuns } from './use-chat-runs';
 
 export function AiChatPane() {
@@ -57,6 +57,7 @@ export function AiChatPane() {
       <div className="chat-ctx">
         <span
           className="ctx"
+          role="group"
           title={threadId === null ? undefined : subject}
           aria-label={`Kontext: ${threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}`}
         >
@@ -97,7 +98,7 @@ export function AiChatPane() {
                 const running = turn.status === 'running' && index === turn.steps.length - 1;
                 return (
                   <div key={index} className={running ? 'run' : undefined}>
-                    {running ? step : doneStepLabel(step)}
+                    {running ? step : finishedStepLabel(step, turn.status)}
                   </div>
                 );
               })}

@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import { type KeyboardEvent, useId } from 'react';
 import { moveRovingFocus } from './roving-focus';
 
 export interface SegmentedOption<V extends string> {
@@ -38,6 +38,7 @@ export function Segmented<V extends string>({
   variant = 'inline',
   disabled = false,
 }: SegmentedProps<V>) {
+  const id = useId();
   const enabled = options.filter((option) => option.disabled !== true);
   const tabStop = tabStopOf(options, value, disabled);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -66,6 +67,9 @@ export function Segmented<V extends string>({
     >
       {options.map((option) => {
         const off = disabled || option.disabled === true;
+        const described = option.description !== undefined;
+        const labelId = `${id}-${option.value}-label`;
+        const descriptionId = `${id}-${option.value}-description`;
         return (
           <button
             key={option.value}
@@ -76,6 +80,8 @@ export function Segmented<V extends string>({
             className={option.value === value ? 'on' : undefined}
             disabled={off}
             aria-disabled={off || undefined}
+            aria-labelledby={described ? labelId : undefined}
+            aria-describedby={described ? descriptionId : undefined}
             onClick={() => {
               onChange(option.value);
             }}
@@ -84,8 +90,8 @@ export function Segmented<V extends string>({
               option.label
             ) : (
               <>
-                <b>{option.label}</b>
-                <span>{option.description}</span>
+                <b id={labelId}>{option.label}</b>
+                <span id={descriptionId}>{option.description}</span>
               </>
             )}
           </button>

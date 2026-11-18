@@ -142,3 +142,13 @@
     opacity: 0.5;
   }
 }
+.cmp-h .to-chip > .av {
+  flex: none;
+}
+.cmp-h .to-n,
+.cmp-h .from > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

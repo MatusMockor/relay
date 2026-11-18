@@ -94,6 +94,7 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
     <div
       className={cx('a-row', thread?.unread === true && 'unread', selected && 'sel')}
       data-row={item.key}
+      title={context.unified ? context.account?.displayName : undefined}
       role="option"
       aria-selected={selected}
       onClick={() => {

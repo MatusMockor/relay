@@ -49,6 +49,57 @@ describe('add account auto-fill', () => {
 
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(sheet.querySelector('#acc-srv')?.hasAttribute('hidden')).toBe(false);
+    expect(toggle.getAttribute('aria-controls')).toBe('acc-srv');
+
+    act(() => {
+      fireEvent.click(toggle);
+    });
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(sheet.querySelector('#acc-srv')?.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('labels the IMAP and SMTP ports separately', async () => {
+    const sheet = await openAddForm();
+
+    fill(sheet, 'E-mail', 'jana@gmail.com');
+
+    expect(valueOf(sheet, 'Port IMAP')).toBe('993');
+    expect(valueOf(sheet, 'Port SMTP')).toBe('465');
+  });
+
+  it('replaces auto-filled servers after an incomplete e-mail edit', async () => {
+    const sheet = await openAddForm();
+
+    fill(sheet, 'E-mail', 'jana@gmx.de');
+    fill(sheet, 'E-mail', 'jana@gmx.d');
+    fill(sheet, 'E-mail', 'jana@gmail.com');
+
+    expect(valueOf(sheet, 'IMAP server')).toBe('imap.gmail.com');
+    expect(valueOf(sheet, 'SMTP server')).toBe('smtp.gmail.com');
+    expect(valueOf(sheet, 'Port SMTP')).toBe('465');
+    expect(toggleOf(sheet).textContent).toContain('Gmail');
+  });
+
+  it('keeps a port the user picked when only the local part changes', async () => {
+    const sheet = await openAddForm();
+    fill(sheet, 'E-mail', 'jana@gmx.de');
+    expect(valueOf(sheet, 'Port SMTP')).toBe('587');
+
+    fill(sheet, 'Port SMTP', '465');
+    fill(sheet, 'E-mail', 'janka@gmx.de');
+
+    expect(valueOf(sheet, 'Port SMTP')).toBe('465');
+  });
+
+  it('labels hand-edited servers as custom settings instead of the provider', async () => {
+    const sheet = await openAddForm();
+    fill(sheet, 'E-mail', 'jana@gmail.com');
+
+    fill(sheet, 'SMTP server', 'relay.firma.sk');
+
+    expect(toggleOf(sheet).textContent).toContain('Vlastné nastavenia');
+    expect(toggleOf(sheet).textContent).not.toContain('Gmail');
   });
 
   it('fills the Gmail servers from the e-mail domain and names the provider', async () => {

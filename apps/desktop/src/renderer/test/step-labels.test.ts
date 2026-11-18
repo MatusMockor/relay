@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { doneStepLabel } from '../src/features/side/step-labels';
+import { doneStepLabel, finishedStepLabel } from '../src/features/side/step-labels';
 
 describe('finished AI step labels', () => {
   it('turns running tool steps into past tense without an ellipsis', () => {
@@ -14,5 +14,19 @@ describe('finished AI step labels', () => {
   it('drops the ellipsis from unknown steps', () => {
     expect(doneStepLabel('search_web…')).toBe('search_web');
     expect(doneStepLabel('list_labels')).toBe('list_labels');
+  });
+
+  it('falls back for labels that only exist on the object prototype', () => {
+    expect(doneStepLabel('constructor')).toBe('constructor');
+    expect(doneStepLabel('toString')).toBe('toString');
+  });
+
+  it('labels a draft step from the outcome of the turn', () => {
+    expect(finishedStepLabel('Pripravujem koncept…', 'done')).toBe('Koncept pripravený');
+    expect(finishedStepLabel('Pripravujem koncept…', 'error')).toBe(
+      'Príprava konceptu nedokončená',
+    );
+    expect(finishedStepLabel('Pripravujem koncept…', 'running')).toBe('Pripravujem koncept…');
+    expect(finishedStepLabel('Hľadám v pošte…', 'error')).toBe('Pošta prehľadaná');
   });
 });

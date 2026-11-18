@@ -52,7 +52,9 @@ describe('ModelPicker', () => {
 
   it('shows only the models of the chosen provider and the efforts of the chosen model', () => {
     render(<Harness initial={{ runner: 'claude', model: null, effort: null }} />);
-    expect(trigger().getAttribute('aria-label')).toBe('Model AI: Claude Code, Claude Opus 5.5');
+    expect(trigger().getAttribute('aria-label')).toBe(
+      'Model AI: Claude Code, Claude Opus 5.5, Predvolené',
+    );
 
     const menu = open();
     expect(optionsOf(menu, 'Model')).toEqual([

@@ -26,12 +26,14 @@ export const onDay = (occurrence: CalendarOccurrence, base: Date, offset: number
   return start < to && end > from;
 };
 
+export const startsBefore = (occurrence: CalendarOccurrence, base: Date, offset: number): boolean =>
+  Date.parse(occurrence.start) < startOfDay(base, offset).getTime();
+
 export const startLabel = (occurrence: CalendarOccurrence, base: Date, offset: number): string => {
   if (occurrence.allDay) {
     return 'deň';
   }
-  const start = new Date(occurrence.start);
-  return start.getTime() < startOfDay(base, offset).getTime() ? '…' : hm(start);
+  return startsBefore(occurrence, base, offset) ? '…' : hm(new Date(occurrence.start));
 };
 
 export const untilLabel = (occurrence: Pick<CalendarOccurrence, 'end' | 'allDay'>) =>

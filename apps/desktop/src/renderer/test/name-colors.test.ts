@@ -41,6 +41,32 @@ describe('presentation colours by name', () => {
     expect(hues.some((hue) => accounts.some((account) => account.color === hue))).toBe(false);
   });
 
+  it('keeps the existing label colours when an unrelated label is removed', () => {
+    const before = createNameColors(accounts, labels);
+    const after = createNameColors(
+      accounts,
+      labels.filter((label) => label.name !== 'Jira'),
+      before.labelHues,
+    );
+
+    expect(after.of('Klienti')).toBe(before.of('Klienti'));
+    expect(after.of('Rodina')).toBe(before.of('Rodina'));
+  });
+
+  it('gives a new label a hue no other label uses', () => {
+    const before = createNameColors(accounts, labels);
+    const after = createNameColors(
+      accounts,
+      [...labels, { id: 'l-0', name: 'Nové' }],
+      before.labelHues,
+    );
+    const hues = ['Jira', 'Klienti', 'Rodina'].map((name) => after.of(name));
+
+    expect(hues).toEqual(['Jira', 'Klienti', 'Rodina'].map((name) => before.of(name)));
+    expect(hues).not.toContain(after.of('Nové'));
+    expect(NAME_HUES).toContain(after.of('Nové'));
+  });
+
   it('uses a neutral dot for a split without a matching label', () => {
     expect(createNameColors(accounts, labels).of('Ostatné')).toBe(NEUTRAL);
   });

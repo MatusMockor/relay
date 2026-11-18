@@ -193,12 +193,14 @@
   background: none;
   color: var(--accent-hover);
   font: inherit;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
   text-underline-offset: 2px;
   cursor: pointer;
 }
 .ans-link:hover {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 .ans-refs {
   display: flex;

@@ -11,9 +11,14 @@ export interface PresetHint {
   readonly note?: string;
 }
 
+const GMX_NOTE = 'Ak máš v GMX zapnuté dvojfázové overenie, použi heslo aplikácie.';
+
 const NOTES: Partial<Record<ProviderPresetId, string>> = {
   gmail: 'Pri IMAP použi heslo aplikácie.',
   icloud: 'iCloud vyžaduje heslo pre aplikáciu.',
+  gmx: GMX_NOTE,
+  gmxcom: GMX_NOTE,
+  zoho: 'Ak máš v Zoho zapnuté dvojfázové overenie, použi heslo aplikácie.',
 };
 
 const COMPLETE_DOMAIN = /^[a-z0-9.-]+\.[a-z]{2,}$/;

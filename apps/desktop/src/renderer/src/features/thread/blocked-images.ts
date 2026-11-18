@@ -1,12 +1,10 @@
-const IMG_TAG_PATTERN = /<img\b[^>]*>/gi;
-const SRC_PATTERN = /(?<![\w-])src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
-const SRCSET_PATTERN = /\s(?<![\w-])srcset\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
-const REMOTE_URL_PATTERN = /^\s*(?:https?:)?\/\//i;
+import { isRemoteUrl, parseSrcset, serializeSrcset } from './srcset';
+
 const DEFAULT_SIZE = { width: 320, height: 80 } as const;
 const MAX_SIDE = 4_000;
 
-const dimensionOf = (tag: string, name: 'width' | 'height'): number | null => {
-  const match = new RegExp(`(?<![\\w-])${name}\\s*=\\s*["']?(\\d{1,5})`, 'i').exec(tag);
+const dimensionOf = (image: Element, name: 'width' | 'height'): number | null => {
+  const match = /^\s*(\d{1,5})/.exec(image.getAttribute(name) ?? '');
   const value = match?.[1] === undefined ? Number.NaN : Number(match[1]);
   if (!Number.isFinite(value) || value <= 0) {
     return null;
@@ -28,18 +26,56 @@ export const placeholderImage = (width: number, height: number): string => {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
 
-const replaceRemoteImage = (tag: string): string => {
-  const source = SRC_PATTERN.exec(tag);
-  const value = source === null ? '' : (source[1] ?? source[2] ?? source[3] ?? '');
-  if (!REMOTE_URL_PATTERN.test(value)) {
-    return tag;
+const stripRemoteCandidates = (element: Element): { removed: boolean; local: number } => {
+  const srcset = element.getAttribute('srcset');
+  if (srcset === null) {
+    return { removed: false, local: 0 };
   }
-  const width = dimensionOf(tag, 'width') ?? DEFAULT_SIZE.width;
-  const height = dimensionOf(tag, 'height') ?? DEFAULT_SIZE.height;
-  return tag
-    .replace(SRCSET_PATTERN, '')
-    .replace(SRC_PATTERN, `src="${placeholderImage(width, height)}" data-relay-blocked=""`);
+  const candidates = parseSrcset(srcset);
+  const local = candidates.filter((candidate) => !isRemoteUrl(candidate.url));
+  if (local.length === candidates.length) {
+    return { removed: false, local: local.length };
+  }
+  if (local.length === 0) {
+    element.removeAttribute('srcset');
+    return { removed: true, local: 0 };
+  }
+  element.setAttribute('srcset', serializeSrcset(local));
+  return { removed: true, local: local.length };
 };
 
-export const withBlockedImagePlaceholders = (html: string): string =>
-  html.replace(IMG_TAG_PATTERN, replaceRemoteImage);
+const blockSource = (source: Element): boolean => {
+  const { removed, local } = stripRemoteCandidates(source);
+  if (removed && local === 0) {
+    source.remove();
+  }
+  return removed;
+};
+
+const blockImage = (image: Element): boolean => {
+  const src = (image.getAttribute('src') ?? '').trim();
+  const remoteSrc = isRemoteUrl(src);
+  const { removed, local } = stripRemoteCandidates(image);
+  if (!remoteSrc && !removed) {
+    return false;
+  }
+  const usableSrc = src !== '' && !remoteSrc;
+  if (usableSrc || (!remoteSrc && local > 0)) {
+    return true;
+  }
+  const width = dimensionOf(image, 'width') ?? DEFAULT_SIZE.width;
+  const height = dimensionOf(image, 'height') ?? DEFAULT_SIZE.height;
+  image.setAttribute('src', placeholderImage(width, height));
+  image.setAttribute('data-relay-blocked', '');
+  return true;
+};
+
+export const withBlockedImagePlaceholders = (html: string): string => {
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const sources = [...document.querySelectorAll('picture source')].map(blockSource);
+  const images = [...document.querySelectorAll('img')].map(blockImage);
+  if (![...sources, ...images].includes(true)) {
+    return html;
+  }
+  return document.documentElement.outerHTML;
+};

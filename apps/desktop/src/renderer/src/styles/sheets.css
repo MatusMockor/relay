@@ -84,7 +84,7 @@
   font-weight: var(--w-semibold);
   letter-spacing: var(--ls-tight);
 }
-.sh-main h4.acc-g {
+.sh-main .acc-g {
   margin: var(--sec-above) 0 var(--sec-below);
   display: flex;
   align-items: center;
@@ -157,6 +157,11 @@
   align-items: center;
   gap: 6px;
 }
+.sh-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .sh-grp {
   display: grid;
   gap: 1px;
@@ -193,10 +198,10 @@
   color: var(--fg2);
   background: var(--hover);
 }
-.sh-head + h4.acc-g {
+.sh-head + .acc-g {
   margin-top: 20px;
 }
-.sh-main h4.acc-g + .srow {
+.sh-main .acc-g + .srow {
   padding-top: 4px;
 }
 .srow .l code {

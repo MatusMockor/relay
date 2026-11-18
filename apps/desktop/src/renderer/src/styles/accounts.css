@@ -176,7 +176,7 @@
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
-.srv-b {
+.srv-b:not([hidden]) {
   display: grid;
   gap: 12px;
   padding: 4px 14px 16px;

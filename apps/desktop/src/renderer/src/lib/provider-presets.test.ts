@@ -15,6 +15,15 @@ describe('provider presets', () => {
     expect(presetFor('ja@yahoo.com')?.note).toBe('Yahoo Mail vyžaduje heslo pre aplikáciu.');
     expect(presetFor('ja@aol.com')?.note).toBe('AOL Mail vyžaduje heslo pre aplikáciu.');
     expect(presetFor('ja@seznam.cz')?.note).toBeUndefined();
+    expect(presetFor('ja@gmx.de')?.note).toBe(
+      'Ak máš v GMX zapnuté dvojfázové overenie, použi heslo aplikácie.',
+    );
+    expect(presetFor('ja@gmx.com')?.note).toBe(
+      'Ak máš v GMX zapnuté dvojfázové overenie, použi heslo aplikácie.',
+    );
+    expect(presetFor('ja@zoho.com')?.note).toBe(
+      'Ak máš v Zoho zapnuté dvojfázové overenie, použi heslo aplikácie.',
+    );
   });
 
   it('guesses settings only for complete domains', () => {

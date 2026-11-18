@@ -5,6 +5,7 @@ import { queryKeys } from '../../../data/hooks/query-keys';
 import { useAppContext, useServices } from '../../../data/hooks/services-context';
 import { useAiRunners, useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { SettingRow } from '../SettingRow';
+import { SettingsGroup } from '../SettingsGroup';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
 
@@ -34,16 +35,23 @@ const runnerStatus = (info: AiRunnerInfo | undefined) => {
   );
 };
 
+const SIGN_IN_PLACE: Readonly<Record<AiRunnerLocation, string>> = {
+  server: 'v termináli na serveri Relay',
+  local: 'v termináli na tomto počítači',
+};
+
 function RunnerRows({
   title,
+  where,
   runners,
 }: {
   readonly title: string;
+  readonly where: AiRunnerLocation;
   readonly runners: readonly AiRunnerInfo[];
 }) {
   return (
     <>
-      <h4 className="acc-g">{title}</h4>
+      <SettingsGroup title={title} />
       {(['claude', 'codex'] as const).map((kind) => {
         const info = runners.find((runner) => runner.runner === kind);
         return (
@@ -53,7 +61,8 @@ function RunnerRows({
             description={
               info?.installed === true && info.authenticated === false ? (
                 <>
-                  Prihlás sa v termináli príkazom <code>{kind}</code>, potom sa stav obnoví sám
+                  Prihlás sa {SIGN_IN_PLACE[where]} príkazom <code>{kind}</code>, potom sa stav
+                  obnoví sám
                 </>
               ) : (
                 <code>{info?.executablePath ?? `${kind} CLI`}</code>
@@ -129,11 +138,15 @@ export function AiSection() {
           }}
         />
       </SettingRow>
-      <RunnerRows title={synced ? 'Na serveri' : 'Na tomto počítači'} runners={remote.data ?? []} />
+      <RunnerRows
+        title={synced ? 'Na serveri' : 'Na tomto počítači'}
+        where={synced ? 'server' : 'local'}
+        runners={remote.data ?? []}
+      />
       {synced && platform.kind === 'electron' ? (
-        <RunnerRows title="Na tomto počítači" runners={local.data ?? []} />
+        <RunnerRows title="Na tomto počítači" where="local" runners={local.data ?? []} />
       ) : null}
-      <h4 className="acc-g">Funkcie</h4>
+      <SettingsGroup title="Funkcie" />
       {FEATURES.map(([key, title, description]) => (
         <SettingRow key={key} title={title} description={description}>
           <Switch

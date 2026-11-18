@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cloneThread,
   demoTask,
+  sectionOf,
   sectionRows,
   seededClient,
   showContactOf,
@@ -50,7 +51,12 @@ describe('contact pane for a person', () => {
     expect(within(sidePane()).getByRole('button', { name: /Napísať/ })).toBeDefined();
     expect(within(sidePane()).getByRole('button', { name: /Opýtať sa AI/ })).toBeDefined();
     await waitFor(() => {
-      expect(sectionRows('Otvorené úlohy')).toEqual(['Úloha newest', 'Úloha newer', 'Úloha older']);
+      const tasks = sectionOf('Otvorené úlohy');
+      expect(within(tasks).getAllByRole('button')).toEqual(
+        ['Úloha newest', 'Úloha newer', 'Úloha older'].map((name) =>
+          within(tasks).getByRole('button', { name: new RegExp(`^${name}`) }),
+        ),
+      );
     });
     expect(sectionRows('Posledné konverzácie')).toEqual([ONBOARDING]);
 

@@ -1,5 +1,5 @@
 import { ServerUrlSchema } from '@relay/shared';
-import { Button, Field } from '@relay/ui';
+import { Button, Field, Kbd } from '@relay/ui';
 import { useState } from 'react';
 import { normalizeServerUrl } from '../../data/remote/ServerApi';
 import { useAppContext } from '../../data/hooks/services-context';
@@ -70,7 +70,13 @@ export function ServerStep() {
         )}
         <div className="btns">
           <Button variant="primary" type="submit" disabled={busy} title="Pokračovať (Enter)">
-            {busy ? 'Overujem…' : 'Pokračovať'}
+            {busy ? (
+              'Overujem…'
+            ) : (
+              <>
+                Pokračovať <Kbd keys={['↵']} />
+              </>
+            )}
           </Button>
         </div>
       </form>

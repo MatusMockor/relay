@@ -286,7 +286,8 @@
   height: 11px;
 }
 .cmp-h .to-chip {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   padding-right: 10px;
   color: var(--fg);
 }

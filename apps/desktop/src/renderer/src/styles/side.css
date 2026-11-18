@@ -160,6 +160,8 @@
 }
 .mini.stack > * > span:last-child {
   font-size: var(--fs-xs);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .stabs .stab {
   position: relative;

@@ -59,12 +59,13 @@ export function CalendarPane() {
               onDay(occurrence, base, offset),
             ).length;
             const has = count > 0;
+            const countLabel = `${String(count)} ${plural(count, 'udalosť', 'udalosti', 'udalostí')}`;
             return (
               <button
                 key={offset}
                 type="button"
                 className={`wd${offset === day ? ' on' : ''}${offset === 0 ? ' today' : ''}`}
-                aria-label={`${capitalize(WEEKDAYS[cell.getDay()] ?? '')} ${dm(cell)}`}
+                aria-label={`${capitalize(WEEKDAYS[cell.getDay()] ?? '')} ${dm(cell)}, ${countLabel}`}
                 aria-pressed={offset === day}
                 onClick={() => {
                   setUi({ calendarDay: offset });
@@ -72,10 +73,7 @@ export function CalendarPane() {
               >
                 {WEEKDAYS_SHORT[cell.getDay()]}
                 <b>{cell.getDate()}</b>
-                <i
-                  className={has ? undefined : 'none'}
-                  title={`${String(count)} ${plural(count, 'udalosť', 'udalosti', 'udalostí')}`}
-                />
+                <i className={has ? undefined : 'none'} title={countLabel} />
               </button>
             );
           })}

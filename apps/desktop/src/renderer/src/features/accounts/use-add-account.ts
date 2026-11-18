@@ -9,17 +9,15 @@ import { showToast } from '../../state/toast-store';
 import {
   type AccountFormValues,
   EMPTY_ACCOUNT_FORM,
+  SERVER_FIELDS,
+  type ServerField,
   validateAccountForm,
   withGuessedServers,
 } from './account-form';
 import { optionalText, useSuggestedSenderName } from './suggested-sender-name';
 
-const SERVER_FIELDS: readonly (keyof AccountFormValues)[] = [
-  'imapHost',
-  'imapPort',
-  'smtpHost',
-  'smtpPort',
-];
+const isServerField = (field: keyof AccountFormValues): field is ServerField =>
+  (SERVER_FIELDS as readonly string[]).includes(field);
 
 export const useAddAccount = (onDone: () => void) => {
   const client = useClient();
@@ -27,6 +25,7 @@ export const useAddAccount = (onDone: () => void) => {
   const suggestedSender = useSuggestedSenderName();
   const [edited, setEdited] = useState<AccountFormValues>(EMPTY_ACCOUNT_FORM);
   const [senderTouched, setSenderTouched] = useState(false);
+  const [serversTouched, setServersTouched] = useState<ReadonlySet<ServerField>>(new Set());
   const values = senderTouched ? edited : { ...edited, senderName: suggestedSender };
   const [error, setError] = useState<string | null>(null);
   const [check, setCheck] = useState<TestConnectionResponse | null>(null);
@@ -45,13 +44,16 @@ export const useAddAccount = (onDone: () => void) => {
     if (field === 'senderName') {
       setSenderTouched(true);
     }
+    if (isServerField(field)) {
+      setServersTouched((touched) => new Set([...touched, field]));
+    }
     const next = { ...values, [field]: event.target.value };
-    setEdited(field === 'email' ? withGuessedServers(next, values.email) : next);
+    setEdited(field === 'email' ? withGuessedServers(next, serversTouched) : next);
     setError(null);
     setCheck(null);
   };
   const reveal = (field: keyof AccountFormValues) => {
-    if (SERVER_FIELDS.includes(field)) {
+    if (isServerField(field)) {
       flushSync(() => {
         setServersOpen(true);
       });

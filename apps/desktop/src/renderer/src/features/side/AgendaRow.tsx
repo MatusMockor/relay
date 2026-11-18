@@ -1,6 +1,6 @@
 import type { CalendarOccurrence } from '@relay/shared';
 import { openThread } from '../mail/navigation';
-import { startLabel, untilLabel } from '../calendar/calendar-time';
+import { spanLabel, startLabel, startsBefore, untilLabel } from '../calendar/calendar-time';
 
 const STATUS_NOTE: Partial<Record<NonNullable<CalendarOccurrence['myStatus']>, string>> = {
   'needs-action': 'čaká na odpoveď',
@@ -8,9 +8,9 @@ const STATUS_NOTE: Partial<Record<NonNullable<CalendarOccurrence['myStatus']>, s
   declined: 'odmietnuté',
 };
 
-const detailOf = (occurrence: CalendarOccurrence): string =>
+const detailOf = (occurrence: CalendarOccurrence, base: Date, offset: number): string =>
   [
-    untilLabel(occurrence),
+    startsBefore(occurrence, base, offset) ? spanLabel(occurrence) : untilLabel(occurrence),
     occurrence.location ?? occurrence.organizer?.name ?? occurrence.organizer?.email ?? null,
     occurrence.myStatus === null ? null : (STATUS_NOTE[occurrence.myStatus] ?? null),
   ]
@@ -43,7 +43,7 @@ export function AgendaRow({
       <time>{startLabel(occurrence, base, offset)}</time>
       <span className="eb">
         <b>{occurrence.title === '' ? '(bez názvu)' : occurrence.title}</b>
-        <span>{detailOf(occurrence)}</span>
+        <span>{detailOf(occurrence, base, offset)}</span>
       </span>
     </>
   );
