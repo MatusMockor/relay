@@ -8,6 +8,7 @@ import { FolderSidebar } from '../folders/FolderSidebar';
 import { useKeyboard } from '../keyboard/use-keyboard';
 import { ThreadList } from '../list/ThreadList';
 import { MailActionsProvider } from '../mail/MailActionsProvider';
+import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
@@ -23,6 +24,7 @@ function Shell() {
   useKeyboard();
   useRealtimeSync();
   useRemoteAutomationNotifications();
+  useNotificationNavigation();
   const commit = useLayoutPersistence();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);

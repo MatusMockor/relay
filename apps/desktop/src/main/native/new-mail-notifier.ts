@@ -34,6 +34,9 @@ const senderOf = (thread: ThreadSummary): string => {
   return first.name ?? first.email;
 };
 
+const inMainTab = (thread: ThreadSummary): boolean =>
+  thread.state === 'inbox' && thread.splitIds.length === 0;
+
 const digestBody = (count: number): string => {
   if (count === 1) {
     return 'Máš 1 novú správu';
@@ -80,7 +83,12 @@ export class NewMailNotifier {
   }
 
   private async consider(thread: ThreadSummary, generation: number): Promise<void> {
-    if (!this.isFresh(thread)) {
+    const fresh = this.isFresh(thread);
+    if (!inMainTab(thread)) {
+      this.digest.delete(thread.id);
+      return;
+    }
+    if (!fresh) {
       return;
     }
     const mode = await this.deps.mode();
@@ -105,7 +113,7 @@ export class NewMailNotifier {
     const arrivedAt = Date.parse(thread.lastMessageAt);
     const previous = this.seen.get(thread.id) ?? this.startedAt;
     this.seen.set(thread.id, Math.max(previous, arrivedAt));
-    return thread.unread && thread.state === 'inbox' && arrivedAt > previous;
+    return thread.unread && arrivedAt > previous;
   }
 
   private scheduleDigest(): void {

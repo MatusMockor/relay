@@ -24,6 +24,7 @@ import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-han
 import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
 import { mergeInvokeHandlers, mergeStreamHandlers } from '../handlers/merge-handlers';
+import { createNotificationStreamHandlers } from '../handlers/notification-handlers';
 import { createOAuthHandlers } from '../handlers/oauth-handlers';
 import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
@@ -37,6 +38,7 @@ import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
 import type { AttachmentPicker } from '../files/attachment-picker';
+import type { ThreadOpenRequests } from '../native/thread-open-requests';
 import type { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
 import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
 import type { SecretStore } from '../secure/secret-store';
@@ -62,6 +64,7 @@ export interface MainProcessContext {
   readonly local?: LocalIpcDeps;
   readonly attachmentPicker?: AttachmentPicker;
   readonly updates?: UpdateService;
+  readonly threadOpens?: ThreadOpenRequests;
 }
 
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
@@ -116,6 +119,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.ai, createAiStreamHandlers),
       optional(context.local, (local) => createEventStreamHandlers(local.hub)),
       optional(context.updates, createUpdateStreamHandlers),
+      optional(context.threadOpens, createNotificationStreamHandlers),
     ),
     errorReporter(context.logger),
   ),

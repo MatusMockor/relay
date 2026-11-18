@@ -19,12 +19,13 @@ export interface SettingRowProps {
   readonly title: string;
   readonly description?: string;
   readonly scope?: SettingScope;
+  readonly stacked?: boolean;
   readonly children?: ReactNode;
 }
 
-export function SettingRow({ title, description, scope, children }: SettingRowProps) {
+export function SettingRow({ title, description, scope, stacked, children }: SettingRowProps) {
   return (
-    <div className="srow">
+    <div className={stacked === true ? 'srow stacked' : 'srow'}>
       <div className="l">
         <b>
           {title}
