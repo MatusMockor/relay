@@ -1,4 +1,4 @@
-import type { SplitId, ThreadSummary } from '@relay/shared';
+import type { ThreadSummary } from '@relay/shared';
 import { useState } from 'react';
 import { describeError } from '../../data/errors';
 import type { MailClient } from '../../data/MailClient';
@@ -9,27 +9,20 @@ import { plural } from '../../lib/text';
 import { showToast } from '../../state/toast-store';
 import { useUiStore } from '../../state/ui-store';
 import { backToList } from '../mail/navigation';
+import { inboxThreadsOf, senderInboxScans } from './sender-inbox-scans';
 
 const BATCH_SIZE = 10;
 
 export const threadCount = (count: number): string =>
   `${String(count)} ${plural(count, 'vlákno', 'vlákna', 'vlákien')}`;
 
-const collectView = async (
-  client: MailClient,
-  splitId: SplitId | undefined,
-  matches: (thread: ThreadSummary) => boolean,
-): Promise<ThreadSummary[]> =>
-  (await scanThreads(client, { view: 'inbox', splitId })).items.filter(matches);
-
 const collectInbox = async (
   client: MailClient,
   matches: (thread: ThreadSummary) => boolean,
 ): Promise<ThreadSummary[]> => {
-  const exclusive = (await client.listSplits()).filter((split) => split.exclusive);
-  const views = [undefined, ...exclusive.map((split) => split.id)];
-  const pages = await Promise.all(views.map((splitId) => collectView(client, splitId, matches)));
-  return [...new Map(pages.flat().map((thread) => [thread.id, thread])).values()];
+  const scans = senderInboxScans(await client.listSplits());
+  const pages = await Promise.all(scans.map((params) => scanThreads(client, params)));
+  return inboxThreadsOf(pages.flatMap((page) => page.items)).filter(matches);
 };
 
 const chunksOf = <T>(items: readonly T[]): T[][] =>
