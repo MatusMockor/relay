@@ -1,6 +1,13 @@
 import type { AccountId } from '@relay/shared/domain';
+import type { InitialSyncWindow } from '../../src';
 import { describe, expect, it } from 'vitest';
-import { deliverMail, type MailSpec, present, seedAccount } from '../support/fixtures';
+import {
+  deliverMail,
+  type MailSpec,
+  messageHeader,
+  present,
+  seedAccount,
+} from '../support/fixtures';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
@@ -36,6 +43,16 @@ const resetInboxOnRead = (server: FakeMailServer, nth: number): void => {
   server.beforeNextFetch = hook;
 };
 
+const replyStored = (engine: TestEngine): boolean =>
+  [...engine.db.tables.messages.values()].some(
+    (message) => message.messageIdHeader === messageHeader('r1'),
+  );
+
+const expectOpenWindow = (window: InitialSyncWindow | null | undefined): void => {
+  expect(window).toBeDefined();
+  expect(window).not.toBeNull();
+};
+
 const spamWindow = async (engine: TestEngine, accountId: AccountId) => {
   const spam = present(await engine.repositories.mailboxes.findByRole(accountId, 'spam'));
   return (await engine.repositories.syncStates.find(spam.id))?.initialWindow;
@@ -62,9 +79,30 @@ describe('SyncService initial sync of spam replies to older mail', () => {
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect(states(engine)).not.toContainEqual(['spam', 1]);
-    expect(await spamWindow(engine, account.id)).not.toBeNull();
+    expect(replyStored(engine)).toBe(false);
+    expectOpenWindow(await spamWindow(engine, account.id));
 
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(states(engine)).toEqual([['inbox', 2]]);
+    expect(await spamWindow(engine, account.id)).toBeNull();
+  });
+
+  it('defers the spam reply when the Sent lookup fails and keeps syncing', async () => {
+    const engine = createTestEngine({ sync: { initialWindowDays: 30 } });
+    const { account, server } = await spamAccount(engine);
+    deliverMail(server, 'INBOX', OLD);
+    deliverMail(server, 'Archive', OLD);
+    deliverMail(server, 'Spam', SPAM_REPLY);
+    server.failSearchIn = 'Sent';
+
+    const first = await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(first.ok).toBe(true);
+    expect(replyStored(engine)).toBe(false);
+    expectOpenWindow(await spamWindow(engine, account.id));
+
+    server.failSearchIn = null;
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
     expect(states(engine)).toEqual([['inbox', 2]]);

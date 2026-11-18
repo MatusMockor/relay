@@ -1,5 +1,5 @@
-import type { FolderView } from '@relay/shared/domain';
-import { type SQL, sql } from 'drizzle-orm';
+import { type FolderView, HELD_THREAD_STATES } from '@relay/shared/domain';
+import { notInArray, type SQL, sql } from 'drizzle-orm';
 import {
   drafts,
   mailboxes,
@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notHeld = sql`${threads.state} not in ('trash', 'spam')`;
+const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
 const outsideExclusiveSplits = sql`not exists(
   select 1 from ${threadSplits}

@@ -57,6 +57,7 @@ export class FakeMailServer {
   failOperations: string | null = null;
   failIdleStop: string | null = null;
   partialMoves = false;
+  failSearchIn: string | null = null;
   beforeNextFetch: ((path: string) => void) | null = null;
   private modseq = 1n;
 

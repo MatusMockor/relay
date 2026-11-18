@@ -15,6 +15,7 @@ export interface LocatedMessage {
   readonly message: Message;
   readonly role: MailboxRole | undefined;
   readonly origin: MailboxRole | undefined;
+  readonly moving: boolean;
 }
 
 export interface PlannedMove {

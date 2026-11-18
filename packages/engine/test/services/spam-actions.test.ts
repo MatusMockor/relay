@@ -145,4 +145,15 @@ describe('report spam and not spam', () => {
     expect(remoteCount(server, 'Sent')).toBe(1);
     expect((await engine.repositories.threads.findById(USER_ID, thread.id))?.state).toBe('done');
   });
+
+  it.each(['done', 'undone'] as const)('rejects %s on a spam thread', async (type) => {
+    const engine = createTestEngine();
+    const { server, thread } = await syncedThread(engine, [['Spam', { id: 's1', date: DATE }]]);
+
+    await expect(
+      engine.services.actions.apply(USER_ID, thread.id, { type }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(remoteCount(server, 'Spam')).toBe(1);
+    expect((await engine.repositories.threads.findById(USER_ID, thread.id))?.state).toBe('spam');
+  });
 });

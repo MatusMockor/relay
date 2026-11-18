@@ -1,5 +1,4 @@
 import {
-  HELD_THREAD_STATES,
   type HeldThreadState,
   isHeldThreadState,
   type MailboxId,
@@ -11,6 +10,7 @@ import {
 } from '@relay/shared/domain';
 import type { ThreadRefreshWork } from '../../model/pending-work';
 import type { MailCopies } from '../shared/mail-copies';
+import { isHeldRole } from './held-roles';
 
 export type MessageRoleOf = (message: Message) => MailboxRole | undefined;
 
@@ -26,9 +26,12 @@ export const messageRoleOf =
   (message) =>
     pendingMoves.get(message.id) ?? mailboxRoles.get(message.mailboxId);
 
-const onlyIn = (roles: Roles, role: HeldThreadState): boolean => {
-  const placed = roles.filter((candidate) => candidate !== 'sent');
-  return placed.length > 0 && placed.every((candidate) => candidate === role);
+const heldPlacement = (roles: Roles): HeldThreadState | undefined => {
+  const placed = roles.filter((role) => role !== 'sent');
+  if (placed.length === 0 || !placed.every((role) => role !== undefined && isHeldRole(role))) {
+    return undefined;
+  }
+  return placed.every((role) => role === 'trash') ? 'trash' : 'spam';
 };
 
 const reappeared = (work: ThreadRefreshWork, roles: Roles): boolean =>
@@ -51,7 +54,7 @@ export const syncedThreadState = (
   if (work.arrivedIn.includes('inbox') && inInbox) {
     return 'inbox';
   }
-  const onlyHeld = HELD_THREAD_STATES.find((state) => onlyIn(placed, state));
+  const onlyHeld = heldPlacement(placed);
   if (onlyHeld !== undefined) {
     return onlyHeld;
   }

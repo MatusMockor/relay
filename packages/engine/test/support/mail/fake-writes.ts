@@ -60,7 +60,7 @@ export const moveRecords = (
     if (newUid !== null && !server.partialMoves) {
       server.expunge(mailbox.path, uid);
     }
-    if (record !== undefined && newUid !== null) {
+    if (record !== undefined && newUid !== null && !server.partialMoves) {
       dropGmailLabels(server, targetPath, record.source);
     }
     if (newUid !== null) {

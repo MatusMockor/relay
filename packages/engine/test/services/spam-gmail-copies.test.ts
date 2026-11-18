@@ -26,8 +26,8 @@ const GMAIL_SETTINGS = {
   username: ME.email,
 };
 
-const gmailAccount = async (engine: TestEngine) => {
-  const seeded = await seedAccount(engine, { settings: GMAIL_SETTINGS }, { gmail: true });
+const gmailAccount = async (engine: TestEngine, uidplus = true) => {
+  const seeded = await seedAccount(engine, { settings: GMAIL_SETTINGS }, { gmail: true, uidplus });
   seeded.server.addMailbox('Spam', 'spam');
   return seeded;
 };
@@ -132,5 +132,25 @@ describe('spam and trash with Gmail copies in INBOX and All Mail', () => {
     expect(remoteCount(server, 'Sent')).toBe(1);
     expect(remoteCount(server, 'Archive')).toBe(1);
     expect(remoteCount(server, 'Spam')).toBe(0);
+  });
+
+  it('undoes a not spam whose move is still waiting for a UID on the same message', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await gmailAccount(engine, false);
+    deliverMail(server, 'INBOX', RECEIVED);
+    deliverMail(server, 'Archive', RECEIVED);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const thread = onlyThread(engine);
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'reportSpam' });
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'notSpam' });
+
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'reportSpam' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(remoteCount(server, 'Spam')).toBe(1);
+    expect(remoteCount(server, 'INBOX')).toBe(0);
+    expect(onlyThread(engine).state).toBe('spam');
+    expect(pendingRecords(engine)).toEqual([]);
+    expect(pendingOps(engine)).toEqual([]);
   });
 });

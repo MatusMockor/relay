@@ -15,6 +15,9 @@ const rankOf = (role: Role): number => {
 const pending = (located: LocatedMessage): boolean => located.message.uid === PENDING_UID;
 
 const preferred = (candidate: LocatedMessage, current: LocatedMessage): boolean => {
+  if (candidate.moving !== current.moving) {
+    return candidate.moving;
+  }
   if (pending(candidate) !== pending(current)) {
     return pending(current);
   }

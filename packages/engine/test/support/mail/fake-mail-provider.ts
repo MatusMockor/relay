@@ -145,6 +145,9 @@ export class FakeMailProvider implements MailProvider {
   }
 
   searchRelated(path: string, uidValidity: number, ids: readonly string[]): Promise<number[]> {
+    if (this.server?.failSearchIn === path) {
+      return Promise.reject(new Error(`SEARCH failed in ${path}`));
+    }
     return this.withMailbox(path, (mailbox) => searchRelatedRecords(mailbox, uidValidity, ids));
   }
 

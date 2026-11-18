@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SplitSchema } from '@relay/shared';
+import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
+import { threadItem } from '../src/features/mail/list-items';
+import { rowActionLabels } from '../src/features/shell/RowActions';
+import { splitGKey } from '../src/features/shell/SplitTabs';
 import { setUi } from '../src/state/ui-store';
 import { renderApp, resetStores } from './support/render-app';
+import { serverThread } from './support/thread-fixtures';
 
 const LOTTERY = 'Gratulujeme, vyhrali ste nový telefón';
 const CRYPTO = 'Zarobte 5 000 € týždenne bez rizika';
@@ -114,5 +120,71 @@ describe('spam folder', () => {
     await waitFor(() => {
       expect(subjects()).toContain(LOTTERY);
     });
+  });
+
+  it('forgets the undo of a spam report the server rejected', async () => {
+    renderApp({
+      demo: () => ({
+        ...createDemoMailClient({ aiStepMs: 0 }),
+        applyThreadAction: () => Promise.reject(new Error('Nahlásenie zlyhalo')),
+      }),
+    });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    key('!');
+    await waitFor(() => {
+      expect(toast().textContent).toContain('Nahlásenie zlyhalo');
+    });
+    key('z');
+
+    expect(toast().textContent).toContain('Nie je čo vrátiť');
+  });
+
+  it('offers no spam report for a conversation in the trash', async () => {
+    const paletteText = (query: string) => {
+      key('k', { ctrlKey: true });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Hľadať príkaz' }), {
+        target: { value: query },
+      });
+      const text = screen.getByRole('listbox', { name: 'Výsledky' }).textContent;
+      key('Escape');
+      return text;
+    };
+    renderApp();
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    expect(paletteText('spam')).toContain('Nahlásiť spam');
+
+    key('g');
+    key('k');
+    expect(await screen.findByRole('heading', { name: /Kôš/ })).toBeDefined();
+    await waitFor(() => {
+      expect(rows().length).toBeGreaterThan(0);
+    });
+
+    expect(paletteText('spam')).not.toContain('Nahlásiť spam');
+  });
+
+  it('keeps row actions in the Spam view tied to each row state', () => {
+    const inbox = threadItem(serverThread('Porada'));
+    const spam = threadItem(serverThread('Výhra', { state: 'spam' }));
+
+    expect(rowActionLabels('spam', spam, true)).toEqual(['Nie je spam', 'Do koša']);
+    expect(rowActionLabels('spam', inbox, true)).not.toContain('Nie je spam');
+    expect(rowActionLabels('trash', inbox, true)).not.toContain('Obnoviť');
+  });
+
+  it('assigns no G shortcut to a split whose letters are all reserved', () => {
+    const split = SplitSchema.parse({
+      id: 'spl-tip',
+      userId: 'usr-1',
+      accountId: null,
+      name: 'TIP',
+      order: 0,
+      exclusive: false,
+      hideTasks: false,
+      rules: [{ type: 'fromDomain', domain: 'tip.sk' }],
+    });
+
+    expect(splitGKey(split)).toBeNull();
   });
 });

@@ -3,8 +3,17 @@ import { useDrafts, useScheduled, useThreadList } from '../../data/hooks/use-mai
 import { useUiStore } from '../../state/ui-store';
 import { draftItems } from '../mail/list-items';
 
-const unreadOf = (threads: readonly ThreadSummary[] | undefined): number =>
-  (threads ?? []).filter((thread) => thread.unread).length;
+interface ThreadListResult {
+  readonly data?: { readonly items: readonly ThreadSummary[] };
+  readonly isPlaceholderData: boolean;
+}
+
+const unreadOf = (list: ThreadListResult): number => {
+  if (list.isPlaceholderData) {
+    return 0;
+  }
+  return (list.data?.items ?? []).filter((thread) => thread.unread).length;
+};
 
 export const useFolderCounts = (): Partial<Record<FolderView, number>> => {
   const scope = useUiStore((state) => state.scope);
@@ -17,8 +26,8 @@ export const useFolderCounts = (): Partial<Record<FolderView, number>> => {
   const scheduled = useScheduled();
   const inScope = (id: string) => accountId === undefined || id === accountId;
   return {
-    inbox: unreadOf(inbox.data?.items),
-    spam: unreadOf(spam.data?.items),
+    inbox: unreadOf(inbox),
+    spam: unreadOf(spam),
     tasks: tasks.data?.items.length ?? 0,
     reminders: reminders.data?.items.length ?? 0,
     drafts: draftItems(drafts.data ?? [], scheduled.data ?? []).filter(

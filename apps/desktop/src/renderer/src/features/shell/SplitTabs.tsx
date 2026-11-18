@@ -53,8 +53,13 @@ const lettersOf = (value: string): string[] =>
       .toUpperCase(),
   );
 
-export const splitGKey = (split: Split): string =>
-  lettersOf(split.name).find((char) => /[A-Z]/.test(char) && !RESERVED_G.has(char)) ?? '?';
+export const splitGKey = (split: Split): string | null =>
+  lettersOf(split.name).find((char) => /[A-Z]/.test(char) && !RESERVED_G.has(char)) ?? null;
+
+const splitHint = (split: Split): string => {
+  const key = splitGKey(split);
+  return key === null ? `Prejsť na ${split.name}` : `Prejsť na ${split.name} (G ${key})`;
+};
 
 export function SplitTabs() {
   const folder = useUiStore((state) => state.folder);
@@ -84,7 +89,7 @@ export function SplitTabs() {
           splitId={split.id}
           folder={{ kind: 'inbox', splitId: split.id }}
           active={folder.kind === 'inbox' && folder.splitId === split.id}
-          hint={`Prejsť na ${split.name} (G ${splitGKey(split)})`}
+          hint={splitHint(split)}
         />
       ))}
     </nav>

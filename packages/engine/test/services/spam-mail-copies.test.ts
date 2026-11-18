@@ -64,7 +64,7 @@ describe('mail copies on plain IMAP and Gmail', () => {
     };
     const later: MailSpec = { id: 'n1', from: ME, to: [PETER], subject: 'Iné', date: DATE };
     deliverMail(server, 'Spam', { id: 'm1', subject: 'Výhra', date: DATE });
-    deliverMail(server, 'Sent', reply);
+    const sentUid = deliverMail(server, 'Sent', reply);
     deliverMail(server, 'Archive', reply);
     deliverMail(server, 'Sent', later);
     deliverMail(server, 'Archive', later);
@@ -72,6 +72,12 @@ describe('mail copies on plain IMAP and Gmail', () => {
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
     expect(threadWith(engine, 'Výhra')).toMatchObject({ state: 'spam', messageCount: 2 });
+    const sent = present(await engine.repositories.mailboxes.findByRole(account.id, 'sent'));
+    const stored = await engine.repositories.messages.findByLocation({
+      mailboxId: sent.id,
+      uid: sentUid,
+    });
+    expect(stored?.threadId).toBe(threadWith(engine, 'Výhra').id);
   });
 
   it.each([
@@ -97,4 +103,55 @@ describe('mail copies on plain IMAP and Gmail', () => {
       expect(remoteCount(server, 'Archive')).toBe(1);
     },
   );
+
+  it('treats archived Gmail mail sent to your plus alias as received', async () => {
+    const engine = createTestEngine();
+    const email = 'alice.novak@gmail.com';
+    const { account, server } = await withSpam(
+      engine,
+      { email, settings: { ...GMAIL_SETTINGS, username: email } },
+      true,
+    );
+    const me = { name: 'Alice', email };
+    const note: MailSpec = {
+      id: 'p1',
+      from: me,
+      to: [{ name: null, email: 'AliceNovak+notes@googlemail.com' }],
+      subject: 'Alias',
+      date: DATE,
+    };
+    deliverMail(server, 'Sent', note);
+    deliverMail(server, 'Archive', note);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    await engine.services.actions.apply(USER_ID, threadWith(engine, 'Alias').id, {
+      type: 'reportSpam',
+    });
+
+    expect(remoteCount(server, 'Spam')).toBe(1);
+  });
+
+  it.each([
+    ['a new thread', false],
+    ['a thread already in spam', true],
+  ])('files %s with mail only in Spam and Trash as spam', async (_label, synced) => {
+    const engine = createTestEngine();
+    const { account, server } = await withSpam(engine);
+    const reply: MailSpec = {
+      id: 'r1',
+      subject: 'Re: Zmes',
+      inReplyTo: 'm1',
+      references: ['m1'],
+      date: DATE,
+    };
+    deliverMail(server, 'Spam', { id: 'm1', subject: 'Zmes', date: DATE });
+    if (synced) {
+      await engine.services.sync.syncAccount(USER_ID, account.id);
+    }
+    deliverMail(server, 'Trash', reply);
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(threadWith(engine, 'Zmes')).toMatchObject({ state: 'spam', messageCount: 2 });
+  });
 });

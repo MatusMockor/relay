@@ -1,3 +1,4 @@
+import type { FolderView } from '@relay/shared';
 import { Icon, type StrokeIconName } from '@relay/ui';
 import type { MouseEvent } from 'react';
 import { viewOf } from '../../state/folders';
@@ -19,6 +20,13 @@ const REPLY: ActionSpec = { id: 'reply', icon: 'reply', label: 'Odpovedať', key
 const TRASH: ActionSpec = { id: 'trash', icon: 'trash', label: 'Do koša', key: '#' };
 const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', key: '!' };
 
+const HELD_VIEWS: readonly FolderView[] = ['trash', 'spam'];
+
+const actionView = (view: FolderView, item: ListItem): string =>
+  HELD_VIEWS.includes(view) && item.kind === 'thread' && item.thread.state !== view
+    ? item.thread.state
+    : view;
+
 const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   const map: Record<string, ActionSpec[]> = {
     done: [{ ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' }, REPLY],
@@ -30,6 +38,9 @@ const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   };
   return map[view] ?? (inRow ? [DONE, REMIND, REPLY] : [DONE, REMIND, REPLY, SPAM, TRASH]);
 };
+
+export const rowActionLabels = (view: FolderView, item: ListItem, inRow: boolean): string[] =>
+  specsFor(actionView(view, item), inRow).map((spec) => spec.label);
 
 export function RowActions({ item, inRow }: { readonly item: ListItem; readonly inRow: boolean }) {
   const folder = useUiStore((state) => state.folder);
@@ -61,7 +72,7 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
   };
   return (
     <>
-      {specsFor(viewOf(folder), inRow).map((spec) => (
+      {specsFor(actionView(viewOf(folder), item), inRow).map((spec) => (
         <button
           key={spec.id}
           type="button"

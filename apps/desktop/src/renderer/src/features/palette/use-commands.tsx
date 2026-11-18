@@ -37,6 +37,8 @@ const ICONS = {
   trash: 'trash',
 } as const;
 
+const gKeys = (key: string | null): string[] => (key === null ? [] : ['G', key]);
+
 const RESTORING_STATES: readonly ThreadState[] = ['done', 'trash', 'spam'];
 
 export const useCommands = (): Command[] => {
@@ -98,7 +100,7 @@ export const useCommands = (): Command[] => {
                   },
                 },
                 ...threadComposeCommands(thread.id, ctx, actions.compose),
-                threadSpamCommand(thread, ctx, actions.thread),
+                ...threadSpamCommand(thread, ctx, actions.thread),
               ]),
           {
             id: 'trash',
@@ -182,7 +184,7 @@ export const useCommands = (): Command[] => {
     ...splits.map((split) => ({
       id: `split-${split.id}`,
       label: `Prejsť na ${split.name}`,
-      keys: ['G', splitGKey(split)],
+      keys: gKeys(splitGKey(split)),
       icon: <Icon name="inbox" />,
       alias: 'split inbox',
       run: () => {

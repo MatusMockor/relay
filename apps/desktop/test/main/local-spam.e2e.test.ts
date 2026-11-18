@@ -93,7 +93,8 @@ describe('local mode spam folder (SQLite + GreenMail)', () => {
       await client.mailboxCreate('Spam');
       const lock = await client.getMailboxLock('INBOX');
       try {
-        await client.messageMove({ subject: OFFER }, 'Spam');
+        const moved = await client.messageMove({ subject: OFFER }, 'Spam');
+        expect(moved).toMatchObject({ destination: 'Spam' });
       } finally {
         lock.release();
       }

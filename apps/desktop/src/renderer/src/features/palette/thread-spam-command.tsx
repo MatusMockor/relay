@@ -8,17 +8,22 @@ export const threadSpamCommand = (
   thread: ThreadSummary,
   ctx: string | undefined,
   commands: ThreadCommands,
-): Command => {
+): Command[] => {
+  if (thread.state === 'trash') {
+    return [];
+  }
   const inSpam = thread.state === 'spam';
-  return {
-    id: 'spam',
-    label: inSpam ? 'Nie je spam' : 'Nahlásiť spam',
-    sub: ctx,
-    keys: ['!'],
-    icon: <Icon name={inSpam ? 'inbox' : 'spam'} />,
-    alias: 'spam junk nevyziadana posta nahlasit',
-    run: () => {
-      commands.toggleSpam(threadItem(thread));
+  return [
+    {
+      id: 'spam',
+      label: inSpam ? 'Nie je spam' : 'Nahlásiť spam',
+      sub: ctx,
+      keys: ['!'],
+      icon: <Icon name={inSpam ? 'inbox' : 'spam'} />,
+      alias: 'spam junk nevyziadana posta nahlasit',
+      run: () => {
+        commands.toggleSpam(threadItem(thread));
+      },
     },
-  };
+  ];
 };

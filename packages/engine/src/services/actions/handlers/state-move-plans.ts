@@ -1,5 +1,6 @@
 import type { ThreadSummary } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
+import { outsideHeld } from './held-guard';
 import { notSpam, reportSpam } from './spam-plans';
 import {
   inRoles,
@@ -12,8 +13,8 @@ import {
 import { restore, trash } from './trash-plans';
 
 const PLANNERS: Readonly<Record<StateMoveAction, StateMovePlanner>> = {
-  done: (messages) => moveTo('done', inRoles(messages, ['inbox']), 'archive'),
-  undone: (messages) => moveTo('inbox', inRoles(messages, ['archive']), 'inbox'),
+  done: outsideHeld((messages) => moveTo('done', inRoles(messages, ['inbox']), 'archive')),
+  undone: outsideHeld((messages) => moveTo('inbox', inRoles(messages, ['archive']), 'inbox')),
   trash,
   restore,
   reportSpam,

@@ -9,7 +9,13 @@ import {
   syncedSetup,
   TIBOR,
 } from '../support/automations';
-import { deliverMail, type MailSpec, seedAccount } from '../support/fixtures';
+import {
+  deliverMail,
+  type MailSpec,
+  messageHeader,
+  present,
+  seedAccount,
+} from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const DATE = '2026-11-14T08:00:00.000Z';
@@ -55,8 +61,14 @@ describe('SyncService with the spam mailbox', () => {
       date: DATE,
     });
 
-    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const report = await engine.services.sync.syncAccount(USER_ID, account.id);
 
+    expect(report.ok).toBe(true);
+    const spam = present(await engine.repositories.mailboxes.findByRole(account.id, 'spam'));
+    const stored = [...engine.db.tables.messages.values()].filter(
+      (message) => message.mailboxId === spam.id,
+    );
+    expect(stored.map((message) => message.messageIdHeader)).toEqual([messageHeader('j1')]);
     expect((await engine.services.tasks.list(USER_ID, { limit: 20 })).items).toEqual([]);
     expect(await engine.repositories.pendingWork.list(account.id, 'jira-event')).toEqual([]);
     expect(await viewIds(engine, 'tasks')).toEqual([]);

@@ -1,4 +1,5 @@
 import type { MailAccount, MailboxRole, Message, MessageId } from '@relay/shared/domain';
+import { mailboxAddress } from './mailbox-address';
 
 export interface PlacedCopy {
   readonly message: Message;
@@ -17,7 +18,7 @@ export class MailCopies {
   ) {}
 
   static of(account: MailAccount): MailCopies {
-    return new MailCopies(labelsMessages(account), account.email.toLowerCase());
+    return new MailCopies(labelsMessages(account), mailboxAddress(account.email));
   }
 
   identityOf(message: Message): string {
@@ -50,7 +51,7 @@ export class MailCopies {
 
   private addressedToSelf(message: Message): boolean {
     return [...message.to, ...message.cc].some(
-      (address) => address.email.toLowerCase() === this.ownAddress,
+      (address) => mailboxAddress(address.email) === this.ownAddress,
     );
   }
 }

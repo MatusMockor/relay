@@ -1,5 +1,5 @@
 import type { ThreadFolderQuery } from '@relay/engine';
-import type { FolderView, UserId } from '@relay/shared/domain';
+import type { FolderView, ThreadSummary, UserId } from '@relay/shared/domain';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   at,
@@ -7,7 +7,6 @@ import {
   buildThread,
   newId,
   seedAccount,
-  seedThread,
   type SeededAccount,
 } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
@@ -31,49 +30,66 @@ describe('PgThreadRepository.queryFolder spam view', () => {
       (thread) => thread.subject,
     );
 
-  beforeAll(async () => {
-    work = await seedAccount(context.repositories);
-    await seedThread(context.repositories, work, { subject: 'inbox', lastMessageAt: at(1) });
-    const spam = buildThread(work.account.id, {
-      subject: 'spam',
-      lastMessageAt: at(2),
-      state: 'spam',
-    });
-    await context.repositories.messages.upsert(buildMessage(spam, work.mailboxes.sent), new Map());
-    await context.repositories.threads.upsert(spam);
-    await context.repositories.tasks.upsert({
+  const busyThread = async (subject: string, state: ThreadSummary['state'], minute: number) => {
+    const { repositories } = context;
+    const thread = buildThread(work.account.id, { subject, lastMessageAt: at(minute), state });
+    await repositories.messages.upsert(buildMessage(thread, work.mailboxes.sent), new Map());
+    await repositories.threads.upsert(thread);
+    await repositories.tasks.upsert({
       id: newId('task'),
       userId: work.user.id,
-      threadId: spam.id,
+      threadId: thread.id,
       jiraKey: null,
       title: 'Overiť odosielateľa',
       aiWhat: null,
       state: 'open',
       source: 'manual',
-      createdAt: at(2),
-      updatedAt: at(2),
+      createdAt: at(minute),
+      updatedAt: at(minute),
     });
-    await context.repositories.drafts.create(work.user.id, {
-      id: newId('draft'),
+    const draftId = newId('draft');
+    await repositories.drafts.create(work.user.id, {
+      id: draftId,
       accountId: work.account.id,
       to: [],
       cc: [],
       bcc: [],
-      subject: 'Re: spam',
+      subject: `Re: ${subject}`,
       body: 'Nie, ďakujem',
-      inReplyToThreadId: spam.id,
+      inReplyToThreadId: thread.id,
       inReplyToMessageId: null,
       attachments: [],
-      createdAt: at(2),
-      updatedAt: at(2),
+      createdAt: at(minute),
+      updatedAt: at(minute),
     });
+    await repositories.scheduledSends.create({
+      id: newId('scheduledSend'),
+      userId: work.user.id,
+      accountId: work.account.id,
+      draftId,
+      scheduledAt: at(600),
+      status: 'pending',
+      error: null,
+      sentAt: null,
+      createdAt: at(minute),
+    });
+  };
+
+  beforeAll(async () => {
+    work = await seedAccount(context.repositories);
+    await busyThread('active', 'inbox', 1);
+    await busyThread('spam', 'spam', 2);
   });
 
   it('serves spam threads in the spam view only', async () => {
     await expect(subjects(work.user.id, 'spam')).resolves.toEqual(['spam']);
-    for (const view of ['inbox', 'done', 'trash', 'tasks', 'sent', 'drafts'] as const) {
+    for (const view of ['tasks', 'sent', 'drafts', 'scheduled'] as const) {
+      const found = await subjects(work.user.id, view);
+      expect(found).toContain('active');
+      expect(found).not.toContain('spam');
+    }
+    for (const view of ['inbox', 'done', 'trash'] as const) {
       await expect(subjects(work.user.id, view)).resolves.not.toContain('spam');
     }
-    await expect(subjects(work.user.id, 'inbox')).resolves.toEqual(['inbox']);
   });
 });

@@ -103,7 +103,7 @@ export const useKeyboard = (): void => {
     if (gAt.current > 0 && Date.now() - gAt.current < G_WINDOW_MS) {
       gAt.current = 0;
       const key = event.key.toLowerCase();
-      const split = splits.find((item) => splitGKey(item).toLowerCase() === key);
+      const split = splits.find((item) => splitGKey(item)?.toLowerCase() === key);
       const folder =
         G_VIEWS[key] ??
         (split === undefined ? undefined : { kind: 'inbox' as const, splitId: split.id });

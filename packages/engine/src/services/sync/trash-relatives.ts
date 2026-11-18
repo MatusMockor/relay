@@ -5,6 +5,7 @@ import { isHeldRole } from './held-roles';
 import { type WindowEntry, windowEntry } from './initial-window';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { SyncContext } from './sync-context';
+import { errorMessage } from '../shared/mail-provider-sessions';
 import { skipOnUidValidityChange } from './uid-validity-guard';
 
 export interface TrashRelativesDeps {
@@ -43,13 +44,31 @@ export class TrashRelatives {
     const entries: WindowEntry[] = [];
     let complete = true;
     for (const pass of passes.filter((candidate) => RELATED_ROLES.includes(candidate.role))) {
-      const found = await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
-        this.findIn(context, pass, ids, chunk),
-      );
+      const found = await this.lookUp(context, pass, ids, chunk);
       complete = complete && found !== null;
       entries.push(...(found ?? []));
     }
     return { entries, complete };
+  }
+
+  private async lookUp(
+    context: SyncContext,
+    pass: MailboxPass,
+    ids: readonly string[],
+    chunk: readonly WindowEntry[],
+  ): Promise<WindowEntry[] | null> {
+    try {
+      return await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
+        this.findIn(context, pass, ids, chunk),
+      );
+    } catch (error) {
+      this.deps.logger.warn('Looking up related mail failed, retrying next time', {
+        accountId: context.account.id,
+        mailboxId: pass.mailbox.id,
+        error: errorMessage(error),
+      });
+      return null;
+    }
   }
 
   private async findIn(

@@ -80,7 +80,7 @@ export class StateMoveHandler {
     return context.messages.map((message) => {
       const role = pending.get(message.id) ?? roles.get(message.mailboxId);
       const origins = role === 'spam' ? reported : trashed;
-      return { message, role, origin: origins.get(message.id) };
+      return { message, role, origin: origins.get(message.id), moving: pending.has(message.id) };
     });
   }
 }

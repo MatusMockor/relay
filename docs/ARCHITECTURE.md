@@ -83,10 +83,10 @@ shared  ◄── engine ◄── store-sqlite
 "Done" = archive (IMAP move to archive mailbox / Gmail remove INBOX label). Read state, done, trash, spam and labels are mirrored back to the mail provider so other clients see them too.
 
 - Sync covers the mailbox roles inbox, sent, archive, trash and spam (`DEFAULT_SYNC_OPTIONS.mailboxRoles`). A missing archive, sent, trash, drafts or spam (`Junk`) mailbox is created on first use (`RoleMailboxEnsurer`).
-- `ThreadState` is `inbox`, `done`, `trash`, `spam` or `reminder`. Trash and spam are holding states: a thread whose mail (ignoring Sent copies) sits only in that mailbox gets that state, and it leaves it once its mail is elsewhere.
+- `ThreadState` is `inbox`, `done`, `trash`, `spam` or `reminder`. Trash and spam are holding states: a thread whose mail (ignoring Sent copies) sits only in that mailbox gets that state (spam when it is split between Spam and Trash), and it leaves it once its mail is elsewhere. Generic actions like done refuse a held thread; restore or not spam brings it back.
 - Folder views (`FolderView`): `inbox`, `tasks`, `reminders`, `done`, `sent`, `drafts`, `scheduled`, `spam`, `trash`. `spam` and `trash` show threads in that state; every other view leaves them out.
 - "Report spam" moves the received (inbox and archive) mail of a thread to the spam mailbox and remembers where each message came from; "Not spam" moves it back there (inbox when unknown). Trash remembers origins the same way, so a trashed spam thread is restored to spam.
-- Mail in the spam mailbox never counts as an inbox arrival, so it triggers no automations, AI one-liners or notifications, and it creates no Jira tasks or calendar invitations.
+- A copy ingested from the spam mailbox never counts as an inbox arrival, so it triggers no automations, AI one-liners or notifications, and it creates no Jira tasks or calendar invitations. An INBOX copy of the same message is classified on its own.
 
 ## Server (`apps/server`)
 

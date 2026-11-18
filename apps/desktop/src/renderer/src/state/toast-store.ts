@@ -56,6 +56,14 @@ export const undoLast = (): void => {
   showToast('Vrátené');
 };
 
+export const dropUndo = (run: () => void): void => {
+  const index = undoStack.findIndex((entry) => entry.run === run);
+  if (index < 0) {
+    return;
+  }
+  undoStack.splice(index, 1);
+};
+
 export const resetToasts = (): void => {
   undoStack.length = 0;
   useToastStore.setState({ toast: null });
