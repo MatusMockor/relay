@@ -75,6 +75,13 @@ describe('ipc channel map', () => {
     expect(ipcInvokeChannels['app.update.install'].input.safeParse(undefined).success).toBe(true);
   });
 
+  it('accepts only boolean full screen statuses from the main process', () => {
+    const { event } = ipcStreamChannels['app.window.fullScreen'];
+    expect(event.safeParse({ fullScreen: true }).success).toBe(true);
+    expect(event.safeParse({ fullScreen: 'yes' }).success).toBe(false);
+    expect(event.safeParse({}).success).toBe(false);
+  });
+
   it('makes input optional only for channels without input', () => {
     expectTypeOf<IpcInvokeArgs<'app.getInfo'>>().toEqualTypeOf<[]>();
     expectTypeOf<IpcInvokeArgs<'secure.get'>>().toEqualTypeOf<[input: { key: string }]>();

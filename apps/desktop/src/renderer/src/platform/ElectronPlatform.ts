@@ -40,6 +40,13 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
       await unwrap(bridge.invoke('app.update.install'));
     },
     subscribeToThreadOpens: (listener) => threadOpens.subscribe(listener),
+    subscribeToFullScreen: (listener) =>
+      bridge.subscribe('app.window.fullScreen', {
+        onEvent: (status) => {
+          listener(status.fullScreen);
+        },
+        onError: () => undefined,
+      }),
   };
 };
 
