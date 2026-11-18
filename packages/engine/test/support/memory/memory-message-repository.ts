@@ -17,7 +17,7 @@ import type {
   StoredMatchSubject,
   SubjectSearchWindow,
 } from '../../../src';
-import { normalizeSubject } from '../../../src';
+import { matchSubjectOf, normalizeSubject } from '../../../src';
 import { type MemoryDatabase, offsetPage } from './memory-database';
 
 const PENDING_UID = 0;
@@ -116,11 +116,10 @@ export class MemoryMessageRepository implements MessageRepository {
       .map((message) => ({
         messageId: message.id,
         threadId: message.threadId,
-        subject: {
-          from: message.from,
-          subject: message.subject,
-          headers: this.db.tables.messageHeaders.get(message.id) ?? new Map<string, string[]>(),
-        },
+        subject: matchSubjectOf(
+          message,
+          this.db.tables.messageHeaders.get(message.id) ?? new Map<string, string[]>(),
+        ),
       }));
     return Promise.resolve(offsetPage(subjects, page.cursor, page.limit));
   }

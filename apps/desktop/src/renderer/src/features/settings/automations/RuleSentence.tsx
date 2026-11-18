@@ -1,20 +1,29 @@
 import { Icon } from '@relay/ui';
 import type { AccountId, MailAccount } from '@relay/shared';
+import type { ActionTargets } from './action-targets';
 import { ActionTokens } from './ActionTokens';
 import { ConditionTokens } from './ConditionTokens';
-import type { EditableRule, RuleChange } from './editable-rule';
+import { type EditableRule, type RuleChange, scopeChange } from './editable-rule';
 import { OptionList } from './OptionList';
 import { TokenPopover } from './TokenPopover';
 
 export interface RuleSentenceProps {
   readonly rule: EditableRule;
   readonly accounts: readonly MailAccount[];
+  readonly targets: ActionTargets;
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
   readonly onEngage: () => void;
 }
 
-export function RuleSentence({ rule, accounts, disabled, onChange, onEngage }: RuleSentenceProps) {
+export function RuleSentence({
+  rule,
+  accounts,
+  targets,
+  disabled,
+  onChange,
+  onEngage,
+}: RuleSentenceProps) {
   const { input } = rule;
   const account = accounts.find((item) => item.id === input.accountId) ?? null;
   const accountLabel = account?.displayName ?? 'všetky účty';
@@ -50,7 +59,7 @@ export function RuleSentence({ rule, accounts, disabled, onChange, onEngage }: R
                   checked: scope.id === input.accountId,
                   pick: () => {
                     close();
-                    onChange({ accountId: scope.id });
+                    onChange(scopeChange(input.actions, input.accountId, scope.id));
                   },
                 }))}
               />
@@ -72,11 +81,12 @@ export function RuleSentence({ rule, accounts, disabled, onChange, onEngage }: R
         <div className="sent-b">
           <ActionTokens
             actions={input.actions}
+            accountId={input.accountId}
+            accounts={accounts}
+            targets={targets}
             disabled={disabled}
             onEngage={onEngage}
-            onChange={(actions) => {
-              onChange({ actions });
-            }}
+            onChange={onChange}
           />
         </div>
       </div>

@@ -94,7 +94,7 @@ describe('Nastavenia > Automatizácie', () => {
         { type: 'fromAddress', address: 'tibor@codevo.app' },
         { type: 'jiraEvent', kind: 'comment' },
       ],
-      actions: ['task', 'notify', 'archive'],
+      actions: [{ type: 'task' }, { type: 'notify' }, { type: 'archive' }],
     });
   });
 
@@ -143,6 +143,7 @@ describe('Nastavenia > Automatizácie', () => {
 
     expect((await client.listAutomations()).map((item) => item.name)).toEqual([
       'Jira spomenutia',
+      'GitLab do Projektov',
       'Jira tasky',
     ]);
     expect(within(sheet).queryByRole('region', { name: 'Pravidlo Tibor' })).toBeNull();
@@ -166,7 +167,7 @@ describe('Nastavenia > Automatizácie', () => {
       fireEvent.keyDown(within(draft).getByLabelText('Názov pravidla'), { key: 'Enter' });
     });
     await settle();
-    expect(await client.listAutomations()).toHaveLength(3);
+    expect(await client.listAutomations()).toHaveLength(4);
 
     click(within(card(sheet, 'Faktúry')).getByRole('button', { name: 'Pridať podmienku' }));
     const form = popover('Nová podmienka');
@@ -183,10 +184,49 @@ describe('Nastavenia > Automatizácie', () => {
         accountId: null,
         enabled: true,
         conditions: [{ type: 'fromDomain', domain: 'firma.sk' }],
-        actions: ['task'],
+        actions: [{ type: 'task' }],
         ai: { runner: 'claude', model: null, effort: null, instructions: null },
       });
     });
     expect(within(sheet).queryByRole('status')).toBeNull();
+  });
+
+  it('adds recipient and attachment conditions', async () => {
+    const client = demoClient();
+    const sheet = await openSection(client);
+
+    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať podmienku' }));
+    const recipient = popover('Nová podmienka');
+    act(() => {
+      fireEvent.change(within(recipient).getByLabelText('Podmienka'), {
+        target: { value: 'recipient' },
+      });
+      fireEvent.change(within(recipient).getByLabelText('Pole'), { target: { value: 'cc' } });
+      fireEvent.change(within(recipient).getByLabelText('Adresa alebo doména'), {
+        target: { value: '@firma.sk' },
+      });
+    });
+    click(within(recipient).getByRole('button', { name: 'Pridať' }));
+    await settle();
+    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať podmienku' }));
+    const attachment = popover('Nová podmienka');
+    act(() => {
+      fireEvent.change(within(attachment).getByLabelText('Podmienka'), {
+        target: { value: 'hasAttachment' },
+      });
+    });
+    click(within(attachment).getByRole('button', { name: 'Pridať' }));
+    await settle();
+
+    expect((await stored(client, 'Tibor'))?.conditions).toEqual([
+      { type: 'fromAddress', address: 'tibor@codevo.app' },
+      { type: 'recipient', field: 'cc', match: 'domain', value: 'firma.sk' },
+      { type: 'hasAttachment' },
+    ]);
+    expect(
+      within(card(sheet, 'Tibor')).getByRole('button', {
+        name: 'Upraviť podmienku v kópii je firma.sk',
+      }),
+    ).toBeDefined();
   });
 });

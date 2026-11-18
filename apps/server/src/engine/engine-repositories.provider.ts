@@ -27,6 +27,7 @@ const REPOSITORY_TOKENS = {
   googleCalendars: PORT_TOKENS.GoogleCalendarRepository,
   googleEvents: PORT_TOKENS.GoogleEventRepository,
   inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
+  automationCandidates: PORT_TOKENS.AutomationCandidateRepository,
 } as const satisfies Record<keyof Repositories, symbol>;
 
 const KEYS = Object.keys(REPOSITORY_TOKENS) as (keyof Repositories)[];

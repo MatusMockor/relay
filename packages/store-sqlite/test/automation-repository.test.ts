@@ -1,6 +1,8 @@
 import {
   type Automation,
   AutomationIdSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
   MessageIdSchema,
   UserIdSchema,
 } from '@relay/shared/domain';
@@ -25,7 +27,7 @@ const buildAutomation = (overrides: Partial<Automation> = {}): Automation => ({
     { type: 'jiraEvent', kind: 'mention' },
   ],
   ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: 'Iba ak niečo chce.' },
-  actions: ['task', 'notify'],
+  actions: [{ type: 'task' }, { type: 'notify' }],
   ...overrides,
 });
 
@@ -38,7 +40,7 @@ const preset = (userId = LOCAL_USER_ID, id = 'automation-jira'): Automation =>
     preset: 'jiraTasks',
     conditions: [{ type: 'jira', projectKeys: [] }],
     ai: { runner: 'claude', model: null, effort: null, instructions: null },
-    actions: ['task'],
+    actions: [{ type: 'task' }],
   });
 
 describe('SqliteAutomationRepository', () => {
@@ -72,6 +74,21 @@ describe('SqliteAutomationRepository', () => {
     expect(await automations.listByUser(OTHER_USER)).toHaveLength(1);
     expect(await automations.replaceAll(LOCAL_USER_ID, [])).toEqual([]);
     expect(await automations.listByUser(OTHER_USER)).toHaveLength(1);
+  });
+
+  it('stores parameterized move and label actions', async () => {
+    const actions: Automation['actions'] = [
+      { type: 'addLabel', labelId: LabelIdSchema.parse('lbl-1') },
+      { type: 'moveTo', mailboxId: MailboxIdSchema.parse('mbx-1') },
+    ];
+
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [
+      buildAutomation({ accountId: work.account.id, actions }),
+    ]);
+
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([
+      buildAutomation({ accountId: work.account.id, actions }),
+    ]);
   });
 
   it('creates a preset only once per user', async () => {

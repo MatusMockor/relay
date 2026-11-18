@@ -52,7 +52,7 @@ describe('automations', () => {
                 effort: 'high',
                 instructions: 'Task vytvor iba ak odo mňa niekto niečo chce.',
               },
-              actions: ['summary', 'task'],
+              actions: [{ type: 'summary' }, { type: 'task' }],
             },
           ],
         },
@@ -91,5 +91,44 @@ describe('automations', () => {
     );
     expect(removedPreset).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
     socket.close();
+  });
+
+  it('applies a rule to existing mail and refuses moves for all accounts', async () => {
+    const session = await registerUser(app.api, email());
+    const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
+    const rule = {
+      accountId: null,
+      name: 'Faktúry',
+      enabled: true,
+      order: 1,
+      conditions: [{ type: 'fromDomain' as const, domain: 'faktury.test' }],
+      ai: { runner: 'claude' as const, model: null, effort: null, instructions: null },
+      actions: [{ type: 'markRead' as const }],
+    };
+    const saved = await app.api.ok(
+      api.automations.replace,
+      { body: { automations: [preset, rule] } },
+      session.accessToken,
+    );
+
+    const applied = await app.api.ok(
+      api.automations.apply,
+      { params: { id: required(saved[1]).id } },
+      session.accessToken,
+    );
+    expect(applied).toEqual({ matched: 0, applied: 0, failed: 0 });
+    const allAccounts = await app.api.fail(
+      api.automations.replace,
+      {
+        body: {
+          automations: [
+            preset,
+            { ...rule, actions: [{ type: 'moveTo', mailboxId: 'mbx_unknown' }] },
+          ],
+        },
+      },
+      session.accessToken,
+    );
+    expect(allAccounts).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
   });
 });

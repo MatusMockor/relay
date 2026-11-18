@@ -1,0 +1,35 @@
+import type { AutomationAction, AutomationActionType } from '@relay/shared/domain';
+import type { Logger } from '../../ports/logger';
+import { errorMessage } from '../shared/mail-provider-sessions';
+import {
+  type AutomationActionContext,
+  type AutomationActionHandlers,
+  orderedActions,
+  runAction,
+} from './automation-action';
+
+export class AutomationActionExecutor {
+  constructor(
+    private readonly handlers: AutomationActionHandlers,
+    private readonly logger: Logger,
+  ) {}
+
+  async execute(
+    context: AutomationActionContext,
+    actions: readonly AutomationAction[],
+  ): Promise<AutomationActionType[]> {
+    const failed: AutomationActionType[] = [];
+    for (const action of orderedActions(actions)) {
+      await runAction(this.handlers, context, action).catch((error: unknown) => {
+        failed.push(action.type);
+        this.logger.warn('An automation action failed', {
+          automationId: context.automation.id,
+          action: action.type,
+          messageId: context.arrival.message.id,
+          error: errorMessage(error),
+        });
+      });
+    }
+    return failed;
+  }
+}

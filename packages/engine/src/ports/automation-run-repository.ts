@@ -9,4 +9,5 @@ export interface AutomationRun {
 
 export interface AutomationRunRepository {
   claim(run: AutomationRun): Promise<boolean>;
+  release(automationId: AutomationId, messageIds: readonly MessageId[]): Promise<void>;
 }

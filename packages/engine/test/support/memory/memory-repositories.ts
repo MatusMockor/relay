@@ -16,6 +16,7 @@ import {
   MemoryGoogleConnectionRepository,
 } from './memory-google-connection-repositories';
 import { MemoryGoogleEventRepository } from './memory-google-event-repository';
+import { MemoryAutomationCandidateRepository } from './memory-automation-candidate-repository';
 import { MemoryInviteCandidateRepository } from './memory-invite-candidate-repository';
 import { MemoryLabelRepository } from './memory-label-repository';
 import { MemoryMailboxRepository } from './memory-mailbox-repository';
@@ -42,6 +43,7 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   splits: new MemorySplitRepository(db),
   automations: new MemoryAutomationRepository(db),
   automationRuns: new MemoryAutomationRunRepository(db),
+  automationCandidates: new MemoryAutomationCandidateRepository(db),
   tasks: new MemoryTaskRepository(db),
   reminders: new MemoryReminderRepository(db),
   drafts: new MemoryDraftRepository(db),

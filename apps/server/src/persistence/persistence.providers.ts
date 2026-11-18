@@ -96,6 +96,7 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   googleCalendars: PORT_TOKENS.GoogleCalendarRepository,
   googleEvents: PORT_TOKENS.GoogleEventRepository,
   inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
+  automationCandidates: PORT_TOKENS.AutomationCandidateRepository,
   users: SERVER_PORT_TOKENS.UserRepository,
   devices: SERVER_PORT_TOKENS.DeviceRepository,
   refreshTokens: SERVER_PORT_TOKENS.RefreshTokenRepository,

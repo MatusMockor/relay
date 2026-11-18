@@ -1,14 +1,22 @@
 import {
+  type ApplyAutomationResponse,
   type Automation,
+  type AutomationId,
   type AutomationInput,
   AutomationIdSchema,
+  isParameterizedAction,
   ReplaceAutomationsBodySchema,
 } from '@relay/shared';
 import type { Organizer } from '../MailClient';
 import type { DemoState } from './demo-state';
 import { demoIds } from './seed/ids';
 
-type DemoAutomationMethods = Pick<Organizer, 'listAutomations' | 'replaceAutomations'>;
+type DemoAutomationMethods = Pick<
+  Organizer,
+  'listAutomations' | 'replaceAutomations' | 'applyAutomation'
+>;
+
+const ALL_ACCOUNTS_MESSAGE = 'Pravidlo pre všetky účty nemôže presúvať ani štítkovať, vyber účet';
 
 const automationId = (key: string) => AutomationIdSchema.parse(`automation-${key}`);
 
@@ -32,7 +40,7 @@ export const buildDemoAutomations = (): Automation[] => [
       instructions:
         'Úlohu vytvor, len ak odo mňa niekto niečo chce. Presun do sprintu a zmeny priority ignoruj.',
     },
-    actions: ['summary', 'task'],
+    actions: [{ type: 'summary' }, { type: 'task' }],
   },
   {
     id: automationId('tibor'),
@@ -44,7 +52,22 @@ export const buildDemoAutomations = (): Automation[] => [
     preset: null,
     conditions: [{ type: 'fromAddress', address: 'tibor@codevo.app' }],
     ai: { runner: 'claude', model: 'claude-opus-5-5', effort: null, instructions: null },
-    actions: ['task', 'notify'],
+    actions: [{ type: 'task' }, { type: 'notify' }],
+  },
+  {
+    id: automationId('gitlab'),
+    userId: demoIds.user,
+    accountId: demoIds.account('efa'),
+    name: 'GitLab do Projektov',
+    enabled: true,
+    order: 2,
+    preset: null,
+    conditions: [{ type: 'fromAddress', address: 'gitlab@firma.sk' }],
+    ai: { runner: 'claude', model: null, effort: null, instructions: null },
+    actions: [
+      { type: 'addLabel', labelId: demoIds.label('efa') },
+      { type: 'moveTo', mailboxId: demoIds.folder('efa', 'projekty') },
+    ],
   },
   {
     id: automationId('jira'),
@@ -52,11 +75,11 @@ export const buildDemoAutomations = (): Automation[] => [
     accountId: null,
     name: 'Jira tasky',
     enabled: false,
-    order: 2,
+    order: 3,
     preset: 'jiraTasks',
     conditions: [{ type: 'jira', projectKeys: [] }],
     ai: { runner: 'claude', model: null, effort: null, instructions: null },
-    actions: ['task'],
+    actions: [{ type: 'task' }],
   },
 ];
 
@@ -78,12 +101,27 @@ const toAutomation = (
 export const createDemoAutomations = (
   state: DemoState,
   now: () => Date,
+  apply: (automationId: AutomationId) => ApplyAutomationResponse,
 ): DemoAutomationMethods => ({
   listAutomations: () => Promise.resolve([...state.automations]),
+  applyAutomation: (automationId) => {
+    try {
+      return Promise.resolve(apply(automationId));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  },
   replaceAutomations: (automations) => {
     const parsed = ReplaceAutomationsBodySchema.safeParse({ automations });
     if (!parsed.success) {
       return Promise.reject(new Error('Automatizácia nie je platná'));
+    }
+    if (
+      parsed.data.automations.some(
+        (input) => input.accountId === null && input.actions.some(isParameterizedAction),
+      )
+    ) {
+      return Promise.reject(new Error(ALL_ACCOUNTS_MESSAGE));
     }
     const next = parsed.data.automations.map((input, order) =>
       toAutomation(state, input, order, now),

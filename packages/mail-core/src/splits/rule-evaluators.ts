@@ -1,5 +1,5 @@
 import type { JiraClassification, SplitMatchSubject } from '@relay/engine';
-import type { AutomationCondition, AutomationConditionType } from '@relay/shared/domain';
+import type { Address, AutomationCondition, AutomationConditionType } from '@relay/shared/domain';
 import type { RegexCache } from './regex-cache';
 import { MAX_MATCH_INPUT_LENGTH } from './regex-safety';
 
@@ -20,11 +20,36 @@ const capped = (value: string): string => value.slice(0, MAX_MATCH_INPUT_LENGTH)
 const senderEmail = (context: RuleContext): string =>
   context.message.from?.email.toLowerCase() ?? '';
 
-const matchesFromDomain: RuleEvaluator<'fromDomain'> = (rule, context) => {
-  const domain = rule.domain.trim().toLowerCase().replace(/^@/, '');
-  const senderDomain = senderEmail(context).split('@')[1] ?? '';
-  return senderDomain !== '' && (senderDomain === domain || senderDomain.endsWith(`.${domain}`));
+const inDomain = (email: string, wanted: string): boolean => {
+  const domain = wanted.trim().toLowerCase().replace(/^@/, '');
+  const emailDomain = email.toLowerCase().split('@')[1] ?? '';
+  return emailDomain !== '' && (emailDomain === domain || emailDomain.endsWith(`.${domain}`));
 };
+
+const matchesFromDomain: RuleEvaluator<'fromDomain'> = (rule, context) =>
+  inDomain(senderEmail(context), rule.domain);
+
+const recipientsOf = (rule: RuleOf<'recipient'>, context: RuleContext): readonly Address[] => {
+  const to = context.message.to ?? [];
+  const cc = context.message.cc ?? [];
+  if (rule.field === 'to') {
+    return to;
+  }
+  if (rule.field === 'cc') {
+    return cc;
+  }
+  return [...to, ...cc];
+};
+
+const matchesRecipient: RuleEvaluator<'recipient'> = (rule, context) =>
+  recipientsOf(rule, context).some((recipient) =>
+    rule.match === 'domain'
+      ? inDomain(recipient.email, rule.value)
+      : recipient.email.toLowerCase() === rule.value.trim().toLowerCase(),
+  );
+
+const matchesHasAttachment: RuleEvaluator<'hasAttachment'> = (_rule, context) =>
+  context.message.hasAttachments === true;
 
 const matchesFromAddress: RuleEvaluator<'fromAddress'> = (rule, context) =>
   senderEmail(context) === rule.address.toLowerCase();
@@ -61,6 +86,8 @@ const EVALUATORS: { readonly [Type in AutomationConditionType]: RuleEvaluator<Ty
   header: matchesHeader,
   jira: matchesJira,
   jiraEvent: matchesJiraEvent,
+  recipient: matchesRecipient,
+  hasAttachment: matchesHasAttachment,
 };
 
 export const evaluateRule = (rule: AutomationCondition, context: RuleContext): boolean => {

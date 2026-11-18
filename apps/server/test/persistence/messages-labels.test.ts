@@ -1,9 +1,18 @@
 import { ConflictError } from '@relay/engine';
-import type { Label } from '@relay/shared/domain';
+import { type AttachmentMeta, AttachmentIdSchema, type Label } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { at, buildMessage, buildThread, newId, seedAccount, seedThread } from './support/fixtures';
 import { openLockHolder, waitForLockWaiters } from './support/lock-holder';
 import { usePgTestContext } from './support/pg-test-context';
+
+const PDF_ATTACHMENT: AttachmentMeta = {
+  id: AttachmentIdSchema.parse('att_invoice'),
+  filename: 'faktura.pdf',
+  contentType: 'application/pdf',
+  size: 1200,
+  contentId: null,
+  inline: false,
+};
 
 describe('PgLabelRepository', () => {
   const context = usePgTestContext();
@@ -220,7 +229,11 @@ describe('PgMessageRepository', () => {
     for (const minute of [1, 2, 3]) {
       const thread = buildThread(seeded.account.id, { lastMessageAt: at(minute) });
       await context.repositories.messages.upsert(
-        buildMessage(thread, seeded.mailboxes.inbox, { subject: `S${String(minute)}` }),
+        buildMessage(thread, seeded.mailboxes.inbox, {
+          subject: `S${String(minute)}`,
+          cc: minute === 2 ? [{ name: 'Účtovníčka', email: 'uctovnictvo@relay.test' }] : [],
+          attachments: minute === 2 ? [PDF_ATTACHMENT] : [],
+        }),
         new Map([['list-id', [`list-${String(minute)}`]]]),
       );
     }
@@ -235,6 +248,15 @@ describe('PgMessageRepository', () => {
 
     expect(first.items.map((item) => item.subject.subject)).toEqual(['S1', 'S2']);
     expect(first.items[0]?.subject.headers.get('list-id')).toEqual(['list-1']);
+    expect(first.items[0]?.subject).toMatchObject({
+      to: [{ name: null, email: 'jan@relay.test' }],
+      cc: [],
+      hasAttachments: false,
+    });
+    expect(first.items[1]?.subject).toMatchObject({
+      cc: [{ name: 'Účtovníčka', email: 'uctovnictvo@relay.test' }],
+      hasAttachments: true,
+    });
     expect(second.items.map((item) => item.subject.subject)).toEqual(['S3']);
     expect(second.nextCursor).toBeNull();
   });

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AiRunnerKindSchema } from './ai';
+import { AutomationActionsSchema } from './automation-action';
 import { AiEffortSchema, AiModelIdSchema, refineAiModelChoice } from './ai-model-catalog';
 import { AccountIdSchema, AutomationIdSchema, UserIdSchema } from './ids';
 import { JiraEventKindSchema } from './jira-event';
@@ -16,6 +17,20 @@ export const JiraEventConditionSchema = z.object({
   kind: JiraEventKindSchema,
 });
 
+export const RecipientFieldSchema = z.enum(['to', 'cc', 'any']);
+export type RecipientField = z.infer<typeof RecipientFieldSchema>;
+
+export const RecipientConditionSchema = z.object({
+  type: z.literal('recipient'),
+  field: RecipientFieldSchema,
+  match: z.enum(['address', 'domain']),
+  value: z.string().trim().min(1).max(255),
+});
+
+export const HasAttachmentConditionSchema = z.object({
+  type: z.literal('hasAttachment'),
+});
+
 export const AutomationConditionSchema = z.discriminatedUnion('type', [
   FromDomainRuleSchema,
   FromAddressRuleSchema,
@@ -23,19 +38,11 @@ export const AutomationConditionSchema = z.discriminatedUnion('type', [
   HeaderRuleSchema,
   JiraRuleSchema,
   JiraEventConditionSchema,
+  RecipientConditionSchema,
+  HasAttachmentConditionSchema,
 ]);
 export type AutomationCondition = z.infer<typeof AutomationConditionSchema>;
 export type AutomationConditionType = AutomationCondition['type'];
-
-export const AutomationActionSchema = z.enum([
-  'summary',
-  'task',
-  'notify',
-  'markRead',
-  'pin',
-  'archive',
-]);
-export type AutomationAction = z.infer<typeof AutomationActionSchema>;
 
 export const AutomationPresetSchema = z.enum(['jiraTasks']);
 export type AutomationPreset = z.infer<typeof AutomationPresetSchema>;
@@ -49,13 +56,6 @@ export const AutomationAiSchema = z.object({
 export type AutomationAi = z.infer<typeof AutomationAiSchema>;
 
 export const AutomationAiInputSchema = AutomationAiSchema.superRefine(refineAiModelChoice);
-
-export const AutomationActionsSchema = z
-  .array(AutomationActionSchema)
-  .min(1)
-  .refine((actions) => new Set(actions).size === actions.length, {
-    message: 'Actions must be unique',
-  });
 
 export const AutomationSchema = z.object({
   id: AutomationIdSchema,

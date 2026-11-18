@@ -7,6 +7,7 @@ export type * from './attachment-blob-catalog';
 export type * from './attachment-extractor';
 export type * from './attachment-reference-repository';
 export type * from './attachment-store';
+export type * from './automation-candidate-repository';
 export type * from './automation-matcher';
 export type * from './automation-repository';
 export type * from './automation-run-repository';

@@ -36,7 +36,7 @@ describe('default Jira tasks automation', () => {
         preset: 'jiraTasks',
         accountId: null,
         conditions: [{ type: 'jira', projectKeys: [] }],
-        actions: ['task'],
+        actions: [{ type: 'task' }],
         ai: { runner: 'claude', model: null, effort: null, instructions: null },
       }),
     ]);

@@ -6,6 +6,7 @@ import type { AttachmentBlobCatalog } from './ports/attachment-blob-catalog';
 import type { AttachmentExtractor } from './ports/attachment-extractor';
 import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentStore } from './ports/attachment-store';
+import type { AutomationCandidateRepository } from './ports/automation-candidate-repository';
 import type { AutomationMatcher } from './ports/automation-matcher';
 import type { AutomationRepository } from './ports/automation-repository';
 import type { AutomationRunRepository } from './ports/automation-run-repository';
@@ -68,6 +69,7 @@ export const PORT_TOKENS = {
   CalendarSubscriptionRepository: Symbol.for('relay.engine.CalendarSubscriptionRepository'),
   CalendarAdapters: Symbol.for('relay.engine.CalendarAdapters'),
   InviteCandidateRepository: Symbol.for('relay.engine.InviteCandidateRepository'),
+  AutomationCandidateRepository: Symbol.for('relay.engine.AutomationCandidateRepository'),
   GoogleConnectionRepository: Symbol.for('relay.engine.GoogleConnectionRepository'),
   GoogleCalendarRepository: Symbol.for('relay.engine.GoogleCalendarRepository'),
   GoogleEventRepository: Symbol.for('relay.engine.GoogleEventRepository'),
@@ -116,6 +118,7 @@ export interface PortRegistry {
   CalendarSubscriptionRepository: CalendarSubscriptionRepository;
   CalendarAdapters: CalendarAdapters;
   InviteCandidateRepository: InviteCandidateRepository;
+  AutomationCandidateRepository: AutomationCandidateRepository;
   GoogleConnectionRepository: GoogleConnectionRepository;
   GoogleCalendarRepository: GoogleCalendarRepository;
   GoogleEventRepository: GoogleEventRepository;

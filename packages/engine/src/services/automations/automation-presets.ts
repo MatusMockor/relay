@@ -25,7 +25,7 @@ export const jiraTasksPreset = (
   preset: 'jiraTasks',
   conditions: [{ type: 'jira', projectKeys: [] }],
   ai: { runner, model: null, effort: null, instructions: null },
-  actions: ['task'],
+  actions: [{ type: 'task' }],
 });
 
 export const hasJiraTasksPreset = (automations: readonly Automation[]): boolean =>
@@ -42,7 +42,7 @@ export const effectiveJiraTasksPreset = (
 export const runsLegacyJiraTasks = (automation: Automation): boolean =>
   automation.preset === 'jiraTasks' &&
   automation.enabled &&
-  automation.actions.includes('task') &&
+  automation.actions.some((action) => action.type === 'task') &&
   automation.ai.instructions === null;
 
 export const appliesToAccount = (automation: Automation, accountId: string): boolean =>

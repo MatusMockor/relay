@@ -1,5 +1,6 @@
 import {
   ConflictError,
+  hasFileAttachments,
   type MessageHeaders,
   type MessageLocation,
   type MessageRepository,
@@ -161,6 +162,9 @@ export class PgMessageRepository implements MessageRepository {
         from: messages.from,
         subject: messages.subject,
         headers: messages.headers,
+        to: messages.to,
+        cc: messages.cc,
+        attachments: messages.attachments,
       })
       .from(messages)
       .where(
@@ -179,7 +183,14 @@ export class PgMessageRepository implements MessageRepository {
       items: result.items.map((row) => ({
         messageId: row.id,
         threadId: row.threadId,
-        subject: { from: row.from, subject: row.subject, headers: toMessageHeaders(row.headers) },
+        subject: {
+          from: row.from,
+          subject: row.subject,
+          headers: toMessageHeaders(row.headers),
+          to: row.to,
+          cc: row.cc,
+          hasAttachments: hasFileAttachments(row.attachments),
+        },
       })),
     };
   }

@@ -177,10 +177,35 @@ describe('SqliteMessageRepository', () => {
   it('pages stored split match subjects with their headers', async () => {
     const { messages } = store.repositories;
     await messages.upsert(message('msg-1', 1), new Map([['x-jira-fingerprint', ['abc']]]));
-    await messages.upsert(message('msg-2', 2, { from: null }), NO_HEADERS);
+    await messages.upsert(
+      message('msg-2', 2, {
+        from: null,
+        cc: [{ name: 'Účtovníčka', email: 'uctovnictvo@firma.sk' }],
+        attachments: [
+          {
+            id: AttachmentIdSchema.parse('att-1'),
+            filename: 'faktura.pdf',
+            contentType: 'application/pdf',
+            size: 1200,
+            contentId: null,
+            inline: false,
+          },
+        ],
+      }),
+      NO_HEADERS,
+    );
     await messages.upsert(message('msg-3', 3), NO_HEADERS);
 
     const first = await messages.listMatchSubjects(seeded.account.id, { cursor: null, limit: 2 });
+    expect(first.items[0]?.subject).toMatchObject({
+      to: [{ name: null, email: 'jan@firma.sk' }],
+      cc: [],
+      hasAttachments: false,
+    });
+    expect(first.items[1]?.subject).toMatchObject({
+      cc: [{ name: 'Účtovníčka', email: 'uctovnictvo@firma.sk' }],
+      hasAttachments: true,
+    });
     expect(first.items.map((item) => item.messageId)).toEqual(['msg-1', 'msg-2']);
     expect(first.items[0]?.subject.headers.get('x-jira-fingerprint')).toEqual(['abc']);
     expect(first.items[0]?.subject.from).toEqual({

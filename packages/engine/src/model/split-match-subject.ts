@@ -6,4 +6,7 @@ export interface SplitMatchSubject {
   readonly from: Address | null;
   readonly subject: string;
   readonly headers: MessageHeaders;
+  readonly to?: readonly Address[];
+  readonly cc?: readonly Address[];
+  readonly hasAttachments?: boolean;
 }

@@ -3,8 +3,10 @@ import type {
   AiEvent,
   AiJob,
   AiJobId,
+  ApplyAutomationResponse,
   AttachmentId,
   Automation,
+  AutomationId,
   AutomationInput,
   ChecklistResponse,
   AiRunnerInfo,
@@ -116,6 +118,7 @@ export interface Organizer {
   replaceSplits(splits: SplitInput[]): Promise<Split[]>;
   listAutomations(): Promise<Automation[]>;
   replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
+  applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;
   updateChecklistItem(

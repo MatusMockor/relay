@@ -14,6 +14,7 @@ import { PgGoogleConnectionRepository } from './google-calendar/pg-google-connec
 import { PgGoogleEventRepository } from './google-calendar/pg-google-event-repository';
 import { PgLabelRepository } from './labels/pg-label-repository';
 import { PgMailboxRepository } from './mailboxes/pg-mailbox-repository';
+import { PgAutomationCandidateRepository } from './automations/pg-automation-candidate-repository';
 import { PgInviteCandidateRepository } from './messages/pg-invite-candidate-repository';
 import { PgMessageRepository } from './messages/pg-message-repository';
 import { PgPendingWorkRepository } from './pending-work/pg-pending-work-repository';
@@ -36,6 +37,7 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   splits: new PgSplitRepository(db),
   automations: new PgAutomationRepository(db),
   automationRuns: new PgAutomationRunRepository(db),
+  automationCandidates: new PgAutomationCandidateRepository(db),
   tasks: new PgTaskRepository(db),
   reminders: new PgReminderRepository(db),
   drafts: new PgDraftRepository(db),
