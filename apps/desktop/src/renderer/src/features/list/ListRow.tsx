@@ -1,7 +1,8 @@
 import { displaySubject, type FolderView, type MailAccount, type Task } from '@relay/shared';
-import { cx } from '@relay/ui';
+import { AccountDot, cx } from '@relay/ui';
 import { jiraActorOf } from '../mail/jira-display';
 import type { ListItem } from '../mail/list-items';
+import { accountLike } from '../mail/use-accounts-model';
 import { RowActions } from '../shell/RowActions';
 import { Highlight } from './Highlight';
 
@@ -91,26 +92,19 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
           : '';
   return (
     <div
-      className={cx(
-        'a-row',
-        thread?.unread === true && 'unread',
-        selected && 'sel',
-        context.unified && context.account !== undefined && 'row-acct',
-      )}
+      className={cx('a-row', thread?.unread === true && 'unread', selected && 'sel')}
       data-row={item.key}
       role="option"
       aria-selected={selected}
-      style={
-        context.unified && context.account !== undefined
-          ? { ['--a' as string]: context.account.color }
-          : undefined
-      }
       onClick={() => {
         onOpen(item);
       }}
     >
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
+        {context.unified && context.account !== undefined ? (
+          <AccountDot account={accountLike(context.account)} title={context.account.displayName} />
+        ) : null}
         <span
           className="who-n"
           title={thread !== null && jiraActorOf(thread) !== null ? 'Cez Jira' : undefined}

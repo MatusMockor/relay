@@ -4,8 +4,7 @@ import { type Folder, NAV_VIEWS, VIEW_META } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { selectFolder } from '../mail/navigation';
 import { folderIconOf } from './folder-icons';
-import { useLabels } from '../../data/hooks/use-mail-queries';
-import { labelHue } from './label-colors';
+import { useNameColors } from '../colors/use-name-colors';
 import { useFolderCounts } from './use-folder-counts';
 
 const isOn = (folder: Folder, view: FolderView): boolean => {
@@ -27,7 +26,7 @@ export function FolderNav({
 }) {
   const folder = useUiStore((state) => state.folder);
   const counts = useFolderCounts();
-  const all = useLabels().data ?? labels;
+  const colors = useNameColors();
   return (
     <>
       {NAV_VIEWS.filter((view) => view !== 'tasks' || showTasks).map((view) => {
@@ -60,7 +59,7 @@ export function FolderNav({
             selectFolder({ kind: 'label', labelId: label.id });
           }}
         >
-          <span className="lbl-dot" style={{ ['--d' as string]: labelHue(all, label.id) }} />
+          <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label.name) }} />
           <span className="fl">{label.name}</span>
         </button>
       ))}

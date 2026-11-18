@@ -2,6 +2,7 @@ import type { AccountId, MailAccount } from '@relay/shared';
 import { useMemo } from 'react';
 import { useAccounts } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
+import { accountHue } from '../colors/name-colors';
 
 export interface AccountsModel {
   readonly accounts: readonly MailAccount[];
@@ -15,7 +16,7 @@ export interface AccountsModel {
 
 export const accountLike = (account: MailAccount) => ({
   name: account.displayName,
-  color: account.color,
+  color: accountHue(account.color),
 });
 
 export const useAccountsModel = (): AccountsModel => {

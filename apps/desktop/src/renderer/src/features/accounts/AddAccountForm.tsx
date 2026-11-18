@@ -59,24 +59,27 @@ export function AddAccountForm({ onDone, onCancel }: AddAccountFormProps) {
         </p>
       )}
       <div className="fld-2 even">
-        <Field
-          id="acc-f-senderName"
-          label="Meno odosielateľa"
-          placeholder="napr. Ján Novák"
-          value={values.senderName}
-          onChange={set('senderName')}
-        />
-        <Field
-          id="acc-f-name"
-          label="Názov účtu (nepovinné)"
-          placeholder="napr. Práca"
-          value={values.name}
-          onChange={set('name')}
-        />
+        <div className="fld-n">
+          <Field
+            id="acc-f-senderName"
+            label="Meno odosielateľa"
+            placeholder="napr. Ján Novák"
+            value={values.senderName}
+            onChange={set('senderName')}
+          />
+          <p className="note">Uvidia ho príjemcovia v poli Od.</p>
+        </div>
+        <div className="fld-n">
+          <Field
+            id="acc-f-name"
+            label="Názov účtu (nepovinné)"
+            placeholder="napr. Práca"
+            value={values.name}
+            onChange={set('name')}
+          />
+          <p className="note">Len pre teba v aplikácii.</p>
+        </div>
       </div>
-      <p className="note">
-        Meno odosielateľa uvidia príjemcovia v poli Od. Názov účtu je len pre teba v aplikácii.
-      </p>
       <ServerSettings
         values={values}
         open={form.serversOpen}

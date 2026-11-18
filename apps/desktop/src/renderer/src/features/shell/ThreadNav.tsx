@@ -48,6 +48,7 @@ export function ThreadNav() {
             className="act"
             title="Predchádzajúca (K)"
             aria-label="Predchádzajúca"
+            aria-disabled={index === 0 || undefined}
             onClick={() => {
               step(-1);
             }}
@@ -59,6 +60,7 @@ export function ThreadNav() {
             className="act"
             title="Ďalšia (J)"
             aria-label="Ďalšia"
+            aria-disabled={index === items.length - 1 || undefined}
             onClick={() => {
               step(1);
             }}

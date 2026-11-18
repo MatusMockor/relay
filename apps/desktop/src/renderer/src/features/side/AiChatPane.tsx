@@ -55,7 +55,7 @@ export function AiChatPane() {
   return (
     <div className="spane chatpane" role="tabpanel" aria-label="AI">
       <div className="chat-ctx">
-        <span className="ctx">
+        <span className="ctx" title={threadId === null ? undefined : subject}>
           Kontext: <b>{threadId === null ? 'celá schránka' : (subject ?? 'vlákno')}</b>
         </span>
         <span className="runner" role="group" aria-label="Spustiť cez">
@@ -114,6 +114,7 @@ export function AiChatPane() {
             key={example}
             type="button"
             className="chipb"
+            title={example}
             onClick={() => {
               submit(example);
             }}

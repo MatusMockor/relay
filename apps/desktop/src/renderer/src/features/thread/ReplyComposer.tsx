@@ -173,9 +173,9 @@ export function ReplyComposer({
         <Button title="Uložiť ako koncept (Esc)" onClick={save}>
           Zavrieť
         </Button>
-        <SendHint />
         <Button variant="primary" onClick={askSend} title={`Odoslať (${MOD}Enter)`}>
           Odoslať
+          <SendHint />
         </Button>
       </div>
       {confirming && account !== undefined ? (

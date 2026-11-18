@@ -1,5 +1,5 @@
 import type { Split, SplitInput } from '@relay/shared';
-import { AccountDot, Button, Field, Icon, IconButton, Switch } from '@relay/ui';
+import { Button, Field, Icon, IconButton, Switch } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
@@ -7,7 +7,8 @@ import { queryKeys } from '../../../data/hooks/query-keys';
 import { useClient } from '../../../data/hooks/services-context';
 import { useSplits } from '../../../data/hooks/use-mail-queries';
 import { showToast } from '../../../state/toast-store';
-import { accountLike, useAccountsModel } from '../../mail/use-accounts-model';
+import { useNameColors } from '../../colors/use-name-colors';
+import { useAccountsModel } from '../../mail/use-accounts-model';
 import { SectionHeader } from '../SectionHeader';
 import { describeRule, readableRule } from './split-rules';
 
@@ -25,6 +26,7 @@ export function SplitsSection() {
   const client = useClient();
   const queryClient = useQueryClient();
   const model = useAccountsModel();
+  const colors = useNameColors();
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('');
   const [saving, setSaving] = useState(false);
@@ -81,11 +83,7 @@ export function SplitsSection() {
           <div className="rule" key={split.id}>
             <b>
               <span className="dot-slot">
-                {account === null || account === undefined ? (
-                  <span className="acc-dot" />
-                ) : (
-                  <AccountDot account={accountLike(account)} />
-                )}
+                <span className="acc-dot" style={{ ['--a' as string]: colors.of(split.name) }} />
               </span>
               {split.name}
             </b>

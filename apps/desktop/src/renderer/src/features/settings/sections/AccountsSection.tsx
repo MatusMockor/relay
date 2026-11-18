@@ -146,7 +146,15 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
   if (adding) {
     return (
       <>
-        <SectionHeader title="Pridať účet">
+        <SectionHeader
+          title="Pridať účet"
+          back={{
+            label: 'Účty',
+            onBack: () => {
+              setAdding(false);
+            },
+          }}
+        >
           Relay sa pripojí k schránke a stiahne posledných 30 dní pošty.
         </SectionHeader>
         <AddAccountForm

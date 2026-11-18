@@ -16,10 +16,6 @@ export function IdlePane() {
   const inbox = useThreadList({ view: 'inbox' });
   const tasks = useTasks();
   const open = (tasks.data?.items ?? []).filter((task) => task.state !== 'done');
-  const lead =
-    items.length > 0 || open.length > 0
-      ? 'Toto ťa ešte čaká neskôr.'
-      : 'Dnes už nič nečaká. Pekný zvyšok dňa.';
   const unreadOf = (id: string) =>
     (inbox.data?.items ?? []).filter((thread) => thread.accountId === id && thread.unread).length;
   return (
@@ -33,7 +29,9 @@ export function IdlePane() {
           <h3>{`${capitalize(WEEKDAYS[now.getDay()] ?? '')} ${dm(now)}`}</h3>
         </div>
       </div>
-      <p className="day-lead">{lead}</p>
+      {items.length > 0 || open.length > 0 ? null : (
+        <p className="day-lead">Dnes už nič nečaká. Pekný zvyšok dňa.</p>
+      )}
       {model.unified ? (
         <MiniSection
           title="Neprečítané podľa účtu"

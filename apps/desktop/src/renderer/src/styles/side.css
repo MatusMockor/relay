@@ -67,11 +67,11 @@
 }
 .sec h4 {
   margin: 0 0 10px;
-  color: var(--fg3);
-  font-size: 13px;
-  letter-spacing: 0;
-  text-transform: none;
-  font-weight: var(--w-medium);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: var(--w-semibold);
 }
 .ai-card {
   border-radius: 10px;
@@ -160,4 +160,26 @@
 }
 .mini.stack > * > span:last-child {
   font-size: var(--fs-xs);
+}
+.stabs .stab {
+  position: relative;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: var(--fs-base);
+}
+.stabs .stab.on {
+  background: none;
+  color: var(--fg);
+  font-weight: var(--w-semibold);
+}
+.stabs .stab.on::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -15px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
 }

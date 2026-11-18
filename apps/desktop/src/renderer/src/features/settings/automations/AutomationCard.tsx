@@ -26,7 +26,6 @@ export function AutomationCard({
   onEngage,
 }: AutomationCardProps) {
   const { input } = rule;
-  const account = accounts.find((item) => item.id === input.accountId) ?? null;
   return (
     <section className={editing ? 'au ed' : 'au'} aria-label={`Pravidlo ${input.name}`}>
       <div className="au-h">
@@ -39,17 +38,8 @@ export function AutomationCard({
               onChange({ name });
             }}
           />
-          <span className="scope">{account?.displayName ?? 'Všetky účty'}</span>
           {rule.preset !== null ? <span className="scope">Predvolené</span> : null}
         </b>
-        <ModelPicker
-          value={input.ai}
-          disabled={disabled}
-          onOpen={onEngage}
-          onChange={(choice) => {
-            onChange({ ai: { ...input.ai, ...choice } });
-          }}
-        />
         <Switch
           checked={input.enabled}
           label={`Pravidlo ${input.name} zapnuté`}
@@ -88,6 +78,17 @@ export function AutomationCard({
           onChange({ ai: { ...input.ai, instructions } });
         }}
       />
+      <div className="au-f">
+        <span>Model</span>
+        <ModelPicker
+          value={input.ai}
+          disabled={disabled}
+          onOpen={onEngage}
+          onChange={(choice) => {
+            onChange({ ai: { ...input.ai, ...choice } });
+          }}
+        />
+      </div>
       {isComplete(rule) ? null : (
         <p className="au-hint" role="status">
           Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.

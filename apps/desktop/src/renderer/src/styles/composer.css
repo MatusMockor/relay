@@ -273,8 +273,8 @@
   flex: none;
   color: var(--faint);
 }
-.send-hint {
-  display: inline-flex;
-  gap: 3px;
-  margin: 0 2px 0 6px;
+.btn-hint {
+  margin-left: 2px;
+  opacity: 0.65;
+  font-weight: var(--w-medium);
 }

@@ -50,6 +50,10 @@
   gap: 2px;
   flex: none;
 }
+.t-pos .act[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
 .t-pos span {
   margin-right: 6px;
 }

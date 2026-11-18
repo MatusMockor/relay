@@ -116,21 +116,23 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         <Spark />
         Navrhnuté odpovede
       </h4>
-      <div className="sugs">
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={suggestion.id}
-            type="button"
-            className="sug"
-            title={suggestion.body}
-            onClick={() => {
-              reply(suggestion.body);
-            }}
-          >
-            <Kbd keys={[String(index + 1)]} />
-            {suggestion.label}
-          </button>
-        ))}
+      <div className="sugs split">
+        <div className="sugs">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              className="sug"
+              title={suggestion.body}
+              onClick={() => {
+                reply(suggestion.body);
+              }}
+            >
+              <Kbd keys={[String(index + 1)]} />
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
         {own(true)}
       </div>
     </div>

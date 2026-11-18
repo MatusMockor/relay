@@ -11,10 +11,15 @@
     padding: 20px 16px;
   }
   .chat-log {
-    padding: 14px 12px 12px;
+    padding: 14px 16px 12px;
   }
   .chat-in {
-    margin: 0 12px 12px;
+    margin: 0 16px 12px;
+  }
+  .chat-ctx,
+  .chat-ex {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 @container side (max-width: 275px) {

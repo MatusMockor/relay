@@ -56,6 +56,7 @@ export function Segmented<V extends string>({
           tabIndex={rovingTabIndex(index, selected)}
           className={option.value === value ? 'on' : undefined}
           disabled={disabled || option.disabled === true}
+          aria-disabled={disabled || option.disabled === true || undefined}
           onClick={() => {
             onChange(option.value);
           }}

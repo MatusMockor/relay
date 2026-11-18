@@ -1,6 +1,6 @@
 import { FolderIcon } from '@relay/ui';
 import { folderIconOf } from '../folders/folder-icons';
-import { labelHue } from '../folders/label-colors';
+import { useNameColors } from '../colors/use-name-colors';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
@@ -12,6 +12,7 @@ export function FolderTitle() {
   const folder = useUiStore((state) => state.folder);
   const { items } = useMailActions();
   const labels = useLabels();
+  const colors = useNameColors();
   const model = useAccountsModel();
   const count = items.length;
   const where = model.unified
@@ -24,10 +25,7 @@ export function FolderTitle() {
     return (
       <div className="a-title">
         <h2>
-          <span
-            className="lbl-dot"
-            style={{ ['--d' as string]: labelHue(labels.data ?? [], folder.labelId) }}
-          />
+          <span className="lbl-dot" style={{ ['--d' as string]: colors.of(label?.name ?? '') }} />
           {label?.name ?? 'Štítok'}
           {count > 0 ? <b>{count}</b> : null}
         </h2>

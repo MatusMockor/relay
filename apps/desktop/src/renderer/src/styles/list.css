@@ -30,16 +30,6 @@
   background: var(--sel);
   --rowbg: var(--sel);
 }
-.a-row.row-acct::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--a) 75%, transparent);
-}
 .a-row .dot {
   width: 6px;
   height: 6px;
@@ -48,7 +38,7 @@
   box-shadow: 0 0 0 3px rgba(142, 162, 255, 0.12);
 }
 .a-row .who {
-  color: var(--fg3);
+  color: #b8bcc7;
   font-weight: var(--w-regular);
   white-space: nowrap;
   overflow: hidden;
@@ -84,7 +74,7 @@
   flex: none;
 }
 .a-row .subj {
-  color: var(--fg3);
+  color: var(--fg2);
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -229,9 +219,5 @@
   }
 }
 .a-row.unread .snip {
-  color: var(--muted);
-}
-.dense .a-row.row-acct::before {
-  top: 7px;
-  bottom: 7px;
+  color: var(--fg3);
 }

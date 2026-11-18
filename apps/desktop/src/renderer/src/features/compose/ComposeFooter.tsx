@@ -36,9 +36,9 @@ export function ComposeFooter({ empty, onAi, onAttach, onSchedule, onSend }: Com
         <Icon name="clock" />
         Naplánovať odoslanie
       </Button>
-      <SendHint />
       <Button variant="primary" onClick={onSend} title={`Odoslať (${MOD}Enter)`}>
         Odoslať
+        <SendHint />
       </Button>
     </div>
   );
