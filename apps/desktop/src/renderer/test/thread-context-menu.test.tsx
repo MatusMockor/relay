@@ -159,7 +159,6 @@ describe('thread menu items', () => {
     expect(labels('done')).toEqual([
       'unread:Označiť ako neprečítané',
       'done:Vrátiť do Doručenej pošty',
-      'remind:Pripomenúť…',
       '---',
       'trash:Presunúť do koša',
     ]);
@@ -176,6 +175,10 @@ describe('thread menu items', () => {
       'trash:Presunúť do koša',
     ]);
     expect(labels('tasks')).toEqual(labels('reminders'));
+  });
+
+  it('offers no reminder in the done view', () => {
+    expect(labels('done')).not.toContain('remind:Pripomenúť…');
   });
 
   it('enables every item', () => {

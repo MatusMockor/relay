@@ -19,7 +19,7 @@ const DEFAULT_ITEMS: readonly ContextMenuItem[] = [
 ];
 
 const VIEW_ITEMS: Readonly<Record<string, readonly ContextMenuItem[]>> = {
-  done: [entry('done', 'Vrátiť do Doručenej pošty'), REMIND, SEPARATOR, TRASH],
+  done: [entry('done', 'Vrátiť do Doručenej pošty'), SEPARATOR, TRASH],
   trash: [entry('done', 'Obnoviť')],
   spam: [entry('spam', 'Nie je spam'), SEPARATOR, TRASH],
   sent: [SEPARATOR, TRASH],
