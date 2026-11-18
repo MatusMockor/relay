@@ -153,7 +153,13 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     }
     mutation.mutate({ threadId: thread.id, action: { type: 'markRead' } });
   };
-  return { markDone, toggleSpam, remind, moveTo, trash, markRead };
+  const markUnread = (thread: ThreadSummary) => {
+    if (thread.unread) {
+      return;
+    }
+    mutation.mutate({ threadId: thread.id, action: { type: 'markUnread' } });
+  };
+  return { markDone, toggleSpam, remind, moveTo, trash, markRead, markUnread };
 };
 
 export type ThreadCommands = ReturnType<typeof useThreadCommands>;

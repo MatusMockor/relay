@@ -25,7 +25,7 @@ const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', k
 const HELD_VIEWS: readonly FolderView[] = ['trash', 'spam'];
 const MIXED_VIEWS: readonly FolderView[] = ['mailbox', 'label'];
 
-const actionView = (view: FolderView, item: ListItem): string => {
+export const actionView = (view: FolderView, item: ListItem): string => {
   if (item.kind !== 'thread') {
     return view;
   }

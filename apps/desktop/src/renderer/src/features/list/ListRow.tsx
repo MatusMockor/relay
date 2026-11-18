@@ -6,6 +6,7 @@ import { accountLike } from '../mail/use-accounts-model';
 import { RowActions } from '../shell/RowActions';
 import { Highlight } from './Highlight';
 import { LabelChips } from './LabelChips';
+import { useThreadMenu } from './use-thread-menu';
 
 export interface RowContext {
   readonly view: FolderView;
@@ -76,6 +77,7 @@ export interface ListRowProps {
 }
 
 export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
+  const showThreadMenu = useThreadMenu();
   const thread = item.kind === 'thread' ? item.thread : null;
   const subject =
     item.kind === 'thread'
@@ -101,6 +103,13 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
       onClick={() => {
         onOpen(item);
       }}
+      onContextMenu={
+        item.kind === 'thread'
+          ? (event) => {
+              showThreadMenu(event, item, context.view);
+            }
+          : undefined
+      }
     >
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
