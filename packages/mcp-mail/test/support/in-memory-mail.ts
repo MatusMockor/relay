@@ -25,6 +25,7 @@ const VIEW_STATES: Partial<Record<FolderView, ThreadState>> = {
   inbox: 'inbox',
   done: 'done',
   trash: 'trash',
+  spam: 'spam',
   reminders: 'reminder',
 };
 

@@ -23,6 +23,7 @@ export const G_VIEWS: Readonly<Record<string, Folder>> = {
   s: { kind: 'view', view: 'sent' },
   d: { kind: 'view', view: 'drafts' },
   n: { kind: 'view', view: 'scheduled' },
+  p: { kind: 'view', view: 'spam' },
   k: { kind: 'view', view: 'trash' },
 };
 

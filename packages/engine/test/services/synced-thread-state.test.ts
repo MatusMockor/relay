@@ -1,5 +1,6 @@
 import type { MailboxRole, MessageId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
+import { MailCopies } from '../../src/services/shared/mail-copies';
 import { messageRoleOf, syncedThreadState } from '../../src/services/sync/synced-thread-state';
 import { emptyThreadWork } from '../../src/services/sync/thread-refresh-work';
 import { deliverMail, present, seedAccount } from '../support/fixtures';
@@ -15,13 +16,13 @@ const trashedThread = async (engine: TestEngine) => {
   const mailboxes = await engine.repositories.mailboxes.listForSync(account.id);
   const roles = new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.role]));
   const messages = await engine.repositories.messages.listByThread(USER_ID, thread.id);
-  return { thread, roles, messages };
+  return { thread, roles, messages, copies: MailCopies.of(account) };
 };
 
 describe('syncedThreadState', () => {
   it('honours a pending local restore over the stored trash location', async () => {
     const engine = createTestEngine();
-    const { thread, roles, messages } = await trashedThread(engine);
+    const { thread, roles, messages, copies } = await trashedThread(engine);
     const restoring = new Map<MessageId, MailboxRole>(
       messages.map((message) => [message.id, 'inbox']),
     );
@@ -32,6 +33,7 @@ describe('syncedThreadState', () => {
       { ...thread, state: 'inbox' },
       messages,
       roleOf,
+      copies,
     );
 
     expect(state).toBe('inbox');
@@ -39,7 +41,7 @@ describe('syncedThreadState', () => {
 
   it('honours a pending local trash over the stored inbox location', async () => {
     const engine = createTestEngine();
-    const { thread, roles, messages } = await trashedThread(engine);
+    const { thread, roles, messages, copies } = await trashedThread(engine);
     const inboxId = present([...roles].find(([, role]) => role === 'inbox'))[0];
     const inInbox = messages.map((message) => ({ ...message, mailboxId: inboxId }));
     const trashing = new Map<MessageId, MailboxRole>(
@@ -51,6 +53,7 @@ describe('syncedThreadState', () => {
       thread,
       inInbox,
       messageRoleOf(roles, trashing),
+      copies,
     );
 
     expect(state).toBe('trash');

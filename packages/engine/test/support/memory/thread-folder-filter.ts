@@ -1,6 +1,14 @@
-import type { FolderView, SplitId, ThreadSummary, UserId } from '@relay/shared/domain';
+import {
+  type FolderView,
+  isHeldThreadState,
+  type SplitId,
+  type ThreadSummary,
+  type UserId,
+} from '@relay/shared/domain';
 import type { ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+
+const unheld = (thread: ThreadSummary): boolean => !isHeldThreadState(thread.state);
 
 type ViewPredicate = (userId: UserId, thread: ThreadSummary, query: ThreadFolderQuery) => boolean;
 
@@ -14,11 +22,12 @@ export class ThreadFolderFilter {
         (query.splitId !== null || !this.inExclusiveSplit(userId, thread)),
       done: (_userId, thread) => thread.state === 'done',
       trash: (_userId, thread) => thread.state === 'trash',
+      spam: (_userId, thread) => thread.state === 'spam',
       reminders: (_userId, thread) => thread.state === 'reminder',
-      tasks: (_userId, thread) => thread.state !== 'trash' && this.hasOpenTask(thread),
-      sent: (_userId, thread) => this.hasSentMessage(thread),
-      drafts: (_userId, thread) => thread.hasDraft,
-      scheduled: (_userId, thread) => this.hasScheduledSend(thread),
+      tasks: (_userId, thread) => unheld(thread) && this.hasOpenTask(thread),
+      sent: (_userId, thread) => unheld(thread) && this.hasSentMessage(thread),
+      drafts: (_userId, thread) => unheld(thread) && thread.hasDraft,
+      scheduled: (_userId, thread) => unheld(thread) && this.hasScheduledSend(thread),
     };
   }
 

@@ -33,7 +33,7 @@ export interface ThreadRefreshWork {
   readonly expungedFromInbox: boolean;
 }
 
-export interface TrashOriginWork {
+export interface MoveOriginWork {
   readonly messageId: MessageId;
   readonly role: MailboxRole;
 }
@@ -120,7 +120,8 @@ export interface PendingWorkPayloads {
   readonly 'calendar-backfill': CalendarBackfillWork;
   readonly 'calendar-rebuild': CalendarRebuildWork;
   readonly 'calendar-rebuild-part': CalendarRebuildPartWork;
-  readonly 'trash-origin': TrashOriginWork;
+  readonly 'trash-origin': MoveOriginWork;
+  readonly 'spam-origin': MoveOriginWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

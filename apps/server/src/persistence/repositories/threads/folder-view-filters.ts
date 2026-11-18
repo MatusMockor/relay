@@ -1,5 +1,5 @@
-import type { FolderView } from '@relay/shared/domain';
-import { type SQL, sql } from 'drizzle-orm';
+import { type FolderView, HELD_THREAD_STATES } from '@relay/shared/domain';
+import { notInArray, type SQL, sql } from 'drizzle-orm';
 import {
   drafts,
   mailboxes,
@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notTrashed = sql`${threads.state} <> 'trash'`;
+const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
 const outsideExclusiveSplits = sql`not exists(
   select 1 from ${threadSplits}
@@ -52,11 +52,12 @@ const FOLDER_VIEW_FILTERS: Readonly<Record<FolderView, (input: FolderViewFilterI
       : sql`${threads.state} = 'inbox' and ${outsideExclusiveSplits}`,
   done: () => sql`${threads.state} = 'done'`,
   trash: () => sql`${threads.state} = 'trash'`,
+  spam: () => sql`${threads.state} = 'spam'`,
   reminders: () => sql`${threads.state} = 'reminder'`,
-  tasks: () => sql`${notTrashed} and ${hasOpenTask}`,
-  sent: () => sql`${notTrashed} and ${hasSentMessage}`,
-  drafts: () => sql`${notTrashed} and ${hasDraft}`,
-  scheduled: () => sql`${notTrashed} and ${hasActiveScheduledSend}`,
+  tasks: () => sql`${notHeld} and ${hasOpenTask}`,
+  sent: () => sql`${notHeld} and ${hasSentMessage}`,
+  drafts: () => sql`${notHeld} and ${hasDraft}`,
+  scheduled: () => sql`${notHeld} and ${hasActiveScheduledSend}`,
 };
 
 export const folderViewFilter = (input: FolderViewFilterInput): SQL =>

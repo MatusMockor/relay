@@ -43,7 +43,7 @@ export const splitsInScope = (splits: readonly Split[], scope: string): Split[] 
     .filter((split) => scope === 'all' || split.accountId === null || split.accountId === scope)
     .sort((a, b) => a.order - b.order);
 
-const RESERVED_G = new Set(['I', 'U', 'H', 'E', 'T', 'S', 'D', 'N', 'K']);
+const RESERVED_G = new Set(['I', 'U', 'H', 'E', 'T', 'S', 'D', 'N', 'P', 'K']);
 
 const lettersOf = (value: string): string[] =>
   Array.from(
@@ -53,8 +53,13 @@ const lettersOf = (value: string): string[] =>
       .toUpperCase(),
   );
 
-export const splitGKey = (split: Split): string =>
-  lettersOf(split.name).find((char) => /[A-Z]/.test(char) && !RESERVED_G.has(char)) ?? '?';
+export const splitGKey = (split: Split): string | null =>
+  lettersOf(split.name).find((char) => /[A-Z]/.test(char) && !RESERVED_G.has(char)) ?? null;
+
+const splitHint = (split: Split): string => {
+  const key = splitGKey(split);
+  return key === null ? `Prejsť na ${split.name}` : `Prejsť na ${split.name} (G ${key})`;
+};
 
 export function SplitTabs() {
   const folder = useUiStore((state) => state.folder);
@@ -84,7 +89,7 @@ export function SplitTabs() {
           splitId={split.id}
           folder={{ kind: 'inbox', splitId: split.id }}
           active={folder.kind === 'inbox' && folder.splitId === split.id}
-          hint={`Prejsť na ${split.name} (G ${splitGKey(split)})`}
+          hint={splitHint(split)}
         />
       ))}
     </nav>

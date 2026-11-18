@@ -1,4 +1,10 @@
-import type { SplitId, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
+import {
+  isHeldThreadState,
+  type SplitId,
+  type ThreadId,
+  type ThreadPage,
+  type ThreadSummary,
+} from '@relay/shared';
 import { foldText } from '../../lib/text';
 import type { ThreadListParams } from '../MailClient';
 import type { DemoState, DemoThreadRecord } from './demo-state';
@@ -36,12 +42,12 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
   if (params.view === 'sent') {
     const own = ownEmails(state);
     return (
-      thread.state !== 'trash' &&
+      !isHeldThreadState(thread.state) &&
       record.messages.some((message) => own.has(message.from?.email ?? ''))
     );
   }
   if (params.view === 'drafts') {
-    return thread.hasDraft && thread.state !== 'trash';
+    return thread.hasDraft && !isHeldThreadState(thread.state);
   }
   if (params.view === 'scheduled') {
     return false;

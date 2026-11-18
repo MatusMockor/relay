@@ -10,7 +10,7 @@ import {
 import { MessageSchema } from './message';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
 
-export const ThreadStateSchema = z.enum(['inbox', 'done', 'trash', 'reminder']);
+export const ThreadStateSchema = z.enum(['inbox', 'done', 'trash', 'spam', 'reminder']);
 export type ThreadState = z.infer<typeof ThreadStateSchema>;
 
 export const ThreadSummarySchema = z.object({

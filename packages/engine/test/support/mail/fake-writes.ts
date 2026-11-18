@@ -22,6 +22,27 @@ export const applyKeywords = (
   });
 };
 
+const GMAIL_HELD_ROLES: ReadonlySet<string> = new Set(['trash', 'spam']);
+const GMAIL_LABEL_ROLES: ReadonlySet<string> = new Set(['inbox', 'archive']);
+
+const sameSource = (left: Uint8Array, right: Uint8Array): boolean =>
+  left.length === right.length && left.every((byte, index) => byte === right[index]);
+
+const dropGmailLabels = (server: FakeMailServer, targetPath: string, source: Uint8Array) => {
+  if (!server.gmail || !GMAIL_HELD_ROLES.has(server.find(targetPath)?.role ?? '')) {
+    return;
+  }
+  [...server.mailboxes.values()]
+    .filter((candidate) => GMAIL_LABEL_ROLES.has(candidate.role))
+    .forEach((candidate) => {
+      [...candidate.messages.values()]
+        .filter((record) => sameSource(record.source, source))
+        .forEach((record) => {
+          server.expunge(candidate.path, record.uid);
+        });
+    });
+};
+
 export const moveRecords = (
   mailbox: FakeMailbox,
   server: FakeMailServer,
@@ -38,6 +59,9 @@ export const moveRecords = (
       record === undefined ? null : server.tryDeliver(targetPath, record.source, record);
     if (newUid !== null && !server.partialMoves) {
       server.expunge(mailbox.path, uid);
+    }
+    if (record !== undefined && newUid !== null && !server.partialMoves) {
+      dropGmailLabels(server, targetPath, record.source);
     }
     if (newUid !== null) {
       uidMap.set(uid, newUid);

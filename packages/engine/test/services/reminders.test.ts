@@ -64,6 +64,18 @@ describe('ReminderService', () => {
     expect(fired).toMatchObject({ state: 'trash', remindAt: null });
   });
 
+  it('keeps threads reported as spam in spam when their reminder fires', async () => {
+    const engine = createTestEngine();
+    const thread = await threadInInbox(engine);
+    await engine.services.reminders.schedule(USER_ID, thread.id, '2026-11-16T08:00:00.000Z');
+    await engine.services.actions.apply(USER_ID, thread.id, { type: 'reportSpam' });
+
+    engine.clock.set('2026-11-17T00:00:00.000Z');
+    const [fired] = await engine.services.reminders.fireDue();
+
+    expect(fired).toMatchObject({ state: 'spam', remindAt: null });
+  });
+
   it('rejects reminders in the past', async () => {
     const engine = createTestEngine();
     const thread = await threadInInbox(engine);

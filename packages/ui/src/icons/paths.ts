@@ -38,6 +38,7 @@ export const STROKE_ICONS = {
     '<rect x="2.5" y="2.5" width="11" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="11" height="4.5" rx="1.2"/><path d="M5 4.8h.01M5 11.2h.01"/>',
   device: '<rect x="2" y="3" width="12" height="8" rx="1.3"/><path d="M5.5 13.5h5M8 11v2.5"/>',
   shield: '<path d="M8 2l5 2v4c0 3-2.2 5.2-5 6-2.8-.8-5-3-5-6V4z"/>',
+  spam: '<path d="M5.6 2h4.8L14 5.6v4.8L10.4 14H5.6L2 10.4V5.6z"/><path d="M8 5v3.4M8 10.9h.01"/>',
   image:
     '<rect x="2.5" y="3" width="11" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="M13.5 11l-3.5-3.5-6 5.5"/>',
 } as const;
@@ -52,6 +53,7 @@ export const FOLDER_ICONS = {
   calendar:
     '<rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
   trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>',
+  spam: '<path d="M8.7 4h6.6L20 8.7v6.6L15.3 20H8.7L4 15.3V8.7z"/><path d="M12 8v4.5M12 16h.01"/>',
   pen: '<path d="M5 19l1-4L16 5l3 3L9 18z"/>',
   task: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   side: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 5v14"/>',

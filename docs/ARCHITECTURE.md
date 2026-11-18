@@ -68,7 +68,7 @@ shared  ◄── engine ◄── store-sqlite
 - Engine-internal types (raw/parsed messages, sync cursors, pages, AI requests) live in `engine/src/model/`. They never cross the wire.
 - `PORT_TOKENS` (`engine/src/tokens.ts`) gives every port a `Symbol.for('relay.engine.<Port>')` token, used by Nest providers and the desktop composition root.
 - `EngineError` subclasses (`NotFoundError`, `ValidationError`, `ConflictError`, `ForbiddenError`, `ProviderError`, `NotImplementedError`) carry an `ApiErrorCode`; HTTP and IPC adapters map them to the shared error shape.
-- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, read/unread, label, pin), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AutomationService`, `AiService`, `UnsubscribeService` (parses the stored `List-Unsubscribe` / `List-Unsubscribe-Post` headers into https or mailto options and sends one-click unsubscribes).
+- **Application services** in `engine/src/services/`, one use case family per file: `SyncService`, `InboxQueryService`, `ThreadQueryService`, `MessageActionsService` (done, undo, trash, restore, report spam / not spam, read/unread, label, pin), `ReminderService`, `ComposeService`, `TaskService`, `SplitService`, `AutomationService`, `AiService`, `UnsubscribeService` (parses the stored `List-Unsubscribe` / `List-Unsubscribe-Post` headers into https or mailto options and sends one-click unsubscribes).
 - All database access goes through repository ports. No service, controller or IPC handler talks to Drizzle directly.
 - Server implements the ports with Postgres + Drizzle; local mode implements them with SQLite + Drizzle (`store-sqlite`). The same services run in both places.
 
@@ -80,7 +80,13 @@ shared  ◄── engine ◄── store-sqlite
 - A `Split` matches a message when any of its rules matches. `accountId: null` means the split applies to the unified inbox. An `exclusive` split removes matching threads from the main inbox. A `hideTasks` split leaves out threads that are in Úlohy (have a task that is not done).
 - An `Automation` runs when all of its conditions match a new inbox message (split rule conditions plus the Jira event kind). Actions: AI summary, AI-judged task, notification, mark read, pin (IMAP `\Flagged`), archive. Each rule picks its AI runner, a model and effort from the static catalog in `shared/src/domain/ai-model-catalog.ts`, and optional instructions. Rules never run on the initial sync backlog, and `AutomationRunRepository` records each automation and message pair so a rule fires at most once per message. The seeded `Jira tasky` preset keeps the classic Jira task behavior (create or reopen by Jira key without AI) until the user adds instructions or turns it off. Which Jira event kinds create or reopen such a task is the user setting `jira.taskEvents` (default `mention` and `assigned`); other kinds create nothing and leave an existing task untouched.
 
-"Done" = archive (IMAP move to archive mailbox / Gmail remove INBOX label). Read state, done, trash and labels are mirrored back to the mail provider so other clients see them too.
+"Done" = archive (IMAP move to archive mailbox / Gmail remove INBOX label). Read state, done, trash, spam and labels are mirrored back to the mail provider so other clients see them too.
+
+- Sync covers the mailbox roles inbox, sent, archive, trash and spam (`DEFAULT_SYNC_OPTIONS.mailboxRoles`). A missing archive, sent, trash, drafts or spam (`Junk`) mailbox is created on first use (`RoleMailboxEnsurer`).
+- `ThreadState` is `inbox`, `done`, `trash`, `spam` or `reminder`. Trash and spam are holding states: a thread whose mail (ignoring Sent copies) sits only in that mailbox gets that state (spam when it is split between Spam and Trash), and it leaves it once its mail is elsewhere. Generic actions like done refuse a held thread; restore or not spam brings it back.
+- Folder views (`FolderView`): `inbox`, `tasks`, `reminders`, `done`, `sent`, `drafts`, `scheduled`, `spam`, `trash`. `spam` and `trash` show threads in that state; every other view leaves them out.
+- "Report spam" moves the received (inbox and archive) mail of a thread to the spam mailbox and remembers where each message came from; "Not spam" moves it back there (inbox when unknown). Trash remembers origins the same way, so a trashed spam thread is restored to spam.
+- A copy ingested from the spam mailbox never counts as an inbox arrival, so it triggers no automations, AI one-liners or notifications, and it creates no Jira tasks or calendar invitations. An INBOX copy of the same message is classified on its own.
 
 ## Server (`apps/server`)
 

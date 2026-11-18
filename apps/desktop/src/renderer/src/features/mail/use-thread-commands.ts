@@ -5,7 +5,7 @@ import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
 import { useThreadAction } from '../../data/hooks/use-thread-action';
 import { describeWhen } from '../../lib/dates';
-import { showToast } from '../../state/toast-store';
+import { dropUndo, showToast } from '../../state/toast-store';
 import { useUiStore } from '../../state/ui-store';
 import type { ListItem } from './list-items';
 import { backToList, openThread } from './navigation';
@@ -43,18 +43,38 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     undo: ThreadAction,
   ) => {
     retire(items, thread.id);
-    mutation.mutate({ threadId: thread.id, action });
-    showToast(message, {
-      undo: () => {
-        mutation.mutate({ threadId: thread.id, action: undo });
-      },
+    const revert = () => {
+      mutation.mutate({ threadId: thread.id, action: undo });
+    };
+    void mutation.mutateAsync({ threadId: thread.id, action }).catch(() => {
+      dropUndo(revert);
     });
+    showToast(message, { undo: revert });
+  };
+  const toggleSpam = (item: ListItem | null) => {
+    if (item?.kind !== 'thread') {
+      return;
+    }
+    const { thread } = item;
+    if (thread.state === 'spam') {
+      apply(thread, { type: 'notSpam' }, 'Nie je spam, presunuté späť', { type: 'reportSpam' });
+      return;
+    }
+    if (thread.state === 'trash') {
+      showToast('Najprv konverzáciu obnov z koša');
+      return;
+    }
+    apply(thread, { type: 'reportSpam' }, 'Nahlásené ako spam', { type: 'notSpam' });
   };
   const markDone = (item: ListItem | null) => {
     if (item?.kind !== 'thread') {
       return;
     }
     const { thread } = item;
+    if (thread.state === 'spam') {
+      toggleSpam(item);
+      return;
+    }
     if (thread.state === 'done' || thread.state === 'trash') {
       apply(
         thread,
@@ -121,7 +141,7 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
     }
     mutation.mutate({ threadId: thread.id, action: { type: 'markRead' } });
   };
-  return { markDone, remind, trash, markRead };
+  return { markDone, toggleSpam, remind, trash, markRead };
 };
 
 export type ThreadCommands = ReturnType<typeof useThreadCommands>;

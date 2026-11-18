@@ -10,6 +10,7 @@ const ICONS = {
   send: 'send',
   file: 'file',
   calendar: 'calendar',
+  spam: 'spam',
   trash: 'trash',
 } as const satisfies Record<string, FolderIconName>;
 

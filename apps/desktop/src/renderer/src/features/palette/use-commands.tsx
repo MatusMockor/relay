@@ -1,5 +1,6 @@
 import { composeOverlay } from '../../state/compose-overlay';
 import { AccountSquare, FolderIcon, Icon, Spark } from '@relay/ui';
+import type { ThreadState } from '@relay/shared';
 import type { ReactNode } from 'react';
 import { useSplits } from '../../data/hooks/use-mail-queries';
 import { ALT, MOD } from '../../lib/platform-keys';
@@ -12,6 +13,7 @@ import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
 import { threadComposeCommands } from './thread-compose-commands';
+import { threadSpamCommand } from './thread-spam-command';
 import { accountCount } from '../../lib/text';
 
 export interface Command {
@@ -32,8 +34,13 @@ const ICONS = {
   send: 'send',
   file: 'file',
   calendar: 'calendar',
+  spam: 'spam',
   trash: 'trash',
 } as const;
+
+const gKeys = (key: string | null): string[] => (key === null ? [] : ['G', key]);
+
+const RESTORING_STATES: readonly ThreadState[] = ['done', 'trash', 'spam'];
 
 export const useCommands = (): Command[] => {
   const actions = useMailActions();
@@ -45,7 +52,7 @@ export const useCommands = (): Command[] => {
   const current = actions.current;
   const ctx = current?.kind === 'thread' ? current.thread.subject.slice(0, 38) : undefined;
   const thread = current?.kind === 'thread' ? current.thread : null;
-  const restoring = thread !== null && (thread.state === 'done' || thread.state === 'trash');
+  const restoring = thread !== null && RESTORING_STATES.includes(thread.state);
   const settings =
     (section: 'accounts' | 'server' | 'look' | 'keys' = 'accounts', adding = false) =>
     () => {
@@ -94,6 +101,7 @@ export const useCommands = (): Command[] => {
                   },
                 },
                 ...threadComposeCommands(thread.id, ctx, actions.compose),
+                ...threadSpamCommand(thread, ctx, actions.thread),
               ]),
           {
             id: 'trash',
@@ -177,7 +185,7 @@ export const useCommands = (): Command[] => {
     ...splits.map((split) => ({
       id: `split-${split.id}`,
       label: `Prejsť na ${split.name}`,
-      keys: ['G', splitGKey(split)],
+      keys: gKeys(splitGKey(split)),
       icon: <Icon name="inbox" />,
       alias: 'split inbox',
       run: () => {
