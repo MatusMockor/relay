@@ -27,6 +27,8 @@ const FAILURES: Readonly<Record<Status<'error'>['failed'], readonly [string, str
   ],
 };
 
+export const failureTitle = (failed: Status<'error'>['failed']): string => FAILURES[failed][0];
+
 const view = (
   title: string,
   detail: string | null,
