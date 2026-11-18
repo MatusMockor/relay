@@ -14,7 +14,7 @@ const svgOf = (html: string): string => {
 };
 
 describe('blocked remote images', () => {
-  it('swaps a remote image for a neutral placeholder of the same size', () => {
+  it('swaps a remote image for an empty spacer of the same size', () => {
     const html = withBlockedImagePlaceholders(
       '<img src="https://cdn.example.com/banner.png" alt="Banner" width="560" height="120">',
     );
@@ -22,16 +22,18 @@ describe('blocked remote images', () => {
     expect(html).not.toContain('cdn.example.com');
     expect(html).toContain('alt="Banner"');
     expect(html).toContain('data-relay-blocked=""');
-    expect(svgOf(html)).toContain('width="560" height="120"');
+    expect(svgOf(html)).toBe('<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120"/>');
   });
 
-  it('drops a remote srcset and falls back to a default size', () => {
+  it('drops a remote srcset and hides an image without a known size', () => {
     const html = withBlockedImagePlaceholders(
-      "<img src='//cdn.example.com/a.png' srcset='https://cdn.example.com/a@2x.png 2x'>",
+      "<img src='//cdn.example.com/a.png' srcset='https://cdn.example.com/a@2x.png 2x' width='150' style='display:block!important'>",
     );
+    const [image] = imagesOf(html);
 
     expect(html).not.toContain('cdn.example.com');
-    expect(svgOf(html)).toContain('width="320" height="80"');
+    expect(image?.getAttribute('data-relay-blocked')).toBe('hidden');
+    expect(image?.getAttribute('style')).toBe('display:none');
   });
 
   it('keeps inline and attached images untouched', () => {
