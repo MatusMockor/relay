@@ -24,6 +24,7 @@ import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
 import { electronContextMenuFactory } from './native/context-menu';
 import { WindowContextMenuPresenter } from './native/context-menu-presenter';
+import { contextMenuWindow, electronWindows } from './native/context-menu-window';
 import { MenuCommandRequests } from './native/menu-command-requests';
 import { RendererView } from './native/renderer-view';
 import { acquireSingleInstance } from './native/single-instance';
@@ -96,7 +97,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       rendererNotifications,
       fullScreen,
       contextMenu: new WindowContextMenuPresenter(
-        () => BrowserWindow.getFocusedWindow(),
+        contextMenuWindow(electronWindows),
         electronContextMenuFactory,
       ),
     }),

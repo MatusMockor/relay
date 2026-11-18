@@ -9,6 +9,7 @@ import {
   showContextMenu,
 } from '../../src/main/native/context-menu';
 import { WindowContextMenuPresenter } from '../../src/main/native/context-menu-presenter';
+import { contextMenuWindow } from '../../src/main/native/context-menu-window';
 import { createRelayBridge } from '../../src/preload/create-bridge';
 import { InMemoryIpc } from './in-memory-ipc';
 
@@ -76,16 +77,24 @@ const appMetadata = {
   electronVersion: '45.3.2',
 };
 
-const bridgeWith = (window: FakeWindow | null, factory: RecordingMenuFactory) =>
+const bridgeWith = (
+  windows: { readonly focused: FakeWindow | null; readonly all: readonly FakeWindow[] },
+  factory: RecordingMenuFactory,
+) =>
   createRelayBridge(
     new InMemoryIpc(
       composeIpc({
         app: appMetadata,
-        contextMenu: new WindowContextMenuPresenter(() => window, factory),
+        contextMenu: new WindowContextMenuPresenter(
+          contextMenuWindow({ focused: () => windows.focused, all: () => windows.all }),
+          factory,
+        ),
       }),
     ),
     () => 'context-menu-stream',
   );
+
+const BACKGROUND: FakeWindow = { name: 'background' };
 
 const settle = () =>
   new Promise<void>((resolve) => {
@@ -152,10 +161,23 @@ describe('native context menu', () => {
 describe('context menu IPC', () => {
   it('returns the chosen item id to the renderer', async () => {
     const factory = new RecordingMenuFactory();
-    const bridge = bridgeWith(WINDOW, factory);
+    const bridge = bridgeWith({ focused: WINDOW, all: [BACKGROUND, WINDOW] }, factory);
 
     const result = bridge.invoke('app.contextMenu.show', REQUEST);
     await settle();
+    factory.last().click('read');
+
+    expect(await result).toEqual({ ok: true, data: { id: 'read' } });
+    expect(factory.last().popups.map(({ window }) => window)).toEqual([WINDOW]);
+  });
+
+  it('shows the menu in the app window when the app is not focused', async () => {
+    const factory = new RecordingMenuFactory();
+    const bridge = bridgeWith({ focused: null, all: [BACKGROUND] }, factory);
+
+    const result = bridge.invoke('app.contextMenu.show', REQUEST);
+    await settle();
+    expect(factory.last().popups.map(({ window }) => window)).toEqual([BACKGROUND]);
     factory.last().click('read');
 
     expect(await result).toEqual({ ok: true, data: { id: 'read' } });
@@ -163,7 +185,7 @@ describe('context menu IPC', () => {
 
   it('answers null without a menu when there is no window to show it in', async () => {
     const factory = new RecordingMenuFactory();
-    const bridge = bridgeWith(null, factory);
+    const bridge = bridgeWith({ focused: null, all: [] }, factory);
 
     expect(await bridge.invoke('app.contextMenu.show', REQUEST)).toEqual({
       ok: true,
@@ -174,7 +196,7 @@ describe('context menu IPC', () => {
 
   it('rejects a request without items', async () => {
     const factory = new RecordingMenuFactory();
-    const bridge = bridgeWith(WINDOW, factory);
+    const bridge = bridgeWith({ focused: WINDOW, all: [WINDOW] }, factory);
 
     const result = await bridge.invoke('app.contextMenu.show', { items: [], x: 1, y: 1 });
 

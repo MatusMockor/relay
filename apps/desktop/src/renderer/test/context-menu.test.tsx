@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import { AppContextProvider } from '../src/data/hooks/services-context';
+import { openContextMenu } from '../src/features/context-menu/context-menu-store';
 import { ContextMenuHost } from '../src/features/context-menu/ContextMenuHost';
 import { useContextMenu } from '../src/features/context-menu/use-context-menu';
 import { createBrowserPlatform } from '../src/platform/BrowserPlatform';
@@ -148,7 +149,7 @@ describe('useContextMenu', () => {
   });
 
   it('prevents the browser menu and opens the menu at the pointer', async () => {
-    const platform = createBrowserPlatform(storageWith({ mode: 'local' }));
+    const platform = createBrowserPlatform(storageWith({ mode: 'local' }), openContextMenu);
     const session = new SessionController(platform, useSessionStore, {
       demo: () => createDemoMailClient({ aiStepMs: 0 }),
     });
