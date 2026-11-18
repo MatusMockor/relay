@@ -1,6 +1,7 @@
 import type {
   AiRunnerInfo,
   AppInfo,
+  ContextMenuRequest,
   DeviceRegistration,
   DeviceSettings,
   DeviceSettingsPatch,
@@ -47,6 +48,7 @@ export interface Platform {
   reportTray(report: TrayReport): void;
   showNotification(notification: NotificationRequest): Promise<void>;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
+  showContextMenu(request: ContextMenuRequest): Promise<string | null>;
 }
 
 const PLATFORM_LABEL: Readonly<Record<AppInfo['platform'], string>> = {

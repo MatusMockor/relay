@@ -9,6 +9,7 @@ import {
   createAiStreamHandlers,
 } from '../handlers/ai-handlers';
 import { createAppInfoHandler, type AppMetadata } from '../handlers/app-info';
+import { createContextMenuHandlers } from '../handlers/context-menu-handlers';
 import { createDeviceSettingsHandlers } from '../handlers/device-settings-handlers';
 import { createAiJobHandlers } from '../handlers/local/ai-job-handlers';
 import { createAttachmentHandlers } from '../handlers/local/attachment-handlers';
@@ -47,6 +48,7 @@ import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
 import type { AttachmentPicker } from '../files/attachment-picker';
+import type { ContextMenuPresenter } from '../native/context-menu-presenter';
 import type { MenuCommandRequests } from '../native/menu-command-requests';
 import type { RendererView } from '../native/renderer-view';
 import type { ThreadOpenRequests } from '../native/thread-open-requests';
@@ -81,6 +83,7 @@ export interface MainProcessContext {
   readonly rendererView?: RendererView;
   readonly rendererNotifications?: EventHub<NotificationRequest>;
   readonly fullScreen?: FullScreenState;
+  readonly contextMenu?: ContextMenuPresenter;
 }
 
 const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
@@ -131,6 +134,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.updates, createUpdateInvokeHandlers),
       optional(context.rendererView, createTrayInvokeHandlers),
       optional(context.rendererNotifications, createNotificationInvokeHandlers),
+      optional(context.contextMenu, createContextMenuHandlers),
     ),
     errorReporter(context.logger),
   ),

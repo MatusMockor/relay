@@ -11,6 +11,7 @@ import {
   type KeyValueStorage,
 } from '../../src/platform/BrowserPlatform';
 import type { Platform } from '../../src/platform/Platform';
+import { resetContextMenu } from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
@@ -42,6 +43,7 @@ export const resetStores = (): void => {
   useChat.setState({ turns: [], queued: null });
   resetToasts();
   setFolderEdit(null);
+  resetContextMenu();
 };
 
 export const testQueryClient = (): QueryClient =>

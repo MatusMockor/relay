@@ -1,5 +1,6 @@
 import type { AppInfo, DeviceSettings, DeviceSettingsPatch, UpdateStatus } from '@relay/shared';
 import { MailClientError } from '../data/errors';
+import { openContextMenu } from '../features/context-menu/context-menu-store';
 import { RendererTokenSession } from '../data/remote/RendererTokenSession';
 import { canonicalServerUrl, MemoryTokenStore, type TokenStore } from '../data/remote/TokenStore';
 import { mergeDeviceSettings, parseStoredDeviceSettings } from './device-settings';
@@ -109,5 +110,6 @@ export const createBrowserPlatform = (
     reportTray: () => undefined,
     showNotification: showBrowserNotification,
     subscribeToFullScreen: () => () => undefined,
+    showContextMenu: openContextMenu,
   };
 };

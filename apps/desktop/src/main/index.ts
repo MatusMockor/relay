@@ -22,6 +22,8 @@ import { PickedFileReader } from './files/picked-file-reader';
 import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
+import { electronContextMenuFactory } from './native/context-menu';
+import { WindowContextMenuPresenter } from './native/context-menu-presenter';
 import { MenuCommandRequests } from './native/menu-command-requests';
 import { RendererView } from './native/renderer-view';
 import { acquireSingleInstance } from './native/single-instance';
@@ -93,6 +95,10 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       rendererView,
       rendererNotifications,
       fullScreen,
+      contextMenu: new WindowContextMenuPresenter(
+        () => BrowserWindow.getFocusedWindow(),
+        electronContextMenuFactory,
+      ),
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
