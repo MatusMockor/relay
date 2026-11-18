@@ -1,9 +1,9 @@
 import { AI_EFFORT_LABELS } from '@relay/shared';
-import { type AnchorRect, Icon } from '@relay/ui';
+import { type AnchorRect, Icon, ProviderLogo } from '@relay/ui';
 import { useState } from 'react';
-import { type ModelChoice, modelLabel, RUNNER_LABELS } from './model-choice';
+import type { ModelChoice } from '../../ai/model-choice/model-choice';
+import { modelLabel, RUNNER_LABELS } from '../../ai/model-choice/model-labels';
 import { ModelPickerMenu } from './ModelPickerMenu';
-import { ProviderIcon } from './ProviderIcon';
 
 export interface ModelPickerProps {
   readonly value: ModelChoice;
@@ -30,7 +30,7 @@ export function ModelPicker({ value, onChange, onOpen, disabled = false }: Model
           setAnchor(event.currentTarget.getBoundingClientRect());
         }}
       >
-        <ProviderIcon runner={value.runner} />
+        <ProviderLogo runner={value.runner} />
         {modelLabel(value)}
         <span className="ef">{effort}</span>
         <Icon name="down" size={12} />

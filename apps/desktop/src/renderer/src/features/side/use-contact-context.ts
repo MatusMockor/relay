@@ -5,7 +5,7 @@ import { useUserSettings } from '../../data/hooks/use-mail-queries';
 import { systemTimeZone } from '../calendar/calendar-time';
 import type { ChatTurn } from './chat-store';
 import { reduceTurn } from './chat-turn-reducer';
-import { runnerLabelOf } from './runner-labels';
+import { RUNNER_LABELS } from '../ai/model-choice/model-labels';
 
 export const contextQuestion = (recipient: Address): string =>
   `Na čom sme s touto osobou zostali? Osoba: ${recipient.name ?? recipient.email} <${recipient.email}>. ` +
@@ -56,7 +56,7 @@ export const useContactContext = (recipient: Address) => {
         setTurn((current) =>
           current === null
             ? null
-            : { ...current, ...reduceTurn(event, runnerLabelOf(runner), started)(current) },
+            : { ...current, ...reduceTurn(event, RUNNER_LABELS[runner], started)(current) },
         );
       },
     );

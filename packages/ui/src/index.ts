@@ -17,4 +17,5 @@ export * from './components/Toast';
 export * from './components/use-layer';
 export * from './icons/Icon';
 export * from './icons/paths';
+export * from './icons/ProviderLogo';
 export { clsx as cx } from 'clsx';

@@ -9,10 +9,7 @@ export class EngineLocalAiRuns implements LocalAiRuns {
   ) {}
 
   async *stream(request: LocalAiRunRequest): AsyncGenerator<AiEvent> {
-    const body = {
-      input: request.input,
-      ...(request.runner === undefined ? {} : { runner: request.runner }),
-    };
-    yield* this.services.ai.run(this.userId, body, request.signal);
+    const { signal, ...body } = request;
+    yield* this.services.ai.run(this.userId, body, signal);
   }
 }

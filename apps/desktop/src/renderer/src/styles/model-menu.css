@@ -1,0 +1,143 @@
+.pop.mdlm {
+  padding: 0;
+  overflow: hidden;
+  background: var(--raised);
+}
+.mdlm-body {
+  display: flex;
+  outline: none;
+}
+.mdlm-rail {
+  flex: none;
+  width: 44px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.mdlm-rail .rb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: #eceef4;
+  opacity: 0.6;
+}
+.mdlm-rail .rb:hover {
+  background: rgba(255, 255, 255, 0.07);
+  opacity: 1;
+}
+.mdlm-rail .rb.on {
+  opacity: 1;
+}
+.mdlm-rail .rb.on::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  width: 3px;
+  height: 20px;
+  transform: translateY(-50%);
+  border-radius: 3px 0 0 3px;
+  background: var(--accent);
+}
+.mdlm-list {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 6px 6px 8px;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  border-left: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.18);
+}
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-align: left;
+}
+.mrow.on {
+  background: var(--hover);
+}
+.mrow.cur {
+  background: var(--sel);
+}
+.mrow-tx {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.mrow .nm {
+  font-size: 12px;
+  font-weight: var(--w-medium);
+  color: var(--fg);
+}
+.mrow .pr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--faint);
+}
+.mrow .pr .plogo {
+  color: var(--fg2);
+}
+.mrow .kbd {
+  margin-left: auto;
+  flex: none;
+}
+.pop.rsnm {
+  padding: 4px;
+  background: var(--raised);
+}
+.rsnm > div {
+  outline: none;
+}
+.rsnm .gl {
+  padding: 6px 8px 4px;
+  font-size: var(--fs-2xs);
+  font-weight: var(--w-medium);
+  color: var(--faint);
+}
+.rsnm .ri {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  color: var(--fg2);
+}
+.rsnm .ri.on {
+  background: var(--sel);
+  color: var(--fg);
+}
+.rsnm .dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+}
+.rsnm .dot i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg);
+}
+.rsnm .lb {
+  flex: 1;
+  text-align: left;
+}
+.rsnm .k {
+  font-size: var(--fs-2xs);
+  color: var(--faint);
+}
