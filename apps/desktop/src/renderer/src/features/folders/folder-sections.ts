@@ -20,7 +20,8 @@ const displayPath = (mailbox: Mailbox, taken: ReadonlySet<string>): string => {
     return mailbox.path;
   }
   const stripped = mailbox.path.slice(prefix.length);
-  return taken.has(topSegment(stripped, mailbox.delimiter)) ? mailbox.path : stripped;
+  const top = topSegment(stripped, mailbox.delimiter);
+  return taken.has(top) || top.toUpperCase() === 'INBOX' ? mailbox.path : stripped;
 };
 
 export const syncedFolders = (mailboxes: readonly Mailbox[]): Mailbox[] => {

@@ -114,6 +114,20 @@ describe('folder tree', () => {
     expect(tree[0]?.children[0]?.value?.path).toBe('INBOX.Projects');
   });
 
+  it('keeps nested INBOX folders distinct when stripping would collide', () => {
+    const entries = mailboxEntries([
+      mailbox('Projects', { delimiter: '.' }),
+      mailbox('INBOX.Projects', { delimiter: '.' }),
+      mailbox('INBOX.INBOX.Projects', { delimiter: '.' }),
+    ]);
+
+    expect(entries.map((entry) => entry.path)).toEqual([
+      'Projects',
+      'INBOX.Projects',
+      'INBOX.INBOX.Projects',
+    ]);
+  });
+
   it('keeps only custom subscribed folders unless the server reports no subscriptions', () => {
     const subscribed = [
       mailbox('INBOX', { role: 'inbox' }),
