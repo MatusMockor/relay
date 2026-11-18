@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AiRunnerKindSchema } from './ai';
 import { AiEffortSchema, AiModelIdSchema, refineAiModelChoice } from './ai-model-catalog';
 import { AccountIdSchema, AutomationIdSchema, UserIdSchema } from './ids';
+import { JiraEventKindSchema } from './jira-event';
 import {
   FromAddressRuleSchema,
   FromDomainRuleSchema,
@@ -9,9 +10,6 @@ import {
   JiraRuleSchema,
   SubjectRegexRuleSchema,
 } from './split';
-
-export const JiraEventKindSchema = z.enum(['mention', 'assigned', 'comment', 'status', 'other']);
-export type JiraEventKind = z.infer<typeof JiraEventKindSchema>;
 
 export const JiraEventConditionSchema = z.object({
   type: z.literal('jiraEvent'),

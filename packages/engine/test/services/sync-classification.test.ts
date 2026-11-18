@@ -49,7 +49,12 @@ describe('SyncService classification', () => {
   it('keeps the task state for status-only Jira updates', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
-    deliverMail(server, 'INBOX', { id: 'j1', from: JIRA, subject: '[OPS-7] Rotate keys' });
+    deliverMail(server, 'INBOX', {
+      id: 'j1',
+      from: JIRA,
+      subject: '[OPS-7] Rotate keys',
+      headers: { 'X-Jira-Event': 'assigned' },
+    });
     await engine.services.sync.syncAccount(USER_ID, account.id);
     const task = present((await engine.services.tasks.list(USER_ID, { limit: 50 })).items[0]);
     await engine.services.tasks.update(USER_ID, task.id, { state: 'waiting' });
@@ -78,6 +83,7 @@ describe('SyncService classification', () => {
         order: 0,
         rules: [{ type: 'fromDomain', domain: 'partner.test' }],
         exclusive: true,
+        hideTasks: false,
       },
     ]);
     deliverMail(server, 'INBOX', { id: 'p1' });

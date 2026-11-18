@@ -11,6 +11,7 @@ const split = (id: string, rules: SplitRule[], order = 0): Split => ({
   order,
   rules,
   exclusive: false,
+  hideTasks: false,
 });
 
 const subject = (overrides: Partial<SplitMatchSubject> = {}): SplitMatchSubject => ({

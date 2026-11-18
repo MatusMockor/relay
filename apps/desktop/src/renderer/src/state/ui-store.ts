@@ -11,6 +11,7 @@ export type SettingsSection =
   | 'accounts'
   | 'splits'
   | 'automations'
+  | 'jira'
   | 'sync'
   | 'notifications'
   | 'ai'

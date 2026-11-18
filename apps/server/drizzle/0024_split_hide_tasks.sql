@@ -1,0 +1,1 @@
+ALTER TABLE "splits" ADD COLUMN "hide_tasks" boolean DEFAULT false NOT NULL;

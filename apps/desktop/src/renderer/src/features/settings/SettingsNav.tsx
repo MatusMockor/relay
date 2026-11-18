@@ -21,6 +21,7 @@ const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
     [
       ['splits', 'Split Inbox', 'columns'],
       ['automations', 'Automatizácie', 'bolt'],
+      ['jira', 'Jira', 'check'],
       ['sync', 'Synchronizácia', 'refresh'],
       ['calendars', 'Kalendáre', 'calendar'],
     ],
