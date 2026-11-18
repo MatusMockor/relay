@@ -1,3 +1,4 @@
+import { hasSelectableSource, selectableCandidates } from './selectable-candidates';
 import { isRemoteUrl, parseSrcset, serializeSrcset } from './srcset';
 
 const MAX_SIDE = 4_000;
@@ -44,10 +45,6 @@ const blockSource = (source: Element): boolean => {
   return removed;
 };
 
-const hasRetainedSource = (image: Element): boolean =>
-  image.parentElement?.tagName === 'PICTURE' &&
-  image.parentElement.querySelector(':scope > source:not([media])') !== null;
-
 const replaceBlockedSrc = (image: Element, hasPermittedCandidate: boolean): void => {
   const width = dimensionOf(image, 'width');
   const height = dimensionOf(image, 'height');
@@ -68,15 +65,16 @@ const replaceBlockedSrc = (image: Element, hasPermittedCandidate: boolean): void
 const blockImage = (image: Element): boolean => {
   const src = (image.getAttribute('src') ?? '').trim();
   const remoteSrc = isRemoteUrl(src);
-  const { removed, local } = stripRemoteCandidates(image);
+  const { removed } = stripRemoteCandidates(image);
   if (!remoteSrc && !removed) {
     return false;
   }
   const usableSrc = src !== '' && !remoteSrc;
-  if (usableSrc || (!remoteSrc && local > 0)) {
+  const selectable = selectableCandidates(image);
+  if (usableSrc || (!remoteSrc && selectable > 0)) {
     return true;
   }
-  replaceBlockedSrc(image, local > 0 || hasRetainedSource(image));
+  replaceBlockedSrc(image, selectable > 0 || hasSelectableSource(image));
   return true;
 };
 
