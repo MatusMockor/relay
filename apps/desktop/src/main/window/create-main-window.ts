@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron';
 import type { UrlOpener } from '../platform/url-opener';
 import type { WindowState } from '../native/window-bounds';
 import { routeExternalLinks } from './route-external-links';
+import { titleBarOptions } from './title-bar-options';
 
 export interface MainWindowOptions {
   readonly preloadPath: string;
@@ -10,6 +11,7 @@ export interface MainWindowOptions {
   readonly state: WindowState;
   readonly opener: UrlOpener;
   readonly isAppUrl: (url: string) => boolean;
+  readonly platform: NodeJS.Platform;
   readonly icon?: string;
 }
 
@@ -24,6 +26,7 @@ export const createMainWindow = async (options: MainWindowOptions): Promise<Brow
     show: false,
     backgroundColor: '#0b0d10',
     title: 'Relay',
+    ...titleBarOptions(options.platform),
     ...(options.icon === undefined ? {} : { icon: options.icon }),
     webPreferences: {
       preload: options.preloadPath,
