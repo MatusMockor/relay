@@ -1,6 +1,6 @@
 import type { MailboxCounts, MailboxLocation, MailboxRepository } from '@relay/engine';
 import type { AccountId, Mailbox, MailboxId, MailboxRole, UserId } from '@relay/shared/domain';
-import { and, asc, eq, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, notInArray, or, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { mailboxes } from '../../schema';
 import { findAccountOwner } from '../../support/account-owner';
@@ -96,6 +96,26 @@ export class PgMailboxRepository implements MailboxRepository {
       .update(mailboxes)
       .set({ path: location.path, name: location.name, delimiter: location.delimiter })
       .where(eq(mailboxes.id, mailboxId));
+  }
+
+  async relocateTree(
+    accountId: AccountId,
+    fromPath: string,
+    target: MailboxLocation,
+  ): Promise<void> {
+    const root = eq(mailboxes.path, fromPath);
+    const descendants =
+      target.delimiter === null
+        ? sql`false`
+        : sql`starts_with(${mailboxes.path}, ${fromPath + target.delimiter}::text)`;
+    await this.db
+      .update(mailboxes)
+      .set({
+        path: sql`case when ${root} then ${target.path}::text else ${target.path}::text || substr(${mailboxes.path}, length(${fromPath}::text) + 1) end`,
+        name: sql`case when ${root} then ${target.name}::text else ${mailboxes.name} end`,
+        delimiter: sql`case when ${root} then ${target.delimiter}::text else ${mailboxes.delimiter} end`,
+      })
+      .where(and(eq(mailboxes.accountId, accountId), or(root, descendants)));
   }
 
   async saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void> {

@@ -17,7 +17,7 @@ import type { MessageFlags } from '@relay/shared/domain';
 export interface MailProvider {
   connect(): Promise<void>;
   listMailboxes(): Promise<RemoteMailbox[]>;
-  createMailbox(name: string): Promise<RemoteMailbox>;
+  createMailbox(name: string, parentPath?: string): Promise<RemoteMailbox>;
   renameMailbox(path: string, newPath: string): Promise<RemoteMailbox>;
   deleteMailbox(path: string): Promise<void>;
   status(mailboxPath: string): Promise<RemoteMailboxStatus>;

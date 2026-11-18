@@ -59,6 +59,7 @@ export class FakeMailServer {
   readonly renamedMailboxes: { path: string; newPath: string }[] = [];
   readonly deletedMailboxes: string[] = [];
   readonly keywordPurges: { path: string; keyword: string }[] = [];
+  readonly folderCommands: string[] = [];
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];

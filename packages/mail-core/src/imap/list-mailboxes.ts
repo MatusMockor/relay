@@ -12,6 +12,9 @@ const UNSELECTABLE_FLAGS = ['\\noselect', '\\nonexistent'];
 export const isSelectable = (mailbox: ListResponse): boolean =>
   ![...mailbox.flags].some((flag) => UNSELECTABLE_FLAGS.includes(flag.toLowerCase()));
 
+export const isSubscribed = (mailbox: ListResponse): boolean =>
+  SubscribedSchema.safeParse(mailbox.subscribed).success;
+
 const serverSpecialUse = (mailbox: ListResponse): string | null =>
   mailbox.specialUseSource === 'extension' && mailbox.specialUse ? mailbox.specialUse : null;
 
@@ -26,7 +29,7 @@ export const toRemoteMailbox = (mailbox: ListResponse, labels: boolean): RemoteM
     specialUse: serverSpecialUse(mailbox),
     labels,
   }),
-  subscribed: SubscribedSchema.safeParse(mailbox.subscribed).success,
+  subscribed: isSubscribed(mailbox),
 });
 
 export const listedMailboxes = async (client: ImapFlow): Promise<RemoteMailbox[]> => {

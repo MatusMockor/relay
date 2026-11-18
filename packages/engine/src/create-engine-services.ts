@@ -21,6 +21,8 @@ import type { GoogleCalendarService } from './services/google-calendar/google-ca
 import type { ComposeService } from './services/compose/compose-service';
 import { createComposeService } from './services/compose/create-compose-service';
 import { SentMessageRecorder } from './services/compose/sent-message-recorder';
+import { createFolderService } from './services/folders/create-folder-service';
+import type { FolderService } from './services/folders/folder-service';
 import { InboxQueryService } from './services/inbox/inbox-query-service';
 import { LabelQueryService } from './services/inbox/label-query-service';
 import { createLabelService } from './services/labels/create-label-service';
@@ -52,6 +54,7 @@ export interface EngineServices {
   readonly inbox: InboxQueryService;
   readonly labels: LabelQueryService;
   readonly labelAdmin: LabelService;
+  readonly folders: FolderService;
   readonly threads: ThreadQueryService;
   readonly threadAi: ThreadAiPreparer;
   readonly checklist: ThreadChecklistService;
@@ -172,6 +175,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     }),
     labels: new LabelQueryService(repositories.labels),
     labelAdmin: createLabelService(deps, { events, sessions, replayer }),
+    folders: createFolderService(deps, { events, sessions, replayer }),
     threads,
     threadAi: new ThreadAiPreparer({
       threads: repositories.threads,

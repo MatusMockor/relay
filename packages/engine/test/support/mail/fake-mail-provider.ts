@@ -75,8 +75,8 @@ export class FakeMailProvider implements MailProvider {
     });
   }
 
-  createMailbox(name: string): Promise<RemoteMailbox> {
-    return this.guard((server) => Promise.resolve(createFakeMailbox(server, name)));
+  createMailbox(name: string, parentPath?: string): Promise<RemoteMailbox> {
+    return this.guard((server) => createFakeMailbox(server, name, parentPath));
   }
 
   renameMailbox(path: string, newPath: string): Promise<RemoteMailbox> {

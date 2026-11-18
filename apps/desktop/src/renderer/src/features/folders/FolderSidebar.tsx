@@ -5,6 +5,7 @@ import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { AccountFolders } from './AccountFolders';
+import { FolderEditHost } from './edit/FolderEditHost';
 import { SystemFolders } from './SystemFolders';
 import { rectOf } from './rect';
 import { accountCount } from '../../lib/text';
@@ -103,6 +104,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
       </button>
       <SystemFolders showTasks={openTasks} />
       <AccountFolders labels={scopedLabels} />
+      <FolderEditHost />
       <div className="fold-foot">
         <div className="fold-foot-meta">
           <ModeStatus />

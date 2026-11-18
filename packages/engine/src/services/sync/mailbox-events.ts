@@ -9,16 +9,18 @@ export interface MailboxEventsDeps {
   readonly events: EngineEvents;
 }
 
+export type MailboxEventScope = Pick<SyncContext, 'userId' | 'account'>;
+
 export class MailboxEvents {
   constructor(private readonly deps: MailboxEventsDeps) {}
 
-  async mailboxesChanged(context: SyncContext): Promise<void> {
+  async mailboxesChanged(context: MailboxEventScope): Promise<void> {
     const { userId, account } = context;
     const mailboxes = await this.deps.mailboxes.listByAccount(userId, account.id);
     await this.deps.events.emit(userId, 'mailboxes.updated', { accountId: account.id, mailboxes });
   }
 
-  async labelsChanged(context: SyncContext): Promise<void> {
+  async labelsChanged(context: MailboxEventScope): Promise<void> {
     const { userId, account } = context;
     const labels = await this.deps.labels.list(userId, account.id);
     await this.deps.events.emit(userId, 'labels.updated', { accountId: account.id, labels });

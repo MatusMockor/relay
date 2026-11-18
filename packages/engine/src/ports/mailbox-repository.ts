@@ -21,5 +21,6 @@ export interface MailboxRepository {
   deleteMissing(accountId: AccountId, keepPaths: readonly string[]): Promise<MailboxId[]>;
   updateCounts(mailboxId: MailboxId, counts: MailboxCounts): Promise<void>;
   relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void>;
+  relocateTree(accountId: AccountId, fromPath: string, target: MailboxLocation): Promise<void>;
   saveUidValidity(mailboxId: MailboxId, uidValidity: number): Promise<void>;
 }

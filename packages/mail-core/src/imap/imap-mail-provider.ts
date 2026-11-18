@@ -26,11 +26,11 @@ import type { ImapClientFactory } from './imap-client-factory';
 import { ImapConnection } from './imap-connection';
 import { listMailboxes } from './list-mailboxes';
 import { mailboxStatus } from './mailbox-status';
+import { renameMailbox } from './rename-mailbox';
 import { fetchCalendarParts } from './calendar-part-reads';
 import { fetchMessage, listUids } from './message-reads';
 import { purgeKeyword, storeKeywords } from './keyword-writes';
 import { appendMessage, moveMessages, setFlags } from './message-writes';
-import { renameMailbox } from './rename-mailbox';
 import { searchRelated } from './search-related';
 import { requireBatchSize } from './uid-batches';
 
@@ -64,8 +64,8 @@ export class ImapMailProvider implements MailProvider {
     return listMailboxes(this.connection);
   }
 
-  createMailbox(name: string): Promise<RemoteMailbox> {
-    return createMailbox(this.connection, name);
+  createMailbox(name: string, parentPath?: string): Promise<RemoteMailbox> {
+    return createMailbox(this.connection, name, parentPath);
   }
 
   renameMailbox(path: string, newPath: string): Promise<RemoteMailbox> {

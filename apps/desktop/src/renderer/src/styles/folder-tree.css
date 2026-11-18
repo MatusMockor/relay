@@ -76,3 +76,47 @@ button.ft-tw:hover {
   border-radius: 3px;
   background: var(--d);
 }
+.ft-head {
+  display: flex;
+  align-items: center;
+}
+.ft-head > h5,
+.ft-head > h6 {
+  flex: 1;
+  min-width: 0;
+}
+.ft-add {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.ft-head:hover .ft-add,
+.ft-add:focus-visible {
+  opacity: 1;
+}
+.ft-add:hover {
+  background: var(--hover);
+  color: var(--fg2);
+}
+.ft-edit .f {
+  cursor: text;
+}
+.ft-input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  outline: 1px solid var(--accent);
+  background: var(--raised);
+  color: var(--fg);
+  font: inherit;
+}

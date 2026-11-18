@@ -3,6 +3,13 @@ import type { StubMailbox } from './gmail-stub-data';
 const within = (path: string, root: string): boolean =>
   path === root || path.startsWith(`${root}/`);
 
+export const createMailbox = (mailboxes: StubMailbox[], path: string): string[] => {
+  if (!mailboxes.some((mailbox) => mailbox.path === path)) {
+    mailboxes.push({ path, flags: ['\\HasNoChildren'], uidValidity: 900, messages: [] });
+  }
+  return [];
+};
+
 export const renameMailboxes = (mailboxes: StubMailbox[], from: string, to: string): string[] => {
   mailboxes.forEach((mailbox, index) => {
     if (within(mailbox.path, from)) {

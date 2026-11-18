@@ -12,6 +12,7 @@ import type { ServerConfig } from './config/server-config';
 import { DevicesModule } from './devices/devices.module';
 import { EngineModule } from './engine/engine.module';
 import { EventsModule } from './events/events.module';
+import { FoldersModule } from './folders/folders.module';
 import { GoogleCalendarAdaptersModule } from './google-calendar/google-calendar-adapters.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { HealthModule } from './health/health.module';
@@ -54,6 +55,7 @@ export class AppModule {
         AiModule,
         ThreadsModule,
         LabelsModule,
+        FoldersModule,
         TasksModule,
         ComposeModule,
         AttachmentsModule,

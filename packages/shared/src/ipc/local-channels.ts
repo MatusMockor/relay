@@ -12,6 +12,7 @@ import {
   SendResponseSchema,
   UpdateDraftBodySchema,
 } from '../api/endpoints/compose';
+import { CreateFolderBodySchema, UpdateFolderBodySchema } from '../api/endpoints/folders';
 import {
   CreateLabelBodySchema,
   LabelListQuerySchema,
@@ -41,6 +42,7 @@ import {
   AutomationIdSchema,
   DraftIdSchema,
   LabelIdSchema,
+  MailboxIdSchema,
   ScheduledSendIdSchema,
   TaskIdSchema,
   ThreadIdSchema,
@@ -109,6 +111,18 @@ export const localInvokeChannels = {
     TestConnectionResponseSchema,
   ),
   'local.accounts.mailboxes': invokeChannel(accountRef, z.array(MailboxSchema)),
+  'local.mailboxes.create': invokeChannel(
+    accountRef.extend({ body: CreateFolderBodySchema }),
+    MailboxSchema,
+  ),
+  'local.mailboxes.update': invokeChannel(
+    z.object({ mailboxId: MailboxIdSchema, patch: UpdateFolderBodySchema }),
+    MailboxSchema,
+  ),
+  'local.mailboxes.delete': invokeChannel(
+    z.object({ mailboxId: MailboxIdSchema }),
+    OkResponseSchema,
+  ),
   'local.sync.now': invokeChannel(
     z.object({ accountId: AccountIdSchema.optional() }),
     OkResponseSchema,
