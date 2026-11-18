@@ -12,6 +12,7 @@ import { AiBar, BusyOverlay } from '../compose/AiBar';
 import { AccountMenu } from '../folders/AccountMenu';
 import { rectOf } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
+import { useBackGuard } from '../mail/use-back-guard';
 import { replyRecipients, replySubject } from '../mail/reply-draft';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 
@@ -67,6 +68,7 @@ export function ReplyComposer({
       showToast(describeError(error));
     });
   };
+  useBackGuard(save);
   const askSend = () => {
     if (reply.text.trim() === '') {
       showToast('Odpoveď je prázdna');

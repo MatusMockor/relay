@@ -93,7 +93,12 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
         : client.updateDraft(reply.draftId as DraftId, withoutAttachments(content)));
     } catch (error) {
       setUi((state) =>
-        state.reply === null ? { reply: { ...reply, busy: false, aiOpen: false } } : {},
+        state.reply === null
+          ? {
+              reply: { ...reply, busy: false, aiOpen: false },
+              openThreadId: state.openThreadId ?? reply.threadId,
+            }
+          : {},
       );
       throw error;
     }
