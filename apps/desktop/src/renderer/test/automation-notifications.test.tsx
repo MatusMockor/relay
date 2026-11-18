@@ -41,7 +41,11 @@ const notified = (body: string): RealtimeEvent => ({
 
 const recordingSink = (): AutomationNotificationSink & { shown: string[] } => {
   const shown: string[] = [];
-  return { shown, show: (title, body) => shown.push(`${title}: ${body}`) };
+  return {
+    shown,
+    showNotification: ({ title, body, threadId }) =>
+      shown.push(`${title}: ${body} (${threadId ?? 'bez vlákna'})`),
+  };
 };
 
 const render = (services: AppServices, sink: AutomationNotificationSink) =>
@@ -92,6 +96,6 @@ describe('automation notifications in synced mode', () => {
     server.sockets[0]?.send(JSON.stringify({ type: 'event', event: notified('Nová ponuka') }));
 
     await waitUntil(() => sink.shown.length === 1);
-    expect(sink.shown).toEqual(['Tibor Hrasko: Nová ponuka']);
+    expect(sink.shown).toEqual(['Tibor Hrasko: Nová ponuka (thread-1)']);
   });
 });

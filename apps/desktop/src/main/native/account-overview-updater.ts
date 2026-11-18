@@ -2,13 +2,14 @@ import type { Logger } from '@relay/engine';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
 import type { TimerHandle, Timers } from '../platform/timers';
+import type { AccountOverview } from './account-overview';
 
-export interface UnreadSource {
-  count(): Promise<number>;
+export interface AccountOverviewSource {
+  load(): Promise<readonly AccountOverview[]>;
 }
 
-export interface UnreadView {
-  setUnread(count: number): void;
+export interface AccountOverviewView {
+  show(accounts: readonly AccountOverview[]): void;
 }
 
 const RELEVANT = new Set<RealtimeEvent['type']>([
@@ -16,24 +17,25 @@ const RELEVANT = new Set<RealtimeEvent['type']>([
   'thread.removed',
   'account.removed',
   'account.upserted',
+  'account.status',
 ]);
 
-export interface UnreadBadgeUpdaterDeps {
+export interface AccountOverviewUpdaterDeps {
   readonly hub: EventHub<RealtimeEvent>;
-  readonly source: UnreadSource;
-  readonly view: UnreadView;
+  readonly source: AccountOverviewSource;
+  readonly view: AccountOverviewView;
   readonly timers: Timers;
   readonly logger: Logger;
   readonly debounceMs?: number;
 }
 
-export class UnreadBadgeUpdater {
+export class AccountOverviewUpdater {
   private pending: TimerHandle | null = null;
   private unsubscribe: (() => void) | null = null;
   private running: Promise<void> | null = null;
   private rerun = false;
 
-  constructor(private readonly deps: UnreadBadgeUpdaterDeps) {}
+  constructor(private readonly deps: AccountOverviewUpdaterDeps) {}
 
   start(): void {
     this.unsubscribe ??= this.deps.hub.subscribe((event) => {
@@ -57,14 +59,14 @@ export class UnreadBadgeUpdater {
       this.rerun = true;
       return this.running;
     }
-    this.running = this.recountUntilSettled();
+    this.running = this.reloadUntilSettled();
     return this.running;
   }
 
-  private async recountUntilSettled(): Promise<void> {
-    await this.recount();
+  private async reloadUntilSettled(): Promise<void> {
+    await this.reload();
     while (this.takeRerun()) {
-      await this.recount();
+      await this.reload();
     }
     this.running = null;
   }
@@ -75,11 +77,11 @@ export class UnreadBadgeUpdater {
     return requested;
   }
 
-  private async recount(): Promise<void> {
+  private async reload(): Promise<void> {
     try {
-      this.deps.view.setUnread(await this.deps.source.count());
+      this.deps.view.show(await this.deps.source.load());
     } catch (error) {
-      this.deps.logger.warn('Failed to count unread threads', { error });
+      this.deps.logger.warn('Failed to load the account overview', { error });
     }
   }
 

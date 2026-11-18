@@ -90,7 +90,56 @@ describe('ipc channel map', () => {
   it('accepts only known menu commands for the renderer', () => {
     const { event } = ipcStreamChannels['app.menu.command'];
     expect(event.safeParse({ command: 'open-about' }).success).toBe(true);
+    expect(event.safeParse({ command: 'compose' }).success).toBe(true);
+    expect(event.safeParse({ command: 'open-settings', section: 'notifications' }).success).toBe(
+      true,
+    );
+    expect(event.safeParse({ command: 'open-settings', section: 'nowhere' }).success).toBe(false);
+    expect(event.safeParse({ command: 'open-settings' }).success).toBe(false);
+    expect(event.safeParse({ command: 'select-scope', scope: 'all' }).success).toBe(true);
+    expect(event.safeParse({ command: 'select-scope', scope: 'acc_1' }).success).toBe(true);
+    expect(event.safeParse({ command: 'select-scope', scope: '' }).success).toBe(false);
+    expect(event.safeParse({ command: 'select-scope' }).success).toBe(false);
     expect(event.safeParse({ command: 'quit' }).success).toBe(false);
+  });
+
+  it('accepts only a valid scope and account list as the tray report', () => {
+    const { input, output } = ipcInvokeChannels['app.tray.report'];
+    const account = {
+      id: 'acc_1',
+      displayName: 'Práca',
+      email: 'jana@firma.sk',
+      color: '#4f6ef7',
+      status: 'connected',
+      lastSyncedAt: '2026-11-18T09:30:00.000Z',
+    };
+    expect(input.safeParse({ scope: 'all', accounts: [] }).success).toBe(true);
+    expect(input.safeParse({ scope: 'acc_1', accounts: [account] }).success).toBe(true);
+    expect(input.safeParse({ scope: '', accounts: [] }).success).toBe(false);
+    expect(input.safeParse({ scope: 42, accounts: [] }).success).toBe(false);
+    expect(input.safeParse({ scope: 'all' }).success).toBe(false);
+    expect(
+      input.safeParse({ scope: 'all', accounts: [{ ...account, color: 'red' }] }).success,
+    ).toBe(false);
+    expect(
+      input.safeParse({ scope: 'all', accounts: Array.from({ length: 101 }, () => account) })
+        .success,
+    ).toBe(false);
+    expect(input.safeParse(undefined).success).toBe(false);
+    expect(output.safeParse({ ok: true }).success).toBe(true);
+  });
+
+  it('accepts only bounded notifications from the renderer', () => {
+    const { input } = ipcInvokeChannels['app.notification.show'];
+    expect(input.safeParse({ title: 'Tibor', body: 'Ponuka', threadId: 'thr_1' }).success).toBe(
+      true,
+    );
+    expect(input.safeParse({ title: 'Relay', body: '', threadId: null }).success).toBe(true);
+    expect(input.safeParse({ title: '', body: 'x', threadId: null }).success).toBe(false);
+    expect(input.safeParse({ title: 'x'.repeat(201), body: '', threadId: null }).success).toBe(
+      false,
+    );
+    expect(input.safeParse({ title: 'Relay', body: '' }).success).toBe(false);
   });
 
   it('accepts only boolean full screen statuses from the main process', () => {

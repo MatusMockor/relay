@@ -1,11 +1,36 @@
 import { z } from 'zod';
+import { AccountIdSchema } from '../domain/ids';
 import { streamChannel } from './define';
 
-export const MenuCommandKindSchema = z.enum(['open-about']);
-export type MenuCommandKind = z.infer<typeof MenuCommandKindSchema>;
+export const SettingsSectionSchema = z.enum([
+  'server',
+  'account',
+  'devices',
+  'accounts',
+  'splits',
+  'automations',
+  'jira',
+  'sync',
+  'notifications',
+  'ai',
+  'look',
+  'keys',
+  'calendars',
+  'about',
+]);
+export type SettingsSection = z.infer<typeof SettingsSectionSchema>;
 
-export const MenuCommandSchema = z.object({ command: MenuCommandKindSchema });
+export const AccountScopeSchema = z.union([z.literal('all'), AccountIdSchema]);
+export type AccountScope = z.infer<typeof AccountScopeSchema>;
+
+export const MenuCommandSchema = z.discriminatedUnion('command', [
+  z.object({ command: z.literal('open-about') }),
+  z.object({ command: z.literal('open-settings'), section: SettingsSectionSchema }),
+  z.object({ command: z.literal('compose') }),
+  z.object({ command: z.literal('select-scope'), scope: AccountScopeSchema }),
+]);
 export type MenuCommand = z.infer<typeof MenuCommandSchema>;
+export type MenuCommandKind = MenuCommand['command'];
 
 export const menuStreamChannels = {
   'app.menu.command': streamChannel(z.undefined(), MenuCommandSchema),

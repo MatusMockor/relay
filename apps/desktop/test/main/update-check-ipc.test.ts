@@ -102,7 +102,7 @@ describe('manual update checks over IPC', () => {
 
   it('keeps a menu command until a window starts listening', async () => {
     const { bridge, menuCommands } = setup();
-    menuCommands.request('open-about');
+    menuCommands.request({ command: 'open-about' });
     const received: MenuCommand[] = [];
     const unsubscribe = bridge.subscribe('app.menu.command', {
       onEvent: (event) => {
@@ -123,7 +123,7 @@ describe('manual update checks over IPC', () => {
         shown += 1;
       },
       openAbout: () => {
-        menuCommands.request('open-about');
+        menuCommands.request({ command: 'open-about' });
       },
       logger,
     });

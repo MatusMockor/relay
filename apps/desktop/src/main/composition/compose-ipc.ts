@@ -25,11 +25,15 @@ import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
 import { createMenuCommandStreamHandlers } from '../handlers/menu-command-handlers';
 import { mergeInvokeHandlers, mergeStreamHandlers } from '../handlers/merge-handlers';
-import { createNotificationStreamHandlers } from '../handlers/notification-handlers';
+import {
+  createNotificationInvokeHandlers,
+  createNotificationStreamHandlers,
+} from '../handlers/notification-handlers';
 import { createOAuthHandlers } from '../handlers/oauth-handlers';
 import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
 import { createSessionHandlers } from '../handlers/session-handlers';
+import { createTrayInvokeHandlers } from '../handlers/tray-handlers';
 import {
   createUpdateInvokeHandlers,
   createUpdateStreamHandlers,
@@ -41,6 +45,8 @@ import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
 import type { AttachmentPicker } from '../files/attachment-picker';
 import type { MenuCommandRequests } from '../native/menu-command-requests';
+import type { MailNotification } from '../native/new-mail-notifier';
+import type { RendererView } from '../native/renderer-view';
 import type { ThreadOpenRequests } from '../native/thread-open-requests';
 import type { GoogleOAuthCoordinator } from '../oauth/google-oauth-coordinator';
 import type { GoogleCalendarOAuthCoordinator } from '../oauth/google-calendar-oauth-coordinator';
@@ -70,6 +76,8 @@ export interface MainProcessContext {
   readonly updates?: UpdateService;
   readonly threadOpens?: ThreadOpenRequests;
   readonly menuCommands?: MenuCommandRequests;
+  readonly rendererView?: RendererView;
+  readonly rendererNotifications?: EventHub<MailNotification>;
   readonly fullScreen?: FullScreenState;
 }
 
@@ -117,6 +125,8 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.local, localInvokeHandlers),
       optional(context.attachmentPicker, createAttachmentPickerHandlers),
       optional(context.updates, createUpdateInvokeHandlers),
+      optional(context.rendererView, createTrayInvokeHandlers),
+      optional(context.rendererNotifications, createNotificationInvokeHandlers),
     ),
     errorReporter(context.logger),
   ),

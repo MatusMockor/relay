@@ -1,25 +1,27 @@
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import { describe, expect, it } from 'vitest';
 import { EventHub } from '../../src/main/events/event-hub';
-import { UnreadBadgeUpdater } from '../../src/main/native/unread-badge-updater';
+import { type AccountOverview, totalUnread } from '../../src/main/native/account-overview';
+import { AccountOverviewUpdater } from '../../src/main/native/account-overview-updater';
 import { ManualTime } from './support/manual-time';
+import { withUnread } from './support/account-overviews';
 import { createTestLogger } from './support/memory-log-sink';
 
-describe('UnreadBadgeUpdater refresh ordering', () => {
-  it('recounts when a refresh arrives while the previous one is finishing', async () => {
+describe('AccountOverviewUpdater refresh ordering', () => {
+  it('reloads when a refresh arrives while the previous one is finishing', async () => {
     const yieldsBeforeSecondRefresh = [0, 1, 2, 3, 4, 5];
     const counted = await Promise.all(
       yieldsBeforeSecondRefresh.map(async (yields) => {
         let counts = 0;
-        const updater = new UnreadBadgeUpdater({
+        const updater = new AccountOverviewUpdater({
           hub: new EventHub<RealtimeEvent>(),
           source: {
-            count: () => {
+            load: () => {
               counts += 1;
-              return Promise.resolve(counts);
+              return Promise.resolve(withUnread(counts));
             },
           },
-          view: { setUnread: () => undefined },
+          view: { show: () => undefined },
           timers: new ManualTime(),
           logger: createTestLogger().logger,
         });
@@ -41,20 +43,20 @@ describe('UnreadBadgeUpdater refresh ordering', () => {
     const delays = [100, 10];
     let unread = 4;
     const badges: number[] = [];
-    const updater = new UnreadBadgeUpdater({
+    const updater = new AccountOverviewUpdater({
       hub,
       source: {
-        count: () => {
+        load: () => {
           const captured = unread;
           const delay = delays.shift() ?? 10;
-          return new Promise<number>((resolve) => {
+          return new Promise<AccountOverview[]>((resolve) => {
             time.after(delay, () => {
-              resolve(captured);
+              resolve(withUnread(captured));
             });
           });
         },
       },
-      view: { setUnread: (count) => badges.push(count) },
+      view: { show: (accounts) => badges.push(totalUnread(accounts)) },
       timers: time,
       logger: createTestLogger().logger,
     });

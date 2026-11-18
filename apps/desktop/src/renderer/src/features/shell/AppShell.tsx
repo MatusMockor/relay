@@ -2,6 +2,7 @@ import { cx, ResizeHandle } from '@relay/ui';
 import { type CSSProperties, useEffect } from 'react';
 import { useRealtimeSync } from '../../data/hooks/use-realtime-sync';
 import { useRemoteAutomationNotifications } from '../../data/hooks/use-remote-automation-notifications';
+import { useAppContext } from '../../data/hooks/services-context';
 import { useUserSettings } from '../../data/hooks/use-mail-queries';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { FolderSidebar } from '../folders/FolderSidebar';
@@ -14,6 +15,7 @@ import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
 import { OverlayHost } from './OverlayHost';
 import { TopBar } from './TopBar';
+import { useTrayReporter } from '../updates/use-tray-reporter';
 import { LIMITS, useLayout } from './use-layout';
 
 const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
@@ -22,8 +24,10 @@ const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
 
 function Shell() {
   useKeyboard();
+  const { platform } = useAppContext();
   useRealtimeSync();
-  useRemoteAutomationNotifications();
+  useRemoteAutomationNotifications(platform);
+  useTrayReporter();
   useNotificationNavigation();
   const commit = useLayoutPersistence();
   const layout = useLayout();

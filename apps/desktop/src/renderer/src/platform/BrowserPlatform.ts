@@ -4,6 +4,7 @@ import { RendererTokenSession } from '../data/remote/RendererTokenSession';
 import { canonicalServerUrl, MemoryTokenStore, type TokenStore } from '../data/remote/TokenStore';
 import { mergeDeviceSettings, parseStoredDeviceSettings } from './device-settings';
 import type { Platform } from './Platform';
+import { showBrowserNotification } from './browser-notification';
 import { saveBlobAs } from './save-file';
 
 export const DEVICE_SETTINGS_KEY = 'relay.device-settings';
@@ -105,6 +106,8 @@ export const createBrowserPlatform = (
     installUpdate: () => Promise.resolve(),
     subscribeToThreadOpens: () => () => undefined,
     subscribeToMenuCommands: () => () => undefined,
+    reportTray: () => undefined,
+    showNotification: showBrowserNotification,
     subscribeToFullScreen: () => () => undefined,
   };
 };

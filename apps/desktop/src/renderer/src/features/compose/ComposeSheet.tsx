@@ -31,7 +31,7 @@ import { usePublishRecipient } from './use-publish-recipient';
 
 function ComposeForm({ init }: { readonly init: ComposeInit }) {
   const model = useAccountsModel();
-  const scope = useUiStore((state) => state.scope);
+  const [scope] = useState(() => useUiStore.getState().scope);
   const queryClient = useQueryClient();
   const actions = useMailActions();
   const fallback =

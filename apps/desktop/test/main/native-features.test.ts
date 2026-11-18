@@ -6,8 +6,10 @@ import {
   buildAppMenuTemplate,
   CHECK_FOR_UPDATES_ID,
 } from '../../src/main/native/app-menu-template';
-import { UnreadBadgeUpdater } from '../../src/main/native/unread-badge-updater';
+import { totalUnread } from '../../src/main/native/account-overview';
+import { AccountOverviewUpdater } from '../../src/main/native/account-overview-updater';
 import { fitWindowState } from '../../src/main/native/window-bounds';
+import { withUnread } from './support/account-overviews';
 import { ManualTime } from './support/manual-time';
 import { createTestLogger } from './support/memory-log-sink';
 import { thread, upserted } from './support/thread-events';
@@ -132,22 +134,22 @@ describe('buildAppMenuTemplate', () => {
   });
 });
 
-describe('UnreadBadgeUpdater', () => {
-  it('recounts unread threads once per burst of thread events', async () => {
+describe('AccountOverviewUpdater', () => {
+  it('reloads the account overview once per burst of thread events', async () => {
     const time = new ManualTime();
     const hub = new EventHub<RealtimeEvent>();
     let unread = 3;
     let counts = 0;
     const badges: number[] = [];
-    const updater = new UnreadBadgeUpdater({
+    const updater = new AccountOverviewUpdater({
       hub,
       source: {
-        count: () => {
+        load: () => {
           counts += 1;
-          return Promise.resolve(unread);
+          return Promise.resolve(withUnread(unread));
         },
       },
-      view: { setUnread: (count) => badges.push(count) },
+      view: { show: (accounts) => badges.push(totalUnread(accounts)) },
       timers: time,
       logger: createTestLogger().logger,
       debounceMs: 200,

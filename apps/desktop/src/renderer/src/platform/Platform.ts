@@ -8,9 +8,11 @@ import type {
   GoogleAuthorizeOutput,
   GoogleCalendarAuthorizeInput,
   GoogleCalendarAuthorizeOutput,
-  MenuCommandKind,
+  MenuCommand,
+  NotificationRequest,
   RelayBridge,
   ThreadId,
+  TrayReport,
   UpdateStatus,
 } from '@relay/shared';
 import type { FetchLike } from '../data/remote/HttpApi';
@@ -41,7 +43,9 @@ export interface Platform {
   checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
   subscribeToThreadOpens(listener: (threadId: ThreadId) => void): () => void;
-  subscribeToMenuCommands(listener: (command: MenuCommandKind) => void): () => void;
+  subscribeToMenuCommands(listener: (command: MenuCommand) => void): () => void;
+  reportTray(report: TrayReport): void;
+  showNotification(notification: NotificationRequest): void;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
 }
 

@@ -1,24 +1,10 @@
-import type { AccountId, Address, MessageId, ThreadId } from '@relay/shared';
+import type { AccountId, Address, MessageId, SettingsSection, ThreadId } from '@relay/shared';
 import { create } from 'zustand';
 import type { AnchorRect } from '@relay/ui';
 import { type AccountScope, type Folder, INBOX } from './folders';
 
 export type RightTab = 'contact' | 'ai' | 'calendar';
-export type SettingsSection =
-  | 'server'
-  | 'account'
-  | 'devices'
-  | 'accounts'
-  | 'splits'
-  | 'automations'
-  | 'jira'
-  | 'sync'
-  | 'notifications'
-  | 'ai'
-  | 'look'
-  | 'keys'
-  | 'calendars'
-  | 'about';
+export type { SettingsSection };
 
 export interface ComposeInit {
   readonly draftId?: string;

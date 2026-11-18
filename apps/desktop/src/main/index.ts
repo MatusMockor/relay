@@ -21,6 +21,8 @@ import { systemClock } from './infra/system-clock';
 import { registerIpc } from './ipc/register-ipc';
 import { createTrustedSenderPredicate } from './ipc/trusted-sender';
 import { MenuCommandRequests } from './native/menu-command-requests';
+import type { MailNotification } from './native/new-mail-notifier';
+import { RendererView } from './native/renderer-view';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { ThreadOpenRequests } from './native/thread-open-requests';
@@ -28,6 +30,7 @@ import { WindowStateStore } from './native/window-state-store';
 import { systemTimers } from './platform/timers';
 import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
+import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
 import { hardenSession } from './window/harden-session';
 
@@ -67,6 +70,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const updates = electronAppUpdates(logger);
   const threadOpens = new ThreadOpenRequests();
   const menuCommands = new MenuCommandRequests();
+  const rendererView = new RendererView();
+  const rendererNotifications = new EventHub<MailNotification>();
   const fullScreen = new FullScreenState();
 
   const unregisterIpc = registerIpc(
@@ -84,6 +89,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       updates: updates.service,
       threadOpens,
       menuCommands,
+      rendererView,
+      rendererNotifications,
       fullScreen,
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
@@ -125,6 +132,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     windows,
     threadOpens,
     menuCommands,
+    rendererView,
+    rendererNotifications,
     updates: updates.service,
     logger,
   });

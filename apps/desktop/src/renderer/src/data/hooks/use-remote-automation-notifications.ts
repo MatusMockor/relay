@@ -1,22 +1,12 @@
+import type { NotificationRequest } from '@relay/shared';
 import { useEffect } from 'react';
 import { useClient } from './services-context';
 
 export interface AutomationNotificationSink {
-  show(title: string, body: string): void;
+  showNotification(notification: NotificationRequest): void;
 }
 
-const browserNotifications: AutomationNotificationSink = {
-  show: (title, body) => {
-    if (typeof Notification === 'undefined' || Notification.permission === 'denied') {
-      return;
-    }
-    new Notification(title, { body });
-  },
-};
-
-export const useRemoteAutomationNotifications = (
-  sink: AutomationNotificationSink = browserNotifications,
-): void => {
+export const useRemoteAutomationNotifications = (sink: AutomationNotificationSink): void => {
   const client = useClient();
   useEffect(() => {
     if (client.kind !== 'remote') {
@@ -26,7 +16,11 @@ export const useRemoteAutomationNotifications = (
       if (event.type !== 'automation.notified') {
         return;
       }
-      sink.show(event.data.title, event.data.body);
+      sink.showNotification({
+        title: event.data.title,
+        body: event.data.body,
+        threadId: event.data.threadId,
+      });
     });
   }, [client, sink]);
 };

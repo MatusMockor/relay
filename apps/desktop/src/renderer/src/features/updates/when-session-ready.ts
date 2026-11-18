@@ -1,19 +1,18 @@
 import { type SessionState, useSessionStore } from '../../session/session-store';
-import { openAboutUnlessBusy } from './open-about';
 
 const noop = (): void => undefined;
 
-const openIfReady = (state: SessionState): void => {
+const runIfReady = (state: SessionState, action: () => void): void => {
   if (state.phase !== 'ready' || state.services === null) {
     return;
   }
-  openAboutUnlessBusy();
+  action();
 };
 
-export const openAboutWhenReady = (): (() => void) => {
+export const whenSessionReady = (action: () => void): (() => void) => {
   const current = useSessionStore.getState();
   if (current.phase !== 'booting') {
-    openIfReady(current);
+    runIfReady(current, action);
     return noop;
   }
   const unsubscribe = useSessionStore.subscribe((state) => {
@@ -21,7 +20,7 @@ export const openAboutWhenReady = (): (() => void) => {
       return;
     }
     unsubscribe();
-    openIfReady(state);
+    runIfReady(state, action);
   });
   return unsubscribe;
 };

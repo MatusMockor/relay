@@ -55,10 +55,16 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
           if (!parsed.success) {
             return;
           }
-          listener(parsed.data.command);
+          listener(parsed.data);
         },
         onError: () => undefined,
       }),
+    reportTray: (report) => {
+      void bridge.invoke('app.tray.report', report);
+    },
+    showNotification: (notification) => {
+      void bridge.invoke('app.notification.show', notification);
+    },
     subscribeToFullScreen: (listener) =>
       bridge.subscribe('app.window.fullScreen', {
         onEvent: (status) => {
