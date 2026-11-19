@@ -4,7 +4,6 @@ import type { OpenAttachmentInput } from '@relay/shared/ipc';
 import type { AttachmentTempFiles } from './attachment-temp-files';
 import type { FileQuarantine } from './file-quarantine';
 import type { FileViewer } from './file-viewer';
-import { safeFilename } from './safe-filename';
 
 export class AttachmentLauncher {
   constructor(
@@ -14,7 +13,7 @@ export class AttachmentLauncher {
   ) {}
 
   async open(attachment: OpenAttachmentInput): Promise<void> {
-    if (!canOpenAttachmentExternally(safeFilename(attachment.filename))) {
+    if (!canOpenAttachmentExternally(attachment.filename)) {
       throw new ValidationError(
         'Tento typ súboru sa z bezpečnostných dôvodov nedá otvoriť priamo. Stiahni ho a otvor ručne.',
       );

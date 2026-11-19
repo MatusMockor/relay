@@ -8,6 +8,7 @@ export * from './calendar-subscription';
 export * from './google-calendar';
 export * from './attachment-file';
 export * from './attachment-external-open';
+export * from './safe-attachment-filename';
 export * from './automation';
 export * from './automation-action';
 export * from './credentials';

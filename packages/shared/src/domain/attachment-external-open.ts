@@ -1,3 +1,5 @@
+import { safeAttachmentFilename } from './safe-attachment-filename';
+
 const INERT_DOCUMENT_EXTENSIONS = new Set([
   'pdf',
   'png',
@@ -32,6 +34,7 @@ const INERT_DOCUMENT_EXTENSIONS = new Set([
 ]);
 
 export const canOpenAttachmentExternally = (filename: string): boolean => {
-  const extension = /\.([^.\\/]+)$/.exec(filename)?.[1]?.toLowerCase() ?? '';
+  const extension =
+    /\.([^.\\/]+)$/.exec(safeAttachmentFilename(filename))?.[1]?.toLowerCase() ?? '';
   return INERT_DOCUMENT_EXTENSIONS.has(extension);
 };

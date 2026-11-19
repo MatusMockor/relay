@@ -1,8 +1,9 @@
 import type { AttachmentMeta } from '@relay/shared';
 import { useEffect, useState } from 'react';
 import { describeError } from '../../../data/errors';
-import { readBlobBytes, readBlobText } from '../../../lib/read-blob';
+import { readBlobBytes } from '../../../lib/read-blob';
 import type { BlobLoader } from '../use-blob-action';
+import { decodeText } from './decode-text';
 
 export type PreviewContent =
   | { readonly status: 'loading' }
@@ -17,9 +18,6 @@ export interface PreviewContentState {
 
 const LOADING: PreviewContent = { status: 'loading' };
 const TEXT_TYPE = 'text/plain';
-
-const typedBlob = async (blob: Blob, type: string): Promise<Blob> =>
-  new Blob([await readBlobBytes(blob)], { type });
 
 export const usePreviewContent = (
   attachment: AttachmentMeta,
@@ -40,16 +38,16 @@ export const usePreviewContent = (
     };
     setContent(LOADING);
     load(target)
-      .then((blob) => typedBlob(blob, type))
-      .then(async (blob) => {
+      .then(readBlobBytes)
+      .then((bytes) => {
         if (type === TEXT_TYPE) {
-          show({ status: 'text', text: await readBlobText(blob) });
+          show({ status: 'text', text: decodeText(bytes, target.contentType) });
           return;
         }
         if (!active) {
           return;
         }
-        url = URL.createObjectURL(blob);
+        url = URL.createObjectURL(new Blob([bytes], { type }));
         show({ status: 'url', url });
       })
       .catch((error: unknown) => {

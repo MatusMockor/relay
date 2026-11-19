@@ -17,11 +17,3 @@ export const readBlobBytes = (blob: Blob): Promise<Uint8Array<ArrayBuffer>> =>
     },
     (value) => new Uint8Array(value instanceof ArrayBuffer ? value : new ArrayBuffer(0)),
   );
-
-export const readBlobText = (blob: Blob): Promise<string> =>
-  read(
-    (reader) => {
-      reader.readAsText(blob);
-    },
-    (value) => (typeof value === 'string' ? value : ''),
-  );

@@ -145,4 +145,30 @@ describe('attachment chips', () => {
     const docx = await expectViewerOf('zmluva.docx');
     expect(within(docx).getAllByRole('button', { name: 'Otvoriť v aplikácii' })).toHaveLength(2);
   });
+
+  it('offers the default app exactly for the names the main process will open', async () => {
+    const named = (id: string, filename: string) =>
+      ({ ...ATTACHMENTS[0], id, filename }) as AttachmentMeta;
+    serveAttachments(server, [
+      named('att-a', 'report.pdf'),
+      named('att-b', 'sprava.pdf '),
+      named('att-c', '.pdf'),
+    ]);
+    renderApp({ platform: await syncedPlatform(server, records, recordingOpener(records.opened)) });
+    const attachments = await openThread();
+    const offers = async (name: string): Promise<boolean> => {
+      clickChip(attachments, name);
+      const dialog = await expectViewerOf(name);
+      const offered =
+        within(dialog).queryByRole('button', { name: 'Otvoriť v aplikácii' }) !== null;
+      act(() => {
+        fireEvent.keyDown(document.body, { key: 'Escape' });
+      });
+      return offered;
+    };
+
+    expect(await offers('report.pdf')).toBe(true);
+    expect(await offers('sprava.pdf')).toBe(true);
+    expect(await offers('.pdf')).toBe(false);
+  });
 });

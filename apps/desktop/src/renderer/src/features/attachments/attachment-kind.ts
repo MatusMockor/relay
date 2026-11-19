@@ -8,30 +8,30 @@ export const MAX_TEXT_PREVIEW_BYTES = 1024 * 1024;
 const PDF_TYPE = 'application/pdf';
 const TEXT_TYPE = 'text/plain';
 
-const IMAGE_TYPES: Readonly<Record<string, string>> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  bmp: 'image/bmp',
-};
-const IMAGE_MIME_TYPES = new Set(Object.values(IMAGE_TYPES));
+const IMAGE_TYPES: ReadonlyMap<string, string> = new Map([
+  ['png', 'image/png'],
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['gif', 'image/gif'],
+  ['webp', 'image/webp'],
+  ['bmp', 'image/bmp'],
+]);
+const IMAGE_MIME_TYPES = new Set(IMAGE_TYPES.values());
 
-const BADGE_BY_TYPE: Readonly<Record<string, string>> = {
-  [PDF_TYPE]: 'PDF',
-  [TEXT_TYPE]: 'TXT',
-  'image/png': 'PNG',
-  'image/jpeg': 'JPG',
-  'image/gif': 'GIF',
-  'image/webp': 'WEBP',
-  'application/zip': 'ZIP',
-  'application/msword': 'DOC',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
-  'application/vnd.ms-excel': 'XLS',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
-};
-const BADGE_BY_EXTENSION: Readonly<Record<string, string>> = { jpeg: 'JPG' };
+const BADGE_BY_TYPE: ReadonlyMap<string, string> = new Map([
+  [PDF_TYPE, 'PDF'],
+  [TEXT_TYPE, 'TXT'],
+  ['image/png', 'PNG'],
+  ['image/jpeg', 'JPG'],
+  ['image/gif', 'GIF'],
+  ['image/webp', 'WEBP'],
+  ['application/zip', 'ZIP'],
+  ['application/msword', 'DOC'],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'DOCX'],
+  ['application/vnd.ms-excel', 'XLS'],
+  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'XLSX'],
+]);
+const BADGE_BY_EXTENSION: ReadonlyMap<string, string> = new Map([['jpeg', 'JPG']]);
 const FALLBACK_BADGE = 'SÚBOR';
 const MAX_BADGE_LENGTH = 4;
 
@@ -46,7 +46,7 @@ const imageTypeOf = (attachment: AttachmentMeta): string | null => {
   if (IMAGE_MIME_TYPES.has(mime)) {
     return mime;
   }
-  return IMAGE_TYPES[extensionOf(attachment)] ?? null;
+  return IMAGE_TYPES.get(extensionOf(attachment)) ?? null;
 };
 
 const isText = (attachment: AttachmentMeta): boolean =>
@@ -77,14 +77,14 @@ export const previewKindOf = (attachment: AttachmentMeta): PreviewKind => {
 
 export const badgeOf = (attachment: AttachmentMeta): string => {
   const extension = extensionOf(attachment);
-  const known = BADGE_BY_EXTENSION[extension];
+  const known = BADGE_BY_EXTENSION.get(extension);
   if (known !== undefined) {
     return known;
   }
   if (extension !== '' && extension.length <= MAX_BADGE_LENGTH) {
     return extension.toUpperCase();
   }
-  return BADGE_BY_TYPE[mimeOf(attachment)] ?? FALLBACK_BADGE;
+  return BADGE_BY_TYPE.get(mimeOf(attachment)) ?? FALLBACK_BADGE;
 };
 
 export const badgeToneOf = (attachment: AttachmentMeta): BadgeTone => {

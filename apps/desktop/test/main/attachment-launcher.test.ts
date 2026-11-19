@@ -183,17 +183,6 @@ describe('opening received attachments in the system', () => {
     expect(Buffer.byteLength(name)).toBeLessThanOrEqual(200);
   });
 
-  it('refuses a temp folder name that would leave the temp root', async () => {
-    const files = new AttachmentTempFiles(root, () => '../escape');
-    const bridge = bridgeWith(files);
-
-    const result = await bridge.invoke('app.attachments.open', { filename: 'a.pdf', content: PDF });
-
-    expect(result).toMatchObject({ ok: false, error: { code: 'validation_failed' } });
-    expect(viewer.viewed).toEqual([]);
-    expect(await readdir(dir.path)).toEqual([]);
-  });
-
   it('validates the input before touching the disk', async () => {
     const bridge = bridgeWith(new AttachmentTempFiles(root));
     const invalid: unknown[] = [

@@ -4,7 +4,9 @@ const UNSAFE_CHARACTERS = /[/\\:*?"<>|\p{Cc}]/gu;
 const EDGE_DOTS_AND_SPACES = /^[.\s]+|[.\s]+$/g;
 const EXTENSION = /\.[\p{L}\p{N}]{1,10}$/u;
 
-const byteLength = (value: string): number => Buffer.byteLength(value, 'utf8');
+const encoder = new TextEncoder();
+
+const byteLength = (value: string): number => encoder.encode(value).length;
 
 const truncate = (name: string): string => {
   if (byteLength(name) <= MAX_BYTES) {
@@ -18,7 +20,7 @@ const truncate = (name: string): string => {
   return characters.join('') + extension;
 };
 
-export const safeFilename = (filename: string): string => {
+export const safeAttachmentFilename = (filename: string): string => {
   const cleaned = filename
     .normalize('NFC')
     .replace(UNSAFE_CHARACTERS, '_')

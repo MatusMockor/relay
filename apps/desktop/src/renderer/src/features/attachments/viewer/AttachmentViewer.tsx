@@ -16,7 +16,10 @@ export interface AttachmentViewerProps {
   readonly onClose: () => void;
 }
 
-const STEP_KEYS: Readonly<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1 };
+const STEP_KEYS: ReadonlyMap<string, number> = new Map([
+  ['ArrowLeft', -1],
+  ['ArrowRight', 1],
+]);
 
 export function AttachmentViewer({ attachments, initialIndex, onClose }: AttachmentViewerProps) {
   const loader = useAttachmentLoader();
@@ -30,7 +33,7 @@ export function AttachmentViewer({ attachments, initialIndex, onClose }: Attachm
     setIndex((value) => (Math.min(value, count - 1) + delta + count) % count);
   };
   const stepByKey = (key: string): boolean => {
-    const delta = STEP_KEYS[key];
+    const delta = STEP_KEYS.get(key);
     if (delta === undefined || count < 2) {
       return false;
     }

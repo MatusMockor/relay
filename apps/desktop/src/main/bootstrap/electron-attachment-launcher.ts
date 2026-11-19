@@ -9,7 +9,7 @@ import { XattrFileQuarantine } from '../files/xattr-file-quarantine';
 import { systemClock } from '../infra/system-clock';
 
 export const electronAttachmentLauncher = async (logger: Logger): Promise<AttachmentLauncher> => {
-  const files = new AttachmentTempFiles(join(app.getPath('temp'), `${app.getName()}-attachments`));
+  const files = new AttachmentTempFiles(join(app.getPath('userData'), 'opened-attachments'));
   await files.clear().catch((error: unknown) => {
     logger.warn('Failed to clear opened attachment files', { error });
   });
