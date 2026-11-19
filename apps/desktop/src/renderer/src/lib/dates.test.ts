@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { agoLabel, dayGroupOf } from './dates';
+import { agoLabel } from './dates';
+import { dayGroupOf } from './day-groups';
 import { truncate } from './text';
 
 describe('dayGroupOf across a daylight saving change', () => {
@@ -15,8 +16,11 @@ describe('dayGroupOf across a daylight saving change', () => {
 
   it('starts the previous week at local midnight', () => {
     const now = new Date('2026-11-02T17:00:00.000Z');
-    expect(dayGroupOf('2026-10-26T04:30:00.000Z', now)).toBe('Minulý týždeň');
-    expect(dayGroupOf('2026-10-25T23:30:00.000Z', now)).toBe('Október');
+    expect(dayGroupOf('2026-10-26T04:30:00.000Z', now)).toEqual({
+      label: 'Minulý týždeň',
+      date: null,
+    });
+    expect(dayGroupOf('2026-10-25T23:30:00.000Z', now)).toEqual({ label: 'Október', date: null });
   });
 });
 

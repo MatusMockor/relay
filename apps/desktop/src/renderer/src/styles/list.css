@@ -1,7 +1,8 @@
 .a-list {
   flex: 1;
   overflow: auto;
-  padding: 6px 14px 28px;
+  padding: 0 14px 28px;
+  scroll-padding-top: 40px;
   position: relative;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
   mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
@@ -190,15 +191,33 @@
   animation: fresh 3s ease-out;
 }
 .a-day {
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 18px 14px 6px 32px;
-  font-weight: var(--w-semibold);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 5px 32px;
+  background: var(--bg);
+  color: var(--fg3);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+}
+.a-day::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  margin-left: 4px;
+  background: var(--line-soft);
+}
+.a-day-date {
+  color: var(--fg4);
+  font-weight: var(--w-regular);
 }
 .a-list > :first-child > .a-day {
-  padding-top: 8px;
+  padding-top: 12px;
 }
 .dense {
   --row-h: 36px;
@@ -207,7 +226,8 @@
   border-radius: 7px;
 }
 .dense .a-day {
-  padding: 12px 14px 4px 32px;
+  padding-top: 12px;
+  padding-bottom: 4px;
 }
 .dense .a-row .act {
   width: 26px;
