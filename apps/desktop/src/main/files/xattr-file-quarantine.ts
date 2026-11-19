@@ -15,14 +15,18 @@ export class XattrFileQuarantine implements FileQuarantine {
     private readonly logger: Logger,
   ) {}
 
-  async mark(path: string): Promise<void> {
+  async mark(path: string): Promise<boolean> {
     if (this.platform !== 'darwin') {
-      return;
+      return true;
     }
     const seconds = Math.floor(this.clock.now().getTime() / 1000).toString(16);
     const value = `${DOWNLOADED_FLAGS};${seconds};${this.agent};`;
-    await this.run(XATTR, ['-w', ATTRIBUTE, value, path]).catch((error: unknown) => {
-      this.logger.warn('Failed to quarantine an opened attachment', { path, error });
-    });
+    return this.run(XATTR, ['-w', ATTRIBUTE, value, path]).then(
+      () => true,
+      (error: unknown) => {
+        this.logger.warn('Failed to quarantine an opened attachment', { path, error });
+        return false;
+      },
+    );
   }
 }

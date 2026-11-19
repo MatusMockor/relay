@@ -1,3 +1,3 @@
 export interface FileQuarantine {
-  mark(path: string): Promise<void>;
+  mark(path: string): Promise<boolean>;
 }

@@ -52,10 +52,11 @@ describe('opening received attachments in the system', () => {
   let root: string;
   let viewer: RecordingViewer;
   let commands: (readonly string[])[];
+  let xattrFails: boolean;
 
   const runner: CommandRunner = (file, args) => {
     commands.push([file, ...args]);
-    return Promise.resolve();
+    return xattrFails ? Promise.reject(new Error('xattr: permission denied')) : Promise.resolve();
   };
 
   const bridgeWith = (files: AttachmentTempFiles) =>
@@ -80,6 +81,7 @@ describe('opening received attachments in the system', () => {
     root = dir.file('Relay-attachments');
     viewer = new RecordingViewer();
     commands = [];
+    xattrFails = false;
   });
 
   afterEach(async () => {
@@ -103,6 +105,25 @@ describe('opening received attachments in the system', () => {
     expect(commands).toEqual([
       ['/usr/bin/xattr', '-w', 'com.apple.quarantine', '0081;6afec8a0;Relay;', viewedPath()],
     ]);
+  });
+
+  it('refuses to open a copy that could not be quarantined', async () => {
+    xattrFails = true;
+    const bridge = bridgeWith(new AttachmentTempFiles(root));
+
+    const result = await bridge.invoke('app.attachments.open', { filename: 'a.pdf', content: PDF });
+
+    expect(result.ok).toBe(false);
+    expect(viewer.viewed).toEqual([]);
+  });
+
+  it('still shows Quick Look when quarantine fails because it runs nothing', async () => {
+    xattrFails = true;
+    const bridge = bridgeWith(new AttachmentTempFiles(root));
+
+    await bridge.invoke('app.attachments.quickLook', { filename: 'a.docx', content: PDF });
+
+    expect(viewer.viewed.map((entry) => entry.action)).toEqual(['quickLook']);
   });
 
   it('shows Quick Look with the original name as the title', async () => {

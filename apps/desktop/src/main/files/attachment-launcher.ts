@@ -19,18 +19,24 @@ export class AttachmentLauncher {
         'Tento typ súboru sa z bezpečnostných dôvodov nedá otvoriť priamo. Stiahni ho a otvor ručne.',
       );
     }
-    const path = await this.write(attachment);
+    const { path, marked } = await this.write(attachment);
+    if (!marked) {
+      throw new ValidationError(
+        'Súbor sa nepodarilo bezpečne pripraviť na otvorenie. Stiahni ho a otvor ručne.',
+      );
+    }
     await this.viewer.open(path);
   }
 
   async quickLook(attachment: OpenAttachmentInput): Promise<void> {
-    const path = await this.write(attachment);
+    const { path } = await this.write(attachment);
     await this.viewer.quickLook(path, attachment.filename);
   }
 
-  private async write(attachment: OpenAttachmentInput): Promise<string> {
+  private async write(
+    attachment: OpenAttachmentInput,
+  ): Promise<{ readonly path: string; readonly marked: boolean }> {
     const path = await this.files.write(attachment.filename, attachment.content);
-    await this.quarantine.mark(path);
-    return path;
+    return { path, marked: await this.quarantine.mark(path) };
   }
 }

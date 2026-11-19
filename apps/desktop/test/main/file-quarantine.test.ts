@@ -36,7 +36,7 @@ describe('quarantine of attachment copies opened in the system', () => {
       createTestLogger().logger,
     );
 
-    await quarantine.mark('/tmp/Relay-attachments/abc/faktura.pdf');
+    expect(await quarantine.mark('/tmp/Relay-attachments/abc/faktura.pdf')).toBe(true);
 
     expect(commands).toEqual([
       [
@@ -58,17 +58,17 @@ describe('quarantine of attachment copies opened in the system', () => {
       createTestLogger().logger,
     );
 
-    await quarantine.mark('/tmp/a.pdf');
+    expect(await quarantine.mark('/tmp/a.pdf')).toBe(true);
 
     expect(commands).toEqual([]);
   });
 
-  it('logs a failed attempt and lets the file open anyway', async () => {
+  it('logs a failed attempt and reports the file as unmarked', async () => {
     const { logger, sink } = createTestLogger();
     const failing: CommandRunner = () => Promise.reject(new Error('xattr: permission denied'));
     const quarantine = new XattrFileQuarantine('darwin', 'Relay', failing, NOW, logger);
 
-    await expect(quarantine.mark('/tmp/a.pdf')).resolves.toBeUndefined();
+    expect(await quarantine.mark('/tmp/a.pdf')).toBe(false);
 
     expect(sink.messages()).toEqual(['Failed to quarantine an opened attachment']);
   });
