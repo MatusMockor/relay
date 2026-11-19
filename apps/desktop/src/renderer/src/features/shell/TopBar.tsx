@@ -3,6 +3,7 @@ import { MOD } from '../../lib/platform-keys';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { openRight, toggleRight } from '../mail/navigation';
 import { FolderTitle } from './FolderTitle';
+import { HistoryNav } from './HistoryNav';
 import { MeAvatar } from './MeAvatar';
 import { SearchField } from './SearchField';
 import { SplitTabs } from './SplitTabs';
@@ -28,6 +29,7 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
           <Icon name="panelLeft" />
         </IconButton>
       )}
+      <HistoryNav />
       {inThread ? <ThreadNav /> : inbox ? <SplitTabs /> : <FolderTitle />}
       <div className="right">
         <SearchField open={searchOpen && !inThread} />

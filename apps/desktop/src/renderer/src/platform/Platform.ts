@@ -13,6 +13,7 @@ import type {
   NotificationRequest,
   RelayBridge,
   ThreadId,
+  TrackpadScrollPhase,
   TrayReport,
   UpdateStatus,
 } from '@relay/shared';
@@ -48,6 +49,7 @@ export interface Platform {
   reportTray(report: TrayReport): void;
   showNotification(notification: NotificationRequest): Promise<void>;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
+  subscribeToTrackpadScroll(listener: (phase: TrackpadScrollPhase) => void): () => void;
   showContextMenu(request: ContextMenuRequest): Promise<string | null>;
 }
 

@@ -1,11 +1,16 @@
 import { listenForHistoryButtons } from './history-buttons';
 import { listenForHistoryKeys } from './history-keys';
+import { listenForSwipeWheel } from './trackpad-swipe';
 
 export const listenForHistoryInputs = (target: Window): (() => void) => {
-  const stopButtons = listenForHistoryButtons(target);
-  const stopKeys = listenForHistoryKeys(target);
+  const stops = [
+    listenForHistoryButtons(target),
+    listenForHistoryKeys(target),
+    listenForSwipeWheel(target),
+  ];
   return () => {
-    stopButtons();
-    stopKeys();
+    stops.forEach((stop) => {
+      stop();
+    });
   };
 };

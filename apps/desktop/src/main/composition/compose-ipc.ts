@@ -1,6 +1,6 @@
 import { type EngineServices, isEngineError, type Logger } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
-import type { NotificationRequest } from '@relay/shared/ipc';
+import type { NotificationRequest, TrackpadScrollEvent } from '@relay/shared/ipc';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
 import {
@@ -37,6 +37,7 @@ import { createOAuthHandlers } from '../handlers/oauth-handlers';
 import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
 import { createSessionHandlers } from '../handlers/session-handlers';
+import { createTrackpadStreamHandlers } from '../handlers/trackpad-handlers';
 import { createTrayInvokeHandlers } from '../handlers/tray-handlers';
 import {
   createUpdateInvokeHandlers,
@@ -83,6 +84,7 @@ export interface MainProcessContext {
   readonly rendererView?: RendererView;
   readonly rendererNotifications?: EventHub<NotificationRequest>;
   readonly fullScreen?: FullScreenState;
+  readonly trackpadScroll?: EventHub<TrackpadScrollEvent>;
   readonly contextMenu?: ContextMenuPresenter;
 }
 
@@ -146,6 +148,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.threadOpens, createNotificationStreamHandlers),
       optional(context.menuCommands, createMenuCommandStreamHandlers),
       optional(context.fullScreen, createWindowStreamHandlers),
+      optional(context.trackpadScroll, createTrackpadStreamHandlers),
     ),
     errorReporter(context.logger),
   ),

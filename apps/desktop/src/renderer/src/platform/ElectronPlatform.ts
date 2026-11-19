@@ -3,6 +3,7 @@ import {
   type IpcResult,
   MenuCommandSchema,
   type RelayBridge,
+  TrackpadScrollEventSchema,
 } from '@relay/shared';
 import { MailClientError } from '../data/errors';
 import { MainProcessSession } from '../data/remote/MainProcessSession';
@@ -70,6 +71,17 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
       bridge.subscribe('app.window.fullScreen', {
         onEvent: (status) => {
           listener(status.fullScreen);
+        },
+        onError: () => undefined,
+      }),
+    subscribeToTrackpadScroll: (listener) =>
+      bridge.subscribe('app.window.trackpadScroll', {
+        onEvent: (event) => {
+          const parsed = TrackpadScrollEventSchema.safeParse(event);
+          if (!parsed.success) {
+            return;
+          }
+          listener(parsed.data.phase);
         },
         onError: () => undefined,
       }),

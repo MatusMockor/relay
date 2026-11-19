@@ -15,6 +15,7 @@ export interface HistoryEntry<Location> {
 
 export class HistoryRecorder<Location> {
   private applying = false;
+  private readonly listeners = new Set<() => void>();
 
   constructor(
     private readonly history: NavigationHistory<HistoryEntry<Location>>,
@@ -23,6 +24,7 @@ export class HistoryRecorder<Location> {
 
   start(): () => void {
     this.history.reset({ location: this.store.read(), tag: null });
+    this.notify();
     return this.store.subscribe(() => {
       this.observe();
     });
@@ -32,12 +34,20 @@ export class HistoryRecorder<Location> {
     return this.history.can(direction);
   }
 
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
   go(direction: HistoryDirection, prepare: () => void = () => undefined): void {
     if (!this.history.can(direction)) {
       return;
     }
     this.silently(prepare);
     const target = this.history.move(direction);
+    this.notify();
     if (target === null || this.store.same(this.store.read(), target.location)) {
       return;
     }
@@ -55,6 +65,7 @@ export class HistoryRecorder<Location> {
       return;
     }
     this.history.visit({ location, tag });
+    this.notify();
   }
 
   rewrite(update: (location: Location, tag: symbol | null) => Location): void {
@@ -67,6 +78,7 @@ export class HistoryRecorder<Location> {
       (a, b) => this.store.same(a.location, b.location),
     );
     const after = this.history.current();
+    this.notify();
     if (before === null || after === null || this.store.same(before.location, after.location)) {
       return;
     }
@@ -87,6 +99,12 @@ export class HistoryRecorder<Location> {
       return;
     }
     this.history.replaceCurrent({ location: this.store.read(), tag: current.tag });
+  }
+
+  private notify(): void {
+    [...this.listeners].forEach((listener) => {
+      listener();
+    });
   }
 
   private silently(run: () => void): void {

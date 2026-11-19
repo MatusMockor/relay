@@ -16,6 +16,7 @@ import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
 import { useHistoryInputs } from './use-history-inputs';
+import { useTrackpadSwipe } from './use-trackpad-swipe';
 import { OverlayHost } from './OverlayHost';
 import { useScopeValidation } from './scope-validation';
 import { TopBar } from './TopBar';
@@ -30,6 +31,7 @@ function Shell() {
   useHistoryRecording();
   useKeyboard();
   useHistoryInputs();
+  useTrackpadSwipe();
   const { platform } = useAppContext();
   useRealtimeSync();
   useRemoteAutomationNotifications(platform);
