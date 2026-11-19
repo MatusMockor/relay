@@ -55,6 +55,7 @@ describe('sync with pending flag writes', () => {
     const inbox = present(await engine.repositories.mailboxes.findByPath(account.id, 'INBOX'));
     const state = present(await engine.repositories.syncStates.find(inbox.id));
     await engine.repositories.syncStates.save({ ...state, lastUid: 0, uidNext: 1 });
+    server.streamedMessages.length = 0;
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
