@@ -3,8 +3,11 @@ import { type Folder, folderKey, MAIN_TAB_LABEL } from '../../state/folders';
 import type { AccountScope } from '../../state/folders';
 import { ALL_ACCOUNTS_DIGIT } from '../folders/account-shortcut';
 
+const isElement = (target: EventTarget | null): target is HTMLElement =>
+  target !== null && 'tagName' in target;
+
 export const isTyping = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
+  if (!isElement(target)) {
     return false;
   }
   return (

@@ -2,9 +2,11 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoIds } from '../src/data/demo/seed/ids';
+import { INVALIDATION_WINDOW_MS } from '../src/data/hooks/invalidation-batch';
 import { queryKeys } from '../src/data/hooks/query-keys';
+import { applyRealtimeEvent } from '../src/data/hooks/realtime-cache';
 import { useUiStore } from '../src/state/ui-store';
-import { demoClient, openThreadBySubject, press } from './features-support';
+import { demoClient, openThreadBySubject, press, settle } from './features-support';
 import { renderApp, resetStores, testQueryClient } from './support/render-app';
 
 const SUBJECT = 'Obed v piatok?';
@@ -36,7 +38,7 @@ describe('a thread that no longer exists', () => {
     await act(async () => {
       await client.removeAccount(thread.accountId);
     });
-    queryClient.removeQueries({ queryKey: queryKeys.thread(threadId) });
+    await settle(INVALIDATION_WINDOW_MS + 30);
 
     release(3);
     await waitFor(() => {
@@ -46,5 +48,22 @@ describe('a thread that no longer exists', () => {
     release(3);
 
     expect(useUiStore.getState().openThreadId).toBeNull();
+  });
+
+  it('marks the cached detail of a removed thread as outdated', async () => {
+    const client = demoClient();
+    const queryClient = testQueryClient();
+    const threadId = demoIds.thread('c-lunch');
+    const detail = await client.getThread(threadId);
+    queryClient.setQueryData(queryKeys.thread(threadId), detail);
+
+    applyRealtimeEvent(queryClient, {
+      type: 'thread.removed',
+      at: new Date().toISOString(),
+      data: { threadId, accountId: detail.thread.accountId },
+    });
+    await settle(INVALIDATION_WINDOW_MS + 30);
+
+    expect(queryClient.getQueryState(queryKeys.thread(threadId))?.isInvalidated).toBe(true);
   });
 });

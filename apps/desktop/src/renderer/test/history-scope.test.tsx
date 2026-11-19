@@ -75,4 +75,43 @@ describe('history after an account is disconnected', () => {
     release(4);
     expect(useUiStore.getState().folder).toEqual(SENT);
   });
+
+  it('shows the inbox instead of a folder of the disconnected account', async () => {
+    const client = demoClient();
+    const mailboxes = await client.listMailboxes(demoIds.account('fl'));
+    const zakazky = mailboxes.find((mailbox) => mailbox.path === 'INBOX.Zákazky');
+    const projekty = (await client.listMailboxes(demoIds.account('efa'))).find(
+      (mailbox) => mailbox.path === 'Projekty',
+    );
+    expect(zakazky).toBeDefined();
+    expect(projekty).toBeDefined();
+    if (zakazky === undefined || projekty === undefined) {
+      return;
+    }
+    const gone = { kind: 'mailbox', mailboxId: zakazky.id, accountId: zakazky.accountId } as const;
+    const kept = {
+      kind: 'mailbox',
+      mailboxId: projekty.id,
+      accountId: projekty.accountId,
+    } as const;
+    renderApp({ demo: () => client });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    act(() => {
+      selectFolder(gone);
+    });
+    act(() => {
+      selectFolder(kept);
+    });
+    await disconnectFreelance();
+    expect(useUiStore.getState().folder).toEqual(kept);
+
+    release(3);
+    expect(useUiStore.getState().folder).toEqual(kept);
+    release(3);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().folder).toEqual(INBOX);
+    });
+    expect(useUiStore.getState().scope).toBe('all');
+  });
 });
