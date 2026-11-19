@@ -210,6 +210,14 @@
 .ibtn.on {
   color: var(--fg2);
 }
+.ibtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ibtn:disabled:hover {
+  background: none;
+  color: var(--muted);
+}
 .ibtn.ai {
   color: var(--accent);
 }

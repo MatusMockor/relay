@@ -120,6 +120,7 @@ export const createBrowserPlatform = (
     reportTray: () => undefined,
     showNotification: showBrowserNotification,
     subscribeToFullScreen: () => () => undefined,
+    subscribeToTrackpadScroll: () => () => undefined,
     showContextMenu,
   };
 };

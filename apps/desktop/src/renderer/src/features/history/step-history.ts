@@ -24,8 +24,11 @@ const blurEditedField = (): void => {
   focused.blur();
 };
 
+export const canStepHistory = (direction: HistoryDirection): boolean =>
+  !historyBlocked() && appHistory.can(direction);
+
 export const stepHistory = (direction: HistoryDirection): void => {
-  if (historyBlocked() || !appHistory.can(direction)) {
+  if (!canStepHistory(direction)) {
     return;
   }
   appHistory.go(direction, () => {

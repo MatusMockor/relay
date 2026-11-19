@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import type { NotificationRequest } from '@relay/shared/ipc';
+import type { NotificationRequest, TrackpadScrollEvent } from '@relay/shared/ipc';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import appIcon from '../../resources/icon.png?asset';
 import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-supervisor';
@@ -39,6 +39,7 @@ import { createMainWindow } from './window/create-main-window';
 import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
 import { trackHistoryCommands } from './window/track-history-commands';
+import { trackTrackpadScroll } from './window/track-trackpad-scroll';
 import { hardenSession } from './window/harden-session';
 
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
@@ -80,6 +81,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const rendererView = new RendererView();
   const rendererNotifications = new EventHub<NotificationRequest>();
   const fullScreen = new FullScreenState();
+  const trackpadScroll = new EventHub<TrackpadScrollEvent>();
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -99,6 +101,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       rendererView,
       rendererNotifications,
       fullScreen,
+      trackpadScroll,
       contextMenu: new WindowContextMenuPresenter(
         contextMenuWindow(electronWindows),
         electronContextMenuFactory,
@@ -133,6 +136,11 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     trackHistoryCommands(window, (command) => {
       menuCommands.request(command);
     });
+    if (process.platform === 'darwin') {
+      trackTrackpadScroll(window.webContents, (event) => {
+        trackpadScroll.publish(event);
+      });
+    }
     trackRendererSession(window, rendererView);
     return window;
   });

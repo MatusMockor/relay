@@ -17,6 +17,7 @@ import {
 } from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
 import { resetHistoryPresses } from '../../src/features/history/history-press-gate';
+import { resetTrackpadSwipe } from '../../src/features/shell/trackpad-swipe';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
@@ -44,6 +45,7 @@ export const resetMemoryStores = (): void => {
   cleanup();
   resetLayers();
   resetHistoryPresses();
+  resetTrackpadSwipe();
   useSessionStore.setState(INITIAL_SESSION);
   useUiStore.setState(INITIAL_UI);
   useChat.setState({ turns: [], queued: null });

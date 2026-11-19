@@ -121,4 +121,17 @@ describe('history recorder on the ui store', () => {
     recorder.go('forward');
     expect(useUiStore.getState().openThreadId).toBe(demoIds.thread('c-lunch'));
   });
+
+  it('tells subscribers when going back or forward becomes possible', () => {
+    const seen: string[] = [];
+    const unsubscribe = recorder.subscribe(() => {
+      seen.push(`${String(recorder.can('back'))}:${String(recorder.can('forward'))}`);
+    });
+    selectFolder(SENT);
+    recorder.go('back');
+    recorder.go('forward');
+    unsubscribe();
+    selectFolder(INITIAL_UI.folder);
+    expect(seen).toEqual(['true:false', 'false:true', 'true:false']);
+  });
 });
