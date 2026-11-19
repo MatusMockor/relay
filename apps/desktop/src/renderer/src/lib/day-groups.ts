@@ -6,6 +6,8 @@ export interface DayGroup {
   readonly date: string | null;
 }
 
+export const TODAY_LABEL = 'Dnes';
+
 const weekdayOf = (date: Date): string => WEEKDAYS[date.getDay()] ?? '';
 
 const monthGroup = (date: Date, now: Date): DayGroup => {
@@ -20,7 +22,7 @@ export const dayGroupOf = (iso: string, now: Date): DayGroup => {
   const date = new Date(iso);
   const diff = dayDiff(date, now);
   if (diff >= 0) {
-    return { label: 'Dnes', date: `${weekdayOf(now)} ${dm(now)}` };
+    return { label: TODAY_LABEL, date: `${weekdayOf(now)} ${dm(now)}` };
   }
   if (diff === -1) {
     return { label: 'Včera', date: `${weekdayOf(date)} ${dm(date)}` };
@@ -33,6 +35,8 @@ export const dayGroupOf = (iso: string, now: Date): DayGroup => {
   }
   return monthGroup(date, now);
 };
+
+export const hasDayHeader = (group: DayGroup): boolean => group.label !== TODAY_LABEL;
 
 export const dayGroupName = (group: DayGroup): string =>
   group.date === null ? group.label : `${group.label}, ${group.date}`;

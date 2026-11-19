@@ -219,6 +219,9 @@
 .a-list > :first-child > .a-day {
   padding-top: 12px;
 }
+.a-list > :first-child:not(:has(> .a-day)) {
+  padding-top: 8px;
+}
 .dense {
   --row-h: 36px;
 }
