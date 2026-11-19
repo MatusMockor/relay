@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayGroupName, dayGroupOf, threadTimeLabel } from './day-groups';
+import { dayGroupName, dayGroupOf, hasDayHeader, threadTimeLabel } from './day-groups';
 
 const at = (month: number, day: number, hours = 10, minutes = 0, year = 2026): string =>
   new Date(year, month - 1, day, hours, minutes).toISOString();
@@ -49,6 +49,13 @@ describe('dayGroupOf', () => {
 });
 
 describe('dayGroupName', () => {
+  it('shows a header for every group except today', () => {
+    const now = new Date(2026, 10, 19, 12, 0);
+    expect(hasDayHeader(dayGroupOf(at(11, 19, 9, 5), now))).toBe(false);
+    expect(hasDayHeader(dayGroupOf(at(11, 18, 9, 5), now))).toBe(true);
+    expect(hasDayHeader({ label: 'Október', date: null })).toBe(true);
+  });
+
   it('joins both parts of a dated group', () => {
     expect(dayGroupName({ label: 'Včera', date: 'streda 18. 11.' })).toBe('Včera, streda 18. 11.');
     expect(dayGroupName({ label: 'Minulý týždeň', date: null })).toBe('Minulý týždeň');

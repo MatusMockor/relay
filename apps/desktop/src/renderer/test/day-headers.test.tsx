@@ -46,15 +46,17 @@ describe('thread list day headers', () => {
     vi.useRealTimers();
   });
 
-  it('shows the day label with its date and only times in the rows', async () => {
+  it('hides the header for today, shows the label with its date for other days and only times in the rows', async () => {
     renderApp({ demo: datedClient });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
     await waitFor(() => {
       expect(screen.getAllByRole('group').length).toBeGreaterThanOrEqual(DATES.length);
     });
     const today = groupNamed('Dnes, štvrtok 19. 11.');
-    expect(within(today).getByText('Dnes').className).toBe('a-day-label');
-    expect(within(today).getByText('štvrtok 19. 11.').className).toBe('a-day-date');
+    expect(today.querySelector('.a-day')).toBeNull();
+    const yesterday = groupNamed('Včera, streda 18. 11.');
+    expect(within(yesterday).getByText('Včera').className).toBe('a-day-label');
+    expect(within(yesterday).getByText('streda 18. 11.').className).toBe('a-day-date');
     expect(rowTimes(today)).toEqual(['9:05']);
     expect(rowTimes(groupNamed('Včera, streda 18. 11.'))).toEqual(['16:30']);
     expect(rowTimes(groupNamed('Utorok, 17. 11.'))).toEqual(['8:15']);
