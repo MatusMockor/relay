@@ -23,12 +23,23 @@ const hasDraftRow = sql`exists (select 1 from ${drafts} where ${drafts.inReplyTo
 
 const hasScheduledSend = sql`exists (select 1 from ${scheduledSends} inner join ${drafts} on ${drafts.id} = ${scheduledSends.draftId} where ${drafts.inReplyToThreadId} = ${threads.id} and ${scheduledSends.userId} = ${threads.userId} and ${scheduledSends.status} in ('pending', 'sending'))`;
 
-export const folderViewCondition = (view: FolderView, splitSelected: boolean): SQL | undefined => {
-  switch (view) {
+export interface FolderViewConditionInput {
+  readonly view: FolderView;
+  readonly splitSelected: boolean;
+  readonly searching: boolean;
+}
+
+const inboxCondition = (input: FolderViewConditionInput): SQL | undefined => {
+  if (input.splitSelected || input.searching) {
+    return eq(threads.state, 'inbox');
+  }
+  return and(eq(threads.state, 'inbox'), withoutExclusiveSplits);
+};
+
+export const folderViewCondition = (input: FolderViewConditionInput): SQL | undefined => {
+  switch (input.view) {
     case 'inbox':
-      return splitSelected
-        ? eq(threads.state, 'inbox')
-        : and(eq(threads.state, 'inbox'), withoutExclusiveSplits);
+      return inboxCondition(input);
     case 'done':
       return eq(threads.state, 'done');
     case 'trash':

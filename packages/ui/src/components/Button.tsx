@@ -1,5 +1,7 @@
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { PopoverSide } from './Popover';
+import { TooltipButton } from './tooltip/TooltipButton';
 
 export type ButtonVariant = 'default' | 'primary' | 'ghost' | 'danger';
 
@@ -23,22 +25,17 @@ export function Button({ variant = 'default', className, type = 'button', ...res
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly label: string;
+  readonly shortcut?: readonly string[];
+  readonly side?: PopoverSide;
   readonly active?: boolean;
   readonly children?: ReactNode;
 }
 
-export function IconButton({
-  label,
-  active = false,
-  className,
-  type = 'button',
-  ...rest
-}: IconButtonProps) {
+export function IconButton({ label, active = false, className, ...rest }: IconButtonProps) {
   return (
-    <button
-      type={type}
+    <TooltipButton
+      tip={label}
       aria-label={label}
-      title={label}
       className={clsx('ibtn', active && 'on', className)}
       {...rest}
     />

@@ -1,4 +1,4 @@
-import { Icon, IconButton, Spark } from '@relay/ui';
+import { Icon, IconButton, Spark, TooltipButton } from '@relay/ui';
 import { MOD } from '../../lib/platform-keys';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { openRight, toggleRight } from '../mail/navigation';
@@ -19,7 +19,8 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
       {leftVisible ? null : (
         <IconButton
           className="lt-btn"
-          label="Zobraziť priečinky ([)"
+          label="Zobraziť priečinky"
+          shortcut={['[']}
           onClick={() => {
             setUi({ leftUser: true });
           }}
@@ -32,7 +33,8 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
         <SearchField open={searchOpen && !inThread} />
         <IconButton
           className="ai"
-          label="Spýtať sa AI (A)"
+          label="Spýtať sa AI"
+          shortcut={['A']}
           onClick={() => {
             openRight('ai');
           }}
@@ -40,23 +42,24 @@ export function TopBar({ leftVisible }: { readonly leftVisible: boolean }) {
           <Spark />
         </IconButton>
         <IconButton
-          label={rightOpen ? 'Skryť pravý panel (I)' : 'Zobraziť pravý panel (I)'}
+          label={rightOpen ? 'Skryť pravý panel' : 'Zobraziť pravý panel'}
+          shortcut={['I']}
           active={rightOpen}
           onClick={toggleRight}
         >
           <Icon name="panelRight" />
         </IconButton>
-        <button
-          type="button"
+        <TooltipButton
           className="me-btn"
-          title={`Nastavenia (${MOD},)`}
+          tip="Nastavenia"
+          shortcut={[`${MOD},`]}
           aria-label="Nastavenia"
           onClick={() => {
             setUi({ overlay: { kind: 'settings', section: 'accounts', adding: false } });
           }}
         >
           <MeAvatar size="sm" />
-        </button>
+        </TooltipButton>
       </div>
     </div>
   );

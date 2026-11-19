@@ -1,4 +1,4 @@
-import { Icon } from '@relay/ui';
+import { Icon, TooltipButton } from '@relay/ui';
 import { useLabels } from '../../data/hooks/use-mail-queries';
 import { useFolderMailbox } from '../folders/use-folder-mailbox';
 import { MAIN_TAB_LABEL, VIEW_META } from '../../state/folders';
@@ -38,10 +38,15 @@ export function ThreadNav() {
   const atLast = index === items.length - 1;
   return (
     <div className="t-nav">
-      <button type="button" className="t-back" title="Späť do zoznamu (Esc)" onClick={backToList}>
+      <TooltipButton
+        className="t-back"
+        tip="Späť do zoznamu"
+        shortcut={['Esc']}
+        onClick={backToList}
+      >
         <Icon name="back" size={16} />
         <span>{label}</span>
-      </button>
+      </TooltipButton>
       {current === null ? null : (
         <span className="t-acts">
           <RowActions item={current} inRow={false} />
@@ -50,10 +55,10 @@ export function ThreadNav() {
       {index < 0 ? null : (
         <span className="t-pos">
           <span>{`${String(index + 1)} z ${String(items.length)}`}</span>
-          <button
-            type="button"
+          <TooltipButton
             className="act"
-            title="Predchádzajúca (K)"
+            tip="Predchádzajúca"
+            shortcut={['K']}
             aria-label="Predchádzajúca"
             aria-disabled={atFirst || undefined}
             onClick={() => {
@@ -64,11 +69,11 @@ export function ThreadNav() {
             }}
           >
             <Icon name="up" />
-          </button>
-          <button
-            type="button"
+          </TooltipButton>
+          <TooltipButton
             className="act"
-            title="Ďalšia (J)"
+            tip="Ďalšia"
+            shortcut={['J']}
             aria-label="Ďalšia"
             aria-disabled={atLast || undefined}
             onClick={() => {
@@ -79,7 +84,7 @@ export function ThreadNav() {
             }}
           >
             <Icon name="down" />
-          </button>
+          </TooltipButton>
         </span>
       )}
     </div>

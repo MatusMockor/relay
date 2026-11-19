@@ -3,6 +3,7 @@ import type { Page, PageRequest } from '../model/page';
 
 export interface TaskQuery extends PageRequest {
   readonly state: TaskState | null;
+  readonly threadId?: ThreadId;
 }
 
 export interface TaskChanges {
