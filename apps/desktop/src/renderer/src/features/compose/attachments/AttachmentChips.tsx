@@ -1,5 +1,5 @@
 import { Icon } from '@relay/ui';
-import { formatSize } from '../../thread/AttachmentList';
+import { formatSize } from '../../attachments/format-size';
 import { type ComposeAttachment, nameOf, sizeOf } from './compose-attachment';
 
 const stateOf = (item: ComposeAttachment): string => {

@@ -4,7 +4,7 @@ export const RENDERER_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https: http:",
+  "img-src 'self' data: blob: https: http:",
   "connect-src 'self' http: https: ws: wss:",
   "object-src 'none'",
   "base-uri 'none'",

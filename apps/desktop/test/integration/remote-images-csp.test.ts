@@ -18,7 +18,13 @@ const effectiveImageSources = (mailPolicy: string): string[] => {
 
 describe('remote images in the Electron renderer', () => {
   it('lets the renderer policy load remote images while scripts stay local', () => {
-    expect(sourcesOf(RENDERER_CSP, 'img-src')).toEqual(["'self'", 'data:', 'https:', 'http:']);
+    expect(sourcesOf(RENDERER_CSP, 'img-src')).toEqual([
+      "'self'",
+      'data:',
+      'blob:',
+      'https:',
+      'http:',
+    ]);
     expect(sourcesOf(RENDERER_CSP, 'script-src')).toEqual(["'self'"]);
     expect(sourcesOf(RENDERER_CSP, 'object-src')).toEqual(["'none'"]);
   });

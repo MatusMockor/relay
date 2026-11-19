@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { type MouseEvent, type ReactNode, useRef } from 'react';
-import { keepTabInside, useFocusTrap } from './use-focus-trap';
+import { focusWrapProps, keepTabInside, useFocusTrap } from './use-focus-trap';
 import { LayerContext, useLayer } from './use-layer';
 
 export type OverlayPlacement = 'top' | 'mid' | 'clear';
@@ -58,6 +58,7 @@ export function Sheet({ label, className, role = 'dialog', children, ...overlay 
         onKeyDown={keepTabInside}
       >
         {children}
+        <span {...focusWrapProps} />
       </div>
     </Overlay>
   );

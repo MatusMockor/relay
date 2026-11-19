@@ -1,6 +1,6 @@
 import { type EngineServices, isEngineError, type Logger } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
-import type { NotificationRequest, TrackpadScrollEvent } from '@relay/shared/ipc';
+import type { NotificationRequest, PreviewKeyEvent, TrackpadScrollEvent } from '@relay/shared/ipc';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
 import {
@@ -13,6 +13,7 @@ import { createContextMenuHandlers } from '../handlers/context-menu-handlers';
 import { createDeviceSettingsHandlers } from '../handlers/device-settings-handlers';
 import { createAiJobHandlers } from '../handlers/local/ai-job-handlers';
 import { createAttachmentHandlers } from '../handlers/local/attachment-handlers';
+import { createAttachmentLauncherHandlers } from '../handlers/attachment-launcher-handlers';
 import { createAttachmentPickerHandlers } from '../handlers/attachment-picker-handlers';
 import { createAccountHandlers } from '../handlers/local/account-handlers';
 import { createCalendarHandlers } from '../handlers/local/calendar-handlers';
@@ -37,6 +38,7 @@ import { createOAuthHandlers } from '../handlers/oauth-handlers';
 import { createGoogleCalendarOAuthHandlers } from '../handlers/google-calendar-oauth-handlers';
 import { createSecureHandlers } from '../handlers/secure-handlers';
 import { createSessionHandlers } from '../handlers/session-handlers';
+import { createPreviewKeyStreamHandlers } from '../handlers/preview-key-handlers';
 import { createTrackpadStreamHandlers } from '../handlers/trackpad-handlers';
 import { createTrayInvokeHandlers } from '../handlers/tray-handlers';
 import {
@@ -48,6 +50,7 @@ import { type IpcInvokeHandlers, IpcInvokeRouter } from '../ipc/invoke-router';
 import type { IpcRouters } from '../ipc/register-ipc';
 import { IpcStreamRouter } from '../ipc/stream-router';
 import type { ServerSessions } from '../ai/remote/server-sessions';
+import type { AttachmentLauncher } from '../files/attachment-launcher';
 import type { AttachmentPicker } from '../files/attachment-picker';
 import type { ContextMenuPresenter } from '../native/context-menu-presenter';
 import type { MenuCommandRequests } from '../native/menu-command-requests';
@@ -78,6 +81,7 @@ export interface MainProcessContext {
   readonly ai?: AiHandlerDeps;
   readonly local?: LocalIpcDeps;
   readonly attachmentPicker?: AttachmentPicker;
+  readonly attachmentLauncher?: AttachmentLauncher;
   readonly updates?: UpdateService;
   readonly threadOpens?: ThreadOpenRequests;
   readonly menuCommands?: MenuCommandRequests;
@@ -85,6 +89,7 @@ export interface MainProcessContext {
   readonly rendererNotifications?: EventHub<NotificationRequest>;
   readonly fullScreen?: FullScreenState;
   readonly trackpadScroll?: EventHub<TrackpadScrollEvent>;
+  readonly previewKeys?: EventHub<PreviewKeyEvent>;
   readonly contextMenu?: ContextMenuPresenter;
 }
 
@@ -133,6 +138,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.ai, createAiInvokeHandlers),
       optional(context.local, localInvokeHandlers),
       optional(context.attachmentPicker, createAttachmentPickerHandlers),
+      optional(context.attachmentLauncher, createAttachmentLauncherHandlers),
       optional(context.updates, createUpdateInvokeHandlers),
       optional(context.rendererView, createTrayInvokeHandlers),
       optional(context.rendererNotifications, createNotificationInvokeHandlers),
@@ -149,6 +155,7 @@ export const composeIpc = (context: MainProcessContext): IpcRouters => ({
       optional(context.menuCommands, createMenuCommandStreamHandlers),
       optional(context.fullScreen, createWindowStreamHandlers),
       optional(context.trackpadScroll, createTrackpadStreamHandlers),
+      optional(context.previewKeys, createPreviewKeyStreamHandlers),
     ),
     errorReporter(context.logger),
   ),

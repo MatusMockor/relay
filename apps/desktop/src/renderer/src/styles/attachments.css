@@ -1,0 +1,114 @@
+.atts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.att {
+  display: flex;
+  align-items: center;
+  max-width: 340px;
+  height: 34px;
+  padding-right: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--fg2);
+  font-size: var(--fs-sm);
+}
+.att:hover,
+.att:focus-within,
+.att.busy {
+  background: var(--hover);
+  border-color: var(--line-hover);
+}
+.att-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 8px;
+  border-radius: 7px 0 0 7px;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.att-open:disabled {
+  cursor: progress;
+}
+.att-open:focus-visible,
+.att-dl:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.att .n {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.att .z {
+  color: var(--fg4);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.att-dl {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--fg4);
+  opacity: 0;
+}
+.att:hover .att-dl,
+.att:focus-within .att-dl,
+.att.busy .att-dl {
+  opacity: 1;
+  color: var(--fg2);
+}
+.att-dl:hover:not(:disabled) {
+  background: var(--sel);
+  color: var(--fg);
+}
+.att-dl:disabled {
+  cursor: progress;
+}
+.att-dl:disabled > svg,
+.av-head .btn:disabled > svg {
+  animation: att-spin 0.9s linear infinite;
+}
+.att-ty {
+  flex: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  font-size: 9.5px;
+  font-weight: var(--w-bold);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: var(--fg3);
+  background: var(--overlay-3);
+}
+.att-ty.pdf {
+  color: var(--bad);
+  background: var(--bad-tint-12);
+}
+.att-ty.image {
+  color: var(--ok-text);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+@keyframes att-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .att-dl:disabled > svg,
+  .av-head .btn:disabled > svg {
+    animation: none;
+  }
+}
