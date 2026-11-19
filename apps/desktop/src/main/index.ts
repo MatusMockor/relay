@@ -27,6 +27,8 @@ import { WindowContextMenuPresenter } from './native/context-menu-presenter';
 import { contextMenuWindow, electronWindows } from './native/context-menu-window';
 import { MenuCommandRequests } from './native/menu-command-requests';
 import { RendererView } from './native/renderer-view';
+import { electronNativeTheme, electronThemedWindows } from './native/electron-native-theme';
+import { NativeThemeSync } from './native/native-theme-sync';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { ThreadOpenRequests } from './native/thread-open-requests';
@@ -105,6 +107,13 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
 
+  const themeSync = new NativeThemeSync(
+    runtime.infrastructure.deviceSettings,
+    electronNativeTheme(),
+    electronThemedWindows(),
+  );
+  await themeSync.start();
+
   const windowState = new WindowStateStore(paths.windowState);
   const windows = new MainWindowController(async () => {
     const window = await createMainWindow({
@@ -115,6 +124,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       opener: platform.opener,
       isAppUrl,
       platform: process.platform,
+      theme: themeSync.current(),
+      backgroundColor: themeSync.background(),
       icon: appIcon,
     });
     trackWindowState(window, windowState, logger);
@@ -173,6 +184,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   return {
     stop: async () => {
       updates.stop();
+      themeSync.stop();
       unregisterIpc();
       shell.dispose();
       await Promise.all([background.stop(), remoteAi.stop()])

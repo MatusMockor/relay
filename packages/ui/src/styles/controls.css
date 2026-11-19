@@ -10,7 +10,7 @@
   border: 1px solid var(--line);
   border-bottom-width: 1.5px;
   border-radius: var(--radius-xs);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--overlay-2);
   padding: 0 5px;
   line-height: 16px;
   white-space: nowrap;
@@ -39,8 +39,8 @@
   justify-content: center;
   font-size: 11px;
   font-weight: var(--w-semibold);
-  color: var(--fg);
-  background: var(--c, #3a4256);
+  color: var(--av-ink);
+  background: var(--c, var(--av-fallback));
 }
 .av.lg {
   width: 56px;
@@ -97,7 +97,7 @@
 }
 .chip.ok {
   color: var(--ok);
-  box-shadow: inset 0 0 0 1px rgba(95, 211, 154, 0.3);
+  box-shadow: inset 0 0 0 1px var(--ok-tint-30);
 }
 .chipb {
   display: inline-flex;
@@ -127,13 +127,13 @@
   border: 1px solid var(--line);
   color: var(--fg2);
   background: var(--raised);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 var(--sheen);
   white-space: nowrap;
 }
 .btn:hover {
   color: var(--fg);
   background: var(--hover);
-  border-color: #2e3545;
+  border-color: var(--line-hover);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -145,8 +145,8 @@
   color: var(--accent-ink);
   font-weight: var(--w-semibold);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 1px 2px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 var(--pri-sheen),
+    var(--shadow-press);
 }
 .btn.pri:hover {
   background: var(--accent-hover);
@@ -160,9 +160,9 @@
   padding-right: 11px;
 }
 .btn.pri .kbd {
-  color: rgba(11, 13, 18, 0.78);
+  color: var(--accent-ink-soft);
   border: 0;
-  background: rgba(11, 13, 18, 0.16);
+  background: var(--accent-ink-tint);
   line-height: 18px;
 }
 .btn.ghost {
@@ -181,7 +181,7 @@
 }
 .btn.danger:hover {
   color: var(--bad);
-  background: rgba(255, 122, 122, 0.08);
+  background: var(--bad-tint-8);
 }
 .btn .ico,
 .btn > svg {
@@ -227,6 +227,6 @@
   color: var(--fg2);
 }
 .act:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--overlay-3);
   color: var(--fg);
 }

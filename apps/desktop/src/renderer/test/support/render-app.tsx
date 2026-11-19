@@ -21,6 +21,7 @@ import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
 import { resetToasts } from '../../src/state/toast-store';
+import type { ThemeController } from '../../src/theme/theme-controller';
 import { INITIAL_UI, useUiStore } from '../../src/state/ui-store';
 
 export const memoryStorage = (
@@ -71,6 +72,7 @@ export const renderApp = (
     readonly platform?: Platform;
     readonly queryClient?: QueryClient;
     readonly now?: () => Date;
+    readonly theme?: ThemeController;
   } = {},
 ): RenderedApp => {
   const platform =
@@ -86,6 +88,7 @@ export const renderApp = (
       undoSendMs={40}
       now={options.now}
       createQueryClient={() => options.queryClient ?? testQueryClient()}
+      {...(options.theme === undefined ? {} : { theme: options.theme })}
     />,
   );
   return { platform, session };

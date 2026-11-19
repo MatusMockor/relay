@@ -3,6 +3,7 @@ import { AiRunnerKindSchema, AiRunnerLocationSchema } from './ai';
 import { AccountIdSchema } from './ids';
 import { type JiraEventKind, JiraTaskEventsSchema } from './jira-event';
 import { ServerUrlSchema } from './primitives';
+import { DEFAULT_THEME, ThemePreferenceSchema } from './theme';
 
 export const NotificationModeSchema = z.enum(['off', 'digest', 'urgent']);
 export type NotificationMode = z.infer<typeof NotificationModeSchema>;
@@ -89,6 +90,7 @@ export const DeviceSettingsSchema = z.object({
   mode: AppModeSchema.nullable(),
   panelWidths: PanelWidthsSchema,
   selectedAccountId: AccountIdSchema.nullable(),
+  theme: ThemePreferenceSchema.default(DEFAULT_THEME),
 });
 export type DeviceSettings = z.infer<typeof DeviceSettingsSchema>;
 
@@ -101,6 +103,7 @@ export const DeviceSettingsPatchSchema = z.object({
   mode: AppModeSchema.nullable().optional(),
   panelWidths: PanelWidthsSchema.partial().optional(),
   selectedAccountId: AccountIdSchema.nullable().optional(),
+  theme: ThemePreferenceSchema.optional(),
 });
 export type DeviceSettingsPatch = z.infer<typeof DeviceSettingsPatchSchema>;
 
@@ -110,4 +113,5 @@ export const DEFAULT_DEVICE_SETTINGS: DeviceSettings = {
   mode: null,
   panelWidths: { sidebar: 232, list: 420, rightPanel: 320 },
   selectedAccountId: null,
+  theme: DEFAULT_THEME,
 };

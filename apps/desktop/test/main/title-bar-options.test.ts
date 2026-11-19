@@ -5,7 +5,7 @@ describe('title bar options', () => {
   it('hides the native title bar on macOS and insets the traffic lights into the top band', () => {
     expect(titleBarOptions('darwin')).toEqual({
       titleBarStyle: 'hiddenInset',
-      trafficLightPosition: { x: 16, y: 22 },
+      trafficLightPosition: { x: 16, y: 15 },
     });
   });
 

@@ -98,7 +98,7 @@
 }
 .t-sum {
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(142, 162, 255, 0.075), rgba(142, 162, 255, 0.03));
+  background: var(--accent-wash);
   box-shadow: inset 0 0 0 1px var(--accent-line);
   padding: 14px 18px 16px;
   display: grid;
@@ -183,7 +183,7 @@
   border-radius: 7px;
 }
 .chk:hover {
-  background: rgba(142, 162, 255, 0.07);
+  background: var(--accent-tint-7);
   color: var(--fg);
 }
 .chk .box {
@@ -191,7 +191,7 @@
   height: 15px;
   margin-top: 2px;
   border-radius: 4px;
-  border: 1.5px solid rgba(142, 162, 255, 0.55);
+  border: 1.5px solid var(--accent-tint-55);
   flex: none;
   display: inline-flex;
   align-items: center;

@@ -144,7 +144,7 @@
   cursor: text;
 }
 .chat-in:focus-within {
-  border-color: rgba(142, 162, 255, 0.45);
+  border-color: var(--accent-tint-45);
 }
 .chat-in input {
   min-width: 0;
@@ -194,7 +194,7 @@
 }
 .cbar .ctl .plogo {
   flex: none;
-  color: #eceef4;
+  color: var(--brand-codex);
 }
 .cbar .ctl .lb {
   min-width: 0;

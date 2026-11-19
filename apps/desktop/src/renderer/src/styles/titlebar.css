@@ -17,7 +17,7 @@
   top: 0;
   z-index: 1;
   flex: none;
-  height: 60px;
+  height: var(--bar-h);
   margin: 0 -10px;
   background: var(--panel);
   border-bottom: 1px solid var(--line-soft);
