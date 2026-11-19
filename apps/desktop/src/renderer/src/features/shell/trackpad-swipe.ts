@@ -1,10 +1,10 @@
 import type { TrackpadScrollPhase } from '@relay/shared';
-import { scrollsHorizontally } from '../history/horizontal-scroll';
+import { scrollRoom } from '../history/horizontal-scroll';
 import type { HistoryDirection } from '../history/navigation-history';
 import { stepHistory } from '../history/step-history';
 import { SwipeGesture } from '../history/swipe-gesture';
 
-const gesture = new SwipeGesture(scrollsHorizontally);
+const gesture = new SwipeGesture(scrollRoom);
 
 const navigate = (direction: HistoryDirection | null): void => {
   if (direction === null) {

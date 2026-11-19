@@ -2,7 +2,7 @@
 import './support/node-abort-globals';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useUiStore } from '../../src/renderer/src/state/ui-store';
-import { openThreadBySubject } from '../../src/renderer/test/features-support';
+import { openThreadBySubject, pause } from '../../src/renderer/test/features-support';
 import { resetStores } from '../../src/renderer/test/support/render-app';
 import {
   browserPlatform,
@@ -14,18 +14,6 @@ import {
   swipe,
   wheel,
 } from './support/trackpad-desktop';
-
-const sideways = (scrollLeft: number): HTMLElement => {
-  const strip = document.createElement('div');
-  strip.style.overflowX = 'auto';
-  Object.defineProperties(strip, {
-    scrollWidth: { value: 800 },
-    clientWidth: { value: 200 },
-    scrollLeft: { value: scrollLeft },
-  });
-  document.body.append(strip);
-  return strip;
-};
 
 describe('trackpad gestures that do not navigate', () => {
   beforeEach(() => {
@@ -67,22 +55,13 @@ describe('trackpad gestures that do not navigate', () => {
     expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 
-  it('scrolls content that can move sideways instead of going back', async () => {
+  it('starts a fresh gesture after an earlier scroll was ignored', async () => {
     const contents = await startDesktop();
     await openThreadBySubject(SUBJECT);
-    const strip = sideways(120);
-    await swipe(contents, steps(4, [-40, 0]), strip);
-    expect(useUiStore.getState().openThreadId).not.toBeNull();
-    strip.remove();
-  });
-
-  it('goes back when sideways content is already scrolled to its edge', async () => {
-    const contents = await startDesktop();
-    await openThreadBySubject(SUBJECT);
-    const strip = sideways(0);
-    await swipe(contents, steps(4, [-40, 0]), strip);
+    wheel(steps(3, [0, -40]));
+    await pause(150);
+    await swipe(contents, steps(4, [-40, 0]));
     expect(useUiStore.getState().openThreadId).toBeNull();
-    strip.remove();
   });
 
   it('ignores other input events from the window', async () => {

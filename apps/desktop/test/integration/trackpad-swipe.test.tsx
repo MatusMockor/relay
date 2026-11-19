@@ -58,6 +58,42 @@ describe('trackpad swipe navigation', () => {
     expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 
+  it('goes back when the trackpad reports the gesture after its first wheel events', async () => {
+    const contents = await startDesktop();
+    await openThreadBySubject(SUBJECT);
+    wheel([[-40, 0]]);
+    await phase(contents, 'gestureScrollBegin');
+    wheel(steps(2, [-40, 0]));
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().openThreadId).toBeNull();
+  });
+
+  it('goes back once the swipe coasts and not again when the gesture ends', async () => {
+    const contents = await startDesktop();
+    await openSearchInThread();
+    await phase(contents, 'gestureScrollBegin');
+    wheel([...steps(3, [-40, 0]), [-40, 0], [-32, 0], [-26, 0], [-21, 0], [-17, 0]]);
+    expect(useUiStore.getState().searchOpen).toBe(false);
+    wheel([
+      [-14, 0],
+      [-11, 0],
+      [-9, 0],
+    ]);
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
+  it('stays put when the swipe comes back past where it started', async () => {
+    const contents = await startDesktop();
+    await openThreadBySubject(SUBJECT);
+    await swipe(contents, [
+      [-40, 0],
+      [200, 0],
+      [-160, 0],
+    ]);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
   it('steps back only once for a long swipe', async () => {
     const contents = await startDesktop();
     await openSearchInThread();
