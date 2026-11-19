@@ -1,41 +1,19 @@
 // @vitest-environment jsdom
-import type { SplitId, ThreadId, ThreadSummary } from '@relay/shared';
+import type { SplitId, ThreadSummary } from '@relay/shared';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
-import { createBrowserPlatform } from '../src/platform/BrowserPlatform';
-import type { Platform } from '../src/platform/Platform';
 import { INBOX } from '../src/state/folders';
 import { setUi, useUiStore } from '../src/state/ui-store';
 import { demoClient } from './features-support';
-import { renderApp, resetStores, storageWith } from './support/render-app';
+import { notifyingPlatform } from './support/notifying-platform';
+import { renderApp, resetStores } from './support/render-app';
 
 const openNotificationSettings = () => {
   act(() => {
     setUi({ overlay: { kind: 'settings', section: 'notifications', adding: false } });
   });
   return screen.getByRole('dialog', { name: 'Nastavenia' });
-};
-
-const notifyingPlatform = () => {
-  const listeners = new Set<(threadId: ThreadId) => void>();
-  const platform: Platform = {
-    ...createBrowserPlatform(storageWith({ mode: 'local' })),
-    subscribeToThreadOpens: (listener) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-  };
-  const click = (threadId: ThreadId) => {
-    act(() => {
-      listeners.forEach((listener) => {
-        listener(threadId);
-      });
-    });
-  };
-  return { platform, click };
 };
 
 const firstThread = async (

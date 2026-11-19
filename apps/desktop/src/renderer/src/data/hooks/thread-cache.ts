@@ -1,4 +1,4 @@
-import type { ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
+import type { ThreadDetail, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ThreadListParams } from '../MailClient';
 import { staysInView } from '../thread-projection';
@@ -58,6 +58,11 @@ export const findCachedThread = (client: QueryClient, threadId: ThreadId): Threa
   }
   return null;
 };
+
+export const findKnownThread = (client: QueryClient, threadId: ThreadId): ThreadSummary | null =>
+  findCachedThread(client, threadId) ??
+  client.getQueryData<ThreadDetail>(queryKeys.thread(threadId))?.thread ??
+  null;
 
 export const restoreThreadInLists = (
   client: QueryClient,
