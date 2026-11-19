@@ -47,9 +47,6 @@ export class ElectronTrayView {
 
   setUnread(count: number): void {
     this.tray.setToolTip(tooltip(count));
-    if (this.platform === 'darwin') {
-      this.tray.setTitle(count > 0 ? String(count) : '');
-    }
     app.setBadgeCount(count);
   }
 
