@@ -7,6 +7,8 @@
 @import './empty.css';
 @import './thread.css';
 @import './messages.css';
+@import './attachments.css';
+@import './attachment-viewer.css';
 @import './composer.css';
 @import './compose-extras.css';
 @import './side.css';

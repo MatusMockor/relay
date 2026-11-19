@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url';
-import type { NotificationRequest, TrackpadScrollEvent } from '@relay/shared/ipc';
+import type { NotificationRequest, PreviewKeyEvent, TrackpadScrollEvent } from '@relay/shared/ipc';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import appIcon from '../../resources/icon.png?asset';
 import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-supervisor';
 import { ModeAwareBackground } from './background/mode-aware-background';
 import { createMainLogger } from './bootstrap/create-logger';
+import { electronAttachmentLauncher } from './bootstrap/electron-attachment-launcher';
 import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platform';
 import { electronAppUpdates } from './bootstrap/electron-updates';
 import { MainWindowController } from './bootstrap/main-window-controller';
@@ -40,6 +41,7 @@ import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
 import { trackHistoryCommands } from './window/track-history-commands';
 import { trackSwipeCommands } from './window/track-swipe-commands';
+import { trackPreviewKeys } from './window/track-preview-keys';
 import { trackTrackpadScroll } from './window/track-trackpad-scroll';
 import { hardenSession } from './window/harden-session';
 
@@ -83,6 +85,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const rendererNotifications = new EventHub<NotificationRequest>();
   const fullScreen = new FullScreenState();
   const trackpadScroll = new EventHub<TrackpadScrollEvent>();
+  const previewKeys = new EventHub<PreviewKeyEvent>();
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -96,6 +99,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       },
       ...runtime.ipc,
       attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
+      attachmentLauncher: await electronAttachmentLauncher(logger),
       updates: updates.service,
       threadOpens,
       menuCommands,
@@ -103,6 +107,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       rendererNotifications,
       fullScreen,
       trackpadScroll,
+      previewKeys,
       contextMenu: new WindowContextMenuPresenter(
         contextMenuWindow(electronWindows),
         electronContextMenuFactory,
@@ -145,6 +150,9 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
         trackpadScroll.publish(event);
       });
     }
+    trackPreviewKeys(window.webContents, (key) => {
+      previewKeys.publish({ key });
+    });
     trackRendererSession(window, rendererView);
     return window;
   });

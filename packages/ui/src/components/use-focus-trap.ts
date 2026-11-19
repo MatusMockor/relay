@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type RefObject, useEffect, useState } from 'react';
+import { type FocusEvent, type KeyboardEvent, type RefObject, useEffect, useState } from 'react';
 
 const FOCUSABLE = [
   'a[href]',
@@ -6,12 +6,18 @@ const FOCUSABLE = [
   'input:not([disabled])',
   'select:not([disabled])',
   'textarea:not([disabled])',
+  'iframe',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+const FOCUS_WRAP_ATTRIBUTE = 'data-focus-wrap';
+
 const focusablesIn = (root: HTMLElement): HTMLElement[] =>
   [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-    (element) => element.tabIndex >= 0 && element.closest('[hidden]') === null,
+    (element) =>
+      element.tabIndex >= 0 &&
+      element.closest('[hidden]') === null &&
+      !element.hasAttribute(FOCUS_WRAP_ATTRIBUTE),
   );
 
 const focusLeftDialog = (surface: HTMLElement | null): boolean => {
@@ -59,3 +65,14 @@ export const keepTabInside = (event: KeyboardEvent<HTMLElement>): void => {
     first.focus();
   }
 };
+
+export const focusWrapProps = {
+  [FOCUS_WRAP_ATTRIBUTE]: '',
+  className: 'focus-wrap',
+  tabIndex: 0,
+  onFocus: (event: FocusEvent<HTMLElement>): void => {
+    const surface = event.currentTarget.parentElement;
+    const first = surface === null ? undefined : focusablesIn(surface)[0];
+    (first ?? surface)?.focus();
+  },
+} as const;

@@ -11,6 +11,7 @@ import type {
   GoogleCalendarAuthorizeOutput,
   MenuCommand,
   NotificationRequest,
+  PreviewKey,
   RelayBridge,
   ThreadId,
   TrackpadScrollPhase,
@@ -19,6 +20,7 @@ import type {
 } from '@relay/shared';
 import type { FetchLike } from '../data/remote/HttpApi';
 import type { SessionHooks, SessionTokens } from '../data/remote/SessionTokens';
+import type { AttachmentOpener } from './attachment-opener';
 
 export interface ServerSessionHooks extends SessionHooks {
   readonly fetch?: FetchLike;
@@ -36,6 +38,7 @@ export interface Platform {
   detectLocalRunners(): Promise<AiRunnerInfo[]>;
   openExternal(url: string): void;
   saveFile(blob: Blob, filename: string): void;
+  readonly attachmentOpener: AttachmentOpener | null;
   authorizeGoogle(input: GoogleAuthorizeInput): Promise<GoogleAuthorizeOutput>;
   cancelGoogleAuthorization(): Promise<void>;
   authorizeGoogleCalendar(
@@ -50,6 +53,7 @@ export interface Platform {
   showNotification(notification: NotificationRequest): Promise<void>;
   subscribeToFullScreen(listener: (fullScreen: boolean) => void): () => void;
   subscribeToTrackpadScroll(listener: (phase: TrackpadScrollPhase) => void): () => void;
+  subscribeToPreviewKeys(listener: (key: PreviewKey) => void): () => void;
   showContextMenu(request: ContextMenuRequest): Promise<string | null>;
 }
 

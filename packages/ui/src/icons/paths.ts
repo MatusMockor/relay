@@ -20,6 +20,7 @@ export const STROKE_ICONS = {
     '<rect x="1.5" y="4" width="13" height="8" rx="1.5"/><path d="M4.5 7h.01M7 7h.01M9.5 7h.01M12 7h.01M5 9.5h6"/>',
   refresh: '<path d="M13 3v3.5H9.5"/><path d="M12.7 6.5A5 5 0 103 9"/>',
   download: '<path d="M8 2.5v8M4.5 7.2L8 10.7l3.5-3.5"/><path d="M3.5 13.5h9"/>',
+  spinner: '<path d="M8 2.5a5.5 5.5 0 1 1-5.5 5.5"/>',
   warning:
     '<path d="M7.1 2.7L1.9 11.9a1 1 0 00.9 1.6h10.4a1 1 0 00.9-1.6L8.9 2.7a1 1 0 00-1.8 0z"/><path d="M8 6.2v3M8 11.4h.01"/>',
   pen: '<path d="M3 13l.7-2.8L11 2.9l2.1 2.1-7.3 7.3z"/>',

@@ -238,48 +238,8 @@ button.mh-main {
   min-width: 18px;
   text-align: center;
 }
-.atts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 .msg > .atts {
   padding-left: 44px;
-}
-.att {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 320px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--fg);
-  font: inherit;
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-.att:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-.att:disabled {
-  cursor: progress;
-  opacity: 0.7;
-}
-.att .n {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.att .z {
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 11px;
-  white-space: nowrap;
 }
 @container main (max-width: 700px) {
   .msg .txt,

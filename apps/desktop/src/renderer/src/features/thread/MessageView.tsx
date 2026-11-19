@@ -1,7 +1,7 @@
 import type { Message } from '@relay/shared';
 import { Avatar, Icon, IconButton } from '@relay/ui';
 import { messageTimeLabel } from '../../lib/dates';
-import { AttachmentList } from './AttachmentList';
+import { AttachmentList } from '../attachments/AttachmentList';
 import { HtmlMailFrame } from './HtmlMailFrame';
 import { MessageCopies } from './MessageCopies';
 import { MeAvatar } from '../shell/MeAvatar';
