@@ -5,6 +5,7 @@ import { useRemoteAutomationNotifications } from '../../data/hooks/use-remote-au
 import { useAppContext } from '../../data/hooks/services-context';
 import { useUserSettings } from '../../data/hooks/use-mail-queries';
 import { setUi, useUiStore } from '../../state/ui-store';
+import { ContextMenuHost } from '../context-menu/ContextMenuHost';
 import { FolderSidebar } from '../folders/FolderSidebar';
 import { useKeyboard } from '../keyboard/use-keyboard';
 import { ThreadList } from '../list/ThreadList';
@@ -90,6 +91,7 @@ function Shell() {
         </>
       ) : null}
       <OverlayHost />
+      <ContextMenuHost />
     </div>
   );
 }

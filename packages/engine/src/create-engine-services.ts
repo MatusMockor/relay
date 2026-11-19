@@ -1,7 +1,8 @@
 import type { EngineDeps } from './engine-deps';
 import type { AccountService } from './services/accounts/account-service';
 import { createAccountService } from './services/accounts/create-account-service';
-import { createMessageActionsService } from './services/actions/create-message-actions-service';
+import { createMessageActionComponents } from './services/actions/create-message-actions-service';
+import type { FolderReadService } from './services/actions/folder-read-service';
 import { ProviderOpReplayer } from './services/actions/provider-op-replayer';
 import type { MessageActionsService } from './services/actions/message-actions-service';
 import type { AiService } from './services/ai/ai-service';
@@ -60,6 +61,7 @@ export interface EngineServices {
   readonly checklist: ThreadChecklistService;
   readonly unsubscribe: UnsubscribeService;
   readonly actions: MessageActionsService;
+  readonly folderRead: FolderReadService;
   readonly reminders: ReminderService;
   readonly tasks: TaskService;
   readonly sync: SyncService;
@@ -112,11 +114,17 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     clock,
     logger: deps.logger,
   });
-  const actions = createMessageActionsService(deps, {
+  const inbox = new InboxQueryService({
+    threads: repositories.threads,
+    splits: repositories.splits,
+    accounts: repositories.accounts,
+  });
+  const { actions, folderRead } = createMessageActionComponents(deps, {
     events,
     sessions,
     reminders,
     replayer,
+    folders: inbox,
   });
   const threads = new ThreadQueryService({
     threads: repositories.threads,
@@ -168,11 +176,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       relocator: ai.relocator,
       events,
     }),
-    inbox: new InboxQueryService({
-      threads: repositories.threads,
-      splits: repositories.splits,
-      accounts: repositories.accounts,
-    }),
+    inbox,
     labels: new LabelQueryService(repositories.labels),
     labelAdmin: createLabelService(deps, { events, sessions, replayer }),
     folders: createFolderService(deps, { events, sessions, roleMailboxes }),
@@ -195,6 +199,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       ...(deps.unsubscribeSender === undefined ? {} : { sender: deps.unsubscribeSender }),
     }),
     actions,
+    folderRead,
     reminders,
     tasks,
     sync: sync.service,

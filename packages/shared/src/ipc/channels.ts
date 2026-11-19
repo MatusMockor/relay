@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import { appInvokeChannels, appStreamChannels } from './app-channels';
 import { attachmentInvokeChannels } from './attachment-channels';
+import { contextMenuInvokeChannels } from './context-menu-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
 import { menuStreamChannels } from './menu-channels';
 import { notificationInvokeChannels, notificationStreamChannels } from './notification-channels';
@@ -23,6 +24,7 @@ export const ipcInvokeChannels = {
   ...updateInvokeChannels,
   ...trayInvokeChannels,
   ...notificationInvokeChannels,
+  ...contextMenuInvokeChannels,
 };
 export const ipcStreamChannels = {
   ...appStreamChannels,

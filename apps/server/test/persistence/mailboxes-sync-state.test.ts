@@ -36,6 +36,26 @@ describe('PgMailboxRepository', () => {
     ).resolves.toEqual(inbox);
   });
 
+  it('adjusts the unread count without going below zero', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { mailboxes } = context.repositories;
+    const inboxId = seeded.mailboxes.inbox.id;
+    await mailboxes.updateCounts(inboxId, { unreadCount: 3, totalCount: 10 });
+
+    await mailboxes.adjustUnreadCount(inboxId, -2);
+    await expect(mailboxes.findById(inboxId)).resolves.toMatchObject({
+      unreadCount: 1,
+      totalCount: 10,
+    });
+    await mailboxes.adjustUnreadCount(inboxId, -5);
+    await expect(mailboxes.findById(inboxId)).resolves.toMatchObject({ unreadCount: 0 });
+    await mailboxes.adjustUnreadCount(inboxId, 2);
+    await expect(mailboxes.findById(inboxId)).resolves.toMatchObject({ unreadCount: 2 });
+    await expect(mailboxes.findById(seeded.mailboxes.sent.id)).resolves.toEqual(
+      seeded.mailboxes.sent,
+    );
+  });
+
   it('lists per account for the owner only and deletes missing paths', async () => {
     const seeded = await seedAccount(context.repositories);
     const stranger = await seedAccount(context.repositories);

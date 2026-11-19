@@ -6,6 +6,7 @@ export * from './ai/external-ai-job-settlement';
 export * from './ai/external-ai-lease';
 export * from './ai/inbound-mail-filter';
 export * from './ai/one-liner-scheduler';
+export * from './actions/folder-read-service';
 export * from './actions/message-actions-service';
 export * from './attachments/attachment-content-service';
 export * from './attachments/attachment-reference-lock';

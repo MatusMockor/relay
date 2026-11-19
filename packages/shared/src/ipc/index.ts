@@ -3,6 +3,7 @@ export * from './attachment-channels';
 export * from './bridge';
 export * from './calendar-channels';
 export * from './channels';
+export * from './context-menu-channels';
 export * from './define';
 export * from './google-calendar-channels';
 export * from './local-channels';

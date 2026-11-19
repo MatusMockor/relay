@@ -21,22 +21,41 @@ import { idParamsOf, OkResponseSchema } from '../common';
 import { defineEndpoint } from '../endpoint';
 import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
 
-export const ThreadListQuerySchema = CursorPaginationQuerySchema.extend({
+const folderScopeShape = {
   view: FolderViewSchema,
   accountId: AccountIdSchema.optional(),
   splitId: SplitIdSchema.optional(),
   labelId: LabelIdSchema.optional(),
   mailboxId: MailboxIdSchema.optional(),
-  q: z.string().trim().min(1).max(500).optional(),
-}).superRefine((query, context) => {
-  if (query.view === 'mailbox' && query.mailboxId === undefined) {
+};
+
+const FolderScopeSchema = z.object(folderScopeShape);
+
+const requireFolderTarget = (
+  scope: z.infer<typeof FolderScopeSchema>,
+  context: z.RefinementCtx,
+): void => {
+  if (scope.view === 'mailbox' && scope.mailboxId === undefined) {
     context.addIssue({ code: 'custom', path: ['mailboxId'], message: 'Chýba priečinok.' });
   }
-  if (query.view === 'label' && query.labelId === undefined) {
+  if (scope.view === 'label' && scope.labelId === undefined) {
     context.addIssue({ code: 'custom', path: ['labelId'], message: 'Chýba štítok.' });
   }
-});
+};
+
+export const ThreadListQuerySchema = CursorPaginationQuerySchema.extend({
+  ...folderScopeShape,
+  q: z.string().trim().min(1).max(500).optional(),
+}).superRefine(requireFolderTarget);
 export type ThreadListQuery = z.infer<typeof ThreadListQuerySchema>;
+
+export const MarkFolderReadBodySchema = FolderScopeSchema.extend({
+  view: FolderViewSchema.exclude(['drafts', 'scheduled']),
+}).superRefine(requireFolderTarget);
+export type MarkFolderReadBody = z.infer<typeof MarkFolderReadBodySchema>;
+
+export const MarkFolderReadResponseSchema = z.object({ count: z.number().int().nonnegative() });
+export type MarkFolderReadResponse = z.infer<typeof MarkFolderReadResponseSchema>;
 
 export const ThreadPageSchema = pageSchemaOf(ThreadSummarySchema);
 export type ThreadPage = z.infer<typeof ThreadPageSchema>;
@@ -64,6 +83,13 @@ export const threadsEndpoints = {
     auth: 'user',
     query: ThreadListQuerySchema,
     response: ThreadPageSchema,
+  }),
+  markFolderRead: defineEndpoint({
+    method: 'POST',
+    path: '/threads/mark-read',
+    auth: 'user',
+    body: MarkFolderReadBodySchema,
+    response: MarkFolderReadResponseSchema,
   }),
   get: defineEndpoint({
     method: 'GET',

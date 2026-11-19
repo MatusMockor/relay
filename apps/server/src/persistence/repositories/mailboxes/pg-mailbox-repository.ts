@@ -91,6 +91,13 @@ export class PgMailboxRepository implements MailboxRepository {
       .where(eq(mailboxes.id, mailboxId));
   }
 
+  async adjustUnreadCount(mailboxId: MailboxId, delta: number): Promise<void> {
+    await this.db
+      .update(mailboxes)
+      .set({ unreadCount: sql`greatest(${mailboxes.unreadCount} + ${delta}::integer, 0)` })
+      .where(eq(mailboxes.id, mailboxId));
+  }
+
   async relocate(mailboxId: MailboxId, location: MailboxLocation): Promise<void> {
     await this.db
       .update(mailboxes)

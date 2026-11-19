@@ -78,6 +78,10 @@
   background: var(--sel);
   color: var(--fg);
 }
+.pi[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: default;
+}
 .pi .ic {
   width: 22px;
   flex: none;

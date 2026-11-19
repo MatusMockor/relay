@@ -156,6 +156,25 @@ describe('ipc channel map', () => {
     expect(event.safeParse({}).success).toBe(false);
   });
 
+  it('accepts only bounded context menus with integer coordinates', () => {
+    const { input, output } = ipcInvokeChannels['app.contextMenu.show'];
+    const read = { type: 'item', id: 'read', label: 'Označiť ako prečítané', enabled: true };
+    expect(input.safeParse({ items: [read, { type: 'separator' }], x: 10, y: 20 }).success).toBe(
+      true,
+    );
+    expect(input.safeParse({ items: [], x: 10, y: 20 }).success).toBe(false);
+    expect(input.safeParse({ items: [read], x: 10.5, y: 20 }).success).toBe(false);
+    expect(input.safeParse({ items: [{ ...read, id: '' }], x: 0, y: 0 }).success).toBe(false);
+    expect(
+      input.safeParse({ items: [{ ...read, label: 'x'.repeat(121) }], x: 0, y: 0 }).success,
+    ).toBe(false);
+    expect(
+      input.safeParse({ items: Array.from({ length: 31 }, () => read), x: 0, y: 0 }).success,
+    ).toBe(false);
+    expect(output.safeParse({ id: null }).success).toBe(true);
+    expect(output.safeParse({ id: 'read' }).success).toBe(true);
+  });
+
   it('makes input optional only for channels without input', () => {
     expectTypeOf<IpcInvokeArgs<'app.getInfo'>>().toEqualTypeOf<[]>();
     expectTypeOf<IpcInvokeArgs<'secure.get'>>().toEqualTypeOf<[input: { key: string }]>();

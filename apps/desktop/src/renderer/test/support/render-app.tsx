@@ -11,6 +11,10 @@ import {
   type KeyValueStorage,
 } from '../../src/platform/BrowserPlatform';
 import type { Platform } from '../../src/platform/Platform';
+import {
+  openContextMenu,
+  resetContextMenu,
+} from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
 import { resetBackPresses } from '../../src/features/mail/back-press-gate';
 import { useChat } from '../../src/features/side/chat-store';
@@ -44,6 +48,7 @@ export const resetMemoryStores = (): void => {
   useChat.setState({ turns: [], queued: null });
   resetToasts();
   setFolderEdit(null);
+  resetContextMenu();
 };
 
 export const resetStores = (): void => {
@@ -69,7 +74,8 @@ export const renderApp = (
   } = {},
 ): RenderedApp => {
   const platform =
-    options.platform ?? createBrowserPlatform(options.storage ?? storageWith({ mode: 'local' }));
+    options.platform ??
+    createBrowserPlatform(options.storage ?? storageWith({ mode: 'local' }), openContextMenu);
   const session = new SessionController(platform, useSessionStore, {
     demo: options.demo ?? (() => createDemoMailClient({ aiStepMs: 0 })),
   });

@@ -1,4 +1,10 @@
-import type { AppInfo, DeviceSettings, DeviceSettingsPatch, UpdateStatus } from '@relay/shared';
+import type {
+  AppInfo,
+  ContextMenuRequest,
+  DeviceSettings,
+  DeviceSettingsPatch,
+  UpdateStatus,
+} from '@relay/shared';
 import { MailClientError } from '../data/errors';
 import { RendererTokenSession } from '../data/remote/RendererTokenSession';
 import { canonicalServerUrl, MemoryTokenStore, type TokenStore } from '../data/remote/TokenStore';
@@ -47,12 +53,17 @@ const safeStorage = (): KeyValueStorage | null => {
   }
 };
 
+export type ContextMenuOpener = (request: ContextMenuRequest) => Promise<string | null>;
+
+const dismissContextMenu: ContextMenuOpener = () => Promise.resolve(null);
+
 export interface BrowserPlatform extends Platform {
   tokenStore(serverUrl: string): TokenStore;
 }
 
 export const createBrowserPlatform = (
   storage: KeyValueStorage | null = safeStorage(),
+  showContextMenu: ContextMenuOpener = dismissContextMenu,
 ): BrowserPlatform => {
   const tokens = new Map<string, TokenStore>();
   const tokenStore = (serverUrl: string): TokenStore => {
@@ -109,5 +120,6 @@ export const createBrowserPlatform = (
     reportTray: () => undefined,
     showNotification: showBrowserNotification,
     subscribeToFullScreen: () => () => undefined,
+    showContextMenu,
   };
 };

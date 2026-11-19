@@ -9,6 +9,7 @@ import type { MailboxPass } from './mailbox-pass';
 import { flagsDiffer, sameMembers } from './message-diff';
 import type { MessageLabelsResolver } from './message-labels-resolver';
 import type { SyncContext } from './sync-context';
+import { syncedFlags } from './synced-flags';
 
 export interface MailboxReconcilerDeps {
   readonly messages: MessageRepository;
@@ -93,7 +94,7 @@ export class MailboxReconciler {
           context.account.id,
           change,
         );
-        const flags = { ...change.flags };
+        const flags = await syncedFlags(repositories.pendingWork, message, change.flags);
         const flagsChanged = flagsDiffer(flags, message.flags);
         const labelsChanged = !sameMembers(labelIds, message.labelIds);
         if (flagsChanged) {

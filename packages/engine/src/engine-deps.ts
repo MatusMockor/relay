@@ -50,6 +50,10 @@ export interface CalendarOptions {
   readonly googleSyncSeconds: number;
 }
 
+export interface ActionOptions {
+  readonly folderReadPageSize: number;
+}
+
 export interface EngineOptions {
   readonly aiRunnerLocation: AiRunnerLocation;
   readonly settings?: SettingsOptions;
@@ -57,6 +61,7 @@ export interface EngineOptions {
   readonly ai?: Partial<AiOptions>;
   readonly calendar?: Partial<CalendarOptions>;
   readonly attachments?: Partial<AttachmentSweepOptions>;
+  readonly actions?: Partial<ActionOptions>;
 }
 
 export interface EngineDeps {

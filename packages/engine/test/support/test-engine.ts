@@ -1,5 +1,6 @@
 import type { AiRunnerLocation, UserId } from '@relay/shared/domain';
 import {
+  type ActionOptions,
   type AiOptions,
   type CalendarOptions,
   createEngineServices,
@@ -45,6 +46,7 @@ export interface TestEngineOptions {
   readonly ai?: Partial<AiOptions>;
   readonly settings?: SettingsOptions;
   readonly calendar?: Partial<CalendarOptions>;
+  readonly actions?: Partial<ActionOptions>;
   readonly splitMatcher?: SplitMatcher;
 }
 
@@ -121,6 +123,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
       ai: options.ai,
       settings: options.settings,
       calendar: options.calendar,
+      actions: options.actions,
     },
   });
   return {

@@ -5,6 +5,7 @@ import {
   AppContextProvider,
   ServicesProvider,
 } from './data/hooks/services-context';
+import { resetContextMenu } from './features/context-menu/context-menu-store';
 import { sendQueue } from './features/mail/send-queue';
 import { AppShell } from './features/shell/AppShell';
 import { useScopePersistence } from './features/shell/scope-persistence';
@@ -75,6 +76,7 @@ export function App({ createQueryClient = defaultQueryClient, ...context }: AppP
     () =>
       context.session.addTeardown(async () => {
         resetChat();
+        resetContextMenu();
         await sendQueue.flushAll();
       }),
     [context.session],

@@ -26,6 +26,8 @@ import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
   ChecklistResponseSchema,
+  MarkFolderReadBodySchema,
+  MarkFolderReadResponseSchema,
   PrepareThreadAiQuerySchema,
   ThreadListQuerySchema,
   ThreadPageSchema,
@@ -78,6 +80,10 @@ export const localInvokeChannels = {
   'local.threads.action': invokeChannel(
     z.object({ threadId: ThreadIdSchema, action: ThreadActionSchema }),
     ThreadSummarySchema,
+  ),
+  'local.threads.markFolderRead': invokeChannel(
+    MarkFolderReadBodySchema,
+    MarkFolderReadResponseSchema,
   ),
   'local.threads.updateChecklist': invokeChannel(
     z.object({ threadId: ThreadIdSchema, item: UpdateChecklistItemBodySchema }),

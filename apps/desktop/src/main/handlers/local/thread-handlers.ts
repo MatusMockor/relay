@@ -4,7 +4,7 @@ import type { IpcInvokeHandlers } from '../../ipc/invoke-router';
 
 type ThreadServices = Pick<
   EngineServices,
-  'inbox' | 'threads' | 'threadAi' | 'actions' | 'checklist' | 'unsubscribe'
+  'inbox' | 'threads' | 'threadAi' | 'actions' | 'folderRead' | 'checklist' | 'unsubscribe'
 >;
 
 export const createThreadHandlers = (
@@ -19,6 +19,7 @@ export const createThreadHandlers = (
     services.threadAi.requestSummary(userId, threadId, timeZone),
   'local.threads.action': ({ threadId, action }) =>
     services.actions.apply(userId, threadId, action),
+  'local.threads.markFolderRead': (folder) => services.folderRead.markAllRead(userId, folder),
   'local.threads.updateChecklist': ({ threadId, item }) =>
     services.checklist.update(userId, threadId, item),
   'local.threads.unsubscribeOptions': ({ threadId }) =>

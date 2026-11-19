@@ -3,6 +3,7 @@ import type { RawMessage } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import { chunked } from '../shared/chunked';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { completedSyncState } from './completed-sync-state';
 import { conversationOrder, orderEntries } from './conversation-order';
@@ -36,11 +37,6 @@ export interface InitialSyncDeps extends InitialWindowDeps {
 }
 
 const BACKLOG = { publish: false, live: false, holdCalendar: true } as const;
-
-const chunked = <Item>(items: readonly Item[], size: number): Item[][] =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
-    items.slice(index * size, (index + 1) * size),
-  );
 
 const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): SyncMark => {
   const { state, status } = window.pass;

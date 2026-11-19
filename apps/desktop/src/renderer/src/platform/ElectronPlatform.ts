@@ -73,6 +73,11 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
         },
         onError: () => undefined,
       }),
+    showContextMenu: (request) =>
+      unwrap(bridge.invoke('app.contextMenu.show', request)).then(
+        (result) => result.id,
+        () => null,
+      ),
   };
 };
 

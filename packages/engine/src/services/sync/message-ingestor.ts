@@ -18,6 +18,7 @@ import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
 import type { MessageLabelsResolver } from './message-labels-resolver';
 import type { SyncJournal } from './sync-journal';
+import { syncedFlags } from './synced-flags';
 
 export interface IngestTarget {
   readonly userId: UserId;
@@ -155,15 +156,16 @@ export class MessageIngestor {
       }
       await target.journal?.touched(repositories.pendingWork, known.threadId);
       const labelIds = await this.deps.labelsResolver.resolve(repositories, target.account.id, raw);
-      const flagsChanged = flagsDiffer(known.flags, raw.flags);
+      const flags = await syncedFlags(repositories.pendingWork, known, raw.flags);
+      const flagsChanged = flagsDiffer(known.flags, flags);
       const labelsChanged = !sameMembers(known.labelIds, labelIds);
       if (flagsChanged) {
-        await repositories.messages.updateFlags(known.id, { ...raw.flags });
+        await repositories.messages.updateFlags(known.id, flags);
       }
       if (labelsChanged) {
         await repositories.messages.updateLabels(known.id, labelIds);
       }
-      const message: Message = { ...known, flags: { ...raw.flags }, labelIds };
+      const message: Message = { ...known, flags, labelIds };
       return { kind: 'existing', message, changed: flagsChanged || labelsChanged };
     });
   }
