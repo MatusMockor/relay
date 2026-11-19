@@ -1,7 +1,7 @@
 {
   "name": "@relay/desktop",
   "productName": "Relay",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Desktop mail and calendar client with an AI assistant",
   "author": {
     "name": "Matúš Močkor",
