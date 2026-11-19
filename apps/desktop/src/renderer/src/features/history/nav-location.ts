@@ -33,18 +33,13 @@ const settingsOf = (overlay: OverlayState | null): SettingsLocation | null => {
 export const isTransientOverlay = (overlay: OverlayState | null): boolean =>
   overlay !== null && overlay.kind !== 'settings';
 
-export const locationOf = (state: UiState): NavLocation | null => {
-  if (isTransientOverlay(state.overlay)) {
-    return null;
-  }
-  return {
-    scope: state.scope,
-    folder: state.folder,
-    openThreadId: state.openThreadId,
-    searchOpen: state.searchOpen,
-    settings: settingsOf(state.overlay),
-  };
-};
+export const locationOf = (state: UiState): NavLocation => ({
+  scope: state.scope,
+  folder: state.folder,
+  openThreadId: state.openThreadId,
+  searchOpen: state.searchOpen,
+  settings: settingsOf(state.overlay),
+});
 
 const automationKey = (view: AutomationView): string =>
   view.kind === 'detail' ? `detail:${view.key}` : view.kind;

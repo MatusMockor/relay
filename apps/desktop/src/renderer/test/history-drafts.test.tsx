@@ -5,6 +5,7 @@ import type { MailClient } from '../src/data/MailClient';
 import { demoClient, gate, settle } from './features-support';
 import { click, openAutomations, stored } from './support/automations';
 import { resetStores } from './support/render-app';
+import { setUi, useUiStore } from '../src/state/ui-store';
 
 const JIRA = 'Úlohy z Jiry';
 
@@ -72,6 +73,23 @@ describe('history of new automation drafts', () => {
     release(3);
 
     expect(detail(JIRA)).not.toBeNull();
+  });
+
+  it('keeps a message being written open when a new rule finishes saving', async () => {
+    const { client, held } = heldSaves();
+    const sheet = await openAutomations(client);
+    pickTemplate(sheet, JIRA);
+    act(() => {
+      setUi({ overlay: { kind: 'compose', init: {}, scope: 'all' } });
+    });
+
+    act(() => {
+      held.open();
+    });
+    await settle();
+
+    expect(await stored(client, JIRA)).toBeDefined();
+    expect(useUiStore.getState().overlay?.kind).toBe('compose');
   });
 
   it('never opens a newer draft from the history entry of an older one', async () => {

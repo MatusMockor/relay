@@ -1,9 +1,13 @@
 import { folderKey } from '../../state/folders';
 import { type OverlayState, setUi, type UiState } from '../../state/ui-store';
-import type { NavLocation, SettingsLocation } from './nav-location';
+import { isTransientOverlay, type NavLocation, type SettingsLocation } from './nav-location';
 
-const overlayOf = (settings: SettingsLocation | null): OverlayState | null =>
-  settings === null ? null : { kind: 'settings', ...settings };
+const overlayOf = (state: UiState, settings: SettingsLocation | null): OverlayState | null => {
+  if (isTransientOverlay(state.overlay)) {
+    return state.overlay;
+  }
+  return settings === null ? null : { kind: 'settings', ...settings };
+};
 
 const selectedFor = (state: UiState, location: NavLocation): UiState['selected'] =>
   location.openThreadId === null
@@ -19,6 +23,6 @@ export const applyLocation = (location: NavLocation): void => {
     query: location.searchOpen ? state.query : '',
     reply: state.reply?.threadId === location.openThreadId ? state.reply : null,
     selected: selectedFor(state, location),
-    overlay: overlayOf(location.settings),
+    overlay: overlayOf(state, location.settings),
   }));
 };

@@ -1,30 +1,44 @@
 import type { ThreadId } from '@relay/shared';
-import { folderKey } from '../../state/folders';
-import { setUi, useUiStore } from '../../state/ui-store';
+import { folderKey, sameFolder } from '../../state/folders';
+import { setUi, type UiState, useUiStore } from '../../state/ui-store';
+import { appHistory } from '../history/app-history';
 import type { ThreadPlacement } from './thread-placement';
 
-export const openThreadAt = (threadId: ThreadId, { folder, scope }: ThreadPlacement): void => {
-  setUi((state) => ({
-    scope,
-    folder,
-    openThreadId: threadId,
-    reply: null,
-    searchOpen: false,
-    query: '',
-    selected: { ...state.selected, [folderKey(folder)]: threadId },
-  }));
-};
+const placedAt = (state: UiState, threadId: ThreadId, { folder, scope }: ThreadPlacement) =>
+  state.openThreadId === threadId && state.scope === scope && sameFolder(state.folder, folder);
 
-export const relocateOpenThread = (
+export const openThreadAt = (
   threadId: ThreadId,
-  { folder, scope }: ThreadPlacement,
+  placement: ThreadPlacement,
+  extra: Partial<UiState> = {},
+  tag: symbol | null = null,
 ): void => {
-  if (useUiStore.getState().openThreadId !== threadId) {
+  if (placedAt(useUiStore.getState(), threadId, placement)) {
+    appHistory.visit(() => {
+      setUi(extra);
+    }, tag);
     return;
   }
-  setUi((state) => ({
-    scope,
-    folder,
-    selected: { ...state.selected, [folderKey(folder)]: threadId },
-  }));
+  appHistory.visit(() => {
+    setUi({
+      ...extra,
+      ...placement,
+      openThreadId: null,
+      reply: null,
+      searchOpen: false,
+      query: '',
+    });
+  }, tag);
+  appHistory.visit(() => {
+    setUi((state) => ({
+      openThreadId: threadId,
+      selected: { ...state.selected, [folderKey(placement.folder)]: threadId },
+    }));
+  }, tag);
+};
+
+export const relocateOpenedThread = (tag: symbol, { folder, scope }: ThreadPlacement): void => {
+  appHistory.rewrite((location, entryTag) =>
+    entryTag === tag ? { ...location, folder, scope } : location,
+  );
 };

@@ -1,83 +1,107 @@
 import type { HistoryDirection, NavigationHistory } from './navigation-history';
 
 export interface LocationStore<Location> {
-  read(): Location | null;
+  read(): Location;
   write(location: Location): void;
   same(a: Location, b: Location): boolean;
+  paused(): boolean;
   subscribe(listener: () => void): () => void;
 }
 
+export interface HistoryEntry<Location> {
+  readonly location: Location;
+  readonly tag: symbol | null;
+}
+
 export class HistoryRecorder<Location> {
-  private current: Location | null = null;
   private applying = false;
 
   constructor(
-    private readonly history: NavigationHistory<Location>,
+    private readonly history: NavigationHistory<HistoryEntry<Location>>,
     private readonly store: LocationStore<Location>,
   ) {}
 
   start(): () => void {
-    this.history.clear();
-    this.current = this.store.read();
+    this.history.reset({ location: this.store.read(), tag: null });
     return this.store.subscribe(() => {
       this.observe();
     });
   }
 
   can(direction: HistoryDirection): boolean {
-    return this.current !== null && this.history.can(direction);
+    return this.history.can(direction);
   }
 
   go(direction: HistoryDirection, prepare: () => void = () => undefined): void {
-    const before = this.current;
-    if (before === null || !this.history.can(direction)) {
+    if (!this.history.can(direction)) {
       return;
     }
-    this.quietly(prepare);
-    const target = this.history.take(direction, before);
-    if (target === null || this.store.same(this.current ?? before, target)) {
+    this.silently(prepare);
+    const target = this.history.move(direction);
+    if (target === null || this.store.same(this.store.read(), target.location)) {
       return;
     }
     this.quietly(() => {
-      this.store.write(target);
+      this.store.write(target.location);
     });
   }
 
-  rewrite(update: (location: Location) => Location): void {
-    this.history.map(update);
-    const live = this.store.read();
-    if (live === null || this.store.same(live, update(live))) {
-      this.current = this.current === null ? null : update(this.current);
+  visit(apply: () => void, tag: symbol | null = null): void {
+    this.silently(apply);
+    const location = this.store.read();
+    const current = this.history.current();
+    if (current !== null && tag === null && this.store.same(current.location, location)) {
+      this.history.replaceCurrent({ location, tag: current.tag });
       return;
     }
-    this.quietly(() => {
-      this.store.write(update(live));
-    });
+    this.history.visit({ location, tag });
+  }
+
+  rewrite(update: (location: Location, tag: symbol | null) => Location): void {
+    const before = this.history.current();
+    this.history.rewrite(
+      (entry) => {
+        const location = update(entry.location, entry.tag);
+        return location === entry.location ? entry : { location, tag: entry.tag };
+      },
+      (a, b) => this.store.same(a.location, b.location),
+    );
+    const after = this.history.current();
+    if (before === null || after === null || this.store.same(before.location, after.location)) {
+      return;
+    }
+    const write = () => {
+      this.store.write(after.location);
+    };
+    if (this.store.paused()) {
+      this.silently(write);
+      return;
+    }
+    this.quietly(write);
   }
 
   quietly(run: () => void): void {
+    this.silently(run);
+    const current = this.history.current();
+    if (current === null) {
+      return;
+    }
+    this.history.replaceCurrent({ location: this.store.read(), tag: current.tag });
+  }
+
+  private silently(run: () => void): void {
     this.applying = true;
     try {
       run();
     } finally {
       this.applying = false;
     }
-    this.current = this.store.read() ?? this.current;
   }
 
   private observe(): void {
-    if (this.applying) {
+    if (this.applying || this.store.paused()) {
       return;
     }
-    const next = this.store.read();
-    if (next === null) {
-      return;
-    }
-    const previous = this.current;
-    this.current = next;
-    if (previous === null || this.store.same(previous, next)) {
-      return;
-    }
-    this.history.push(previous);
+    this.visit(() => undefined);
   }
 }

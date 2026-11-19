@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { HistoryRecorder } from '../src/features/history/history-recorder';
+import { type HistoryEntry, HistoryRecorder } from '../src/features/history/history-recorder';
 import type { NavLocation } from '../src/features/history/nav-location';
 import { NavigationHistory } from '../src/features/history/navigation-history';
 import { uiLocationStore } from '../src/features/history/ui-location-store';
@@ -15,7 +15,10 @@ describe('history recorder on the ui store', () => {
 
   beforeEach(() => {
     useUiStore.setState(INITIAL_UI);
-    recorder = new HistoryRecorder(new NavigationHistory<NavLocation>(), uiLocationStore);
+    recorder = new HistoryRecorder(
+      new NavigationHistory<HistoryEntry<NavLocation>>(),
+      uiLocationStore,
+    );
     stop = recorder.start();
   });
   afterEach(() => {
