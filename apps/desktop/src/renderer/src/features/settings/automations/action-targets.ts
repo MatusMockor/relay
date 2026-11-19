@@ -26,8 +26,22 @@ export const moveChoiceLabel = (gmail: boolean): string =>
 export const actionKey = (action: AutomationAction): string =>
   action.type === 'addLabel' ? `addLabel:${action.labelId}` : action.type;
 
+const moveTarget = (mailboxId: string, targets: ActionTargets) =>
+  moveTargetsOf(targets.mailboxes).find((item) => item.mailbox.id === mailboxId);
+
+export const moveTargetView = (mailboxId: string, targets: ActionTargets): ActionView => {
+  const target = moveTarget(mailboxId, targets);
+  if (target !== undefined) {
+    return { label: target.label, broken: false };
+  }
+  if (!targets.loaded) {
+    return { label: 'Načítavam…', broken: false };
+  }
+  return { label: 'Priečinok už neexistuje', broken: true };
+};
+
 const moveView = (mailboxId: string, targets: ActionTargets): ActionView => {
-  const target = moveTargetsOf(targets.mailboxes).find((item) => item.mailbox.id === mailboxId);
+  const target = moveTarget(mailboxId, targets);
   if (target !== undefined) {
     const prefix = target.kind === 'label' ? 'Presunúť do štítka' : 'Presunúť do';
     return { label: `${prefix} ${target.label}`, broken: false };

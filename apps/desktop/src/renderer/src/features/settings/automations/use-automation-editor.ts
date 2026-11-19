@@ -1,9 +1,6 @@
-import type { AiRunnerKind, AutomationInput } from '@relay/shared';
+import type { AiRunnerKind, Automation, AutomationInput } from '@relay/shared';
 import { useRef, useState } from 'react';
-import { describeError } from '../../../data/errors';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
-import { useReplaceAutomations } from '../../../data/hooks/use-replace-automations';
-import { showToast } from '../../../state/toast-store';
 import {
   editableOf,
   type EditableRule,
@@ -11,16 +8,20 @@ import {
   newRule,
   type RuleChange,
 } from './editable-rule';
+import { canMove, moveRule } from './rule-order';
+import type { RuleTemplate } from './rule-templates';
+import { usePersistAutomations } from './use-persist-automations';
 
 export interface AutomationEditor {
   readonly rules: readonly EditableRule[];
   readonly loading: boolean;
   readonly saving: boolean;
   readonly editing: string | null;
-  engage(key: string): void;
+  engage(key: string | null): void;
   change(key: string, change: RuleChange): void;
   remove(key: string): void;
-  add(runner: AiRunnerKind): void;
+  reorder(from: number, to: number): void;
+  addFrom(template: RuleTemplate, runner: AiRunnerKind): void;
 }
 
 const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
@@ -31,29 +32,30 @@ const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<st
 
 export const useAutomationEditor = (): AutomationEditor => {
   const automations = useAutomations();
-  const replace = useReplaceAutomations();
+  const { saving, persist } = usePersistAutomations();
   const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(new Map());
   const [editing, setEditing] = useState<string | null>(null);
   const counter = useRef(0);
   const saved = (automations.data ?? []).map(editableOf);
   const drafts = [...local.values()].filter((rule) => !rule.saved);
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];
-  const saving = replace.isPending;
+  const savedInputs = saved.map((rule) => rule.input);
 
-  const persist = (inputs: AutomationInput[], settled: string) => {
-    replace.mutate(inputs, {
-      onSuccess: (stored) => {
-        setLocal((current) => withoutKey(current, settled));
-        const known = new Set(saved.map((rule) => rule.key));
-        const created = stored.find((automation) => !known.has(automation.id));
-        if (created !== undefined && editing === settled) {
-          setEditing(created.id);
-        }
-      },
-      onError: (error) => {
-        showToast(describeError(error));
-      },
+  const save = (inputs: AutomationInput[], settled: string) => {
+    const known = new Set(saved.map((rule) => rule.key));
+    persist(inputs, (stored: readonly Automation[]) => {
+      setLocal((current) => withoutKey(current, settled));
+      const created = stored.find((automation) => !known.has(automation.id));
+      if (created === undefined) {
+        return;
+      }
+      setEditing((current) => (current === settled ? created.id : current));
     });
+  };
+
+  const commit = (next: EditableRule) => {
+    const inputs = saved.map((item) => (item.key === next.key ? next.input : item.input));
+    save(next.saved ? inputs : [...inputs, next.input], next.key);
   };
 
   const change = (key: string, update: RuleChange) => {
@@ -66,8 +68,7 @@ export const useAutomationEditor = (): AutomationEditor => {
       setLocal((current) => new Map(current).set(key, next));
       return;
     }
-    const inputs = saved.map((item) => (item.key === key ? next.input : item.input));
-    persist(next.saved ? inputs : [...inputs, next.input], key);
+    commit(next);
   };
 
   const remove = (key: string) => {
@@ -79,17 +80,28 @@ export const useAutomationEditor = (): AutomationEditor => {
       setLocal((current) => withoutKey(current, key));
       return;
     }
-    persist(
+    save(
       saved.filter((item) => item.key !== key).map((item) => item.input),
       key,
     );
   };
 
-  const add = (runner: AiRunnerKind) => {
+  const reorder = (from: number, to: number) => {
+    if (saving || !canMove(saved.length, from, to)) {
+      return;
+    }
+    persist(moveRule(savedInputs, from, to), () => undefined);
+  };
+
+  const addFrom = (template: RuleTemplate, runner: AiRunnerKind) => {
     counter.current += 1;
     const key = `draft-${String(counter.current)}`;
-    setLocal((current) => new Map(current).set(key, newRule(key, runner, rules.length)));
+    const rule = newRule(key, runner, rules.length, template);
+    setLocal((current) => new Map(current).set(key, rule));
     setEditing(key);
+    if (isComplete(rule) && !saving) {
+      commit(rule);
+    }
   };
 
   return {
@@ -100,6 +112,7 @@ export const useAutomationEditor = (): AutomationEditor => {
     engage: setEditing,
     change,
     remove,
-    add,
+    reorder,
+    addFrom,
   };
 };

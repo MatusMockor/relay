@@ -3,15 +3,18 @@ import {
   type AiRunnerKind,
   type Automation,
   type AutomationAction,
+  type AutomationConditionType,
   type AutomationInput,
   type AutomationPreset,
   isParameterizedAction,
 } from '@relay/shared';
+import type { RuleTemplate } from './rule-templates';
 
 export interface EditableRule {
   readonly key: string;
   readonly preset: AutomationPreset | null;
   readonly saved: boolean;
+  readonly pending: AutomationConditionType | null;
   readonly input: AutomationInput;
 }
 
@@ -21,6 +24,7 @@ export const editableOf = (automation: Automation): EditableRule => ({
   key: automation.id,
   preset: automation.preset,
   saved: true,
+  pending: null,
   input: {
     id: automation.id,
     accountId: automation.accountId,
@@ -33,18 +37,24 @@ export const editableOf = (automation: Automation): EditableRule => ({
   },
 });
 
-export const newRule = (key: string, runner: AiRunnerKind, order: number): EditableRule => ({
+export const newRule = (
+  key: string,
+  runner: AiRunnerKind,
+  order: number,
+  template: RuleTemplate,
+): EditableRule => ({
   key,
   preset: null,
   saved: false,
+  pending: template.needs,
   input: {
     accountId: null,
-    name: 'Nové pravidlo',
+    name: template.name,
     enabled: true,
     order,
-    conditions: [],
+    conditions: [...template.conditions],
     ai: { runner, model: null, effort: null, instructions: null },
-    actions: [{ type: 'task' }],
+    actions: [...template.actions],
   },
 });
 

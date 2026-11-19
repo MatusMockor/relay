@@ -1,0 +1,64 @@
+.au-scope {
+  max-width: 280px;
+}
+.au-conds {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.au-and {
+  padding-left: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.au-cond {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.au-in {
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  outline: 0;
+}
+select.au-in {
+  flex: none;
+}
+input.au-in {
+  flex: 1 1 180px;
+}
+.au-in:hover {
+  border-color: #2e3545;
+}
+.au-in:focus {
+  border-color: rgba(142, 162, 255, 0.55);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.au-in::placeholder {
+  color: var(--faint);
+}
+.au-x {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.au-x:hover {
+  color: var(--fg);
+  background: var(--hover);
+}
+.au-add {
+  margin: 10px 0 0 -8px;
+  color: var(--accent);
+}

@@ -4,10 +4,9 @@ export interface InstructionsBoxProps {
   readonly value: string | null;
   readonly disabled: boolean;
   readonly onSave: (value: string | null) => void;
-  readonly onEngage: () => void;
 }
 
-export function InstructionsBox({ value, disabled, onSave, onEngage }: InstructionsBoxProps) {
+export function InstructionsBox({ value, disabled, onSave }: InstructionsBoxProps) {
   const [text, setText] = useState(value ?? '');
   useEffect(() => {
     setText(value ?? '');
@@ -21,7 +20,6 @@ export function InstructionsBox({ value, disabled, onSave, onEngage }: Instructi
         maxLength={2_000}
         disabled={disabled}
         placeholder="Napríklad: Úlohu vytvor, len ak odo mňa niekto niečo chce."
-        onFocus={onEngage}
         onChange={(event) => {
           setText(event.target.value);
         }}

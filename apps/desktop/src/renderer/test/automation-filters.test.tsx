@@ -1,42 +1,29 @@
 // @vitest-environment jsdom
-import { type Automation, MailboxIdSchema } from '@relay/shared';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { MailboxIdSchema } from '@relay/shared';
+import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { MailClient } from '../src/data/MailClient';
 import { toAutomationInput } from '../src/data/hooks/use-replace-automations';
-import { setUi } from '../src/state/ui-store';
 import { demoClient, settle } from './features-support';
-import { renderApp, resetStores } from './support/render-app';
+import {
+  backToList,
+  checkbox,
+  click,
+  openAutomations,
+  openRule,
+  popover,
+  row,
+  stored,
+} from './support/automations';
+import { resetStores } from './support/render-app';
 
-const openSection = async (client: MailClient) => {
-  renderApp({ demo: () => client });
-  await screen.findByRole('listbox', { name: 'Konverzácie' });
-  act(() => {
-    setUi({ overlay: { kind: 'settings', section: 'automations', adding: false } });
-  });
-  const sheet = screen.getByRole('dialog', { name: 'Nastavenia' });
-  await within(sheet).findByRole('region', { name: 'Pravidlo Tibor' });
-  return sheet;
-};
+const checkedActions = (region: HTMLElement) =>
+  within(region)
+    .getAllByRole<HTMLInputElement>('checkbox')
+    .filter((item) => item.checked)
+    .map((item) => item.getAttribute('aria-label'));
 
-const card = (sheet: HTMLElement, name: string) =>
-  within(sheet).getByRole('region', { name: `Pravidlo ${name}` });
-
-const click = (element: HTMLElement) => {
-  act(() => {
-    fireEvent.click(element);
-  });
-};
-
-const popover = (name: string) => screen.getByRole('dialog', { name });
-
-const stored = async (client: MailClient, name: string): Promise<Automation | undefined> =>
-  (await client.listAutomations()).find((item) => item.name === name);
-
-const actionLabels = (element: HTMLElement) =>
-  within(element)
-    .getAllByRole('button', { name: /^Zmeniť akciu / })
-    .map((button) => button.textContent);
+const moveTarget = (region: HTMLElement) =>
+  within(region).getByRole('button', { name: /^Zmeniť cieľ: / }).textContent;
 
 describe('Nastavenia > Automatizácie > presun a štítky', () => {
   beforeEach(() => {
@@ -47,23 +34,29 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
   });
 
   it('names the folder and the label of a rule', async () => {
-    const sheet = await openSection(demoClient());
+    const sheet = await openAutomations(demoClient());
 
     await waitFor(() => {
-      expect(actionLabels(card(sheet, 'GitLab do Projektov'))).toEqual([
-        'Štítok eFabrica',
-        'Presunúť do Projekty',
-      ]);
+      expect(
+        within(row(sheet, 'GitLab do Projektov')).getByText(
+          'Od gitlab@firma.sk → Štítok eFabrica, Presunúť do Projekty',
+        ),
+      ).toBeDefined();
     });
+    const gitlab = openRule(sheet, 'GitLab do Projektov');
+    await waitFor(() => {
+      expect(checkedActions(gitlab)).toEqual(['Presunúť do priečinka', 'Štítok eFabrica']);
+    });
+    expect(moveTarget(gitlab)).toBe('Projekty');
   });
 
   it('moves mail of an account rule into a folder picked from its folders', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
+    const sheet = await openAutomations(client);
+    const mentions = openRule(sheet, 'Jira spomenutia');
 
-    click(within(card(sheet, 'Jira spomenutia')).getByRole('button', { name: 'Pridať akciu' }));
-    click(within(popover('Nová akcia')).getByRole('button', { name: 'Presunúť do priečinka…' }));
-    const picker = await within(popover('Nová akcia')).findByRole('group', {
+    click(checkbox(mentions, 'Presunúť do priečinka'));
+    const picker = await within(popover('Presunúť do priečinka')).findByRole('group', {
       name: 'Presunúť do priečinka',
     });
     expect(within(picker).getByRole('button', { name: 'Doručená pošta' })).toBeDefined();
@@ -76,22 +69,22 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       { type: 'task' },
       { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
     ]);
-    expect(
-      within(card(sheet, 'Jira spomenutia')).queryByRole('button', { name: 'Pridať akciu' }),
-    ).not.toBeNull();
+    expect(within(mentions).getByText('Nahradí presun')).toBeDefined();
+    expect(checkbox(mentions, 'Pridať štítok')).toHaveProperty('disabled', false);
+    expect(moveTarget(mentions)).toBe('Projekty / Alfa');
   });
 
   it('asks a rule for all accounts to pick an account before a Gmail label', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
 
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať akciu' }));
-    click(within(popover('Nová akcia')).getByRole('button', { name: 'Pridať štítok…' }));
-    const accounts = within(popover('Nová akcia')).getByRole('group', {
+    click(checkbox(tibor, 'Pridať štítok'));
+    const accounts = within(popover('Pridať štítok')).getByRole('group', {
       name: 'Najprv vyber účet pravidla',
     });
     click(within(accounts).getByRole('button', { name: 'Osobný' }));
-    const labels = await within(popover('Nová akcia')).findByRole('group', {
+    const labels = await within(popover('Pridať štítok')).findByRole('group', {
       name: 'Pridať štítok',
     });
     click(within(labels).getByRole('button', { name: 'Rodina' }));
@@ -101,19 +94,21 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       accountId: 'acc-os',
       actions: [{ type: 'task' }, { type: 'notify' }, { type: 'addLabel', labelId: 'lbl-fam' }],
     });
-    expect(
-      within(card(sheet, 'Tibor')).getByRole('button', { name: 'Účet: Osobný' }),
-    ).toBeDefined();
+    const scope = within(tibor).getByRole('combobox', { name: 'Účet' });
+    expect(within(scope).getByRole<HTMLOptionElement>('option', { name: 'Osobný' }).selected).toBe(
+      true,
+    );
+    expect(checkbox(tibor, 'Štítok Rodina')).toHaveProperty('checked', true);
   });
 
   it('phrases the move as a label move on a Gmail account', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
 
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať akciu' }));
-    click(within(popover('Nová akcia')).getByRole('button', { name: 'Presunúť do priečinka…' }));
-    click(within(popover('Nová akcia')).getByRole('button', { name: 'Osobný' }));
-    const picker = await within(popover('Nová akcia')).findByRole('group', {
+    click(checkbox(tibor, 'Presunúť do priečinka'));
+    click(within(popover('Presunúť do priečinka')).getByRole('button', { name: 'Osobný' }));
+    const picker = await within(popover('Presunúť do priečinka')).findByRole('group', {
       name: 'Presunúť do štítka',
     });
     click(within(picker).getByRole('button', { name: 'Cestovanie / Taliansko 2026' }));
@@ -123,9 +118,10 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       type: 'moveTo',
       mailboxId: 'mbx-os-taliansko',
     });
-    expect(actionLabels(card(sheet, 'Tibor'))).toContain(
-      'Presunúť do štítka Cestovanie / Taliansko 2026',
-    );
+    await waitFor(() => {
+      expect(checkbox(tibor, 'Presunúť do štítka')).toHaveProperty('checked', true);
+    });
+    expect(moveTarget(tibor)).toBe('Cestovanie / Taliansko 2026');
   });
 
   it('warns about a folder that no longer exists', async () => {
@@ -141,11 +137,14 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
           : toAutomationInput(rule),
       ),
     );
-    const sheet = await openSection(client);
-    const gitlab = card(sheet, 'GitLab do Projektov');
+    const sheet = await openAutomations(client);
 
+    expect(
+      await within(row(sheet, 'GitLab do Projektov')).findByText('Cieľ neexistuje'),
+    ).toBeDefined();
+    const gitlab = openRule(sheet, 'GitLab do Projektov');
     await waitFor(() => {
-      expect(actionLabels(gitlab)).toEqual(['Priečinok už neexistuje']);
+      expect(moveTarget(gitlab)).toBe('Priečinok už neexistuje');
     });
     expect(within(gitlab).getByRole('status').textContent).toBe(
       'Cieľ niektorej akcie už neexistuje. Pravidlo ostatné akcie vykoná, túto preskočí.',
@@ -154,14 +153,15 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
 
   it('applies a rule to existing inbox mail once', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
+    const sheet = await openAutomations(client);
     const apply = () => {
       click(
-        within(card(sheet, 'GitLab do Projektov')).getByRole('button', {
-          name: 'Použiť pravidlo GitLab do Projektov aj na existujúce maily',
+        within(sheet).getByRole('button', {
+          name: 'Použiť na maily, ktoré už mám',
         }),
       );
     };
+    openRule(sheet, 'GitLab do Projektov');
 
     apply();
     await settle();
@@ -172,8 +172,45 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
     expect(
       screen.getByText('V doručenej pošte nie je žiadny mail, ktorý spĺňa podmienky'),
     ).toBeDefined();
+    backToList(sheet);
     expect(
-      within(card(sheet, 'Tibor')).queryByRole('button', { name: /aj na existujúce maily$/ }),
+      within(openRule(sheet, 'Tibor')).queryByRole('button', {
+        name: 'Použiť na maily, ktoré už mám',
+      }),
     ).toBeNull();
+  });
+
+  it('swaps archiving and moving in one change', async () => {
+    const client = demoClient();
+    const rules = await client.listAutomations();
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'GitLab do Projektov'
+          ? { ...toAutomationInput(rule), actions: [{ type: 'archive' }] }
+          : toAutomationInput(rule),
+      ),
+    );
+    const sheet = await openAutomations(client);
+    const gitlab = openRule(sheet, 'GitLab do Projektov');
+    const moveBox = checkbox(gitlab, 'Presunúť do priečinka');
+
+    expect(moveBox).toHaveProperty('disabled', false);
+    expect(within(gitlab).getByText('Nahradí archiváciu')).toBeDefined();
+    click(moveBox);
+    const picker = await within(popover('Presunúť do priečinka')).findByRole('group', {
+      name: 'Presunúť do priečinka',
+    });
+    click(within(picker).getByRole('button', { name: 'Projekty / Alfa' }));
+    await settle();
+
+    expect((await stored(client, 'GitLab do Projektov'))?.actions).toEqual([
+      { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
+    ]);
+    expect(checkbox(gitlab, 'Archivovať')).toHaveProperty('disabled', false);
+    expect(within(gitlab).getByText('Nahradí presun')).toBeDefined();
+    click(checkbox(gitlab, 'Archivovať'));
+    await settle();
+
+    expect((await stored(client, 'GitLab do Projektov'))?.actions).toEqual([{ type: 'archive' }]);
   });
 });

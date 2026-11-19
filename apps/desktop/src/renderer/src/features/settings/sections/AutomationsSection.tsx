@@ -1,65 +1,108 @@
 import { Button } from '@relay/ui';
+import { useState } from 'react';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../../mail/use-accounts-model';
-import { AutomationCard } from '../automations/AutomationCard';
+import { AutomationDetail } from '../automations/AutomationDetail';
+import { AutomationList } from '../automations/AutomationList';
+import { RuleTemplates } from '../automations/RuleTemplates';
 import { useAutomationEditor } from '../automations/use-automation-editor';
 import { useDefaultRule } from '../automations/use-default-rule';
 import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
+
+type View =
+  | { readonly kind: 'list' }
+  | { readonly kind: 'detail' }
+  | { readonly kind: 'templates' };
+
+const LIST: View = { kind: 'list' };
 
 export function AutomationsSection() {
   const editor = useAutomationEditor();
   const defaultRule = useDefaultRule();
   const settings = useUserSettings();
   const { accounts } = useAccountsModel();
+  const [view, setView] = useState<View>(LIST);
   const locked = editor.saving || editor.loading || defaultRule.restoring;
+  const opened = editor.rules.find((rule) => rule.key === editor.editing);
+  const showList = () => {
+    editor.engage(null);
+    setView(LIST);
+  };
+  if (view.kind === 'templates') {
+    return (
+      <RuleTemplates
+        disabled={locked}
+        onBack={showList}
+        onPick={(template) => {
+          editor.addFrom(template, settings.data?.ai.defaultRunner ?? 'claude');
+          setView({ kind: 'detail' });
+        }}
+      />
+    );
+  }
+  if (view.kind === 'detail' && opened !== undefined) {
+    return (
+      <AutomationDetail
+        key={opened.key}
+        rule={opened}
+        accounts={accounts}
+        disabled={locked}
+        onBack={showList}
+        onChange={(change) => {
+          editor.change(opened.key, change);
+        }}
+        onRemove={() => {
+          editor.remove(opened.key);
+          showList();
+        }}
+      />
+    );
+  }
   return (
     <>
       <SectionHeader title="Automatizácie">
-        Keď príde nový mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie. Poštové akcie môžeš
-        použiť aj na maily, ktoré už sú v doručenej pošte.
+        Keď príde mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie.
       </SectionHeader>
-      {editor.rules.map((rule) => (
-        <AutomationCard
-          key={rule.key}
-          rule={rule}
-          accounts={accounts}
-          editing={editor.editing === rule.key}
+      <div className="au-bar">
+        <span>Pravidlá sa vyhodnocujú zhora nadol. Poradie zmeníš potiahnutím.</span>
+        <Button
+          variant="primary"
           disabled={locked}
-          onEngage={() => {
-            editor.engage(rule.key);
+          onClick={() => {
+            setView({ kind: 'templates' });
           }}
-          onChange={(change) => {
-            editor.change(rule.key, change);
-          }}
-          onRemove={() => {
-            editor.remove(rule.key);
-          }}
-        />
-      ))}
-      <div className="form">
-        <div className="btns au-new">
+        >
+          + Nové pravidlo
+        </Button>
+      </div>
+      <AutomationList
+        rules={editor.rules}
+        accounts={accounts}
+        disabled={locked}
+        onOpen={(key) => {
+          editor.engage(key);
+          setView({ kind: 'detail' });
+        }}
+        onToggle={(key, enabled) => {
+          editor.change(key, { enabled });
+        }}
+        onMove={(from, to) => {
+          editor.reorder(from, to);
+        }}
+      />
+      {defaultRule.removed ? (
+        <div className="au-new">
           <Button
-            variant="primary"
             disabled={locked}
             onClick={() => {
-              editor.add(settings.data?.ai.defaultRunner ?? 'claude');
+              defaultRule.restore();
             }}
           >
-            + Nové pravidlo
+            Obnoviť predvolené Jira pravidlo
           </Button>
-          {defaultRule.removed ? (
-            <Button
-              disabled={locked}
-              onClick={() => {
-                defaultRule.restore();
-              }}
-            >
-              Obnoviť predvolené Jira pravidlo
-            </Button>
-          ) : null}
         </div>
-      </div>
+      ) : null}
       <SettingRow
         title="Pravidlá sa synchronizujú"
         description="Rovnaké automatizácie platia na všetkých zariadeniach."

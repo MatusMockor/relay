@@ -24,6 +24,8 @@ export const SIMPLE_ACTIONS: readonly SimpleAutomationActionType[] = [
   'archive',
 ];
 
+export const AI_ACTIONS: readonly SimpleAutomationActionType[] = ['summary', 'task'];
+
 export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
   mention: 'Spomenutie',
   assigned: 'Priradenie',
