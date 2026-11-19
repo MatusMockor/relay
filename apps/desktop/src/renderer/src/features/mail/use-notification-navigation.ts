@@ -1,11 +1,13 @@
-import type { ThreadSummary } from '@relay/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import type { ThreadId } from '@relay/shared';
+import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { findCachedThread } from '../../data/hooks/thread-cache';
-import { useAppContext } from '../../data/hooks/services-context';
-import { type Folder, INBOX } from '../../state/folders';
+import type { MailClient } from '../../data/MailClient';
+import { queryKeys } from '../../data/hooks/query-keys';
+import { findKnownThread } from '../../data/hooks/thread-cache';
+import { useAppContext, useClient } from '../../data/hooks/services-context';
 import { type OverlayState, setUi, useUiStore } from '../../state/ui-store';
-import { openThread, selectFolder } from './navigation';
+import { openThreadAt, relocateOpenThread } from './place-thread';
+import { placementOf } from './thread-placement';
 
 const CLOSABLE_OVERLAYS: ReadonlySet<OverlayState['kind']> = new Set([
   'palette',
@@ -22,13 +24,18 @@ const closesOnThreadOpen = (overlay: OverlayState | null): boolean => {
   return overlay.kind !== 'settings' || !overlay.adding;
 };
 
-const folderOfThread = (thread: ThreadSummary | null): Folder => {
-  const splitId = thread?.state === 'inbox' ? thread.splitIds[0] : undefined;
-  return splitId === undefined ? INBOX : { kind: 'inbox', splitId };
+const relocateOnceLoaded = (queryClient: QueryClient, client: MailClient, threadId: ThreadId) => {
+  queryClient
+    .fetchQuery({ queryKey: queryKeys.thread(threadId), queryFn: () => client.getThread(threadId) })
+    .then((detail) => {
+      relocateOpenThread(threadId, placementOf(detail.thread, useUiStore.getState().scope));
+    })
+    .catch(() => undefined);
 };
 
 export const useNotificationNavigation = (): void => {
   const { platform } = useAppContext();
+  const client = useClient();
   const queryClient = useQueryClient();
   useEffect(
     () =>
@@ -36,9 +43,13 @@ export const useNotificationNavigation = (): void => {
         if (closesOnThreadOpen(useUiStore.getState().overlay)) {
           setUi({ overlay: null });
         }
-        selectFolder(folderOfThread(findCachedThread(queryClient, threadId)));
-        openThread(threadId);
+        const known = findKnownThread(queryClient, threadId);
+        openThreadAt(threadId, placementOf(known, useUiStore.getState().scope));
+        if (known !== null) {
+          return;
+        }
+        relocateOnceLoaded(queryClient, client, threadId);
       }),
-    [platform, queryClient],
+    [platform, client, queryClient],
   );
 };
