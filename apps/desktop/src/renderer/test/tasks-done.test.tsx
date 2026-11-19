@@ -123,6 +123,27 @@ describe('done check in the tasks view', () => {
     expect(actions).toEqual(['done', 'remind']);
   });
 
+  it('returns a thread whose reminder already passed to the inbox on undo', async () => {
+    const base = demoClient();
+    const task = await taskOf(base);
+    const remindAt = new Date(Date.now() - 2 * DAY).toISOString();
+    await base.applyThreadAction(threadIdOf(task), { type: 'remind', at: remindAt });
+    const { client, actions } = recording(listingAllTaskThreads(base));
+    const thread = await threadOf(base, threadIdOf(task));
+    expect(thread.state).toBe('reminder');
+    renderApp({ demo: () => client });
+    clickDone(await openTasksView(thread.subject));
+    await waitFor(async () => {
+      expect((await threadOf(base, thread.id)).state).toBe('done');
+    });
+    press('z', {}, document.body);
+    await waitFor(async () => {
+      expect(await taskState(base, task.id)).toBe(task.state);
+      expect((await threadOf(base, thread.id)).state).toBe('inbox');
+    });
+    expect(actions).toEqual(['done', 'undone']);
+  });
+
   it('closes a task that is not in the cached first page of tasks', async () => {
     const base = demoClient();
     const task = await taskOf(base);

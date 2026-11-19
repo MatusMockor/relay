@@ -65,6 +65,16 @@ export const removeThreadFromView = (
   });
 };
 
+export const isThreadInView = (
+  client: QueryClient,
+  view: FolderView,
+  threadId: ThreadId,
+): boolean =>
+  snapshotThreadLists(client).some(
+    ([key, page]) =>
+      paramsOf(key)?.view === view && page?.items.some((item) => item.id === threadId) === true,
+  );
+
 export const findCachedThread = (client: QueryClient, threadId: ThreadId): ThreadSummary | null => {
   for (const [, page] of snapshotThreadLists(client)) {
     const found = page?.items.find((item) => item.id === threadId);

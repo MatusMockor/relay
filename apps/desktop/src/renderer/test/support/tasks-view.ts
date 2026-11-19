@@ -1,6 +1,15 @@
-import type { Task, TaskId, ThreadAction, ThreadId, ThreadSummary } from '@relay/shared';
+import {
+  type Task,
+  type TaskId,
+  TaskIdSchema,
+  type ThreadAction,
+  type ThreadId,
+  type ThreadSummary,
+} from '@relay/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import { expect } from 'vitest';
+import { createDemoMailClient } from '../../src/data/demo/DemoMailClient';
+import { buildDemoState } from '../../src/data/demo/seed/build-state';
 import type { MailClient } from '../../src/data/MailClient';
 import { press } from '../features-support';
 
@@ -87,3 +96,17 @@ export const openTasksView = async (subject: string): Promise<HTMLElement> => {
 };
 
 export const toastText = (): string => screen.getByRole('status', { hidden: false }).textContent;
+
+export const withSecondTask = (): { readonly client: MailClient; readonly second: Task } => {
+  const state = buildDemoState();
+  const first = state.tasks.find((task) => task.title === TASK_TITLE);
+  expect(first).toBeDefined();
+  const second: Task = {
+    ...(first as Task),
+    id: TaskIdSchema.parse('task-second'),
+    title: 'Druhá úloha k CSV exportu',
+    state: 'open',
+  };
+  state.tasks = [...state.tasks, second];
+  return { client: createDemoMailClient({ aiStepMs: 0, state }), second };
+};

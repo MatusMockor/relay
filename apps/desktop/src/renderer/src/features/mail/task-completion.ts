@@ -4,6 +4,7 @@ export interface CompletionGateway {
   readonly openTasks: (threadId: ThreadId) => Promise<readonly Task[]>;
   readonly setTaskState: (task: Task, state: TaskState) => Promise<unknown>;
   readonly applyThread: (action: ThreadAction) => Promise<unknown>;
+  readonly now: () => number;
 }
 
 export interface ThreadChange {
@@ -49,10 +50,15 @@ const settleTasks = async (
 
 const NOTHING: ThreadChange = { closed: [], moved: false };
 
-export const restoreAction = (thread: ThreadSummary): ThreadAction =>
-  thread.state === 'reminder' && thread.remindAt !== null
-    ? { type: 'remind', at: thread.remindAt }
-    : { type: 'undone' };
+export const restoreAction = (thread: ThreadSummary, now: number): ThreadAction => {
+  if (thread.state !== 'reminder' || thread.remindAt === null) {
+    return { type: 'undone' };
+  }
+  if (Date.parse(thread.remindAt) <= now) {
+    return { type: 'undone' };
+  }
+  return { type: 'remind', at: thread.remindAt };
+};
 
 const movesThread = (thread: ThreadSummary): boolean =>
   thread.state !== 'done' && thread.state !== 'trash';
@@ -67,7 +73,7 @@ export const revertChange = async (
   if (!change.moved) {
     return { change: { closed: tasks.left, moved: false }, failure };
   }
-  const moved = await attempt(() => gateway.applyThread(restoreAction(thread)));
+  const moved = await attempt(() => gateway.applyThread(restoreAction(thread, gateway.now())));
   if (!moved.ok) {
     return {
       change: { closed: tasks.left, moved: true },
@@ -96,10 +102,10 @@ export const completeThread = async (
     return { change: NOTHING, failure: { error: listed.error } };
   }
   const tasks = await settleTasks(listed.value, (task) => gateway.setTaskState(task, 'done'));
-  const closed: ThreadChange = { closed: tasks.done, moved: false };
   if (tasks.left.length > 0) {
-    return compensate(gateway, thread, closed, tasks.error);
+    return compensate(gateway, thread, { closed: listed.value, moved: false }, tasks.error);
   }
+  const closed: ThreadChange = { closed: tasks.done, moved: false };
   if (!movesThread(thread)) {
     return { change: closed, failure: null };
   }

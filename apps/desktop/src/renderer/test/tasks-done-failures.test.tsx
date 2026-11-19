@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
-import { type Task, TaskIdSchema } from '@relay/shared';
+import type { Task } from '@relay/shared';
 import { act, fireEvent, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
-import { buildDemoState } from '../src/data/demo/seed/build-state';
 import { MailClientError } from '../src/data/errors';
 import type { MailClient } from '../src/data/MailClient';
 import { gate, press } from './features-support';
@@ -12,12 +11,12 @@ import {
   openTasksView,
   recording,
   rowOf,
-  TASK_TITLE,
   taskOf,
   taskState,
   threadIdOf,
   threadOf,
   toastText,
+  withSecondTask,
 } from './support/tasks-view';
 
 const ARCHIVE_FAILED = 'Archivácia zlyhala';
@@ -42,20 +41,6 @@ const heldArchive = (base: MailClient, held: Promise<void>, fail: boolean): Mail
     return base.applyThreadAction(threadId, action);
   },
 });
-
-const withSecondTask = (): { readonly client: MailClient; readonly second: Task } => {
-  const state = buildDemoState();
-  const first = state.tasks.find((task) => task.title === TASK_TITLE);
-  expect(first).toBeDefined();
-  const second: Task = {
-    ...(first as Task),
-    id: TaskIdSchema.parse('task-second'),
-    title: 'Druhá úloha k CSV exportu',
-    state: 'open',
-  };
-  state.tasks = [...state.tasks, second];
-  return { client: createDemoMailClient({ aiStepMs: 0, state }), second };
-};
 
 const failingTask = (base: MailClient, failing: Task, calls: string[]): MailClient => ({
   ...base,
@@ -121,7 +106,7 @@ describe('done check in the tasks view when the server is slow or fails', () => 
     });
   });
 
-  it('restores exactly the tasks that changed when one task update fails', async () => {
+  it('restores every task it tried to close when one task update fails', async () => {
     const { client: base, second } = withSecondTask();
     const first = await taskOf(base);
     const calls: string[] = [];
@@ -137,7 +122,12 @@ describe('done check in the tasks view when the server is slow or fails', () => 
     expect((await threadOf(base, thread.id)).state).toBe('inbox');
     expect(actions).toEqual([]);
     expect(calls.sort()).toEqual(
-      [`${first.id}:done`, `${second.id}:done`, `${first.id}:${first.state}`].sort(),
+      [
+        `${first.id}:done`,
+        `${second.id}:done`,
+        `${first.id}:${first.state}`,
+        `${second.id}:open`,
+      ].sort(),
     );
     await waitFor(() => {
       expect(rowOf(thread.subject)).toBeDefined();
@@ -146,7 +136,7 @@ describe('done check in the tasks view when the server is slow or fails', () => 
     await waitFor(() => {
       expect(toastText()).toContain('Vrátené');
     });
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
     expect(await taskState(base, first.id)).toBe(first.state);
     expect(actions).toEqual([]);
   });
