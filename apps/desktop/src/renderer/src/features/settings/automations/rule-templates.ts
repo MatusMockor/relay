@@ -14,7 +14,7 @@ export const RULE_TEMPLATES: readonly RuleTemplate[] = [
   {
     id: 'jira',
     title: 'Úlohy z Jiry',
-    description: 'Keď ťa v Jire priradia alebo spomenú, vytvorí úlohu.',
+    description: 'Keď ťa v Jire priradia k úlohe, vytvorí úlohu.',
     name: 'Úlohy z Jiry',
     conditions: [
       { type: 'jira', projectKeys: [] },

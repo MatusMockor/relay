@@ -60,6 +60,12 @@ describe('automation helpers', () => {
     ]);
   });
 
+  it('describes the Jira template by what it matches', () => {
+    expect(RULE_TEMPLATES.find((template) => template.id === 'jira')?.description).toBe(
+      'Keď ťa v Jire priradia k úlohe, vytvorí úlohu.',
+    );
+  });
+
   it('moves a rule to another position', () => {
     expect(moveRule(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
     expect(moveRule(['a', 'b', 'c'], 2, 0)).toEqual(['c', 'a', 'b']);

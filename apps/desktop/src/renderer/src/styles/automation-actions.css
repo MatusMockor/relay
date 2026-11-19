@@ -90,3 +90,8 @@
 .au-target.broken {
   color: var(--warn);
 }
+.au-note {
+  flex: none;
+  color: var(--warn);
+  font-size: var(--fs-xs);
+}

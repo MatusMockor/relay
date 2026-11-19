@@ -7,6 +7,7 @@ export interface CheckRowProps {
   readonly disabled: boolean;
   readonly ai?: boolean;
   readonly broken?: boolean;
+  readonly note?: string | null;
   readonly onToggle: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly children?: ReactNode;
 }
@@ -17,6 +18,7 @@ export function CheckRow({
   disabled,
   ai = false,
   broken = false,
+  note = null,
   onToggle,
   children,
 }: CheckRowProps) {
@@ -32,6 +34,7 @@ export function CheckRow({
         />
         <span className="au-lbl">{label}</span>
         {ai ? <span className="chip pri">AI</span> : null}
+        {note === null ? null : <span className="au-note">{note}</span>}
       </label>
       {children}
     </div>

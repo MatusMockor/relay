@@ -69,7 +69,7 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       { type: 'task' },
       { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
     ]);
-    expect(checkbox(mentions, 'Archivovať')).toHaveProperty('disabled', true);
+    expect(within(mentions).getByText('Nahradí presun')).toBeDefined();
     expect(checkbox(mentions, 'Pridať štítok')).toHaveProperty('disabled', false);
     expect(moveTarget(mentions)).toBe('Projekty / Alfa');
   });
@@ -178,5 +178,39 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
         name: 'Použiť na maily, ktoré už mám',
       }),
     ).toBeNull();
+  });
+
+  it('swaps archiving and moving in one change', async () => {
+    const client = demoClient();
+    const rules = await client.listAutomations();
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'GitLab do Projektov'
+          ? { ...toAutomationInput(rule), actions: [{ type: 'archive' }] }
+          : toAutomationInput(rule),
+      ),
+    );
+    const sheet = await openAutomations(client);
+    const gitlab = openRule(sheet, 'GitLab do Projektov');
+    const moveBox = checkbox(gitlab, 'Presunúť do priečinka');
+
+    expect(moveBox).toHaveProperty('disabled', false);
+    expect(within(gitlab).getByText('Nahradí archiváciu')).toBeDefined();
+    click(moveBox);
+    const picker = await within(popover('Presunúť do priečinka')).findByRole('group', {
+      name: 'Presunúť do priečinka',
+    });
+    click(within(picker).getByRole('button', { name: 'Projekty / Alfa' }));
+    await settle();
+
+    expect((await stored(client, 'GitLab do Projektov'))?.actions).toEqual([
+      { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
+    ]);
+    expect(checkbox(gitlab, 'Archivovať')).toHaveProperty('disabled', false);
+    expect(within(gitlab).getByText('Nahradí presun')).toBeDefined();
+    click(checkbox(gitlab, 'Archivovať'));
+    await settle();
+
+    expect((await stored(client, 'GitLab do Projektov'))?.actions).toEqual([{ type: 'archive' }]);
   });
 });

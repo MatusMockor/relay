@@ -1,27 +1,18 @@
 import type { AccountId, AutomationAction, SimpleAutomationActionType } from '@relay/shared';
 import type { RuleChange } from './editable-rule';
-import { SIMPLE_ACTIONS } from './automation-labels';
 
-export interface ActionChoices {
-  readonly simple: readonly SimpleAutomationActionType[];
-  readonly move: boolean;
-}
-
-export const choicesFor = (
-  actions: readonly AutomationAction[],
-  current: AutomationAction | null,
-): ActionChoices => {
-  const types = new Set(
-    actions.filter((action) => action !== current).map((action) => action.type),
-  );
-  return {
-    simple: SIMPLE_ACTIONS.filter(
-      (type) => !types.has(type) && !(type === 'archive' && types.has('moveTo')),
-    ),
-    move: !types.has('moveTo') && !types.has('archive'),
-  };
+const EXCLUSIVE: Readonly<Partial<Record<AutomationAction['type'], AutomationAction['type']>>> = {
+  archive: 'moveTo',
+  moveTo: 'archive',
 };
 
+export const conflictOf = (
+  actions: readonly AutomationAction[],
+  type: AutomationAction['type'],
+): AutomationAction | null => {
+  const rival = EXCLUSIVE[type];
+  return actions.find((action) => action.type === rival) ?? null;
+};
 export const replaceAction = (
   actions: readonly AutomationAction[],
   current: AutomationAction | null,
@@ -40,7 +31,10 @@ export const toggleSimple = (
   type: SimpleAutomationActionType,
 ): AutomationAction[] | null => {
   const existing = actions.find((action) => action.type === type);
-  return existing === undefined ? [...actions, { type }] : withoutAction(actions, existing);
+  if (existing !== undefined) {
+    return withoutAction(actions, existing);
+  }
+  return replaceAction(actions, conflictOf(actions, type), { type });
 };
 
 export const pickedTarget = (

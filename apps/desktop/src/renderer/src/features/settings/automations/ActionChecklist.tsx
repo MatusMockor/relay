@@ -1,7 +1,7 @@
 import type { AccountId, AutomationAction, AutomationActionOf, MailAccount } from '@relay/shared';
 import { useState } from 'react';
 import {
-  choicesFor,
+  conflictOf,
   pickedTarget,
   replaceAction,
   toggleSimple,
@@ -36,7 +36,6 @@ export function ActionChecklist({
   onChange,
 }: ActionChecklistProps) {
   const [picking, setPicking] = useState<TargetPicking | null>(null);
-  const choices = choicesFor(actions, null);
   const move = actions.find(isMove) ?? null;
   const moveLabel = moveChoiceLabel(targets.gmail);
   const apply = (next: AutomationAction[] | null) => {
@@ -61,7 +60,8 @@ export function ActionChecklist({
               label={ACTION_LABELS[type]}
               ai={AI_ACTIONS.includes(type)}
               checked={checked}
-              disabled={disabled || (!checked && !choices.simple.includes(type))}
+              note={!checked && conflictOf(actions, type) !== null ? 'Nahradí presun' : null}
+              disabled={disabled}
               onToggle={() => {
                 apply(toggleSimple(actions, type));
               }}
@@ -72,7 +72,10 @@ export function ActionChecklist({
           label={moveLabel}
           checked={move !== null}
           broken={move !== null && describeAction(move, targets).broken}
-          disabled={disabled || (move === null && !choices.move)}
+          note={
+            move === null && conflictOf(actions, 'moveTo') !== null ? 'Nahradí archiváciu' : null
+          }
+          disabled={disabled}
           onToggle={(event) => {
             if (move === null) {
               pick('moveTo', null)(event);
@@ -128,7 +131,11 @@ export function ActionChecklist({
           onPick={(action, picked) => {
             setPicking(null);
             onChange(
-              pickedTarget(replaceAction(actions, picking.current, action), picked, accountId),
+              pickedTarget(
+                replaceAction(actions, picking.current ?? conflictOf(actions, 'moveTo'), action),
+                picked,
+                accountId,
+              ),
             );
           }}
         />
