@@ -4,7 +4,7 @@ import type { ThreadState } from '@relay/shared';
 import type { ReactNode } from 'react';
 import { useSplits } from '../../data/hooks/use-mail-queries';
 import { ALT, MOD } from '../../lib/platform-keys';
-import { NAV_VIEWS, VIEW_META } from '../../state/folders';
+import { NAV_VIEWS, VIEW_META, viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { centerRect } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
@@ -54,7 +54,8 @@ export const useCommands = (): Command[] => {
   const current = actions.current;
   const ctx = current?.kind === 'thread' ? current.thread.subject.slice(0, 38) : undefined;
   const thread = current?.kind === 'thread' ? current.thread : null;
-  const restoring = thread !== null && RESTORING_STATES.includes(thread.state);
+  const inTasks = useUiStore((state) => viewOf(state.folder) === 'tasks');
+  const restoring = !inTasks && thread !== null && RESTORING_STATES.includes(thread.state);
   const settings =
     (section: 'accounts' | 'server' | 'look' | 'keys' = 'accounts', adding = false) =>
     () => {

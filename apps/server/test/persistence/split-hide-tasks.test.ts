@@ -92,6 +92,18 @@ describe('PgThreadRepository split that hides threads in tasks', () => {
     ]);
   });
 
+  it('finds a hidden task thread when searching the main inbox but not its split', async () => {
+    await saveSplit(true);
+    const subjects = async (overrides: Partial<ThreadFolderQuery>) =>
+      (await context.repositories.threads.queryFolder(work.user.id, query(overrides))).items.map(
+        (thread) => thread.subject,
+      );
+
+    await expect(subjects({})).resolves.toEqual([]);
+    await expect(subjects({ search: 'task' })).resolves.toEqual(['task']);
+    await expect(subjects({ splitId: split.id, search: 'task' })).resolves.toEqual([]);
+  });
+
   it('shows the thread in the split again once its task is done', async () => {
     await saveSplit(true);
     await saveTask('done');

@@ -12,7 +12,7 @@ import { createDemoLabels } from './demo-labels';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
-import { demoTaskFromAi } from './demo-tasks';
+import { createDemoTaskMethods, demoTaskFromAi } from './demo-tasks';
 import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
@@ -208,23 +208,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         }));
         return state.splits;
       }),
-    listTasks: (params) =>
-      Promise.resolve({
-        items: state.tasks.filter(
-          (task) => params.state === undefined || task.state === params.state,
-        ),
-        nextCursor: null,
-      }),
-    updateTask: (taskId, patch) =>
-      run(() => {
-        const task = state.tasks.find((item) => item.id === taskId);
-        if (task === undefined) {
-          throw notFound('Úloha');
-        }
-        const next = { ...task, ...patch, updatedAt: now().toISOString() };
-        state.tasks = state.tasks.map((item) => (item.id === taskId ? next : item));
-        return next;
-      }),
+    ...createDemoTaskMethods(state, now),
     getSettings: () => Promise.resolve(state.settings),
     updateSettings: (patch) =>
       run(() => {

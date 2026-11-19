@@ -17,6 +17,7 @@ export class MemoryTaskRepository implements TaskRepository {
   list(userId: UserId, query: TaskQuery): Promise<Page<Task>> {
     const tasks = this.byUser(userId)
       .filter((task) => query.state === null || task.state === query.state)
+      .filter((task) => query.threadId === undefined || task.threadId === query.threadId)
       .sort(
         (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || b.id.localeCompare(a.id),
       );

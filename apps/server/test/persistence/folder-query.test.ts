@@ -154,6 +154,14 @@ describe('PgThreadRepository.queryFolder', () => {
     ]);
   });
 
+  it('finds threads of exclusive splits when searching the main inbox', async () => {
+    await expect(ids(work.user.id, {})).resolves.not.toContain('newsletter');
+    await expect(ids(work.user.id, { search: '   ' })).resolves.not.toContain('newsletter');
+    await expect(ids(work.user.id, { search: 'newsletter' })).resolves.toEqual(['newsletter']);
+    await expect(ids(work.user.id, { search: 'dovolenka' })).resolves.toEqual([]);
+    await expect(ids(work.user.id, { view: 'done', search: 'newsletter' })).resolves.toEqual([]);
+  });
+
   it('filters by account, split and label', async () => {
     await expect(ids(work.user.id, { accountId: home.account.id })).resolves.toEqual(['home-1']);
     await expect(ids(work.user.id, { splitId: split.id })).resolves.toEqual(['newsletter']);

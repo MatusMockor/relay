@@ -35,6 +35,8 @@ describe('TaskService', () => {
     });
     const waiting = await engine.services.tasks.list(USER_ID, { state: 'waiting', limit: 50 });
     expect(waiting.items.map((task) => task.id)).toEqual([first.id]);
+    const ofThread = await engine.services.tasks.list(USER_ID, { threadId: thread.id, limit: 50 });
+    expect(ofThread.items.map((task) => task.id)).toEqual([first.id]);
     const page = await engine.services.tasks.list(USER_ID, { limit: 1 });
     expect(page.items).toHaveLength(1);
     expect(page.nextCursor).not.toBeNull();

@@ -30,6 +30,7 @@ export class TaskService {
   list(userId: UserId, query: TaskListQuery): Promise<TaskPage> {
     return this.deps.tasks.list(userId, {
       state: query.state ?? null,
+      ...(query.threadId === undefined ? {} : { threadId: query.threadId }),
       cursor: query.cursor ?? null,
       limit: query.limit,
     });
