@@ -8,6 +8,7 @@ import {
   type AppCommandWindow,
   trackHistoryCommands,
 } from '../../src/main/window/track-history-commands';
+import { type SwipeWindow, trackSwipeCommands } from '../../src/main/window/track-swipe-commands';
 import { createRelayBridge } from '../../src/preload/create-bridge';
 import { createBrowserPlatform } from '../../src/renderer/src/platform/BrowserPlatform';
 import { createElectronPlatform } from '../../src/renderer/src/platform/ElectronPlatform';
@@ -25,16 +26,22 @@ const appMetadata = {
   electronVersion: '45.3.2',
 };
 
-class FakeWindow implements AppCommandWindow {
-  private listener: (event: unknown, command: string) => void = () => undefined;
+type WindowListener = (event: unknown, value: string) => void;
 
-  on(_event: 'app-command', listener: (event: unknown, command: string) => void): this {
-    this.listener = listener;
+class FakeWindow implements AppCommandWindow, SwipeWindow {
+  private readonly listeners = new Map<string, WindowListener>();
+
+  on(event: 'app-command' | 'swipe', listener: WindowListener): this {
+    this.listeners.set(event, listener);
     return this;
   }
 
   command(name: string): void {
-    this.listener({}, name);
+    this.listeners.get('app-command')?.({}, name);
+  }
+
+  swipe(direction: string): void {
+    this.listeners.get('swipe')?.({}, direction);
   }
 }
 
@@ -52,6 +59,9 @@ const startDesktop = async () => {
   const window = new FakeWindow();
   const menuCommands = new MenuCommandRequests();
   trackHistoryCommands(window, (command) => {
+    menuCommands.request(command);
+  });
+  trackSwipeCommands(window, (command) => {
     menuCommands.request(command);
   });
   const bridge = createRelayBridge(
@@ -145,6 +155,35 @@ describe('window history commands', () => {
     await settle();
     expect(useUiStore.getState().openThreadId).not.toBeNull();
     expect(useUiStore.getState().searchOpen).toBe(false);
+  });
+
+  it('walks back and forward with the swipes a mouse sends for its side buttons on macOS', async () => {
+    const window = await startDesktop();
+    await openThreadBySubject('Obed v piatok?');
+    const threadId = useUiStore.getState().openThreadId;
+    act(() => {
+      window.swipe('left');
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().openThreadId).toBeNull();
+    });
+    act(() => {
+      window.swipe('right');
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().openThreadId).toBe(threadId);
+    });
+  });
+
+  it('ignores vertical swipes', async () => {
+    const window = await startDesktop();
+    await openThreadBySubject('Obed v piatok?');
+    act(() => {
+      window.swipe('up');
+      window.swipe('down');
+    });
+    await settle();
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 
   it('ignores other window commands', async () => {

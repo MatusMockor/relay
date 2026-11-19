@@ -1,7 +1,7 @@
 import type { TrackpadScrollPhase } from '@relay/shared';
 import { scrollRoom } from '../history/horizontal-scroll';
 import type { HistoryDirection } from '../history/navigation-history';
-import { stepHistory } from '../history/step-history';
+import { pressHistory } from '../history/step-history';
 import { SwipeGesture } from '../history/swipe-gesture';
 
 const gesture = new SwipeGesture(scrollRoom);
@@ -10,7 +10,7 @@ const navigate = (direction: HistoryDirection | null): void => {
   if (direction === null) {
     return;
   }
-  stepHistory(direction);
+  pressHistory(direction, 'pointer');
 };
 
 const onWheel = (event: WheelEvent): void => {
