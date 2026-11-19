@@ -1,8 +1,10 @@
+import type { ThemePreference } from '@relay/shared/domain';
 import { BrowserWindow } from 'electron';
 import type { UrlOpener } from '../platform/url-opener';
 import type { WindowState } from '../native/window-bounds';
 import { routeExternalLinks } from './route-external-links';
 import { titleBarOptions } from './title-bar-options';
+import { themeQuery, withThemeQuery } from './window-theme';
 
 export interface MainWindowOptions {
   readonly preloadPath: string;
@@ -12,6 +14,8 @@ export interface MainWindowOptions {
   readonly opener: UrlOpener;
   readonly isAppUrl: (url: string) => boolean;
   readonly platform: NodeJS.Platform;
+  readonly theme: ThemePreference;
+  readonly backgroundColor: string;
   readonly icon?: string;
 }
 
@@ -24,7 +28,7 @@ export const createMainWindow = async (options: MainWindowOptions): Promise<Brow
     minWidth: 960,
     minHeight: 600,
     show: false,
-    backgroundColor: '#0b0d10',
+    backgroundColor: options.backgroundColor,
     title: 'Relay',
     ...titleBarOptions(options.platform),
     ...(options.icon === undefined ? {} : { icon: options.icon }),
@@ -51,9 +55,9 @@ export const createMainWindow = async (options: MainWindowOptions): Promise<Brow
     event.preventDefault();
   });
   if (options.rendererUrl !== null) {
-    await window.loadURL(options.rendererUrl);
+    await window.loadURL(withThemeQuery(options.rendererUrl, options.theme));
     return window;
   }
-  await window.loadFile(options.rendererFile);
+  await window.loadFile(options.rendererFile, { query: themeQuery(options.theme) });
   return window;
 };

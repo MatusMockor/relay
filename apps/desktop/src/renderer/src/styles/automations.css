@@ -36,7 +36,7 @@
   padding: 16px;
   border: 1px solid var(--line-soft);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.012);
+  background: var(--overlay-1);
 }
 .sh-main .au-sec h3 {
   margin: 0 0 12px;
@@ -81,7 +81,7 @@
   outline: none;
 }
 .ins textarea:focus {
-  border-color: rgba(142, 162, 255, 0.55);
+  border-color: var(--accent-tint-55);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .ins textarea::placeholder {

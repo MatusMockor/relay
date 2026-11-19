@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   type AppContextValue,
   AppContextProvider,
@@ -14,9 +14,13 @@ import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { MenuCommandListener } from './features/updates/MenuCommandListener';
 import { UpdatePrompt } from './features/updates/UpdatePrompt';
 import { useSessionStore } from './session/session-store';
+import { createDocumentThemeController } from './theme/document-theme';
+import { ThemeProvider } from './theme/theme-context';
+import type { ThemeController } from './theme/theme-controller';
 
 export interface AppProps extends AppContextValue {
   readonly createQueryClient?: () => QueryClient;
+  readonly theme?: ThemeController;
 }
 
 interface QueryClientSlot {
@@ -70,7 +74,8 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   );
 }
 
-export function App({ createQueryClient = defaultQueryClient, ...context }: AppProps) {
+export function App({ createQueryClient = defaultQueryClient, theme, ...context }: AppProps) {
+  const [controller] = useState(() => theme ?? createDocumentThemeController());
   useScopePersistence();
   useEffect(
     () =>
@@ -89,9 +94,11 @@ export function App({ createQueryClient = defaultQueryClient, ...context }: AppP
   }, [context.session]);
   return (
     <AppContextProvider value={context}>
-      <Root createQueryClient={createQueryClient} />
-      <UpdatePrompt />
-      <MenuCommandListener />
+      <ThemeProvider controller={controller}>
+        <Root createQueryClient={createQueryClient} />
+        <UpdatePrompt />
+        <MenuCommandListener />
+      </ThemeProvider>
     </AppContextProvider>
   );
 }

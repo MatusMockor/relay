@@ -35,10 +35,10 @@ input.au-in {
   flex: 1 1 180px;
 }
 .au-in:hover {
-  border-color: #2e3545;
+  border-color: var(--line-hover);
 }
 .au-in:focus {
-  border-color: rgba(142, 162, 255, 0.55);
+  border-color: var(--accent-tint-55);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .au-in::placeholder {

@@ -12,9 +12,9 @@
   height: 32px;
 }
 .to-chip.bad {
-  background: rgba(255, 122, 122, 0.12);
+  background: var(--bad-tint-12);
   color: var(--bad);
-  box-shadow: inset 0 0 0 1px rgba(255, 122, 122, 0.35);
+  box-shadow: inset 0 0 0 1px var(--bad-tint-35);
   padding-left: 8px;
 }
 .to-chip .bad-ic {
@@ -90,7 +90,7 @@
   color: var(--fg);
 }
 .att-chip.failed {
-  border-color: rgba(255, 122, 122, 0.45);
+  border-color: var(--bad-tint-45);
 }
 .att-chip.failed > svg,
 .att-chip.failed .z {
@@ -121,7 +121,7 @@
   justify-content: center;
   border: 1.5px dashed var(--accent);
   border-radius: 12px;
-  background: rgba(13, 15, 20, 0.86);
+  background: var(--veil);
   color: var(--fg);
   font-size: var(--fs-base);
   pointer-events: none;

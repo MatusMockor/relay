@@ -145,7 +145,7 @@
   display: block;
   height: 40px;
   margin-top: 8px;
-  background: linear-gradient(to bottom, rgba(16, 19, 25, 0), var(--panel) 85%);
+  background: linear-gradient(to bottom, transparent, var(--panel) 85%);
   pointer-events: none;
 }
 .sh-close {

@@ -8,7 +8,7 @@ export * from './components/layers';
 export * from './components/Overlay';
 export * from './components/Popover';
 export * from './components/ResizeHandle';
-export { rovingIndex } from './components/roving-focus';
+export { moveRovingFocus, rovingIndex, rovingTabIndex } from './components/roving-focus';
 export * from './components/Segmented';
 export * from './components/Status';
 export * from './components/Switch';
