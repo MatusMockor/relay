@@ -184,4 +184,30 @@ describe('Message body repair', () => {
     expect(storedMessage(engine, 'folder').textBody).toBe(CORRUPTED_BODY);
     expect(engine.db.tables.pendingWork.size).toBe(0);
   });
+
+  it('repairs at most one batch per sync and resumes after the last UID', async () => {
+    const ids = Array.from({ length: 51 }, (_, index) => `bulk-${String(index + 1)}`);
+    const { engine, seeded } = await seedMail(ids);
+    ids.forEach((id) => {
+      corrupt(engine, id);
+    });
+    await queueRepair(engine, seeded);
+    const repairWork = () => engine.repositories.pendingWork.list(seeded.account.id, 'body-repair');
+    const repairedCount = () =>
+      ids.filter((id) => storedMessage(engine, id).textBody === CORRECT_BODY).length;
+    const lastUid = Math.max(...ids.map((id) => storedMessage(engine, id).uid));
+
+    await sync(engine, seeded);
+
+    expect(seeded.server.fetchedMessages).toHaveLength(50);
+    expect(repairedCount()).toBe(50);
+    expect(await repairWork()).toHaveLength(1);
+
+    seeded.server.fetchedMessages.length = 0;
+    await sync(engine, seeded);
+
+    expect(seeded.server.fetchedMessages).toEqual([{ path: 'INBOX', uid: lastUid }]);
+    expect(repairedCount()).toBe(51);
+    expect(await repairWork()).toEqual([]);
+  });
 });
