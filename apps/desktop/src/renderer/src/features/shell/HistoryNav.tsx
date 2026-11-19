@@ -23,6 +23,9 @@ function HistoryButton({ direction, label, keyName, icon }: HistoryButtonProps) 
       label={label}
       shortcut={[`${MOD}${keyName}`]}
       disabled={!enabled}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
       onClick={() => {
         stepHistory(direction);
       }}

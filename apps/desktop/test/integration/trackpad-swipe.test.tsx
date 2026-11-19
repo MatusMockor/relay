@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoIds } from '../../src/renderer/src/data/demo/seed/ids';
 import { openThread } from '../../src/renderer/src/features/mail/navigation';
 import { setUi, useUiStore } from '../../src/renderer/src/state/ui-store';
-import { openThreadBySubject, settle } from '../../src/renderer/test/features-support';
+import { openThreadBySubject, pause, settle } from '../../src/renderer/test/features-support';
 import { resetStores } from '../../src/renderer/test/support/render-app';
 import { phase, startDesktop, steps, SUBJECT, swipe, wheel } from './support/trackpad-desktop';
 
@@ -91,6 +91,29 @@ describe('trackpad swipe navigation', () => {
       [200, 0],
       [-160, 0],
     ]);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
+  it('finishes a swipe that coasted before the trackpad reported it', async () => {
+    const contents = await startDesktop();
+    await openThreadBySubject(SUBJECT);
+    wheel([...steps(4, [-40, 0]), [-32, 0], [-26, 0], [-21, 0], [-17, 0]]);
+    await phase(contents, 'gestureScrollBegin');
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().openThreadId).toBeNull();
+  });
+
+  it('keeps a late gesture end from joining the next swipe', async () => {
+    const contents = await startDesktop();
+    await openSearchInThread();
+    await phase(contents, 'gestureScrollBegin');
+    wheel(steps(2, [-40, 0]));
+    await pause(150);
+    wheel([[-40, 0]]);
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().searchOpen).toBe(true);
+    await swipe(contents, steps(3, [-40, 0]));
+    expect(useUiStore.getState().searchOpen).toBe(false);
     expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 

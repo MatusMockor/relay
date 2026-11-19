@@ -63,6 +63,23 @@ describe('toolbar back and forward buttons', () => {
     expect(forwardButton().disabled).toBe(false);
   });
 
+  it('keeps the focus in the search while going back so the search stays closed', async () => {
+    await start();
+    press('/', {}, document.body);
+    const field = screen.getByRole('textbox', { name: 'Hľadať v zozname' });
+    expect(document.activeElement).toBe(field);
+    let pressed = true;
+    act(() => {
+      pressed = fireEvent.mouseDown(backButton());
+    });
+    expect(pressed).toBe(false);
+    click(backButton());
+    expect(useUiStore.getState().searchOpen).toBe(false);
+    expect(backButton().disabled).toBe(true);
+    click(forwardButton());
+    expect(useUiStore.getState().searchOpen).toBe(true);
+  });
+
   it('disables both buttons while a message is being written', async () => {
     await start();
     await openThreadBySubject(SUBJECT);

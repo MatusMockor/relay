@@ -58,9 +58,7 @@ export class SwipeGesture {
 
   begin(): void {
     this.armed = true;
-    if (this.state.kind !== 'idle' && this.now() - this.state.at > STALE_MS) {
-      this.state = IDLE;
-    }
+    this.forgetStale(this.now());
   }
 
   end(): HistoryDirection | null {
@@ -76,6 +74,7 @@ export class SwipeGesture {
 
   wheel(sample: WheelSample): HistoryDirection | null {
     const at = this.now();
+    this.forgetStale(at);
     if (this.state.kind === 'ignored' || sample.zoom || !sample.pixels) {
       this.state = ignored(at);
       return null;
@@ -127,9 +126,19 @@ export class SwipeGesture {
   }
 
   private release(at: number): HistoryDirection | null {
-    const direction = this.armed ? this.reached() : null;
+    if (!this.armed) {
+      return null;
+    }
+    const direction = this.reached();
     this.state = ignored(at);
     return direction;
+  }
+
+  private forgetStale(at: number): void {
+    if (this.state.kind === 'idle' || at - this.state.at <= STALE_MS) {
+      return;
+    }
+    this.state = IDLE;
   }
 
   private reached(): HistoryDirection | null {
