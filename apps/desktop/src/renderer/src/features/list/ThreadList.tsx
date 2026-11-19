@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { useSplits, useTasks, useUserSettings } from '../../data/hooks/use-mail-queries';
+import { dayGroupName } from '../../lib/day-groups';
 import { viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { useOpenItem } from '../mail/use-open-item';
+import { DayHeader } from './DayHeader';
 import { EmptyFolder, InboxZero, NoHits } from './EmptyState';
 import { groupItems, timeLabelOf } from './grouping';
 import { ListRow } from './ListRow';
@@ -53,8 +55,8 @@ export function ThreadList() {
   return (
     <div className="a-list" role="listbox" aria-label="Konverzácie">
       {groupItems(items, view, now).map((group) => (
-        <div key={group.items[0]?.key ?? group.label} role="group" aria-label={group.label}>
-          <div className="a-day">{group.label}</div>
+        <div key={group.items[0]?.key ?? group.label} role="group" aria-label={dayGroupName(group)}>
+          <DayHeader group={group} />
           {group.items.map((item) => (
             <ListRow
               key={item.key}
