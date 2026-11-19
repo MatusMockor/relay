@@ -117,6 +117,22 @@ describe('trackpad swipe navigation', () => {
     expect(useUiStore.getState().openThreadId).not.toBeNull();
   });
 
+  it('lets only the newer swipe finish when the older end arrives during it', async () => {
+    const contents = await startDesktop();
+    await openSearchInThread();
+    await phase(contents, 'gestureScrollBegin');
+    wheel(steps(2, [-40, 0]));
+    await pause(150);
+    wheel(steps(4, [-40, 0]));
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().searchOpen).toBe(true);
+    await phase(contents, 'gestureScrollBegin');
+    wheel(steps(4, [-40, 0]));
+    await phase(contents, 'gestureScrollEnd');
+    expect(useUiStore.getState().searchOpen).toBe(false);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
   it('steps back only once for a long swipe', async () => {
     const contents = await startDesktop();
     await openSearchInThread();

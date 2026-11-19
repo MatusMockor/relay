@@ -49,6 +49,7 @@ const drifted = (x: number, y: number): boolean => x + y >= DRIFT_AFTER && x <= 
 
 export class SwipeGesture {
   private armed = false;
+  private begun = false;
   private state: GestureState = IDLE;
 
   constructor(
@@ -59,16 +60,22 @@ export class SwipeGesture {
   begin(): void {
     this.armed = true;
     this.forgetStale(this.now());
+    this.begun = true;
   }
 
   end(): HistoryDirection | null {
+    if (!this.begun) {
+      return null;
+    }
     const direction = this.reached();
     this.state = IDLE;
+    this.begun = false;
     return direction;
   }
 
   reset(): void {
     this.armed = false;
+    this.begun = false;
     this.state = IDLE;
   }
 
@@ -139,6 +146,7 @@ export class SwipeGesture {
       return;
     }
     this.state = IDLE;
+    this.begun = false;
   }
 
   private reached(): HistoryDirection | null {
