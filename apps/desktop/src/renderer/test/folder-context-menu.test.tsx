@@ -130,6 +130,29 @@ describe('folder context menu', () => {
     expect(countOf(after, other)).toBeGreaterThan(0);
   });
 
+  it('keeps the account scope the menu was opened with', async () => {
+    const before = await unreadByAccount(client);
+    const [scoped, other] = [...before.keys()];
+    expect(scoped).toBeDefined();
+    expect(other).toBeDefined();
+    setUi({ scope: scoped ?? 'all' });
+    renderApp({ demo: () => client });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    rightClick(navButton(/Doručená pošta/));
+    act(() => {
+      setUi({ scope: 'all' });
+    });
+    await choose(MARK_ALL);
+
+    await waitFor(() => {
+      expect(toastText()).toContain(`Označené ako prečítané: ${countOf(before, scoped)}`);
+    });
+    const after = await unreadByAccount(client);
+    expect(countOf(after, scoped)).toBe(0);
+    expect(countOf(after, other)).toBe(countOf(before, other));
+  });
+
   it('ignores a repeated mark all read while one is in flight', async () => {
     const held = gate();
     let calls = 0;

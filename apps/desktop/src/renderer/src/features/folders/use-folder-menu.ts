@@ -1,6 +1,7 @@
 import type { AnchorRect } from '@relay/ui';
 import type { MouseEvent } from 'react';
 import type { Folder } from '../../state/folders';
+import { useUiStore } from '../../state/ui-store';
 import { useContextMenu } from '../context-menu/use-context-menu';
 import { type FolderEdit, type FolderTarget, setFolderEdit } from './edit/folder-edit-store';
 import { folderMenuItems } from './folder-menu-items';
@@ -34,9 +35,10 @@ export const useFolderMenu = (): ShowFolderMenu => {
   const markRead = useMarkFolderRead();
   return (event, folder, target) => {
     const anchor = pointOf(event);
+    const { scope } = useUiStore.getState();
     void showMenu(event, folderMenuItems(target)).then((id) => {
       if (id === 'mark-all-read') {
-        void markRead(folder);
+        void markRead(folder, scope);
         return;
       }
       if (id === null || target === null) {

@@ -7,6 +7,9 @@ import { isInsideMenu, useMenuFocus } from './use-menu-focus';
 
 const MOVES: Readonly<Record<string, number>> = { ArrowDown: 1, j: 1, ArrowUp: -1, k: -1 };
 
+const isDisabledItem = (target: EventTarget | null): boolean =>
+  target instanceof Element && target.closest('[aria-disabled="true"]') !== null;
+
 const enabledIndexes = (items: readonly ContextMenuItem[]): number[] =>
   items.flatMap((item, index) => (item.type === 'item' && item.enabled ? [index] : []));
 
@@ -19,6 +22,11 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
   );
   const active = choosable[cursor] ?? null;
   const itemRef = useMenuFocus(active);
+  const point = (index: number) => {
+    if (choosable.includes(index)) {
+      setCursor(choosable.indexOf(index));
+    }
+  };
   const choose = (index: number) => {
     const item = request.items[index];
     if (item?.type !== 'item' || !item.enabled) {
@@ -35,7 +43,7 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
     }
     if (event.key === 'Enter' && (isInsideMenu(event.target) || !isControlTarget(event.target))) {
       event.preventDefault();
-      if (active !== null) {
+      if (active !== null && !isDisabledItem(event.target)) {
         choose(active);
       }
       return true;
@@ -64,11 +72,13 @@ function ContextMenuPopover({ request }: { readonly request: ContextMenuRequest 
             type="button"
             role="menuitem"
             aria-disabled={item.enabled ? undefined : 'true'}
+            tabIndex={item.enabled ? undefined : -1}
             className={`pi${index === active ? ' on' : ''}`}
             onMouseMove={() => {
-              if (item.enabled) {
-                setCursor(choosable.indexOf(index));
-              }
+              point(index);
+            }}
+            onFocus={() => {
+              point(index);
             }}
             onClick={() => {
               choose(index);

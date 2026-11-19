@@ -4,6 +4,7 @@ import {
   AttachmentIdSchema,
   CreateAccountBodySchema,
   DraftIdSchema,
+  MailboxIdSchema,
   type RealtimeEvent,
   ThreadIdSchema,
 } from '@relay/shared';
@@ -196,6 +197,33 @@ describe('demo mail client', () => {
       )
       .toEqual(unreadIds);
     expect(await client.markFolderRead({ view: 'inbox' })).toEqual({ count: 0 });
+  });
+
+  it('keeps a thread marked unread after its move is undone', async () => {
+    const state = buildDemoState(NOW);
+    const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0, state });
+    const read = [...state.threads.values()].find(
+      (record) => record.summary.state === 'inbox' && !record.summary.unread,
+    );
+    expect(read).toBeDefined();
+    const threadId = read?.summary.id ?? LUNCH;
+    const origin = (await client.getThread(threadId)).messages.map((message) => message.mailboxId);
+    const archive = state.mailboxes.find(
+      (mailbox) => mailbox.accountId === read?.summary.accountId && mailbox.role === 'archive',
+    );
+    expect(archive).toBeDefined();
+
+    await client.applyThreadAction(threadId, {
+      type: 'move',
+      mailboxId: MailboxIdSchema.parse(archive?.id),
+    });
+    await client.applyThreadAction(threadId, { type: 'markUnread' });
+    const restored = await client.applyThreadAction(threadId, { type: 'undoMove' });
+
+    expect(restored.unread).toBe(true);
+    const detail = await client.getThread(threadId);
+    expect(detail.messages.some((message) => !message.flags.seen)).toBe(true);
+    expect(detail.messages.map((message) => message.mailboxId)).toEqual(origin);
   });
 
   it('stops running AI work when it is disposed', async () => {

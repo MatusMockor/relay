@@ -35,6 +35,17 @@ const open = (platform: Platform, items: ContextMenuItem[] = ITEMS) => {
   return choice;
 };
 
+const tab = () => {
+  const order = within(screen.getByRole('menu'))
+    .getAllByRole('menuitem')
+    .filter((entry) => entry.tabIndex >= 0);
+  const next = order[order.findIndex((entry) => entry === document.activeElement) + 1];
+  press('Tab');
+  act(() => {
+    next?.focus();
+  });
+};
+
 const showShell = async () => {
   const { platform } = renderApp();
   await screen.findByRole('navigation', { name: 'Priečinky' });
@@ -100,6 +111,38 @@ describe('context menu popover fallback', () => {
     press('Enter');
 
     expect(await choice).toBe('trash');
+  });
+
+  it('chooses the item that Tab moved focus to and skips disabled items', async () => {
+    const platform = await showShell();
+    const choice = open(platform, [
+      ...ITEMS,
+      { type: 'item', id: 'spam', label: 'Nahlásiť spam', enabled: true },
+    ]);
+
+    expect(item('Hotovo').tabIndex).toBe(-1);
+    tab();
+    expect(document.activeElement).toBe(item('Presunúť do koša'));
+    tab();
+    expect(document.activeElement).toBe(item('Nahlásiť spam'));
+    expect(item('Nahlásiť spam').className).toContain('on');
+    press('Enter');
+
+    expect(await choice).toBe('spam');
+  });
+
+  it('ignores Enter on a focused disabled item', async () => {
+    const platform = await showShell();
+    const choice = open(platform);
+
+    act(() => {
+      item('Hotovo').focus();
+    });
+    press('Enter');
+
+    expect(screen.getByRole('menu')).toBeDefined();
+    press('Escape');
+    expect(await choice).toBeNull();
   });
 
   it('closes the previous menu with null when a new one opens', async () => {

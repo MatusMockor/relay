@@ -5,7 +5,6 @@ import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
 import { type AccountScope, type Folder, listParamsOf } from '../../state/folders';
 import { showToast } from '../../state/toast-store';
-import { useUiStore } from '../../state/ui-store';
 
 const bodyOf = (folder: Folder, scope: AccountScope): MarkFolderReadBody | null => {
   const { view, accountId, splitId, labelId, mailboxId } = listParamsOf(folder, scope, '');
@@ -24,11 +23,13 @@ const messageOf = (count: number): string =>
 
 const inFlight = new Set<string>();
 
-export const useMarkFolderRead = (): ((folder: Folder) => Promise<void>) => {
+export type MarkFolderRead = (folder: Folder, scope: AccountScope) => Promise<void>;
+
+export const useMarkFolderRead = (): MarkFolderRead => {
   const client = useClient();
   const queryClient = useQueryClient();
-  return async (folder) => {
-    const body = bodyOf(folder, useUiStore.getState().scope);
+  return async (folder, scope) => {
+    const body = bodyOf(folder, scope);
     const key = JSON.stringify(body);
     if (body === null || inFlight.has(key)) {
       return;

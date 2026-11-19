@@ -20,6 +20,14 @@ interface DemoMoveOrigin {
   readonly labelIds: ThreadSummary['labelIds'];
 }
 
+const restorePlacement = (message: Message, origin: DemoMoveOrigin): Message => {
+  const before = origin.messages.find((candidate) => candidate.id === message.id);
+  if (before === undefined) {
+    return message;
+  }
+  return { ...message, mailboxId: before.mailboxId, labelIds: before.labelIds };
+};
+
 const missingFolder = () =>
   new MailClientError({ code: 'not_found', message: 'Priečinok neexistuje' });
 
@@ -74,7 +82,7 @@ export class DemoMoves {
       return record.summary;
     }
     this.origins.delete(record.summary.id);
-    record.messages = [...origin.messages];
+    record.messages = record.messages.map((message) => restorePlacement(message, origin));
     record.summary = {
       ...record.summary,
       state: origin.state,
