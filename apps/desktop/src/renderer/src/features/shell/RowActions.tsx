@@ -1,5 +1,5 @@
 import type { FolderView } from '@relay/shared';
-import { FolderIcon, Icon, type StrokeIconName } from '@relay/ui';
+import { FolderIcon, Icon, type StrokeIconName, TooltipButton } from '@relay/ui';
 import type { MouseEvent } from 'react';
 import { viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -76,11 +76,11 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
   return (
     <>
       {specsFor(actionView(viewOf(folder), item), inRow).map((spec) => (
-        <button
+        <TooltipButton
           key={spec.id}
-          type="button"
           className="act"
-          title={`${spec.label} (${spec.key})`}
+          tip={spec.label}
+          shortcut={[spec.key]}
           aria-label={spec.label}
           data-action={spec.id}
           onClick={(event) => {
@@ -92,7 +92,7 @@ export function RowActions({ item, inRow }: { readonly item: ListItem; readonly 
           ) : (
             <Icon name={spec.icon} />
           )}
-        </button>
+        </TooltipButton>
       ))}
     </>
   );

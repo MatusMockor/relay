@@ -1,4 +1,4 @@
-import { Icon } from '@relay/ui';
+import { Icon, TooltipButton } from '@relay/ui';
 import { type RefObject, useEffect, useRef } from 'react';
 import { resultCount } from '../../lib/text';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -15,11 +15,10 @@ function SearchActions({ input }: { readonly input: RefObject<HTMLInputElement |
   return (
     <>
       {total === null ? null : <span className="srch-count">{resultCount(total)}</span>}
-      <button
-        type="button"
+      <TooltipButton
         className="srch-clear"
+        tip="Vymazať hľadanie"
         aria-label="Vymazať hľadanie"
-        title="Vymazať hľadanie"
         onMouseDown={(event) => {
           event.preventDefault();
         }}
@@ -29,7 +28,7 @@ function SearchActions({ input }: { readonly input: RefObject<HTMLInputElement |
         }}
       >
         <Icon name="x" size={10} strokeWidth={2} />
-      </button>
+      </TooltipButton>
     </>
   );
 }

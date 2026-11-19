@@ -1,0 +1,72 @@
+.tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  box-shadow:
+    var(--shadow-pop),
+    inset 0 0 0 1px var(--line);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--fg);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tip-in 0.12s ease-out;
+}
+.tip.measuring {
+  visibility: hidden;
+}
+.tip::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--tip-arrow, 50%) - 4px);
+  width: 8px;
+  height: 8px;
+  background: var(--raised);
+  transform: rotate(45deg);
+}
+.tip.below::after {
+  top: -4px;
+  box-shadow: -1px -1px 0 var(--line);
+}
+.tip.above::after {
+  bottom: -4px;
+  box-shadow: 1px 1px 0 var(--line);
+}
+.tip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tip-keys {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+.tip-keys .kbd {
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: var(--fs-2xs);
+  line-height: 15px;
+  color: var(--muted);
+}
+.tip-keys .kbd.sym {
+  font-size: 12px;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { composeOverlay } from '../../state/compose-overlay';
-import { AccountSquare, FolderIcon, Icon, Kbd, Status } from '@relay/ui';
+import { AccountSquare, FolderIcon, Icon, Kbd, Status, TooltipButton } from '@relay/ui';
 import { useLabels, useTasks } from '../../data/hooks/use-mail-queries';
 import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
@@ -79,17 +79,17 @@ export function FolderSidebar({ width }: { readonly width: number }) {
           </span>
           <Icon name="down" />
         </button>
-        <button
-          type="button"
+        <TooltipButton
           className="hide"
-          title="Skryť panel ([)"
+          tip="Skryť panel"
+          shortcut={['[']}
           aria-label="Skryť panel"
           onClick={() => {
             setUi({ leftUser: false });
           }}
         >
           <FolderIcon name="side" />
-        </button>
+        </TooltipButton>
       </div>
       <button
         type="button"
