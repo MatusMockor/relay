@@ -5,66 +5,52 @@ import type {
   RecipientField,
 } from '@relay/shared';
 import { Icon } from '@relay/ui';
-import { useState } from 'react';
 import {
   CONDITION_TYPE_LABELS,
   JIRA_EVENT_LABELS,
   RECIPIENT_FIELD_LABELS,
 } from './automation-labels';
-import { type ConditionDraft, conditionOf } from './condition-draft';
 import {
   CONDITION_TYPES,
   freshDraft,
-  isBlank,
   JIRA_EVENT_KINDS,
   RECIPIENT_FIELDS,
   usesPattern,
   VALUE_FIELDS,
 } from './condition-fields';
 import { ConditionSelect, ConditionText } from './ConditionControls';
+import { useConditionDraft } from './use-condition-draft';
 
 export interface ConditionRowProps {
+  readonly id: string;
   readonly index: number;
-  readonly initial: ConditionDraft;
-  readonly fresh: boolean;
+  readonly condition: AutomationCondition | null;
+  readonly freshType: AutomationConditionType;
   readonly removeLabel: string;
   readonly disabled: boolean;
   readonly onSave: (condition: AutomationCondition) => void;
   readonly onRemove: () => void;
+  readonly onDirty: (id: string, dirty: boolean) => void;
 }
 
 export function ConditionRow({
+  id,
   index,
-  initial,
-  fresh,
+  condition: saved,
+  freshType,
   removeLabel,
   disabled,
   onSave,
   onRemove,
+  onDirty,
 }: ConditionRowProps) {
-  const [draft, setDraft] = useState(initial);
-  const [invalid, setInvalid] = useState(false);
-  const [baseline] = useState(() => JSON.stringify(conditionOf(initial)));
-  const attempt = (next: ConditionDraft, strict: boolean) => {
-    const condition = conditionOf(next);
-    setInvalid(condition === null && strict);
-    if (condition === null || (!fresh && JSON.stringify(condition) === baseline)) {
-      return;
-    }
-    onSave(condition);
-  };
-  const pick = (change: Partial<ConditionDraft>) => {
-    const next = { ...draft, ...change };
-    setDraft(next);
-    attempt(next, false);
-  };
-  const edit = (change: Partial<ConditionDraft>) => {
-    setInvalid(false);
-    setDraft((current) => ({ ...current, ...change }));
-  };
-  const commit = (strict: boolean) => {
-    attempt(draft, strict || !(fresh && isBlank(draft)));
-  };
+  const { draft, fresh, invalid, pick, edit, commit } = useConditionDraft({
+    id,
+    saved,
+    freshType,
+    onSave,
+    onDirty,
+  });
   const valueField = VALUE_FIELDS[draft.type];
   return (
     <div className="au-cond-w">
@@ -108,7 +94,7 @@ export function ConditionRow({
             label={valueField[0]}
             placeholder={valueField[1]}
             value={draft.value}
-            disabled={disabled}
+            readOnly={disabled}
             autoFocus={fresh}
             onChange={(value) => {
               edit({ value });
@@ -121,7 +107,7 @@ export function ConditionRow({
             label="Obsahuje (regulárny výraz)"
             placeholder="faktúra|objednávka"
             value={draft.pattern}
-            disabled={disabled}
+            readOnly={disabled}
             autoFocus={fresh && valueField === undefined}
             onChange={(pattern) => {
               edit({ pattern });

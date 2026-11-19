@@ -1,4 +1,3 @@
-import type { AutomationConditionType } from '@relay/shared';
 import { Button } from '@relay/ui';
 import { useState } from 'react';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
@@ -13,7 +12,7 @@ import { SectionHeader } from '../SectionHeader';
 
 type View =
   | { readonly kind: 'list' }
-  | { readonly kind: 'detail'; readonly needs: AutomationConditionType | null }
+  | { readonly kind: 'detail' }
   | { readonly kind: 'templates' };
 
 const LIST: View = { kind: 'list' };
@@ -37,7 +36,7 @@ export function AutomationsSection() {
         onBack={showList}
         onPick={(template) => {
           editor.addFrom(template, settings.data?.ai.defaultRunner ?? 'claude');
-          setView({ kind: 'detail', needs: template.needs });
+          setView({ kind: 'detail' });
         }}
       />
     );
@@ -45,9 +44,9 @@ export function AutomationsSection() {
   if (view.kind === 'detail' && opened !== undefined) {
     return (
       <AutomationDetail
+        key={opened.key}
         rule={opened}
         accounts={accounts}
-        needs={view.needs}
         disabled={locked}
         onBack={showList}
         onChange={(change) => {
@@ -83,7 +82,7 @@ export function AutomationsSection() {
         disabled={locked}
         onOpen={(key) => {
           editor.engage(key);
-          setView({ kind: 'detail', needs: null });
+          setView({ kind: 'detail' });
         }}
         onToggle={(key, enabled) => {
           editor.change(key, { enabled });

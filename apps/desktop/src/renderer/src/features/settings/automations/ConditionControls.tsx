@@ -41,7 +41,7 @@ export interface ConditionTextProps {
   readonly label: string;
   readonly placeholder: string;
   readonly value: string;
-  readonly disabled: boolean;
+  readonly readOnly: boolean;
   readonly autoFocus: boolean;
   readonly onChange: (value: string) => void;
   readonly onCommit: (strict: boolean) => void;
@@ -51,7 +51,7 @@ export function ConditionText({
   label,
   placeholder,
   value,
-  disabled,
+  readOnly,
   autoFocus,
   onChange,
   onCommit,
@@ -62,7 +62,7 @@ export function ConditionText({
       aria-label={label}
       placeholder={placeholder}
       value={value}
-      disabled={disabled}
+      readOnly={readOnly}
       autoFocus={autoFocus}
       autoComplete="off"
       spellCheck={false}

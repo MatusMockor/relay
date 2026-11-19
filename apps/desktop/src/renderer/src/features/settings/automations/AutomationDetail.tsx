@@ -1,4 +1,4 @@
-import type { AutomationConditionType, MailAccount } from '@relay/shared';
+import type { MailAccount } from '@relay/shared';
 import { Button, Switch } from '@relay/ui';
 import { SectionBackButton } from '../SectionHeader';
 import { describeAction } from './action-targets';
@@ -8,12 +8,12 @@ import { ApplyToExisting } from './ApplyToExisting';
 import { type EditableRule, isComplete, type RuleChange } from './editable-rule';
 import { RuleName } from './RuleName';
 import { useActionTargets } from './use-action-targets';
+import { useDirtyRows } from './use-dirty-rows';
 import { WhenSection } from './WhenSection';
 
 export interface AutomationDetailProps {
   readonly rule: EditableRule;
   readonly accounts: readonly MailAccount[];
-  readonly needs: AutomationConditionType | null;
   readonly disabled: boolean;
   readonly onBack: () => void;
   readonly onChange: (change: RuleChange) => void;
@@ -23,7 +23,6 @@ export interface AutomationDetailProps {
 export function AutomationDetail({
   rule,
   accounts,
-  needs,
   disabled,
   onBack,
   onChange,
@@ -31,6 +30,7 @@ export function AutomationDetail({
 }: AutomationDetailProps) {
   const { input } = rule;
   const targets = useActionTargets(input.accountId, accounts);
+  const conditions = useDirtyRows();
   const broken = input.actions.some((action) => describeAction(action, targets).broken);
   return (
     <section className="au-detail" aria-label={`Pravidlo ${input.name}`}>
@@ -65,9 +65,10 @@ export function AutomationDetail({
       <WhenSection
         input={input}
         accounts={accounts}
-        needs={needs}
+        pending={rule.pending}
         disabled={disabled}
         onChange={onChange}
+        onDirty={conditions.mark}
       />
       <ActionChecklist
         actions={input.actions}
@@ -90,7 +91,12 @@ export function AutomationDetail({
       )}
       <footer className="au-foot">
         {rule.saved && input.id !== undefined ? (
-          <ApplyToExisting automationId={input.id} actions={input.actions} disabled={disabled} />
+          <ApplyToExisting
+            automationId={input.id}
+            actions={input.actions}
+            disabled={disabled}
+            blocked={conditions.dirty}
+          />
         ) : null}
         <Button variant="danger" disabled={disabled} onClick={onRemove}>
           Odstrániť pravidlo

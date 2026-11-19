@@ -2,24 +2,44 @@ import type { AutomationConditionType, AutomationInput, MailAccount } from '@rel
 import { Button } from '@relay/ui';
 import { Fragment, useState } from 'react';
 import { describeCondition } from './automation-labels';
-import { draftOf } from './condition-draft';
-import { freshDraft, NEW_CONDITION_TYPE } from './condition-fields';
+import { NEW_CONDITION_TYPE } from './condition-fields';
+import { alignRows, initialRows, rowId } from './condition-rows';
 import { ConditionRow } from './ConditionRow';
 import { type RuleChange, scopeChange } from './editable-rule';
 
 export interface WhenSectionProps {
   readonly input: AutomationInput;
   readonly accounts: readonly MailAccount[];
-  readonly needs: AutomationConditionType | null;
+  readonly pending: AutomationConditionType | null;
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
+  readonly onDirty: (id: string, dirty: boolean) => void;
 }
 
-export function WhenSection({ input, accounts, needs, disabled, onChange }: WhenSectionProps) {
+export function WhenSection({
+  input,
+  accounts,
+  pending,
+  disabled,
+  onChange,
+  onDirty,
+}: WhenSectionProps) {
   const { conditions } = input;
-  const [pending, setPending] = useState<AutomationConditionType | null>(
-    needs ?? (conditions.length === 0 ? NEW_CONDITION_TYPE : null),
+  const [stored, setRows] = useState(() =>
+    initialRows(conditions, pending ?? (conditions.length === 0 ? NEW_CONDITION_TYPE : null)),
   );
+  const rows = alignRows(stored, conditions);
+  if (rows !== stored) {
+    setRows(rows);
+  }
+  const entries = [
+    ...rows.ids.map((id, index) => ({
+      id,
+      condition: conditions[index] ?? null,
+      type: NEW_CONDITION_TYPE,
+    })),
+    ...(rows.pending === null ? [] : [{ ...rows.pending, condition: null }]),
+  ];
   return (
     <section className="au-sec" aria-labelledby="au-when">
       <h3 id="au-when">Kedy</h3>
@@ -42,54 +62,46 @@ export function WhenSection({ input, accounts, needs, disabled, onChange }: When
         </select>
       </label>
       <div className="au-conds">
-        {conditions.map((condition, index) => (
-          <Fragment key={`${String(index)}-${JSON.stringify(condition)}`}>
+        {entries.map((entry, index) => (
+          <Fragment key={entry.id}>
             {index > 0 ? <span className="au-and">a zároveň</span> : null}
             <ConditionRow
+              id={entry.id}
               index={index}
-              initial={draftOf(condition)}
-              fresh={false}
-              removeLabel={`Odstrániť podmienku ${describeCondition(condition)}`}
+              condition={entry.condition}
+              freshType={entry.type}
+              removeLabel={
+                entry.condition === null
+                  ? 'Zrušiť novú podmienku'
+                  : `Odstrániť podmienku ${describeCondition(entry.condition)}`
+              }
               disabled={disabled}
               onSave={(next) => {
                 onChange({
-                  conditions: conditions.map((item, position) =>
-                    position === index ? next : item,
-                  ),
+                  conditions:
+                    entry.condition === null
+                      ? [...conditions, next]
+                      : conditions.map((item, position) => (position === index ? next : item)),
                 });
               }}
               onRemove={() => {
+                if (entry.condition === null) {
+                  setRows({ ...rows, pending: null });
+                  return;
+                }
                 onChange({ conditions: conditions.filter((_, position) => position !== index) });
               }}
+              onDirty={onDirty}
             />
           </Fragment>
         ))}
-        {pending === null ? null : (
-          <Fragment key={`new-${String(conditions.length)}`}>
-            {conditions.length > 0 ? <span className="au-and">a zároveň</span> : null}
-            <ConditionRow
-              index={conditions.length}
-              initial={freshDraft(pending)}
-              fresh
-              removeLabel="Zrušiť novú podmienku"
-              disabled={disabled}
-              onSave={(condition) => {
-                setPending(null);
-                onChange({ conditions: [...conditions, condition] });
-              }}
-              onRemove={() => {
-                setPending(null);
-              }}
-            />
-          </Fragment>
-        )}
       </div>
       <Button
         variant="ghost"
         className="au-add"
-        disabled={disabled || pending !== null}
+        disabled={disabled || rows.pending !== null}
         onClick={() => {
-          setPending(NEW_CONDITION_TYPE);
+          setRows({ ...rows, pending: { id: rowId(), type: NEW_CONDITION_TYPE } });
         }}
       >
         + Pridať podmienku
