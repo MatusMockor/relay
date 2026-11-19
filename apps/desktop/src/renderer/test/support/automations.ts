@@ -42,3 +42,15 @@ export const popover = (name: string): HTMLElement => screen.getByRole('dialog',
 
 export const stored = async (client: MailClient, name: string): Promise<Automation | undefined> =>
   (await client.listAutomations()).find((item) => item.name === name);
+
+export const change = (element: HTMLElement, value: string): void => {
+  act(() => {
+    fireEvent.change(element, { target: { value } });
+  });
+};
+
+export const condition = (region: HTMLElement, position: number): HTMLElement =>
+  within(region).getByRole('group', { name: `Podmienka ${String(position)}` });
+
+export const checkbox = (region: HTMLElement, name: string): HTMLElement =>
+  within(region).getByRole('checkbox', { name });

@@ -1,4 +1,8 @@
-import type { AutomationAction, AutomationCondition } from '@relay/shared';
+import type {
+  AutomationAction,
+  AutomationCondition,
+  SimpleAutomationActionType,
+} from '@relay/shared';
 import { type ActionTargets, describeAction } from './action-targets';
 import { AI_ACTIONS, describeCondition } from './automation-labels';
 
@@ -12,5 +16,13 @@ export const summarizeActions = (
   targets: ActionTargets,
 ): string => actions.map((action) => describeAction(action, targets).label).join(', ');
 
+export const firstAiAction = (
+  actions: readonly AutomationAction[],
+): SimpleAutomationActionType | null =>
+  actions
+    .map((action) => action.type)
+    .find((type): type is SimpleAutomationActionType => AI_ACTIONS.some((ai) => ai === type)) ??
+  null;
+
 export const usesAi = (actions: readonly AutomationAction[]): boolean =>
-  actions.some((action) => AI_ACTIONS.includes(action.type));
+  firstAiAction(actions) !== null;

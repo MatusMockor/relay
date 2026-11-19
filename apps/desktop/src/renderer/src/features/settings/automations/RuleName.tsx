@@ -5,10 +5,9 @@ export interface RuleNameProps {
   readonly name: string;
   readonly disabled: boolean;
   readonly onRename: (name: string) => void;
-  readonly onEngage: () => void;
 }
 
-export function RuleName({ name, disabled, onRename, onEngage }: RuleNameProps) {
+export function RuleName({ name, disabled, onRename }: RuleNameProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     const next = draft?.trim() ?? '';
@@ -25,7 +24,6 @@ export function RuleName({ name, disabled, onRename, onEngage }: RuleNameProps) 
         aria-label={`Premenovať pravidlo ${name}`}
         disabled={disabled}
         onClick={() => {
-          onEngage();
           setDraft(name);
         }}
       >

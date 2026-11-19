@@ -8,8 +8,6 @@ import { resetStores } from './support/render-app';
 
 const RESTORE = 'Obnoviť predvolené Jira pravidlo';
 
-const openSection = openAutomations;
-
 const presetsOf = async (client: MailClient) =>
   (await client.listAutomations()).filter((item) => item.preset === 'jiraTasks');
 
@@ -21,15 +19,13 @@ describe('Nastavenia > Automatizácie > predvolené Jira pravidlo', () => {
     resetStores();
   });
 
-  it('removes the default rule with the trash button and restores it', async () => {
+  it('removes the default rule from its detail and restores it', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
+    const sheet = await openAutomations(client);
     expect(within(sheet).queryByRole('button', { name: RESTORE })).toBeNull();
 
     click(
-      within(openRule(sheet, 'Jira tasky')).getByRole('button', {
-        name: 'Odstrániť pravidlo Jira tasky',
-      }),
+      within(openRule(sheet, 'Jira tasky')).getByRole('button', { name: 'Odstrániť pravidlo' }),
     );
     await settle();
 

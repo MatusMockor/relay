@@ -11,12 +11,11 @@ import { applyResultMessage } from './apply-result';
 
 export interface ApplyToExistingProps {
   readonly automationId: AutomationId;
-  readonly name: string;
   readonly actions: readonly AutomationAction[];
   readonly disabled: boolean;
 }
 
-export function ApplyToExisting({ automationId, name, actions, disabled }: ApplyToExistingProps) {
+export function ApplyToExisting({ automationId, actions, disabled }: ApplyToExistingProps) {
   const apply = useApplyAutomation();
   if (!actions.some((action) => MAIL_AUTOMATION_ACTION_TYPES.includes(action.type))) {
     return null;
@@ -24,7 +23,6 @@ export function ApplyToExisting({ automationId, name, actions, disabled }: Apply
   return (
     <Button
       className="au-apply"
-      aria-label={`Použiť pravidlo ${name} aj na existujúce maily`}
       title="Použije poštové akcie na najviac 500 konverzácií v doručenej pošte"
       disabled={disabled || apply.isPending}
       onClick={() => {
@@ -38,7 +36,7 @@ export function ApplyToExisting({ automationId, name, actions, disabled }: Apply
         });
       }}
     >
-      {apply.isPending ? 'Používam…' : 'Použiť aj na existujúce'}
+      {apply.isPending ? 'Používam…' : 'Použiť na maily, ktoré už mám'}
     </Button>
   );
 }

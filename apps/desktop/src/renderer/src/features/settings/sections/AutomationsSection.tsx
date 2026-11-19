@@ -3,7 +3,7 @@ import { Button } from '@relay/ui';
 import { useState } from 'react';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../../mail/use-accounts-model';
-import { AutomationCard } from '../automations/AutomationCard';
+import { AutomationDetail } from '../automations/AutomationDetail';
 import { AutomationList } from '../automations/AutomationList';
 import { BLANK_TEMPLATE } from '../automations/rule-templates';
 import { useAutomationEditor } from '../automations/use-automation-editor';
@@ -32,26 +32,20 @@ export function AutomationsSection() {
   };
   if (view.kind === 'detail' && opened !== undefined) {
     return (
-      <>
-        <SectionHeader
-          title="Automatizácie"
-          back={{ label: 'Späť na automatizácie', onBack: showList }}
-        />
-        <AutomationCard
-          rule={opened}
-          accounts={accounts}
-          editing
-          disabled={locked}
-          onEngage={() => undefined}
-          onChange={(change) => {
-            editor.change(opened.key, change);
-          }}
-          onRemove={() => {
-            editor.remove(opened.key);
-            showList();
-          }}
-        />
-      </>
+      <AutomationDetail
+        rule={opened}
+        accounts={accounts}
+        needs={view.needs}
+        disabled={locked}
+        onBack={showList}
+        onChange={(change) => {
+          editor.change(opened.key, change);
+        }}
+        onRemove={() => {
+          editor.remove(opened.key);
+          showList();
+        }}
+      />
     );
   }
   return (
