@@ -182,6 +182,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
     const sheet = await openAutomations(client);
 
     click(within(sheet).getByRole('button', { name: '+ Nové pravidlo' }));
+    click(within(sheet).getByRole('button', { name: 'Šablóna Prázdne pravidlo' }));
     const draft = within(sheet).getByRole('region', { name: 'Pravidlo Nové pravidlo' });
     expect(within(draft).getByRole('status').textContent).toBe(
       'Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.',

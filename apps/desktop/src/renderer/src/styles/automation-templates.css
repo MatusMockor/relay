@@ -1,0 +1,52 @@
+.au-tpls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.au-tpl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.012);
+  color: inherit;
+  text-align: start;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.au-tpl:hover {
+  border-color: var(--accent-line);
+  background: var(--hover);
+}
+.au-tpl:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+.au-tpl-i {
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.au-tpl b {
+  color: var(--fg);
+  font-size: var(--fs-base);
+  font-weight: var(--w-semibold);
+}
+.au-tpl > span:last-child {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}

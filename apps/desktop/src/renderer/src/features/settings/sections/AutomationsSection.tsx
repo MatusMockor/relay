@@ -5,7 +5,7 @@ import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../../mail/use-accounts-model';
 import { AutomationDetail } from '../automations/AutomationDetail';
 import { AutomationList } from '../automations/AutomationList';
-import { BLANK_TEMPLATE } from '../automations/rule-templates';
+import { RuleTemplates } from '../automations/RuleTemplates';
 import { useAutomationEditor } from '../automations/use-automation-editor';
 import { useDefaultRule } from '../automations/use-default-rule';
 import { SettingRow } from '../SettingRow';
@@ -30,6 +30,18 @@ export function AutomationsSection() {
     editor.engage(null);
     setView(LIST);
   };
+  if (view.kind === 'templates') {
+    return (
+      <RuleTemplates
+        disabled={locked}
+        onBack={showList}
+        onPick={(template) => {
+          editor.addFrom(template, settings.data?.ai.defaultRunner ?? 'claude');
+          setView({ kind: 'detail', needs: template.needs });
+        }}
+      />
+    );
+  }
   if (view.kind === 'detail' && opened !== undefined) {
     return (
       <AutomationDetail
@@ -59,8 +71,7 @@ export function AutomationsSection() {
           variant="primary"
           disabled={locked}
           onClick={() => {
-            editor.addFrom(BLANK_TEMPLATE, settings.data?.ai.defaultRunner ?? 'claude');
-            setView({ kind: 'detail', needs: null });
+            setView({ kind: 'templates' });
           }}
         >
           + Nové pravidlo
