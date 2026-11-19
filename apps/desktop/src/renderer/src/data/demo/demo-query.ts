@@ -20,18 +20,25 @@ const inSplit = (state: DemoState, thread: ThreadSummary, splitId: SplitId): boo
   return thread.splitIds.includes(splitId) && !(hidesTasks && hasOpenTask(state, thread.id));
 };
 
+const isSearching = (q: string | undefined): boolean => q !== undefined && q.trim() !== '';
+
+const inInbox = (state: DemoState, thread: ThreadSummary, params: ThreadListParams): boolean => {
+  if (params.labelId !== undefined) {
+    return thread.labelIds.includes(params.labelId);
+  }
+  if (params.splitId !== undefined) {
+    return inSplit(state, thread, params.splitId);
+  }
+  if (isSearching(params.q)) {
+    return true;
+  }
+  return thread.splitIds.length === 0;
+};
+
 const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListParams): boolean => {
   const thread = record.summary;
   if (params.view === 'inbox') {
-    if (thread.state !== 'inbox') {
-      return false;
-    }
-    if (params.labelId !== undefined) {
-      return thread.labelIds.includes(params.labelId);
-    }
-    return params.splitId === undefined
-      ? thread.splitIds.length === 0
-      : inSplit(state, thread, params.splitId);
+    return thread.state === 'inbox' && inInbox(state, thread, params);
   }
   if (params.view === 'tasks') {
     return thread.state === 'inbox' && hasOpenTask(state, thread.id);
@@ -69,7 +76,7 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
 };
 
 const matchesQuery = (thread: ThreadSummary, q: string | undefined): boolean => {
-  if (q === undefined || q.trim() === '') {
+  if (q === undefined || !isSearching(q)) {
     return true;
   }
   const hay = foldText(

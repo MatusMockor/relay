@@ -43,13 +43,18 @@ const hasActiveScheduledSend = sql`exists(
 export interface FolderViewFilterInput {
   readonly view: FolderView;
   readonly splitSelected: boolean;
+  readonly searching: boolean;
 }
 
+const inboxFilter = (input: FolderViewFilterInput): SQL => {
+  if (input.splitSelected || input.searching) {
+    return sql`${threads.state} = 'inbox'`;
+  }
+  return sql`${threads.state} = 'inbox' and ${outsideExclusiveSplits}`;
+};
+
 const FOLDER_VIEW_FILTERS: Readonly<Record<FolderView, (input: FolderViewFilterInput) => SQL>> = {
-  inbox: (input) =>
-    input.splitSelected
-      ? sql`${threads.state} = 'inbox'`
-      : sql`${threads.state} = 'inbox' and ${outsideExclusiveSplits}`,
+  inbox: inboxFilter,
   done: () => sql`${threads.state} = 'done'`,
   trash: () => sql`${threads.state} = 'trash'`,
   spam: () => sql`${threads.state} = 'spam'`,

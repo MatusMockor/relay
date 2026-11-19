@@ -40,8 +40,14 @@ describe('split that hides threads in tasks', () => {
   beforeEach(async () => {
     store = createTestStore();
     work = await seedAccount(store.repositories);
-    await addThread(store, work, 't-task', { splitIds: [JIRA_SPLIT] });
-    await addThread(store, work, 't-update', { splitIds: [JIRA_SPLIT] });
+    await addThread(store, work, 't-task', { splitIds: [JIRA_SPLIT] }, { subject: 'REL-1 Platby' });
+    await addThread(
+      store,
+      work,
+      't-update',
+      { splitIds: [JIRA_SPLIT] },
+      { subject: 'REL-2 Build' },
+    );
     await store.repositories.tasks.upsert(jiraTask('open'));
   });
 
@@ -60,6 +66,14 @@ describe('split that hides threads in tasks', () => {
     await store.repositories.splits.replaceAll(LOCAL_USER_ID, [jiraSplit(false)]);
 
     expect(await folderIds(store, { splitId: JIRA_SPLIT })).toEqual(['t-update', 't-task']);
+  });
+
+  it('finds a hidden task thread when searching the main inbox but not its split', async () => {
+    await store.repositories.splits.replaceAll(LOCAL_USER_ID, [jiraSplit(true)]);
+
+    expect(await folderIds(store, {})).toEqual([]);
+    expect(await folderIds(store, { search: 'platby' })).toEqual(['t-task']);
+    expect(await folderIds(store, { splitId: JIRA_SPLIT, search: 'platby' })).toEqual([]);
   });
 
   it('shows the thread in the split list again once its task is done', async () => {

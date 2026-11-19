@@ -28,6 +28,7 @@ export class PgTaskRepository implements TaskRepository {
         and(
           eq(tasks.userId, userId),
           query.state === null ? undefined : eq(tasks.state, query.state),
+          query.threadId === undefined ? undefined : eq(tasks.threadId, query.threadId),
           cursor === null
             ? undefined
             : sql`(${tasks.updatedAt}, ${tasks.id}) < (${cursor.t}::timestamptz, ${cursor.id})`,

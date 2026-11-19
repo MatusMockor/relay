@@ -242,6 +242,42 @@ describe('SqliteThreadRepository.queryFolder', () => {
     expect(await folderIds(store, { splitId: shared })).toEqual(['t-vip']);
   });
 
+  it('finds threads of exclusive splits when searching the main inbox', async () => {
+    const jira = SplitIdSchema.parse('spl-jira');
+    await store.repositories.splits.replaceAll(LOCAL_USER_ID, [
+      {
+        id: jira,
+        userId: LOCAL_USER_ID,
+        accountId: null,
+        name: 'Jira',
+        order: 0,
+        exclusive: true,
+        hideTasks: false,
+        rules: [{ type: 'jira', projectKeys: [] }],
+      },
+    ]);
+    await addThread(store, work, 't-plain', {}, { subject: 'Obed v piatok' });
+    await addThread(
+      store,
+      work,
+      't-jira',
+      { splitIds: [jira] },
+      { subject: 'REL-42 Oprava buildu' },
+    );
+    await addThread(
+      store,
+      work,
+      't-jira-done',
+      { splitIds: [jira], state: 'done' },
+      { subject: 'REL-43 Oprava testov' },
+    );
+
+    expect(await folderIds(store, {})).toEqual(['t-plain']);
+    expect(await folderIds(store, { search: '   ' })).toEqual(['t-plain']);
+    expect(await folderIds(store, { search: 'oprava' })).toEqual(['t-jira']);
+    expect(await folderIds(store, { search: 'dovolenka' })).toEqual([]);
+  });
+
   it('filters by label', async () => {
     const label = LabelIdSchema.parse('lbl-faktury');
     await addThread(store, work, 't-labelled', { labelIds: [label] });

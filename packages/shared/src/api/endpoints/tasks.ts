@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TaskIdSchema } from '../../domain/ids';
+import { TaskIdSchema, ThreadIdSchema } from '../../domain/ids';
 import { TaskSchema, TaskStateSchema } from '../../domain/task';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
@@ -7,6 +7,7 @@ import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
 
 export const TaskListQuerySchema = CursorPaginationQuerySchema.extend({
   state: TaskStateSchema.optional(),
+  threadId: ThreadIdSchema.optional(),
 });
 export type TaskListQuery = z.infer<typeof TaskListQuerySchema>;
 
