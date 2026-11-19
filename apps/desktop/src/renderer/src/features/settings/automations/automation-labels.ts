@@ -1,4 +1,5 @@
 import type {
+  AutomationActionType,
   AutomationCondition,
   AutomationConditionType,
   JiraEventKind,
@@ -23,6 +24,8 @@ export const SIMPLE_ACTIONS: readonly SimpleAutomationActionType[] = [
   'pin',
   'archive',
 ];
+
+export const AI_ACTIONS: readonly AutomationActionType[] = ['summary', 'task'];
 
 export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
   mention: 'Spomenutie',
