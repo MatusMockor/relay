@@ -39,6 +39,7 @@ import { createMainWindow } from './window/create-main-window';
 import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
 import { trackHistoryCommands } from './window/track-history-commands';
+import { trackSwipeCommands } from './window/track-swipe-commands';
 import { trackTrackpadScroll } from './window/track-trackpad-scroll';
 import { hardenSession } from './window/harden-session';
 
@@ -137,6 +138,9 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       menuCommands.request(command);
     });
     if (process.platform === 'darwin') {
+      trackSwipeCommands(window, (command) => {
+        menuCommands.request(command);
+      });
       trackTrackpadScroll(window.webContents, (event) => {
         trackpadScroll.publish(event);
       });
