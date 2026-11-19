@@ -6,8 +6,8 @@ import { composeIpc } from '../../src/main/composition/compose-ipc';
 import { MenuCommandRequests } from '../../src/main/native/menu-command-requests';
 import {
   type AppCommandWindow,
-  trackBackNavigation,
-} from '../../src/main/window/track-back-navigation';
+  trackHistoryCommands,
+} from '../../src/main/window/track-history-commands';
 import { createRelayBridge } from '../../src/preload/create-bridge';
 import { createBrowserPlatform } from '../../src/renderer/src/platform/BrowserPlatform';
 import { createElectronPlatform } from '../../src/renderer/src/platform/ElectronPlatform';
@@ -51,7 +51,7 @@ const settle = async () => {
 const startDesktop = async () => {
   const window = new FakeWindow();
   const menuCommands = new MenuCommandRequests();
-  trackBackNavigation(window, (command) => {
+  trackHistoryCommands(window, (command) => {
     menuCommands.request(command);
   });
   const bridge = createRelayBridge(
@@ -71,7 +71,7 @@ const startDesktop = async () => {
   return window;
 };
 
-describe('window back command', () => {
+describe('window history commands', () => {
   beforeEach(() => {
     resetStores();
   });
@@ -96,22 +96,62 @@ describe('window back command', () => {
     const window = await startDesktop();
     await openThreadBySubject('Obed v piatok?');
     act(() => {
-      setUi({ searchOpen: true, query: 'obed' });
+      setUi({ searchOpen: true });
     });
     act(() => {
       fireEvent.mouseUp(globalThis.window, { button: 3 });
       window.command('browser-backward');
     });
     await settle();
+    expect(useUiStore.getState().searchOpen).toBe(false);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
+  it('goes forward again after going back', async () => {
+    const window = await startDesktop();
+    await openThreadBySubject('Obed v piatok?');
+    const threadId = useUiStore.getState().openThreadId;
+    act(() => {
+      window.command('browser-backward');
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().openThreadId).toBeNull();
+    });
+    act(() => {
+      window.command('browser-forward');
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().openThreadId).toBe(threadId);
+    });
+  });
+
+  it('steps forward once when the same press arrives as a mouse button and a window command', async () => {
+    const window = await startDesktop();
+    await openThreadBySubject('Obed v piatok?');
+    act(() => {
+      setUi({ searchOpen: true });
+    });
+    act(() => {
+      fireEvent.mouseUp(globalThis.window, { button: 3 });
+    });
+    act(() => {
+      fireEvent.mouseUp(globalThis.window, { button: 3 });
+    });
     expect(useUiStore.getState().openThreadId).toBeNull();
-    expect(useUiStore.getState().searchOpen).toBe(true);
+    act(() => {
+      fireEvent.mouseUp(globalThis.window, { button: 4 });
+      window.command('browser-forward');
+    });
+    await settle();
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+    expect(useUiStore.getState().searchOpen).toBe(false);
   });
 
   it('ignores other window commands', async () => {
     const window = await startDesktop();
     await openThreadBySubject('Obed v piatok?');
     act(() => {
-      window.command('browser-forward');
+      window.command('browser-refresh');
     });
     await settle();
     expect(useUiStore.getState().openThreadId).not.toBeNull();

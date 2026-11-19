@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAccounts } from '../../data/hooks/use-mail-queries';
 import type { AccountScope } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
+import { appHistory } from '../history/app-history';
 import { selectScope } from '../mail/navigation';
 
 const isKnownScope = (scope: AccountScope, accounts: readonly MailAccount[]): boolean =>
@@ -27,6 +28,8 @@ export const useScopeValidation = (): void => {
     if (isKnownScope(scope, data)) {
       return;
     }
-    selectScope('all');
+    appHistory.quietly(() => {
+      selectScope('all');
+    });
   }, [data, scope]);
 };

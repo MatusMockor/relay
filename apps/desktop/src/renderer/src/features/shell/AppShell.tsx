@@ -9,12 +9,13 @@ import { ContextMenuHost } from '../context-menu/ContextMenuHost';
 import { FolderSidebar } from '../folders/FolderSidebar';
 import { useKeyboard } from '../keyboard/use-keyboard';
 import { ThreadList } from '../list/ThreadList';
+import { useHistoryRecording } from '../history/use-history-recording';
 import { MailActionsProvider } from '../mail/MailActionsProvider';
 import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
-import { useMouseBack } from './use-mouse-back';
+import { useHistoryInputs } from './use-history-inputs';
 import { OverlayHost } from './OverlayHost';
 import { useScopeValidation } from './scope-validation';
 import { TopBar } from './TopBar';
@@ -26,8 +27,9 @@ const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
 };
 
 function Shell() {
+  useHistoryRecording();
   useKeyboard();
-  useMouseBack();
+  useHistoryInputs();
   const { platform } = useAppContext();
   useRealtimeSync();
   useRemoteAutomationNotifications(platform);

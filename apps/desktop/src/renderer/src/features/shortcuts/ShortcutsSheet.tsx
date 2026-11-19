@@ -91,6 +91,8 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     [
       ['Príkazy', [`${MOD}K`]],
       ['Nastavenia', [`${MOD},`]],
+      ['Späť', [`${MOD}[`]],
+      ['Dopredu', [`${MOD}]`]],
       ['Klávesové skratky', ['?']],
     ],
   ],

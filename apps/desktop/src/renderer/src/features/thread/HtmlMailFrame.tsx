@@ -2,13 +2,13 @@ import { Icon } from '@relay/ui';
 import { useRef, useState } from 'react';
 import { buildMailDocument, hasRemoteImages } from './html-mail';
 import { useFrameHeight } from './use-frame-height';
-import { useFrameMouseBack } from './use-frame-mouse-back';
+import { useFrameHistoryInputs } from './use-frame-history-inputs';
 
 export function HtmlMailFrame({ html, title }: { readonly html: string; readonly title: string }) {
   const [allowRemote, setAllowRemote] = useState(false);
   const ref = useRef<HTMLIFrameElement>(null);
   const { height, onLoad } = useFrameHeight(ref);
-  const listenForBack = useFrameMouseBack(ref);
+  const listenForHistory = useFrameHistoryInputs(ref);
   const remote = hasRemoteImages(html);
   return (
     <div className="html-mail">
@@ -37,7 +37,7 @@ export function HtmlMailFrame({ html, title }: { readonly html: string; readonly
         style={{ height }}
         onLoad={() => {
           onLoad();
-          listenForBack();
+          listenForHistory();
         }}
       />
     </div>

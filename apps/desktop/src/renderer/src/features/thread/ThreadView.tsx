@@ -14,6 +14,7 @@ import { CollapsedMessage, MessageView } from './MessageView';
 import { NextActions } from './NextActions';
 import { ReplyComposer } from './ReplyComposer';
 import { ThreadLabels } from './ThreadLabels';
+import { useMissingThreadFallback } from './use-missing-thread-fallback';
 
 const toggle = (key: string) => {
   setUi((state) => ({ expanded: { ...state.expanded, [key]: state.expanded[key] !== true } }));
@@ -81,7 +82,8 @@ export function ThreadView() {
   const expanded = useUiStore((state) => state.expanded);
   const model = useAccountsModel();
   const actions = useMailActions();
-  const { data: detail } = useThreadDetail(threadId);
+  const { data: detail, error } = useThreadDetail(threadId);
+  useMissingThreadFallback(threadId, error);
   const pending = useThreadAiPending(detail?.thread ?? null);
   if (detail === null || detail === undefined) {
     return <div className="t-scroll" aria-busy="true" />;

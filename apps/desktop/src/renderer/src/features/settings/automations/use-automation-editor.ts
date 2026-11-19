@@ -1,5 +1,5 @@
 import type { AiRunnerKind, Automation, AutomationInput } from '@relay/shared';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
 import {
   editableOf,
@@ -16,13 +16,18 @@ export interface AutomationEditor {
   readonly rules: readonly EditableRule[];
   readonly loading: boolean;
   readonly saving: boolean;
-  readonly editing: string | null;
-  engage(key: string | null): void;
   change(key: string, change: RuleChange): void;
   remove(key: string): void;
   reorder(from: number, to: number): void;
-  addFrom(template: RuleTemplate, runner: AiRunnerKind): void;
+  addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
 }
+
+let draftCount = 0;
+
+const nextDraftKey = (): string => {
+  draftCount += 1;
+  return `draft-${String(draftCount)}`;
+};
 
 const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
   const next = new Map(map);
@@ -30,12 +35,12 @@ const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<st
   return next;
 };
 
-export const useAutomationEditor = (): AutomationEditor => {
+export const useAutomationEditor = (
+  onCreated: (draftKey: string, id: string) => void,
+): AutomationEditor => {
   const automations = useAutomations();
   const { saving, persist } = usePersistAutomations();
   const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(new Map());
-  const [editing, setEditing] = useState<string | null>(null);
-  const counter = useRef(0);
   const saved = (automations.data ?? []).map(editableOf);
   const drafts = [...local.values()].filter((rule) => !rule.saved);
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];
@@ -49,7 +54,7 @@ export const useAutomationEditor = (): AutomationEditor => {
       if (created === undefined) {
         return;
       }
-      setEditing((current) => (current === settled ? created.id : current));
+      onCreated(settled, created.id);
     });
   };
 
@@ -94,22 +99,19 @@ export const useAutomationEditor = (): AutomationEditor => {
   };
 
   const addFrom = (template: RuleTemplate, runner: AiRunnerKind) => {
-    counter.current += 1;
-    const key = `draft-${String(counter.current)}`;
+    const key = nextDraftKey();
     const rule = newRule(key, runner, rules.length, template);
     setLocal((current) => new Map(current).set(key, rule));
-    setEditing(key);
     if (isComplete(rule) && !saving) {
       commit(rule);
     }
+    return key;
   };
 
   return {
     rules,
     loading: automations.data === undefined,
     saving,
-    editing,
-    engage: setEditing,
     change,
     remove,
     reorder,

@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
-import { listenForMouseBack } from '../shell/mouse-back';
+import { listenForHistoryInputs } from '../shell/history-inputs';
 
-export const useFrameMouseBack = (ref: RefObject<HTMLIFrameElement | null>): (() => void) => {
+export const useFrameHistoryInputs = (ref: RefObject<HTMLIFrameElement | null>): (() => void) => {
   const stop = useRef<(() => void) | null>(null);
   useEffect(
     () => () => {
@@ -12,6 +12,6 @@ export const useFrameMouseBack = (ref: RefObject<HTMLIFrameElement | null>): (()
   return useCallback(() => {
     stop.current?.();
     const view = ref.current?.contentWindow ?? null;
-    stop.current = view === null ? null : listenForMouseBack(view);
+    stop.current = view === null ? null : listenForHistoryInputs(view);
   }, [ref]);
 };

@@ -33,7 +33,7 @@ const typeReply = async (text: string): Promise<HTMLTextAreaElement> => {
   return area as HTMLTextAreaElement;
 };
 
-describe('mouse back button', () => {
+describe('mouse back and forward buttons', () => {
   beforeEach(() => {
     resetStores();
   });
@@ -50,7 +50,7 @@ describe('mouse back button', () => {
     expect(screen.queryByRole('heading', { level: 1, name: SUBJECT })).toBeNull();
   });
 
-  it.each([0, 1, 2, 4])('keeps the thread open for mouse button %i', async (button) => {
+  it.each([0, 1, 2])('keeps the thread open for mouse button %i', async (button) => {
     await start();
     await openThreadBySubject(SUBJECT);
     expect(releaseButton(button)).toBe(true);
@@ -64,34 +64,72 @@ describe('mouse back button', () => {
     expect(useUiStore.getState().searchOpen).toBe(true);
     releaseButton(3);
     expect(useUiStore.getState().searchOpen).toBe(false);
+    releaseButton(4);
+    expect(useUiStore.getState().searchOpen).toBe(true);
   });
 
-  it('steps back once per press when pressed twice', async () => {
+  it('walks back through the history one step per press', async () => {
     await start();
     await openThreadBySubject(SUBJECT);
     act(() => {
       setUi({ searchOpen: true, query: 'obed' });
     });
     releaseButton(3);
-    expect(useUiStore.getState().openThreadId).toBeNull();
-    expect(useUiStore.getState().searchOpen).toBe(true);
-    releaseButton(3);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
     expect(useUiStore.getState().searchOpen).toBe(false);
+    releaseButton(3);
+    expect(useUiStore.getState().openThreadId).toBeNull();
   });
 
-  it('goes back when pressed over an HTML mail body', async () => {
+  it('goes forward again with button 4 after going back', async () => {
+    await start();
+    await openThreadBySubject(SUBJECT);
+    const threadId = useUiStore.getState().openThreadId;
+    releaseButton(3);
+    expect(useUiStore.getState().openThreadId).toBeNull();
+    expect(releaseButton(4)).toBe(false);
+    expect(useUiStore.getState().openThreadId).toBe(threadId);
+    expect(await screen.findByRole('heading', { level: 1, name: SUBJECT })).toBeDefined();
+  });
+
+  it('does nothing with button 4 when there is nothing to go forward to', async () => {
+    await start();
+    await openThreadBySubject(SUBJECT);
+    expect(releaseButton(4)).toBe(false);
+    expect(useUiStore.getState().openThreadId).not.toBeNull();
+  });
+
+  it.each([3, 4])('prevents the default press of mouse button %i', async (button) => {
+    await start();
+    let pressed = true;
+    let clicked = true;
+    act(() => {
+      pressed = fireEvent.mouseDown(window, { button });
+      clicked = fireEvent(window, new MouseEvent('auxclick', { button, cancelable: true }));
+    });
+    expect(pressed).toBe(false);
+    expect(clicked).toBe(false);
+  });
+
+  it('goes forward when pressed over an HTML mail body', async () => {
     await start();
     act(() => {
       openThread(demoIds.thread('o-newsletter'));
     });
+    await screen.findByTitle(`Obsah správy: ${HTML_SUBJECT}`);
+    act(() => {
+      openThread(demoIds.thread('c-lunch'));
+    });
+    await screen.findByRole('heading', { level: 1, name: SUBJECT });
+    releaseButton(3);
     const frame = await screen.findByTitle(`Obsah správy: ${HTML_SUBJECT}`);
     expect(frame).toBeInstanceOf(HTMLIFrameElement);
     const view = (frame as HTMLIFrameElement).contentWindow;
     expect(view).not.toBeNull();
     await waitFor(() => {
-      expect(releaseButton(3, view ?? window)).toBe(false);
+      expect(releaseButton(4, view ?? window)).toBe(false);
     });
-    expect(useUiStore.getState().openThreadId).toBeNull();
+    expect(useUiStore.getState().openThreadId).toBe(demoIds.thread('c-lunch'));
   });
 
   it('saves the reply being written as a draft and shows the list', async () => {

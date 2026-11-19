@@ -1,6 +1,6 @@
 import { composeOverlay } from '../../state/compose-overlay';
 import type { MenuCommand, SettingsSection } from '@relay/shared';
-import { navigateBack } from '../mail/navigate-back';
+import { pressHistory } from '../history/step-history';
 import { selectScope } from '../mail/navigation';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { openAboutUnlessBusy } from './open-about';
@@ -37,7 +37,12 @@ export const menuCommandAction = (command: MenuCommand): (() => void) => {
   }
   if (command.command === 'navigate-back') {
     return () => {
-      navigateBack('command');
+      pressHistory('back', 'command');
+    };
+  }
+  if (command.command === 'navigate-forward') {
+    return () => {
+      pressHistory('forward', 'command');
     };
   }
   return openAboutUnlessBusy;

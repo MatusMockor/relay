@@ -5,9 +5,9 @@ import type { MailClient } from '../../data/MailClient';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { findKnownThread } from '../../data/hooks/thread-cache';
 import { useAppContext, useClient } from '../../data/hooks/services-context';
-import { type OverlayState, setUi, useUiStore } from '../../state/ui-store';
-import { openThreadAt, relocateOpenThread } from './place-thread';
-import { placementOf } from './thread-placement';
+import { type OverlayState, useUiStore } from '../../state/ui-store';
+import { openThreadAt, relocateOpenedThread } from './place-thread';
+import { placementOf, type ThreadPlacement } from './thread-placement';
 
 const CLOSABLE_OVERLAYS: ReadonlySet<OverlayState['kind']> = new Set([
   'palette',
@@ -24,13 +24,23 @@ const closesOnThreadOpen = (overlay: OverlayState | null): boolean => {
   return overlay.kind !== 'settings' || !overlay.adding;
 };
 
-const relocateOnceLoaded = (queryClient: QueryClient, client: MailClient, threadId: ThreadId) => {
+const relocateOnceLoaded = (
+  queryClient: QueryClient,
+  client: MailClient,
+  threadId: ThreadId,
+  fallback: ThreadPlacement,
+  tag: symbol,
+): void => {
   queryClient
     .fetchQuery({ queryKey: queryKeys.thread(threadId), queryFn: () => client.getThread(threadId) })
-    .then((detail) => {
-      relocateOpenThread(threadId, placementOf(detail.thread, useUiStore.getState().scope));
-    })
-    .catch(() => undefined);
+    .then(
+      (detail) => {
+        relocateOpenedThread(tag, placementOf(detail.thread, fallback.scope));
+      },
+      () => {
+        relocateOpenedThread(tag, fallback);
+      },
+    );
 };
 
 export const useNotificationNavigation = (): void => {
@@ -40,15 +50,17 @@ export const useNotificationNavigation = (): void => {
   useEffect(
     () =>
       platform.subscribeToThreadOpens((threadId) => {
-        if (closesOnThreadOpen(useUiStore.getState().overlay)) {
-          setUi({ overlay: null });
-        }
+        const { overlay, scope } = useUiStore.getState();
         const known = findKnownThread(queryClient, threadId);
-        openThreadAt(threadId, placementOf(known, useUiStore.getState().scope));
+        const placement = placementOf(known, scope);
+        const extra = closesOnThreadOpen(overlay) ? { overlay: null } : {};
         if (known !== null) {
+          openThreadAt(threadId, placement, extra);
           return;
         }
-        relocateOnceLoaded(queryClient, client, threadId);
+        const tag = Symbol(threadId);
+        openThreadAt(threadId, placement, extra, tag);
+        relocateOnceLoaded(queryClient, client, threadId, placement, tag);
       }),
     [platform, client, queryClient],
   );

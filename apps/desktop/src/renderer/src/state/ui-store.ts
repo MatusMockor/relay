@@ -21,10 +21,22 @@ export interface ComposeInit {
   readonly forward?: { readonly messageId: MessageId; readonly attachmentCount: number };
 }
 
+export type AutomationView =
+  | { readonly kind: 'list' }
+  | { readonly kind: 'templates' }
+  | { readonly kind: 'detail'; readonly key: string };
+
+export interface SettingsOverlay {
+  readonly kind: 'settings';
+  readonly section: SettingsSection;
+  readonly adding: boolean;
+  readonly automation?: AutomationView;
+}
+
 export type OverlayState =
   | { readonly kind: 'palette' }
   | { readonly kind: 'shortcuts' }
-  | { readonly kind: 'settings'; readonly section: SettingsSection; readonly adding: boolean }
+  | SettingsOverlay
   | { readonly kind: 'compose'; readonly init: ComposeInit; readonly scope: AccountScope }
   | { readonly kind: 'remind'; readonly threadId: ThreadId; readonly anchor: AnchorRect }
   | { readonly kind: 'move'; readonly threadId: ThreadId }
