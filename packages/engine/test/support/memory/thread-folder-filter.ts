@@ -11,6 +11,9 @@ import type { MemoryDatabase } from './memory-database';
 
 const unheld = (thread: ThreadSummary): boolean => !isHeldThreadState(thread.state);
 
+const searching = (query: ThreadFolderQuery): boolean =>
+  query.search !== null && query.search.trim() !== '';
+
 type ViewPredicate = (userId: UserId, thread: ThreadSummary, query: ThreadFolderQuery) => boolean;
 
 export class ThreadFolderFilter {
@@ -20,7 +23,7 @@ export class ThreadFolderFilter {
     this.views = {
       inbox: (userId, thread, query) =>
         thread.state === 'inbox' &&
-        (query.splitId !== null || !this.inExclusiveSplit(userId, thread)),
+        (query.splitId !== null || searching(query) || !this.inExclusiveSplit(userId, thread)),
       done: (_userId, thread) => thread.state === 'done',
       trash: (_userId, thread) => thread.state === 'trash',
       spam: (_userId, thread) => thread.state === 'spam',
