@@ -105,6 +105,11 @@ export interface CalendarBackfillWork {
   readonly afterUid: number;
 }
 
+export interface BodyRepairWork {
+  readonly mailboxId: MailboxId;
+  readonly afterUid: number;
+}
+
 export interface CalendarRebuildWork {
   readonly mailboxId: MailboxId;
   readonly afterUid: number;
@@ -146,6 +151,7 @@ export interface PendingWorkPayloads {
   readonly 'move-origin': MoveOriginWork;
   readonly 'label-rescan': LabelRescanWork;
   readonly 'keyword-purge': KeywordPurgeWork;
+  readonly 'body-repair': BodyRepairWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

@@ -9,6 +9,7 @@ import {
 import {
   createSqliteAttachmentReferences,
   createSqliteMessageAttachmentLookup,
+  createSqliteMessageBodyRepairs,
   createSqliteRepositories,
   migrate,
   openDatabase,
@@ -66,6 +67,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     ...mail,
     splitPatternPolicy: { isUnsafe: isUnsafeRegex },
     messageAttachmentLookup: createSqliteMessageAttachmentLookup(database),
+    messageBodyRepairs: createSqliteMessageBodyRepairs(database),
     attachmentExtractor: new MailparserAttachmentExtractor(),
     unsubscribeSender: new HttpsUnsubscribeSender(),
     credentialVault: infrastructure.vault,

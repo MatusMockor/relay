@@ -190,6 +190,13 @@
       "when": 1795036507542,
       "tag": "0026_removed_automation_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1795119308335,
+      "tag": "0027_message_body_repair",
+      "breakpoints": true
     }
   ]
 }

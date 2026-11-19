@@ -1,6 +1,7 @@
 export {
   createSqliteAttachmentReferences,
   createSqliteMessageAttachmentLookup,
+  createSqliteMessageBodyRepairs,
   createSqliteRepositories,
 } from './create-sqlite-repositories';
 export * from './database';
