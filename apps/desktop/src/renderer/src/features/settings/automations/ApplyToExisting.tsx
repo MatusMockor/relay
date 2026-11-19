@@ -22,7 +22,6 @@ export function ApplyToExisting({ automationId, actions, disabled }: ApplyToExis
   }
   return (
     <Button
-      className="au-apply"
       title="Použije poštové akcie na najviac 500 konverzácií v doručenej pošte"
       disabled={disabled || apply.isPending}
       onClick={() => {

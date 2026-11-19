@@ -23,6 +23,3 @@ export const firstAiAction = (
     .map((action) => action.type)
     .find((type): type is SimpleAutomationActionType => AI_ACTIONS.some((ai) => ai === type)) ??
   null;
-
-export const usesAi = (actions: readonly AutomationAction[]): boolean =>
-  firstAiAction(actions) !== null;

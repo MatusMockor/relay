@@ -21,7 +21,7 @@ export interface AutomationEditor {
   change(key: string, change: RuleChange): void;
   remove(key: string): void;
   reorder(from: number, to: number): void;
-  addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
+  addFrom(template: RuleTemplate, runner: AiRunnerKind): void;
 }
 
 const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
@@ -93,7 +93,7 @@ export const useAutomationEditor = (): AutomationEditor => {
     persist(moveRule(savedInputs, from, to), () => undefined);
   };
 
-  const addFrom = (template: RuleTemplate, runner: AiRunnerKind): string => {
+  const addFrom = (template: RuleTemplate, runner: AiRunnerKind) => {
     counter.current += 1;
     const key = `draft-${String(counter.current)}`;
     const rule = newRule(key, runner, rules.length, template);
@@ -102,7 +102,6 @@ export const useAutomationEditor = (): AutomationEditor => {
     if (isComplete(rule) && !saving) {
       commit(rule);
     }
-    return key;
   };
 
   return {

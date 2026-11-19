@@ -58,7 +58,7 @@ export function ConditionRow({
     setDraft(next);
     attempt(next, false);
   };
-  const type = (change: Partial<ConditionDraft>) => {
+  const edit = (change: Partial<ConditionDraft>) => {
     setInvalid(false);
     setDraft((current) => ({ ...current, ...change }));
   };
@@ -111,7 +111,7 @@ export function ConditionRow({
             disabled={disabled}
             autoFocus={fresh}
             onChange={(value) => {
-              type({ value });
+              edit({ value });
             }}
             onCommit={commit}
           />
@@ -124,7 +124,7 @@ export function ConditionRow({
             disabled={disabled}
             autoFocus={fresh && valueField === undefined}
             onChange={(pattern) => {
-              type({ pattern });
+              edit({ pattern });
             }}
             onCommit={commit}
           />

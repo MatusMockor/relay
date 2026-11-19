@@ -5,7 +5,7 @@ import { moveRule } from '../src/features/settings/automations/rule-order';
 import {
   summarizeActions,
   summarizeConditions,
-  usesAi,
+  firstAiAction,
 } from '../src/features/settings/automations/rule-summary';
 import { RULE_TEMPLATES } from '../src/features/settings/automations/rule-templates';
 
@@ -29,9 +29,9 @@ describe('automation helpers', () => {
   });
 
   it('detects actions that use AI', () => {
-    expect(usesAi([{ type: 'archive' }])).toBe(false);
-    expect(usesAi([{ type: 'pin' }, { type: 'summary' }])).toBe(true);
-    expect(usesAi([{ type: 'task' }])).toBe(true);
+    expect(firstAiAction([{ type: 'archive' }])).toBeNull();
+    expect(firstAiAction([{ type: 'pin' }, { type: 'summary' }, { type: 'task' }])).toBe('summary');
+    expect(firstAiAction([{ type: 'task' }])).toBe('task');
   });
 
   it('offers the templates in a fixed order with valid rules', () => {

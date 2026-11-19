@@ -93,7 +93,7 @@ export function AutomationsSection() {
         }}
       />
       {defaultRule.removed ? (
-        <div className="btns au-new">
+        <div className="au-new">
           <Button
             disabled={locked}
             onClick={() => {
