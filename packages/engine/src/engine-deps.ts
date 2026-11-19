@@ -17,6 +17,7 @@ import type { Logger } from './ports/logger';
 import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
+import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
 import type { MessageParser } from './ports/message-parser';
 import type { Repositories } from './ports/repositories';
 import type { SplitMatcher } from './ports/split-matcher';
@@ -73,6 +74,7 @@ export interface EngineDeps {
   readonly attachmentStore: AttachmentStore;
   readonly attachmentBlobs: AttachmentBlobCatalog;
   readonly messageAttachmentLookup?: MessageAttachmentLookup;
+  readonly messageBodyRepairs?: MessageBodyRepairRepository;
   readonly attachmentExtractor?: AttachmentExtractor;
   readonly unsubscribeSender?: UnsubscribeSender;
   readonly messageParser: MessageParser;

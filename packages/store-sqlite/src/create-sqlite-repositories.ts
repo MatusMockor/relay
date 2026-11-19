@@ -1,6 +1,7 @@
 import type {
   AttachmentReferenceRepository,
   MessageAttachmentLookup,
+  MessageBodyRepairRepository,
   Repositories,
 } from '@relay/engine';
 import type { SqliteDatabase } from './database/sqlite-database';
@@ -23,6 +24,7 @@ import { SqliteInviteCandidateRepository } from './repositories/sqlite-invite-ca
 import { SqliteLabelRepository } from './repositories/sqlite-label-repository';
 import { SqliteMailboxRepository } from './repositories/sqlite-mailbox-repository';
 import { SqliteMessageAttachmentLookup } from './repositories/sqlite-message-attachment-lookup';
+import { SqliteMessageBodyRepairRepository } from './repositories/sqlite-message-body-repair-repository';
 import { SqliteMessageRepository } from './repositories/sqlite-message-repository';
 import { SqlitePendingWorkRepository } from './repositories/sqlite-pending-work-repository';
 import { SqliteReminderRepository } from './repositories/sqlite-reminder-repository';
@@ -66,6 +68,11 @@ export const createSqliteRepositories = (database: SqliteDatabase): Repositories
 export const createSqliteMessageAttachmentLookup = (
   database: SqliteDatabase,
 ): MessageAttachmentLookup => new SqliteMessageAttachmentLookup(new QueuedExecutor(database));
+
+export const createSqliteMessageBodyRepairs = (
+  database: SqliteDatabase,
+): MessageBodyRepairRepository =>
+  new SqliteMessageBodyRepairRepository(new QueuedExecutor(database));
 
 export const createSqliteAttachmentReferences = (
   database: SqliteDatabase,

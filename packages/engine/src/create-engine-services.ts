@@ -40,8 +40,10 @@ import {
 import { SplitMembershipEvaluator } from './services/splits/split-membership-evaluator';
 import { PERMISSIVE_PATTERN_POLICY } from './services/splits/split-rule-validator';
 import { SplitService } from './services/splits/split-service';
+import { createBodyRepairBackfills } from './services/sync/body-repair/create-body-repair';
 import { CompositeArrivalListener } from './services/sync/composite-arrival-listener';
 import { createSyncComponents } from './services/sync/create-sync-service';
+import { SyncBackfills } from './services/sync/sync-backfill';
 import type { SyncService } from './services/sync/sync-service';
 import { TaskService } from './services/tasks/task-service';
 import { ThreadAiPreparer } from './services/threads/thread-ai-preparer';
@@ -143,7 +145,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   const invites = createInviteComponents(deps, events);
   const sync = createSyncComponents(deps, {
     calendarParts: invites.sink,
-    backfill: invites.backfill,
+    backfill: new SyncBackfills([invites.backfill, ...createBodyRepairBackfills(deps, events)]),
     events,
     sessions,
     tasks: automations.jiraTasks,

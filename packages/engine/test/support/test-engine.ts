@@ -5,6 +5,7 @@ import {
   type CalendarOptions,
   createEngineServices,
   type EngineServices,
+  type MessageBodyRepairRepository,
   type Repositories,
   type SettingsOptions,
   type SplitMatcher,
@@ -34,6 +35,7 @@ import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-match
 import { SimpleMessageParser } from './mail/simple-message-parser';
 import { SubjectJiraClassifier } from './mail/subject-jira-classifier';
 import { MemoryDatabase } from './memory/memory-database';
+import { MemoryMessageBodyRepairs } from './memory/memory-message-body-repairs';
 import { createMemoryRepositories, MemoryUnitOfWork } from './memory/memory-repositories';
 
 export const TEST_NOW = '2026-11-15T10:00:00.000Z';
@@ -48,6 +50,7 @@ export interface TestEngineOptions {
   readonly calendar?: Partial<CalendarOptions>;
   readonly actions?: Partial<ActionOptions>;
   readonly splitMatcher?: SplitMatcher;
+  readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
 }
 
 export interface TestEngine {
@@ -105,6 +108,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     attachmentStore: attachments,
     attachmentBlobs,
     messageParser: new SimpleMessageParser(),
+    messageBodyRepairs: options.messageBodyRepairs?.(db) ?? new MemoryMessageBodyRepairs(db),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),

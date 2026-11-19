@@ -113,6 +113,30 @@ describe('MailparserMessageParser', () => {
       { name: null, email: 'bob@relay.test' },
     ]);
   });
+
+  it('decodes a quoted-printable iso-8859-2 text part', async () => {
+    const parser = new MailparserMessageParser(
+      new FixedClock(new Date('2026-01-02T03:04:05.000Z')),
+    );
+    const source = new TextEncoder().encode(
+      [
+        'From: Jana <jana@klient.sk>',
+        'To: matus@relay.test',
+        'Subject: Faktura',
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="iso-8859-2"',
+        'Content-Transfer-Encoding: quoted-printable',
+        '',
+        'Dobr=FD de=F2, posielam fakt=FAru. =C8au, =B9=BB=BE',
+        '',
+      ].join('\r\n'),
+    );
+
+    const message = await parser.parse(source);
+
+    expect(message.textBody).toBe('Dobrý deň, posielam faktúru. Čau, šťž\n');
+    expect(message.snippet).toBe('Dobrý deň, posielam faktúru. Čau, šťž');
+  });
 });
 
 describe('buildSnippet', () => {

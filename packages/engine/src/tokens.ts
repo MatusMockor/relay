@@ -32,6 +32,7 @@ import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MailboxRepository } from './ports/mailbox-repository';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
+import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
 import type { MessageParser } from './ports/message-parser';
 import type { MessageRepository } from './ports/message-repository';
 import type { PendingWorkRepository } from './ports/pending-work-repository';
@@ -75,6 +76,7 @@ export const PORT_TOKENS = {
   GoogleEventRepository: Symbol.for('relay.engine.GoogleEventRepository'),
   GoogleCalendarAdapters: Symbol.for('relay.engine.GoogleCalendarAdapters'),
   MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
+  MessageBodyRepairRepository: Symbol.for('relay.engine.MessageBodyRepairRepository'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
   MailSender: Symbol.for('relay.engine.MailSender'),
@@ -124,6 +126,7 @@ export interface PortRegistry {
   GoogleEventRepository: GoogleEventRepository;
   GoogleCalendarAdapters: GoogleCalendarAdapters;
   MessageAttachmentLookup: MessageAttachmentLookup;
+  MessageBodyRepairRepository: MessageBodyRepairRepository;
   UnitOfWork: UnitOfWork;
   MailProviderFactory: MailProviderFactory;
   MailSender: MailSender;

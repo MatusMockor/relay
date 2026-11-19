@@ -31,6 +31,7 @@ export type * from './mail-provider-factory';
 export type * from './mail-sender';
 export type * from './mailbox-repository';
 export type * from './message-attachment-lookup';
+export type * from './message-body-repair-repository';
 export type * from './message-parser';
 export type * from './message-repository';
 export type * from './pending-work-repository';

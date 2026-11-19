@@ -7,6 +7,7 @@
     "*.config.ts",
     "renderer-csp.ts",
     "build-time-env.ts",
+    "main-chunk-banner.ts",
     "workspace-packages.ts"
   ]
 }
