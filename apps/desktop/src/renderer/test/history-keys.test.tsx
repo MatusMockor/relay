@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { act, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { demoIds } from '../src/data/demo/seed/ids';
+import { openThread } from '../src/features/mail/navigation';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setUi, useUiStore } from '../src/state/ui-store';
 import { demoClient, openThreadBySubject, press } from './features-support';
 import { renderApp, resetStores } from './support/render-app';
 
 const SUBJECT = 'Obed v piatok?';
+const HTML_SUBJECT = 'Č. 212: CSS anchor positioning v praxi';
 
 const back = (target: Element = document.body): boolean =>
   press('[', { ctrlKey: true, code: 'BracketLeft' }, target);
@@ -106,5 +109,29 @@ describe('history keyboard shortcuts', () => {
 
     expect(panel.getByText('Späť')).toBeDefined();
     expect(panel.getByText('Dopredu')).toBeDefined();
+  });
+
+  it('ignores the shortcuts while typing inside an HTML mail', async () => {
+    await start();
+    await openThreadBySubject(SUBJECT);
+    act(() => {
+      openThread(demoIds.thread('o-newsletter'));
+    });
+    const frame = await screen.findByTitle(`Obsah správy: ${HTML_SUBJECT}`);
+    const view = (frame as HTMLIFrameElement).contentWindow;
+    expect(view).not.toBeNull();
+    if (view === null) {
+      return;
+    }
+    await waitFor(() => {
+      expect(fireEvent.mouseDown(view, { button: 3 })).toBe(false);
+    });
+    const field = view.document.createElement('input');
+    view.document.body.append(field);
+
+    expect(back(field)).toBe(true);
+    expect(useUiStore.getState().openThreadId).toBe(demoIds.thread('o-newsletter'));
+    back(view.document.body);
+    expect(useUiStore.getState().openThreadId).toBe(demoIds.thread('c-lunch'));
   });
 });
