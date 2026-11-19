@@ -54,6 +54,8 @@ export const pushLayer = (
 
 export const hasOpenLayer = (): boolean => stack.length > 0;
 
+export const openLayerCount = (): number => stack.length;
+
 export const resetLayers = (): void => {
   stack.length = 0;
 };

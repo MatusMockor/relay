@@ -4,14 +4,20 @@ export interface AppCommandWindow {
   on(event: 'app-command', listener: (event: unknown, command: string) => void): unknown;
 }
 
-export const trackBackNavigation = (
+const HISTORY_COMMANDS: Readonly<Record<string, MenuCommand>> = {
+  'browser-backward': { command: 'navigate-back' },
+  'browser-forward': { command: 'navigate-forward' },
+};
+
+export const trackHistoryCommands = (
   window: AppCommandWindow,
   request: (command: MenuCommand) => void,
 ): void => {
   window.on('app-command', (_event, command) => {
-    if (command !== 'browser-backward') {
+    const menuCommand = HISTORY_COMMANDS[command];
+    if (menuCommand === undefined) {
       return;
     }
-    request({ command: 'navigate-back' });
+    request(menuCommand);
   });
 };

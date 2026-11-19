@@ -16,11 +16,8 @@ export const usePersistAutomations = (): PersistAutomations => {
   return {
     saving: replace.isPending,
     persist: (inputs, onSaved) => {
-      replace.mutate(inputs, {
-        onSuccess: onSaved,
-        onError: (error) => {
-          showToast(describeError(error));
-        },
+      void replace.mutateAsync(inputs).then(onSaved, (error: unknown) => {
+        showToast(describeError(error));
       });
     },
   };

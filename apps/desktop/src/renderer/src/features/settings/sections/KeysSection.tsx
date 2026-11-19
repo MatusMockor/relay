@@ -14,6 +14,8 @@ const ROWS: readonly (readonly [string, readonly string[]])[] = [
   ['Prejsť na Doručenú poštu', ['G', 'I']],
   ['Prejsť na Hotovo', ['G', 'E']],
   ['Skryť priečinky / pravý panel', ['[', 'I']],
+  ['Späť', [`${MOD}[`]],
+  ['Dopredu', [`${MOD}]`]],
 ];
 
 export function KeysSection() {
