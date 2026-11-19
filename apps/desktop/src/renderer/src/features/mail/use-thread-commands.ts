@@ -6,28 +6,13 @@ import { useClient } from '../../data/hooks/services-context';
 import { useThreadAction } from '../../data/hooks/use-thread-action';
 import type { ProjectionHint } from '../../data/thread-projection';
 import { describeWhen } from '../../lib/dates';
+import { viewOf } from '../../state/folders';
 import { dropUndo, showToast } from '../../state/toast-store';
 import { useUiStore } from '../../state/ui-store';
 import type { ListItem } from './list-items';
 import type { MoveTarget } from './move-targets';
-import { backToList, openThread } from './navigation';
-import { neighborOf, selectKey } from './selection';
-
-const retire = (items: readonly ListItem[], key: string): void => {
-  const next = neighborOf(items, key);
-  const open = useUiStore.getState().openThreadId;
-  if (open === key) {
-    if (next?.kind === 'thread') {
-      openThread(next.thread.id);
-      return;
-    }
-    backToList();
-    return;
-  }
-  if (next !== null) {
-    selectKey(next.key);
-  }
-};
+import { retire } from './retire';
+import { useCompleteTask } from './use-complete-task';
 
 const restoreMessage = (thread: ThreadSummary): string =>
   thread.state === 'trash' ? 'Obnovené do Doručenej pošty' : 'Vrátené do Doručenej pošty';
@@ -38,6 +23,7 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
   const mutation = useThreadAction((error) => {
     showToast(describeError(error));
   });
+  const completeTask = useCompleteTask(items);
   const apply = (
     thread: ThreadSummary,
     action: ThreadAction,
@@ -74,6 +60,10 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       return;
     }
     const { thread } = item;
+    if (viewOf(useUiStore.getState().folder) === 'tasks') {
+      completeTask(thread);
+      return;
+    }
     if (thread.state === 'spam') {
       toggleSpam(item);
       return;

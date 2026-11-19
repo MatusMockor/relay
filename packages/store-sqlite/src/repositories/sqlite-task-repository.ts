@@ -30,6 +30,7 @@ export class SqliteTaskRepository implements TaskRepository {
           and(
             eq(tasks.userId, userId),
             query.state === null ? undefined : eq(tasks.state, query.state),
+            query.threadId === undefined ? undefined : eq(tasks.threadId, query.threadId),
             position === null
               ? undefined
               : or(
