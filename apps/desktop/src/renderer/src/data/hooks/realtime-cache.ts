@@ -1,4 +1,4 @@
-import type { RealtimeEvent, ThreadDetail } from '@relay/shared';
+import type { AccountId, RealtimeEvent, ThreadDetail } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import { applyAiJobUpdate } from './ai-job-cache';
 import { calendarKeys } from './calendar-keys';
@@ -8,6 +8,17 @@ import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
 
 const invalidate = (client: QueryClient, key: readonly unknown[]) => {
   invalidateBatched(client, key);
+};
+
+const invalidateAccountThreads = (client: QueryClient, accountId: AccountId) => {
+  client
+    .getQueriesData<ThreadDetail>({ queryKey: queryKeys.threadDetails() })
+    .forEach(([key, detail]) => {
+      if (detail?.thread.accountId !== accountId) {
+        return;
+      }
+      invalidate(client, key);
+    });
 };
 
 export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): void => {
@@ -21,6 +32,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   }
   if (event.type === 'thread.removed') {
     removeThreadFromLists(client, event.data.threadId);
+    invalidate(client, queryKeys.thread(event.data.threadId));
     return;
   }
   if (event.type === 'message.upserted') {
@@ -79,6 +91,7 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
       invalidate(client, queryKeys.allMailboxes());
       invalidate(client, calendarKeys.all());
       invalidate(client, queryKeys.threadLists());
+      invalidateAccountThreads(client, event.data.accountId);
     }
   }
 };
