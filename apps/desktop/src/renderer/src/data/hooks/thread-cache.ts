@@ -1,4 +1,4 @@
-import type { ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
+import type { FolderView, ThreadDetail, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ThreadListParams } from '../MailClient';
 import { staysInView } from '../thread-projection';
@@ -49,6 +49,32 @@ export const removeThreadFromLists = (client: QueryClient, threadId: ThreadId): 
   });
 };
 
+export const removeThreadFromView = (
+  client: QueryClient,
+  view: FolderView,
+  threadId: ThreadId,
+): void => {
+  snapshotThreadLists(client).forEach(([key, page]) => {
+    if (page === undefined || paramsOf(key)?.view !== view) {
+      return;
+    }
+    client.setQueryData<ThreadPage>(key, {
+      ...page,
+      items: page.items.filter((item) => item.id !== threadId),
+    });
+  });
+};
+
+export const isThreadInView = (
+  client: QueryClient,
+  view: FolderView,
+  threadId: ThreadId,
+): boolean =>
+  snapshotThreadLists(client).some(
+    ([key, page]) =>
+      paramsOf(key)?.view === view && page?.items.some((item) => item.id === threadId) === true,
+  );
+
 export const findCachedThread = (client: QueryClient, threadId: ThreadId): ThreadSummary | null => {
   for (const [, page] of snapshotThreadLists(client)) {
     const found = page?.items.find((item) => item.id === threadId);
@@ -58,6 +84,11 @@ export const findCachedThread = (client: QueryClient, threadId: ThreadId): Threa
   }
   return null;
 };
+
+export const findKnownThread = (client: QueryClient, threadId: ThreadId): ThreadSummary | null =>
+  findCachedThread(client, threadId) ??
+  client.getQueryData<ThreadDetail>(queryKeys.thread(threadId))?.thread ??
+  null;
 
 export const restoreThreadInLists = (
   client: QueryClient,

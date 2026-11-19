@@ -66,7 +66,11 @@ export const folderQueryConditions = (
   and(
     eq(threads.userId, userId),
     query.accountId === null ? undefined : eq(threads.accountId, query.accountId),
-    folderViewFilter({ view: query.view, splitSelected: query.splitId !== null }),
+    folderViewFilter({
+      view: query.view,
+      splitSelected: query.splitId !== null,
+      searching: toSearchTerms(query.search).length > 0,
+    }),
     splitFilter(query),
     labelFilter(query),
     mailboxFilter(query),
