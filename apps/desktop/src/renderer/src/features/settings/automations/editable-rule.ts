@@ -7,6 +7,7 @@ import {
   type AutomationPreset,
   isParameterizedAction,
 } from '@relay/shared';
+import type { RuleTemplate } from './rule-templates';
 
 export interface EditableRule {
   readonly key: string;
@@ -33,18 +34,23 @@ export const editableOf = (automation: Automation): EditableRule => ({
   },
 });
 
-export const newRule = (key: string, runner: AiRunnerKind, order: number): EditableRule => ({
+export const newRule = (
+  key: string,
+  runner: AiRunnerKind,
+  order: number,
+  template: RuleTemplate,
+): EditableRule => ({
   key,
   preset: null,
   saved: false,
   input: {
     accountId: null,
-    name: 'Nové pravidlo',
+    name: template.name,
     enabled: true,
     order,
-    conditions: [],
+    conditions: [...template.conditions],
     ai: { runner, model: null, effort: null, instructions: null },
-    actions: [{ type: 'task' }],
+    actions: [...template.actions],
   },
 });
 

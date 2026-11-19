@@ -1,31 +1,24 @@
 // @vitest-environment jsdom
 import { type Automation, MailboxIdSchema } from '@relay/shared';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { toAutomationInput } from '../src/data/hooks/use-replace-automations';
-import { setUi } from '../src/state/ui-store';
 import { demoClient, settle } from './features-support';
-import { renderApp, resetStores } from './support/render-app';
+import { backToList, click, openAutomations, openRule } from './support/automations';
+import { resetStores } from './support/render-app';
 
-const openSection = async (client: MailClient) => {
-  renderApp({ demo: () => client });
-  await screen.findByRole('listbox', { name: 'Konverzácie' });
-  act(() => {
-    setUi({ overlay: { kind: 'settings', section: 'automations', adding: false } });
-  });
-  const sheet = screen.getByRole('dialog', { name: 'Nastavenia' });
-  await within(sheet).findByRole('region', { name: 'Pravidlo Tibor' });
-  return sheet;
-};
+const openSection = openAutomations;
 
-const card = (sheet: HTMLElement, name: string) =>
-  within(sheet).getByRole('region', { name: `Pravidlo ${name}` });
-
-const click = (element: HTMLElement) => {
-  act(() => {
-    fireEvent.click(element);
-  });
+const card = (sheet: HTMLElement, name: string) => {
+  const open = within(sheet).queryByRole('region', { name: `Pravidlo ${name}` });
+  if (open !== null) {
+    return open;
+  }
+  if (within(sheet).queryByRole('list', { name: 'Pravidlá' }) === null) {
+    backToList(sheet);
+  }
+  return openRule(sheet, name);
 };
 
 const popover = (name: string) => screen.getByRole('dialog', { name });

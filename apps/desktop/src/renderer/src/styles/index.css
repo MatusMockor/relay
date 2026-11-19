@@ -22,6 +22,7 @@
 @import './settings-parts.css';
 @import './accounts.css';
 @import './automations.css';
+@import './automation-list.css';
 @import './model-picker.css';
 @import './onboarding.css';
 @import './updates.css';

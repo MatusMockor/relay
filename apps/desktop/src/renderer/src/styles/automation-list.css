@@ -1,0 +1,139 @@
+.au-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.au-bar .btn {
+  flex: none;
+}
+.au-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.012);
+  overflow: hidden;
+}
+.au-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 12px 8px;
+  border-top: 1px solid var(--line-soft);
+  transition: background 0.12s;
+}
+.au-row:first-child {
+  border-top: 0;
+}
+.au-row:hover {
+  background: var(--hover);
+}
+.au-row.off .au-open,
+.au-row.off .au-acc {
+  opacity: 0.5;
+}
+.au-row.drop-above {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.au-row.drop-below {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.au-grip {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 12px;
+  height: 18px;
+  border-radius: 3px;
+}
+button.au-grip {
+  background: radial-gradient(circle at 3px 3px, var(--faint) 1.1px, transparent 1.5px) 0 0 / 6px
+    6px;
+  opacity: 0.55;
+  cursor: grab;
+}
+button.au-grip:active {
+  cursor: grabbing;
+}
+.au-row:hover button.au-grip,
+button.au-grip:focus-visible {
+  opacity: 1;
+}
+button.au-grip:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 3px;
+}
+.au-open {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+.au-open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.au-open:focus-visible {
+  outline: none;
+}
+.au-open:focus-visible::after {
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+}
+.au-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.au-name b,
+.au-sum {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.au-name b {
+  color: var(--fg);
+  font-size: var(--fs-base);
+  font-weight: var(--w-semibold);
+}
+.au-sum {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.au-acc {
+  flex: none;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.au-row > .sw {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+.au-chev {
+  flex: none;
+  display: inline-flex;
+  color: var(--faint);
+}
+.au-row:hover .au-chev {
+  color: var(--fg3);
+}
+.scope.warn {
+  color: var(--warn);
+  box-shadow: inset 0 0 0 1px rgba(242, 180, 90, 0.35);
+}
+.scope.bad {
+  color: var(--bad);
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 122, 0.35);
+}

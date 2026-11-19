@@ -1,38 +1,20 @@
 // @vitest-environment jsdom
-import type { Automation } from '@relay/shared';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { MailClient } from '../src/data/MailClient';
-import { setUi } from '../src/state/ui-store';
 import { demoClient, settle } from './features-support';
-import { renderApp, resetStores } from './support/render-app';
+import { click, openAutomations, row, ruleNames, stored } from './support/automations';
+import { resetStores } from './support/render-app';
 
-const openSection = async (client: MailClient) => {
-  renderApp({ demo: () => client });
-  await screen.findByRole('listbox', { name: 'Konverzácie' });
-  act(() => {
-    setUi({ overlay: { kind: 'settings', section: 'automations', adding: false } });
-  });
-  const sheet = screen.getByRole('dialog', { name: 'Nastavenia' });
-  await within(sheet).findByRole('region', { name: 'Pravidlo Tibor' });
-  return sheet;
-};
+const dragData = () => ({
+  dataTransfer: {
+    effectAllowed: 'all',
+    dropEffect: 'none',
+    setData: () => undefined,
+    setDragImage: () => undefined,
+  },
+});
 
-const card = (sheet: HTMLElement, name: string) =>
-  within(sheet).getByRole('region', { name: `Pravidlo ${name}` });
-
-const click = (element: HTMLElement) => {
-  act(() => {
-    fireEvent.click(element);
-  });
-};
-
-const popover = (name: string) => screen.getByRole('dialog', { name });
-
-const stored = async (client: MailClient, name: string): Promise<Automation | undefined> =>
-  (await client.listAutomations()).find((item) => item.name === name);
-
-describe('Nastavenia > Automatizácie', () => {
+describe('Nastavenia > Automatizácie > zoznam', () => {
   beforeEach(() => {
     resetStores();
   });
@@ -40,210 +22,105 @@ describe('Nastavenia > Automatizácie', () => {
     resetStores();
   });
 
-  it('lists the rules as sentences and toggles one', async () => {
-    const client = demoClient();
-    const sheet = await openSection(client);
-    const mentions = card(sheet, 'Jira spomenutia');
+  it('lists every rule as one row with a readable summary', async () => {
+    const sheet = await openAutomations(demoClient());
+    const mentions = row(sheet, 'Jira spomenutia');
 
-    expect(within(mentions).getByRole('button', { name: 'Účet: eFabrica' })).toBeDefined();
-    expect(within(mentions).getByText('Keď')).toBeDefined();
-    expect(within(mentions).getByText('Potom')).toBeDefined();
-    expect(
-      within(mentions)
-        .getAllByRole('button', { name: /^Upraviť podmienku / })
-        .map((button) => button.getAttribute('aria-label')),
-    ).toEqual([
-      'Upraviť podmienku Jira udalosť je Spomenutie',
-      'Upraviť podmienku projekt je ECOM',
+    expect(ruleNames(sheet)).toEqual([
+      'Pravidlo Jira spomenutia',
+      'Pravidlo Tibor',
+      'Pravidlo GitLab do Projektov',
+      'Pravidlo Jira tasky',
     ]);
     expect(
-      within(mentions)
-        .getAllByRole('button', { name: /^Zmeniť akciu / })
-        .map((button) => button.getAttribute('aria-label')),
-    ).toEqual(['Zmeniť akciu AI zhrnutie', 'Zmeniť akciu Vytvoriť úlohu']);
-    expect(
-      within(card(sheet, 'Jira tasky')).getByText('Predvolené', { selector: '.scope' }),
-    ).toBeDefined();
-    click(within(card(sheet, 'Tibor')).getByRole('switch', { name: 'Pravidlo Tibor zapnuté' }));
+      within(mentions).getByRole('button', { name: 'Otvoriť pravidlo Jira spomenutia' })
+        .textContent,
+    ).toContain('Jira udalosť je Spomenutie a projekt je ECOM → AI zhrnutie, Vytvoriť úlohu');
+    expect(within(mentions).getByText('eFabrica')).toBeDefined();
+    expect(within(row(sheet, 'Tibor')).getByText('Všetky účty')).toBeDefined();
+    expect(within(row(sheet, 'Jira tasky')).getByText('Predvolené')).toBeDefined();
+    expect(within(row(sheet, 'Jira tasky')).getByText(/^Z Jiry → Vytvoriť úlohu$/)).toBeDefined();
+    expect(row(sheet, 'Jira tasky').className).toContain('off');
+  });
+
+  it('toggles a rule from the list', async () => {
+    const client = demoClient();
+    const sheet = await openAutomations(client);
+
+    click(within(row(sheet, 'Tibor')).getByRole('switch', { name: 'Pravidlo Tibor zapnuté' }));
     await settle();
 
     expect((await stored(client, 'Tibor'))?.enabled).toBe(false);
   });
 
-  it('adds a condition and an action through the popovers', async () => {
+  it('reorders rules with the keyboard', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
-    const tibor = card(sheet, 'Tibor');
+    const sheet = await openAutomations(client);
+    const handle = within(row(sheet, 'Tibor')).getByRole('button', {
+      name: 'Presunúť pravidlo Tibor',
+    });
 
-    click(within(tibor).getByRole('button', { name: 'Pridať podmienku' }));
-    const form = popover('Nová podmienka');
     act(() => {
-      fireEvent.change(within(form).getByLabelText('Podmienka'), {
-        target: { value: 'jiraEvent' },
-      });
-      fireEvent.change(within(form).getByLabelText('Udalosť'), { target: { value: 'comment' } });
+      handle.focus();
+      fireEvent.keyDown(handle, { key: 'ArrowUp', altKey: true });
     });
-    click(within(form).getByRole('button', { name: 'Pridať' }));
-    await settle();
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať akciu' }));
-    click(within(popover('Nová akcia')).getByRole('button', { name: 'Archivovať' }));
     await settle();
 
-    expect(await stored(client, 'Tibor')).toMatchObject({
-      conditions: [
-        { type: 'fromAddress', address: 'tibor@codevo.app' },
-        { type: 'jiraEvent', kind: 'comment' },
-      ],
-      actions: [{ type: 'task' }, { type: 'notify' }, { type: 'archive' }],
-    });
+    expect((await client.listAutomations()).map((rule) => [rule.name, rule.order])).toEqual([
+      ['Tibor', 0],
+      ['Jira spomenutia', 1],
+      ['GitLab do Projektov', 2],
+      ['Jira tasky', 3],
+    ]);
+    expect(ruleNames(sheet)[0]).toBe('Pravidlo Tibor');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Presunúť pravidlo Tibor');
   });
 
-  it('changes the provider and the model and edits the instructions', async () => {
+  it('ignores arrow keys without Alt and moves past the edges', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
-
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: /^Model AI:/ }));
-    const picker = popover('Model AI');
-    click(within(picker).getByRole('radio', { name: /Codex/ }));
-    await settle();
-    const models = within(popover('Model AI')).getByRole('radiogroup', { name: 'Model' });
-    expect(
-      within(models)
-        .getAllByRole('radio')
-        .map((item) => item.textContent),
-    ).toEqual(['GPT-6.1 Sol✓', 'GPT-6 Astra', 'GPT-6 Luna']);
-    click(within(models).getByRole('radio', { name: /GPT-6 Luna/ }));
-    await settle();
-    const instructions = within(card(sheet, 'Tibor')).getByRole('textbox', {
-      name: 'Inštrukcie pre AI',
+    const sheet = await openAutomations(client);
+    const first = within(row(sheet, 'Jira spomenutia')).getByRole('button', {
+      name: 'Presunúť pravidlo Jira spomenutia',
     });
+
     act(() => {
-      fireEvent.change(instructions, { target: { value: '  Iba keď niečo chce.  ' } });
-      fireEvent.blur(instructions);
+      fireEvent.keyDown(first, { key: 'ArrowDown' });
+      fireEvent.keyDown(first, { key: 'ArrowUp', altKey: true });
     });
     await settle();
 
-    expect((await stored(client, 'Tibor'))?.ai).toEqual({
-      runner: 'codex',
-      model: 'gpt-6-luna',
-      effort: null,
-      instructions: 'Iba keď niečo chce.',
-    });
-  });
-
-  it('deletes a rule', async () => {
-    const client = demoClient();
-    const sheet = await openSection(client);
-
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Odstrániť pravidlo Tibor' }));
-    await settle();
-
-    expect((await client.listAutomations()).map((item) => item.name)).toEqual([
+    expect((await client.listAutomations()).map((rule) => rule.name)).toEqual([
       'Jira spomenutia',
+      'Tibor',
       'GitLab do Projektov',
       'Jira tasky',
     ]);
-    expect(within(sheet).queryByRole('region', { name: 'Pravidlo Tibor' })).toBeNull();
   });
 
-  it('scopes the default Jira rule to one account', async () => {
+  it('reorders rules by dragging a row', async () => {
     const client = demoClient();
-    const sheet = await openSection(client);
-    const efabrica = (await client.listAccounts()).find((item) => item.displayName === 'eFabrica');
-    const token = within(card(sheet, 'Jira tasky')).getByRole('button', {
-      name: 'Účet: všetky účty',
+    const sheet = await openAutomations(client);
+    const handle = within(row(sheet, 'Jira spomenutia')).getByRole('button', {
+      name: 'Presunúť pravidlo Jira spomenutia',
     });
 
-    expect(token.hasAttribute('disabled')).toBe(false);
-    click(token);
-    click(within(popover('Účet')).getByRole('button', { name: 'eFabrica' }));
+    act(() => {
+      fireEvent.dragStart(handle, dragData());
+    });
+    act(() => {
+      fireEvent.dragOver(row(sheet, 'GitLab do Projektov'), dragData());
+    });
+    expect(row(sheet, 'GitLab do Projektov').className).toContain('drop-below');
+    act(() => {
+      fireEvent.drop(row(sheet, 'GitLab do Projektov'), dragData());
+    });
     await settle();
 
-    expect(efabrica).toBeDefined();
-    expect(await stored(client, 'Jira tasky')).toMatchObject({
-      preset: 'jiraTasks',
-      accountId: efabrica?.id,
-    });
-  });
-
-  it('keeps a new rule unsaved until it has a condition', async () => {
-    const client = demoClient();
-    const sheet = await openSection(client);
-
-    click(within(sheet).getByRole('button', { name: '+ Nové pravidlo' }));
-    const draft = card(sheet, 'Nové pravidlo');
-    expect(draft.className).toBe('au ed');
-    expect(within(draft).getByRole('status').textContent).toBe(
-      'Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.',
-    );
-    click(within(draft).getByRole('button', { name: 'Premenovať pravidlo Nové pravidlo' }));
-    act(() => {
-      fireEvent.change(within(draft).getByLabelText('Názov pravidla'), {
-        target: { value: 'Faktúry' },
-      });
-      fireEvent.keyDown(within(draft).getByLabelText('Názov pravidla'), { key: 'Enter' });
-    });
-    await settle();
-    expect(await client.listAutomations()).toHaveLength(4);
-
-    click(within(card(sheet, 'Faktúry')).getByRole('button', { name: 'Pridať podmienku' }));
-    const form = popover('Nová podmienka');
-    act(() => {
-      fireEvent.change(within(form).getByLabelText('Podmienka'), {
-        target: { value: 'fromDomain' },
-      });
-      fireEvent.change(within(form).getByLabelText('Doména'), { target: { value: 'firma.sk' } });
-    });
-    click(within(form).getByRole('button', { name: 'Pridať' }));
-
-    await waitFor(async () => {
-      expect(await stored(client, 'Faktúry')).toMatchObject({
-        accountId: null,
-        enabled: true,
-        conditions: [{ type: 'fromDomain', domain: 'firma.sk' }],
-        actions: [{ type: 'task' }],
-        ai: { runner: 'claude', model: null, effort: null, instructions: null },
-      });
-    });
-    expect(within(sheet).queryByRole('status')).toBeNull();
-  });
-
-  it('adds recipient and attachment conditions', async () => {
-    const client = demoClient();
-    const sheet = await openSection(client);
-
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať podmienku' }));
-    const recipient = popover('Nová podmienka');
-    act(() => {
-      fireEvent.change(within(recipient).getByLabelText('Podmienka'), {
-        target: { value: 'recipient' },
-      });
-      fireEvent.change(within(recipient).getByLabelText('Pole'), { target: { value: 'cc' } });
-      fireEvent.change(within(recipient).getByLabelText('Adresa alebo doména'), {
-        target: { value: '@firma.sk' },
-      });
-    });
-    click(within(recipient).getByRole('button', { name: 'Pridať' }));
-    await settle();
-    click(within(card(sheet, 'Tibor')).getByRole('button', { name: 'Pridať podmienku' }));
-    const attachment = popover('Nová podmienka');
-    act(() => {
-      fireEvent.change(within(attachment).getByLabelText('Podmienka'), {
-        target: { value: 'hasAttachment' },
-      });
-    });
-    click(within(attachment).getByRole('button', { name: 'Pridať' }));
-    await settle();
-
-    expect((await stored(client, 'Tibor'))?.conditions).toEqual([
-      { type: 'fromAddress', address: 'tibor@codevo.app' },
-      { type: 'recipient', field: 'cc', match: 'domain', value: 'firma.sk' },
-      { type: 'hasAttachment' },
+    expect((await client.listAutomations()).map((rule) => [rule.name, rule.order])).toEqual([
+      ['Tibor', 0],
+      ['GitLab do Projektov', 1],
+      ['Jira spomenutia', 2],
+      ['Jira tasky', 3],
     ]);
-    expect(
-      within(card(sheet, 'Tibor')).getByRole('button', {
-        name: 'Upraviť podmienku v kópii je firma.sk',
-      }),
-    ).toBeDefined();
   });
 });
