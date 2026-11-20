@@ -14,12 +14,13 @@ import {
   goBack,
   moveSelection,
   openRight,
-  openSearch,
   selectFolder,
   selectScope,
   toggleRight,
 } from '../mail/navigation';
 import { useOpenItem } from '../mail/use-open-item';
+import { openSearchPalette } from '../search/search-actions';
+import { isSearchShortcut } from '../search/search-shortcut';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
@@ -66,6 +67,10 @@ export const useKeyboard = (): void => {
       claim(() => {
         setUi({ overlay: { kind: 'palette' } });
       });
+      return;
+    }
+    if (isSearchShortcut(event)) {
+      claim(openSearchPalette);
       return;
     }
     if (mod && event.key === ',') {
@@ -200,7 +205,7 @@ export const useKeyboard = (): void => {
         openRight('ai');
         setTimeout(() => document.getElementById('chat-q')?.focus(), 0);
       },
-      '/': openSearch,
+      '/': openSearchPalette,
       '?': () => {
         setUi({ overlay: { kind: 'shortcuts' } });
       },

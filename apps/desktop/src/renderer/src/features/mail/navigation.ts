@@ -11,7 +11,14 @@ import type { ListItem } from './list-items';
 import { selectKey } from './selection';
 
 export const selectFolder = (folder: Folder): void => {
-  setUi({ folder, openThreadId: null, reply: null, searchOpen: false, query: '' });
+  setUi({
+    folder,
+    openThreadId: null,
+    reply: null,
+    searchOpen: false,
+    query: '',
+    searchFilters: null,
+  });
 };
 
 export const selectScope = (scope: AccountScope): void => {
@@ -69,7 +76,7 @@ export const openSearch = (): void => {
 };
 
 export const closeSearch = (): void => {
-  setUi({ searchOpen: false, query: '' });
+  setUi({ searchOpen: false, query: '', searchFilters: null });
 };
 
 export const goBack = (): void => {

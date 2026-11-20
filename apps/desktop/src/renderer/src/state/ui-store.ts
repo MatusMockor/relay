@@ -2,6 +2,7 @@ import type { AccountId, Address, MessageId, SettingsSection, ThreadId } from '@
 import { create } from 'zustand';
 import type { AnchorRect } from '@relay/ui';
 import { type AccountScope, type Folder, INBOX } from './folders';
+import type { SearchFilters } from './search-filters';
 
 export type RightTab = 'contact' | 'ai' | 'calendar';
 export type { SettingsSection };
@@ -35,6 +36,7 @@ export interface SettingsOverlay {
 
 export type OverlayState =
   | { readonly kind: 'palette' }
+  | { readonly kind: 'search' }
   | { readonly kind: 'shortcuts' }
   | SettingsOverlay
   | { readonly kind: 'compose'; readonly init: ComposeInit; readonly scope: AccountScope }
@@ -59,6 +61,7 @@ export interface UiState {
   readonly selected: Readonly<Record<string, string>>;
   readonly searchOpen: boolean;
   readonly query: string;
+  readonly searchFilters: SearchFilters | null;
   readonly leftUser: boolean | null;
   readonly rightOpen: boolean;
   readonly rightTab: RightTab;
@@ -77,6 +80,7 @@ export const INITIAL_UI: UiState = {
   selected: {},
   searchOpen: false,
   query: '',
+  searchFilters: null,
   leftUser: null,
   rightOpen: true,
   rightTab: 'contact',

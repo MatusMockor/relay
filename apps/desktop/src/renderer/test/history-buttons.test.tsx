@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoIds } from '../src/data/demo/seed/ids';
 import type { MailClient } from '../src/data/MailClient';
-import { openThread } from '../src/features/mail/navigation';
+import { openSearch, openThread } from '../src/features/mail/navigation';
 import { setUi, useUiStore } from '../src/state/ui-store';
 import { demoClient, openThreadBySubject, press, settle } from './features-support';
 import { renderApp, resetStores } from './support/render-app';
@@ -60,7 +60,9 @@ describe('mouse back and forward buttons', () => {
 
   it('closes the search when no thread is open', async () => {
     await start();
-    press('/', {}, document.body);
+    act(() => {
+      openSearch();
+    });
     expect(useUiStore.getState().searchOpen).toBe(true);
     releaseButton(3);
     expect(useUiStore.getState().searchOpen).toBe(false);

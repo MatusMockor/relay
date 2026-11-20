@@ -37,17 +37,24 @@ export function Overlay({ placement = 'top', onClose, onKey, children }: Overlay
   );
 }
 
-export interface SheetProps extends Omit<OverlayProps, 'placement'> {
+export interface SheetProps extends OverlayProps {
   readonly label: string;
   readonly className?: string;
   readonly role?: 'dialog' | 'alertdialog';
 }
 
-export function Sheet({ label, className, role = 'dialog', children, ...overlay }: SheetProps) {
+export function Sheet({
+  label,
+  className,
+  role = 'dialog',
+  placement = 'mid',
+  children,
+  ...overlay
+}: SheetProps) {
   const surface = useRef<HTMLDivElement>(null);
   useFocusTrap(surface);
   return (
-    <Overlay placement="mid" {...overlay}>
+    <Overlay placement={placement} {...overlay}>
       <div
         ref={surface}
         className={clsx('surface', className)}

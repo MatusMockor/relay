@@ -1,6 +1,7 @@
 import { DEFAULT_USER_SETTINGS, type MailAccount, type Split, type Task } from '@relay/shared';
 import { buildDemoAutomations } from '../demo-automations';
 import type { DemoState, DemoThreadRecord } from '../demo-state';
+import { buildArchive } from './build-archive';
 import { buildDrafts } from './build-drafts';
 import { buildThreadRecord } from './build-threads';
 import { DEMO_ACCOUNTS, DEMO_LABELS } from './catalog';
@@ -128,6 +129,7 @@ export const buildDemoState = (now: Date = new Date()): DemoState => {
     })),
     mailboxes: buildDemoMailboxes(),
     threads,
+    archive: buildArchive(now),
     tasks: buildTasks(seeds, now),
     drafts,
     scheduled,

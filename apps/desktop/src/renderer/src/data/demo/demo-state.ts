@@ -29,6 +29,7 @@ export interface DemoState {
   labels: Label[];
   mailboxes: Mailbox[];
   threads: Map<string, DemoThreadRecord>;
+  archive: Map<string, DemoThreadRecord>;
   tasks: Task[];
   drafts: Draft[];
   scheduled: ScheduledSend[];

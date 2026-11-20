@@ -2,6 +2,7 @@ import type { IpcResult, RealtimeEvent, RelayBridge } from '@relay/shared';
 import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient } from '../MailClient';
+import { unsupportedServerSearch } from '../server-search';
 import { attachmentFileOf } from './attachment-file';
 import { createLocalCalendarClient } from './local-calendar-client';
 import { createLocalGoogleCalendarClient } from './local-google-calendar-client';
@@ -31,6 +32,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     ...createLocalGoogleCalendarClient(bridge),
     listThreads: (query) => unwrap(bridge.invoke('local.threads.list', query)),
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
+    searchServer: (request) => Promise.resolve(unsupportedServerSearch(request)),
     prepareThreadAi: (threadId, timeZone) =>
       unwrap(bridge.invoke('local.threads.prepareAi', { threadId, timeZone })),
     requestThreadSummary: (threadId, timeZone) =>

@@ -8,7 +8,8 @@ import { NAV_VIEWS, VIEW_META, viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { centerRect } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
-import { openRight, openSearch, selectFolder, toggleRight } from '../mail/navigation';
+import { openRight, selectFolder, toggleRight } from '../mail/navigation';
+import { openSearchPalette } from '../search/search-actions';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
@@ -237,11 +238,11 @@ export const useCommands = (): Command[] => {
     },
     {
       id: 'search',
-      label: 'Hľadať v zozname',
-      keys: ['/'],
+      label: 'Hľadať v pošte',
+      keys: [`${MOD}F`],
       icon: <Icon name="search" />,
-      alias: 'search filter',
-      run: openSearch,
+      alias: 'search filter hladat zoznam',
+      run: openSearchPalette,
     },
     {
       id: 'reset-widths',

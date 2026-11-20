@@ -5,8 +5,8 @@ import {
   type ThreadPage,
   type ThreadSummary,
 } from '@relay/shared';
-import { foldText } from '../../lib/text';
 import type { ThreadListParams } from '../MailClient';
+import { isDemoSearching, matchesDemoSearch } from './demo-search-match';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 const ownEmails = (state: DemoState): Set<string> =>
@@ -20,8 +20,6 @@ const inSplit = (state: DemoState, thread: ThreadSummary, splitId: SplitId): boo
   return thread.splitIds.includes(splitId) && !(hidesTasks && hasOpenTask(state, thread.id));
 };
 
-const isSearching = (q: string | undefined): boolean => q !== undefined && q.trim() !== '';
-
 const inInbox = (state: DemoState, thread: ThreadSummary, params: ThreadListParams): boolean => {
   if (params.labelId !== undefined) {
     return thread.labelIds.includes(params.labelId);
@@ -29,7 +27,7 @@ const inInbox = (state: DemoState, thread: ThreadSummary, params: ThreadListPara
   if (params.splitId !== undefined) {
     return inSplit(state, thread, params.splitId);
   }
-  if (isSearching(params.q)) {
+  if (isDemoSearching(params.q)) {
     return true;
   }
   return thread.splitIds.length === 0;
@@ -75,21 +73,10 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
   return thread.state === params.view;
 };
 
-const matchesQuery = (thread: ThreadSummary, q: string | undefined): boolean => {
-  if (q === undefined || !isSearching(q)) {
-    return true;
-  }
-  const hay = foldText(
-    [
-      thread.subject,
-      thread.snippet,
-      thread.aiOneLiner ?? '',
-      thread.jiraKey ?? '',
-      ...thread.participants.map((p) => `${p.name ?? ''} ${p.email}`),
-    ].join(' '),
-  );
-  return hay.includes(foldText(q.trim()));
-};
+const inScope = (state: DemoState, record: DemoThreadRecord, params: ThreadListParams): boolean =>
+  params.everywhere === true
+    ? !isHeldThreadState(record.summary.state)
+    : inView(state, record, params);
 
 const sortFor = (view: ThreadListParams['view']) => (a: ThreadSummary, b: ThreadSummary) => {
   if (view === 'reminders') {
@@ -103,9 +90,9 @@ export const queryThreads = (state: DemoState, params: ThreadListParams): Thread
     .filter(
       (record) => params.accountId === undefined || record.summary.accountId === params.accountId,
     )
-    .filter((record) => inView(state, record, params))
+    .filter((record) => inScope(state, record, params))
+    .filter((record) => matchesDemoSearch(record, params))
     .map((record) => record.summary)
-    .filter((thread) => matchesQuery(thread, params.q))
     .sort(sortFor(params.view));
   const offset = params.cursor === undefined ? 0 : Number(params.cursor);
   const limit = params.limit ?? 50;

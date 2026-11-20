@@ -1,11 +1,17 @@
 import { Icon } from '@relay/ui';
-import { openSearch } from '../mail/navigation';
+import { MOD } from '../../lib/platform-keys';
+import { openSearchPalette } from '../search/search-actions';
 import { SearchInput } from './SearchInput';
 import { SearchKey } from './SearchKey';
 
 function SearchTrigger() {
   return (
-    <button type="button" className="srch-row" title="Hľadať (/)" onClick={openSearch}>
+    <button
+      type="button"
+      className="srch-row"
+      title={`Hľadať v pošte (${MOD}F)`}
+      onClick={openSearchPalette}
+    >
       <Icon name="search" size={14} />
       <span className="srch-lb">Hľadať</span>
       <SearchKey label="/" />

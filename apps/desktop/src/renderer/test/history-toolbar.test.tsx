@@ -2,6 +2,7 @@
 import { pushLayer } from '@relay/ui';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { openSearch } from '../src/features/mail/navigation';
 import { setUi, useUiStore } from '../src/state/ui-store';
 import { openThreadBySubject, press } from './features-support';
 import { renderApp, resetStores } from './support/render-app';
@@ -56,7 +57,9 @@ describe('toolbar back and forward buttons', () => {
 
   it('enables back as soon as the search opens', async () => {
     await start();
-    press('/', {}, document.body);
+    act(() => {
+      openSearch();
+    });
     expect(backButton().disabled).toBe(false);
     click(backButton());
     expect(useUiStore.getState().searchOpen).toBe(false);
@@ -65,7 +68,9 @@ describe('toolbar back and forward buttons', () => {
 
   it('keeps the focus in the search while going back so the search stays closed', async () => {
     await start();
-    press('/', {}, document.body);
+    act(() => {
+      openSearch();
+    });
     const field = screen.getByRole('textbox', { name: 'Hľadať v zozname' });
     expect(document.activeElement).toBe(field);
     let pressed = true;

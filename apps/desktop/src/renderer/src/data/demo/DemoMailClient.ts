@@ -18,6 +18,7 @@ import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
 import { DemoMoves } from './demo-moves';
 import { queryThreads } from './demo-query';
+import { createDemoServerSearch, type DemoServerSearchOptions } from './demo-server-search';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
 import type { DemoState } from './demo-state';
 import { buildDemoState } from './seed/build-state';
@@ -27,6 +28,7 @@ export interface DemoMailClientOptions {
   readonly now?: () => Date;
   readonly aiStepMs?: number;
   readonly state?: DemoState;
+  readonly serverSearch?: DemoServerSearchOptions;
 }
 
 const run = <T>(work: () => T): Promise<T> => {
@@ -85,6 +87,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     kind: 'demo',
     ...createDemoCalendarClient(now),
     listThreads: (params) => Promise.resolve(queryThreads(state, params)),
+    ...createDemoServerSearch(state, options.serverSearch),
     getThread: (threadId) =>
       run(() => {
         const found = record(threadId);

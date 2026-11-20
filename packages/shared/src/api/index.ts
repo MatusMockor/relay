@@ -14,6 +14,7 @@ export * from './endpoints/folders';
 export * from './endpoints/google-calendar';
 export * from './endpoints/health';
 export * from './endpoints/labels';
+export * from './endpoints/search';
 export * from './endpoints/settings';
 export * from './endpoints/splits';
 export * from './endpoints/sync';

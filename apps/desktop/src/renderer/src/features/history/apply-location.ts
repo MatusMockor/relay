@@ -21,6 +21,7 @@ export const applyLocation = (location: NavLocation): void => {
     openThreadId: location.openThreadId,
     searchOpen: location.searchOpen,
     query: location.searchOpen ? state.query : '',
+    searchFilters: location.searchOpen ? state.searchFilters : null,
     reply: state.reply?.threadId === location.openThreadId ? state.reply : null,
     selected: selectedFor(state, location),
     overlay: overlayOf(state, location.settings),
