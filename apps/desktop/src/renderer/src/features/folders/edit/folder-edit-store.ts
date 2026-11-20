@@ -19,7 +19,8 @@ export type FolderEdit =
       readonly kind: 'create';
       readonly accountId: AccountId;
       readonly parent: FolderTarget | null;
-    };
+    }
+  | { readonly kind: 'create-label'; readonly accountId: AccountId };
 
 interface FolderEditState {
   readonly edit: FolderEdit | null;
@@ -33,6 +34,9 @@ export const setFolderEdit = (edit: FolderEdit | null): void => {
 
 export const isRenaming = (edit: FolderEdit | null, mailbox: Mailbox): boolean =>
   edit?.kind === 'rename' && edit.target.mailbox.id === mailbox.id;
+
+export const isCreatingLabel = (edit: FolderEdit | null, accountId: AccountId): boolean =>
+  edit?.kind === 'create-label' && edit.accountId === accountId;
 
 export const isCreatingUnder = (edit: FolderEdit | null, mailbox: Mailbox | null): boolean =>
   edit?.kind === 'create' && (edit.parent?.mailbox.id ?? null) === (mailbox?.id ?? null);

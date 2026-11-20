@@ -6,7 +6,13 @@ import { useLabelColor } from '../../labels/use-label-color';
 import { selectFolder } from '../../mail/navigation';
 import type { TreeLeaf } from '../FolderTreeRows';
 import { useFolderMenu } from '../use-folder-menu';
-import { type FolderTarget, isCreatingUnder, isRenaming, useFolderEdit } from './folder-edit-store';
+import {
+  type FolderTarget,
+  isCreatingLabel,
+  isCreatingUnder,
+  isRenaming,
+  useFolderEdit,
+} from './folder-edit-store';
 import { CreateEditor, RenameEditor } from './FolderEditors';
 
 export const useFolderLeaves = (account: MailAccount, mailboxes: readonly Mailbox[]) => {
@@ -74,5 +80,5 @@ export const useFolderLeaves = (account: MailAccount, mailboxes: readonly Mailbo
   };
   const creatingTop =
     edit?.kind === 'create' && edit.accountId === account.id && isCreatingUnder(edit, null);
-  return { mailboxLeaf, labelLeaf, creatingTop };
+  return { mailboxLeaf, labelLeaf, creatingTop, creatingLabel: isCreatingLabel(edit, account.id) };
 };

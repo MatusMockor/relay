@@ -19,6 +19,7 @@ export function AccountFolders({ labels }: { readonly labels: readonly Label[] }
           account={account}
           grouped={grouped}
           mailboxes={mailboxes[index]?.data ?? []}
+          mailboxesLoaded={mailboxes[index]?.data !== undefined}
           labels={labels.filter((label) => label.accountId === account.id)}
         />
       ))}
