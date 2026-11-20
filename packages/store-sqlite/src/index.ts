@@ -3,6 +3,7 @@ export {
   createSqliteHistoryBackfills,
   createSqliteMessageAttachmentLookup,
   createSqliteMessageBodyRepairs,
+  createSqliteMessageUids,
   createSqliteRepositories,
 } from './create-sqlite-repositories';
 export * from './database';

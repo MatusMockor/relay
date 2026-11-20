@@ -35,6 +35,8 @@ export type * from './history-backfill-repository';
 export type * from './message-body-repair-repository';
 export type * from './message-parser';
 export type * from './message-repository';
+export type * from './message-uid-lookup';
+export type * from './offline-window-policy';
 export type * from './pending-work-repository';
 export type * from './reminder-repository';
 export type * from './repositories';

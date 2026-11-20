@@ -12,6 +12,7 @@ import {
   type RemoteMailboxStatus,
   type RemoteMessageSummary,
   type RemoteSyncCursor,
+  type RemoteTextSearch,
   type RemoteThreadHeaders,
   type UidListOptions,
 } from '../../../src';
@@ -35,6 +36,7 @@ import {
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
+import { searchFakeText } from './fake-text-search';
 import { recordUidSearch, summaryOf, uidsInRange } from './fake-summaries';
 import { threadHeadersOf } from './fake-thread-headers';
 import { uidValidityMismatch } from './fake-uid-validity';
@@ -146,11 +148,12 @@ export class FakeMailProvider implements MailProvider {
     return asyncItems(scanFlagChanges(opened, path, sinceModseq, uids));
   }
 
-  searchRelated(path: string, uidValidity: number, ids: readonly string[]): Promise<number[]> {
-    if (this.server?.failSearchIn === path) {
-      return Promise.reject(new Error(`SEARCH failed in ${path}`));
-    }
-    return this.withMailbox(path, (mailbox) => searchRelatedRecords(mailbox, uidValidity, ids));
+  searchRelated(path: string, validity: number, ids: readonly string[]): Promise<number[]> {
+    return this.withMailbox(path, (box, s) => searchRelatedRecords(s, box, validity, ids));
+  }
+
+  searchText(path: string, validity: number, query: RemoteTextSearch) {
+    return this.withMailbox(path, (box, server) => searchFakeText(server, box, validity, query));
   }
 
   listUids(mailboxPath: string, options: UidListOptions = {}): Promise<number[]> {
@@ -167,8 +170,7 @@ export class FakeMailProvider implements MailProvider {
   }
 
   async fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null> {
-    const log = (server: FakeMailServer) => server.fetchedCalendarParts;
-    const record = await this.fetchRecord(mailboxPath, uid, log);
+    const record = await this.fetchRecord(mailboxPath, uid, (s) => s.fetchedCalendarParts);
     return record === null ? null : calendarHeaders(record.source);
   }
 

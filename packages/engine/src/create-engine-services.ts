@@ -34,6 +34,8 @@ import { LabelQueryService } from './services/inbox/label-query-service';
 import { createLabelService } from './services/labels/create-label-service';
 import type { LabelService } from './services/labels/label-service';
 import { ReminderService } from './services/reminders/reminder-service';
+import { createServerSearchService } from './services/search/create-server-search-service';
+import type { ServerSearchService } from './services/search/server-search-service';
 import { SettingsService } from './services/settings/settings-service';
 import { EngineEvents } from './services/shared/engine-events';
 import { LingeringSessions } from './services/shared/lingering-sessions';
@@ -78,6 +80,7 @@ export interface EngineServices {
   readonly attachments: AttachmentContentService;
   readonly bodies: MessageBodyService;
   readonly readSessions: LingeringSessions;
+  readonly search: ServerSearchService;
   readonly attachmentSweeper: AttachmentSweeper;
   readonly splits: SplitService;
   readonly automations: AutomationService;
@@ -231,6 +234,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     attachments,
     bodies: createMessageBodyService(deps, readSessions),
     readSessions,
+    search: createServerSearchService(deps, readSessions, sync),
     attachmentSweeper,
     splits: new SplitService({
       splits: repositories.splits,

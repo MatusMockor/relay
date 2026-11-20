@@ -22,6 +22,7 @@ import {
   ApplyAutomationResponseSchema,
   ReplaceAutomationsBodySchema,
 } from '../api/endpoints/automations';
+import { ServerSearchRequestSchema, ServerSearchResponseSchema } from '../api/endpoints/search';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
@@ -103,6 +104,7 @@ export const localInvokeChannels = {
     z.object({ messageId: MessageIdSchema }),
     MessageBodyResultSchema,
   ),
+  'local.search.server': invokeChannel(ServerSearchRequestSchema, ServerSearchResponseSchema),
   'local.ai.getJob': invokeChannel(z.object({ jobId: AiJobIdSchema }), AiJobSchema),
   'local.labels.list': invokeChannel(LabelListQuerySchema, z.array(LabelSchema)),
   'local.labels.create': invokeChannel(CreateLabelBodySchema, LabelSchema),

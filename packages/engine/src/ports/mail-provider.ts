@@ -11,6 +11,8 @@ import type {
   RemoteMailboxStatus,
   RemoteMessageSummary,
   RemoteSyncCursor,
+  RemoteTextSearch,
+  RemoteTextSearchResult,
   RemoteThreadHeaders,
 } from '../model/remote-mail';
 import type { MessageFlags } from '@relay/shared/domain';
@@ -59,6 +61,11 @@ export interface MailProvider {
     uidValidity: number,
     messageIds: readonly string[],
   ): Promise<number[]>;
+  searchText(
+    mailboxPath: string,
+    uidValidity: number,
+    query: RemoteTextSearch,
+  ): Promise<RemoteTextSearchResult>;
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null>;
   fetchCalendarParts(mailboxPath: string, uid: number): Promise<string[] | null>;
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void>;

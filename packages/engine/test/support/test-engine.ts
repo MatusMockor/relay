@@ -8,7 +8,9 @@ import {
   type EngineServices,
   type HistoryBackfillRepository,
   type MessageBodyRepairRepository,
+  type OfflineWindowPolicy,
   type Repositories,
+  type SearchOptions,
   type SettingsOptions,
   type SplitMatcher,
   type SyncOptions,
@@ -55,6 +57,8 @@ export interface TestEngineOptions {
   readonly calendar?: Partial<CalendarOptions>;
   readonly actions?: Partial<ActionOptions>;
   readonly bodies?: Partial<BodyOptions>;
+  readonly search?: Partial<SearchOptions>;
+  readonly offlineWindow?: OfflineWindowPolicy;
   readonly receivedAttachments?: boolean;
   readonly splitMatcher?: SplitMatcher;
   readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
@@ -118,6 +122,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     messageParser: new SimpleMessageParser(),
     messageBodyRepairs: options.messageBodyRepairs?.(db) ?? new MemoryMessageBodyRepairs(db),
     ...historyBackfillsOf(options, db),
+    ...(options.offlineWindow === undefined ? {} : { offlineWindow: options.offlineWindow }),
     ...receivedAttachmentsOf(options, db),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
@@ -139,6 +144,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
       calendar: options.calendar,
       actions: options.actions,
       bodies: options.bodies,
+      search: options.search,
     },
   });
   return {

@@ -1,6 +1,7 @@
 import type {
   AttachmentReferenceRepository,
   HistoryBackfillRepository,
+  MessageUidLookup,
   MessageAttachmentLookup,
   MessageBodyRepairRepository,
   Repositories,
@@ -18,6 +19,7 @@ import { SqliteCalendarEventRepository } from './repositories/sqlite-calendar-ev
 import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-calendar-subscription-repository';
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
 import { SqliteHistoryBackfillRepository } from './repositories/sqlite-history-backfill-repository';
+import { SqliteMessageUidLookup } from './repositories/sqlite-message-uid-lookup';
 import { SqliteGoogleCalendarRepository } from './repositories/sqlite-google-calendar-repository';
 import { SqliteGoogleConnectionRepository } from './repositories/sqlite-google-connection-repository';
 import { SqliteGoogleEventRepository } from './repositories/sqlite-google-event-repository';
@@ -83,3 +85,6 @@ export const createSqliteAttachmentReferences = (
   database: SqliteDatabase,
 ): AttachmentReferenceRepository =>
   new SqliteAttachmentReferenceRepository(new QueuedExecutor(database));
+
+export const createSqliteMessageUids = (database: SqliteDatabase): MessageUidLookup =>
+  new SqliteMessageUidLookup(new QueuedExecutor(database));
