@@ -132,7 +132,7 @@ describe('Vytvoriť pravidlo z mailu', () => {
     expect(pressed(dialog, 'Archivovať')).toBe('true');
     expect(pressed(dialog, 'Pripnúť')).toBe('false');
     expect(summary(dialog)).toContain(
-      's hlavičkou List-Unsubscribe podľa výrazu .+ a od redakcia@frontend-tyzdennik.sk, označí ho ako prečítaný a archivuje ho.',
+      'z newslettra a od redakcia@frontend-tyzdennik.sk, označí ho ako prečítaný a archivuje ho.',
     );
     expect(await previewText(dialog)).toBe('1 mail za 30 dní by to zachytilo');
     click(within(dialog).getByRole('button', { name: 'Zobraziť' }));

@@ -5,6 +5,7 @@ import type {
   RecipientField,
   SimpleAutomationActionType,
 } from '@relay/shared';
+import { isNewsletterHeader } from './newsletter-condition';
 
 export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>> = {
   summary: 'AI zhrnutie',
@@ -70,6 +71,9 @@ export const describeCondition = (condition: AutomationCondition): string => {
   }
   if (condition.type === 'subjectRegex') {
     return `predmet zodpovedá ${condition.pattern}`;
+  }
+  if (isNewsletterHeader(condition)) {
+    return 'newsletter';
   }
   if (condition.type === 'header') {
     return `${condition.name} obsahuje ${condition.pattern}`;

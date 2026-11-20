@@ -7,6 +7,7 @@ import type {
 import { moveTargetsOf } from '../../mail/move-targets';
 import type { ActionTargets } from './action-targets';
 import { JIRA_EVENT_LABELS } from './automation-labels';
+import { isNewsletterHeader } from './newsletter-condition';
 
 const RECIPIENT_PHRASES: Readonly<Record<RecipientField, (value: string) => string>> = {
   to: (value) => `pre ${value}`,
@@ -34,6 +35,9 @@ export const conditionPhrase = (condition: AutomationCondition): string => {
     case 'subjectRegex':
       return `s predmetom podľa výrazu ${condition.pattern}`;
     case 'header':
+      if (isNewsletterHeader(condition)) {
+        return 'z newslettra';
+      }
       return `s hlavičkou ${condition.name} podľa výrazu ${condition.pattern}`;
     case 'jira':
       return condition.projectKeys.length === 0
