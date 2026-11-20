@@ -2,6 +2,7 @@ export {
   createSqliteAttachmentReferences,
   createSqliteHistoryBackfills,
   createSqliteMessageAttachmentLookup,
+  createSqliteMessageBodies,
   createSqliteMessageBodyRepairs,
   createSqliteMessageUids,
   createSqliteRepositories,

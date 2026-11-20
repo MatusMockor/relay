@@ -1,4 +1,4 @@
-import type { Clock, HistorySliceReport, Logger } from '@relay/engine';
+import type { Clock, EvictionReport, HistorySliceReport, Logger } from '@relay/engine';
 import type { AccountId, MailAccount } from '@relay/shared/domain';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
@@ -11,6 +11,7 @@ import type { HistoryCadence, HistoryLoopState } from './history/history-cadence
 import { IdleSupervisor } from './idle-supervisor';
 import { IdleWorker } from './idle-worker';
 import type { MailboxWatcher } from './mailbox-watcher';
+import { OfflineWindowReactor, type OfflineWindowSettings } from './offline-window-reactor';
 import { PowerAwareLifecycle } from './power-aware-lifecycle';
 
 export interface LocalBackgroundDeps {
@@ -27,6 +28,12 @@ export interface LocalBackgroundDeps {
   readonly clock: Clock;
   readonly logger: Logger;
   readonly dueIntervalMs?: number;
+  readonly offlineWindow?: OfflineWindowBackgroundDeps;
+}
+
+export interface OfflineWindowBackgroundDeps {
+  readonly settings: OfflineWindowSettings;
+  readonly evict: () => Promise<EvictionReport>;
 }
 
 const ACCOUNT_EVENTS = new Set<RealtimeEvent['type']>([
@@ -43,6 +50,7 @@ export interface LocalBackground {
   readonly scheduler: AccountSyncScheduler;
   readonly history: HistoryBackfillScheduler;
   readonly ticker: DueWorkTicker;
+  readonly offlineWindow: OfflineWindowReactor | null;
   start(): Promise<void>;
   shutdown(): Promise<void>;
 }
@@ -74,7 +82,25 @@ export const createLocalBackground = (deps: LocalBackgroundDeps): LocalBackgroun
     timers: deps.timers,
     logger,
   });
-  const lifecycle = new PowerAwareLifecycle([scheduler, idle, ticker, history], deps.power, logger);
+  const offlineWindow =
+    deps.offlineWindow === undefined
+      ? null
+      : new OfflineWindowReactor({
+          ...deps.offlineWindow,
+          kick: () => {
+            history.kick();
+          },
+          timers: deps.timers,
+          logger: logger.child({ worker: 'offline-window' }),
+        });
+  const workers = [
+    scheduler,
+    idle,
+    ticker,
+    history,
+    ...(offlineWindow === null ? [] : [offlineWindow]),
+  ];
+  const lifecycle = new PowerAwareLifecycle(workers, deps.power, logger);
   let unsubscribe: (() => void) | null = null;
   const reconcile = () => {
     Promise.all([scheduler.reconcile(), idle.reconcile(), history.reconcile()]).catch(
@@ -88,6 +114,7 @@ export const createLocalBackground = (deps: LocalBackgroundDeps): LocalBackgroun
     scheduler,
     history,
     ticker,
+    offlineWindow,
     start: async () => {
       unsubscribe ??= deps.hub.subscribe((event) => {
         if (ACCOUNT_EVENTS.has(event.type)) {

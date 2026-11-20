@@ -1,13 +1,21 @@
 import type { EngineServices } from '@relay/engine';
+import type { UserId } from '@relay/shared/domain';
 import type { AiLocationGate } from '../ai/ai-location-gate';
 import type { DueJob } from '../background/due-work-ticker';
 
 export const createLocalDueJobs = (
   services: Pick<
     EngineServices,
-    'reminders' | 'compose' | 'ai' | 'calendar' | 'attachmentSweeper' | 'googleCalendar'
+    | 'reminders'
+    | 'compose'
+    | 'ai'
+    | 'calendar'
+    | 'attachmentSweeper'
+    | 'googleCalendar'
+    | 'bodyRetention'
   >,
   aiGate: AiLocationGate,
+  userId: UserId,
 ): DueJob[] => [
   {
     name: 'reminders',
@@ -37,6 +45,12 @@ export const createLocalDueJobs = (
     name: 'attachment-sweep',
     run: async () => {
       await services.attachmentSweeper.sweepDue();
+    },
+  },
+  {
+    name: 'body-retention',
+    run: async () => {
+      await services.bodyRetention.evictDue(userId);
     },
   },
   {

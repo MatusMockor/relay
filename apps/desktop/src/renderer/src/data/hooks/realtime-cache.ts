@@ -43,11 +43,13 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     throttleByKey(client, `threads.changed:${accountId}`, () => {
       invalidate(client, queryKeys.threadLists());
       invalidateAccountThreads(client, accountId);
+      invalidate(client, queryKeys.offlineStats());
     });
     return;
   }
   if (event.type === 'sync.history') {
     invalidate(client, queryKeys.historyProgress());
+    invalidate(client, queryKeys.offlineStats());
     return;
   }
   if (event.type === 'message.upserted') {

@@ -1,4 +1,5 @@
 import type { EngineDeps } from '../../../engine-deps';
+import { createBodyHydrator } from '../../bodies/create-offline-bodies';
 import type { ChangeFlusher } from '../change-flusher';
 import type { MessageIngestor } from '../message-ingestor';
 import type { SyncOptions } from '../sync-options';
@@ -33,6 +34,7 @@ export const createHistoryBackfill = (
       logger,
       options: sync.options.history,
     }),
+    hydrator: createBodyHydrator(deps, sync.flusher),
     clock,
     options: sync.options,
   });

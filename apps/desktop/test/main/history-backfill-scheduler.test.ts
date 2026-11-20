@@ -14,6 +14,7 @@ const MAILBOX = MailboxIdSchema.parse('mbx_a');
 const slice = (more: boolean): HistorySliceReport => ({
   skipped: false,
   processed: more ? 500 : 10,
+  hydrated: 0,
   more,
   perMailbox: [{ mailboxId: MAILBOX, processed: 10, done: !more }],
 });
@@ -76,6 +77,7 @@ describe('HistoryBackfillScheduler', () => {
     const waiting: HistorySliceReport = {
       skipped: false,
       processed: 0,
+      hydrated: 0,
       more: false,
       perMailbox: [],
     };
@@ -170,5 +172,35 @@ describe('HistoryBackfillScheduler', () => {
     await scheduler.stop();
     await time.advance(60 * 60_000);
     expect(calls).toHaveLength(3);
+  });
+
+  it('runs the next slice right away when kicked after a finished history', async () => {
+    const { time, calls, scheduler } = setup([slice(false), slice(false), slice(false)]);
+    await scheduler.start();
+    await time.advance(0);
+    expect(calls).toHaveLength(1);
+
+    scheduler.kick();
+    await time.advance(0);
+
+    expect(calls.map((call) => call.at)).toEqual([0, 0]);
+    expect(scheduler.stateOf(accountA)).toBe('idle');
+    await scheduler.stop();
+  });
+
+  it('ignores a kick while the server throttles the account', async () => {
+    const throttled = new ProviderError('Mailbox unavailable', {
+      cause: Object.assign(new Error('Command failed'), { serverResponseCode: 'OVERQUOTA' }),
+    });
+    const { time, calls, scheduler } = setup([throttled]);
+    await scheduler.start();
+    await time.advance(0);
+    expect(scheduler.stateOf(accountA)).toBe('paused');
+
+    scheduler.kick();
+    await time.advance(60_000);
+
+    expect(calls).toHaveLength(1);
+    await scheduler.stop();
   });
 });

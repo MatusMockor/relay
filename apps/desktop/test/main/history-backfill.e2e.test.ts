@@ -1,4 +1,4 @@
-import type { HistoryProgress, MailAccount } from '@relay/shared/domain';
+import { type HistoryProgress, type MailAccount, offlineWindowCutoff } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AesTestCipher } from './support/aes-test-cipher';
 import {
@@ -13,7 +13,6 @@ import { ManualTime } from './support/manual-time';
 import { seedImapAccount } from './support/seed-account';
 import { createTempDir, type TempDir } from './support/temp-dir';
 
-const DAY_MS = 86_400_000;
 const PERF = process.env.RELAY_PERF === '1';
 const SIZES = PERF
   ? { inbox: 300, archive: 2_500, projects: 200 }
@@ -84,6 +83,19 @@ const runToDone = async (rig: Rig, limit = 5_000): Promise<HistoryProgress[]> =>
     }
   }
   return seen;
+};
+
+const remoteInWindow = (rig: Rig): number =>
+  scalar(
+    rig,
+    "select count(*) as n from messages where body_state = 'remote' and date_ts >= ?",
+    offlineWindowCutoff('6m', new Date())?.getTime() ?? 0,
+  );
+
+const hydrateWindow = async (rig: Rig, limit = 200): Promise<void> => {
+  for (let round = 0; round < limit && remoteInWindow(rig) > 0; round += 1) {
+    await step(rig);
+  }
 };
 
 const rows = <Row>({ harness }: Rig, sql: string, ...params: unknown[]): Row[] =>
@@ -168,6 +180,7 @@ describe('history backfill on desktop (SQLite + GreenMail)', () => {
       await rig.harness.runtime.background.history.idle();
 
       const seen = [...first, ...(await runToDone(rig))];
+      await hydrateWindow(rig);
 
       const stored = seen.map((progress) => progress.stored);
       expect(stored).toEqual([...stored].sort((left, right) => left - right));
@@ -189,15 +202,11 @@ describe('history backfill on desktop (SQLite + GreenMail)', () => {
       const history = states.filter((row) => !initial.has(row.location));
       expect(history).toHaveLength(TOTAL + 1 - initial.size);
       expect(history.length).toBeGreaterThan(SIZES.archive);
-      expect(history.filter((row) => row.state !== 'remote')).toEqual([
-        expect.objectContaining({ state: 'local' }),
-      ]);
-      expect(states.filter((row) => initial.has(row.location) && row.state !== 'local')).toEqual(
-        [],
+      const cutoff = offlineWindowCutoff('6m', new Date())?.getTime() ?? 0;
+      expect(states.filter((row) => (row.state === 'local') !== row.ts >= cutoff)).toEqual([]);
+      expect(history.filter((row) => row.state === 'remote').length).toBeGreaterThan(
+        SIZES.archive / 2,
       );
-      expect(
-        history.every((row) => row.ts < Date.now() - 29 * DAY_MS || row.state === 'local'),
-      ).toBe(true);
 
       const threadOf = new Map(
         rows<{ id: string; thread: string }>(

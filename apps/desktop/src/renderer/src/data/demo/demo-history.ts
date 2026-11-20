@@ -1,4 +1,10 @@
-import type { AccountId, HistoryProgress, MailAccount, RealtimeEvent } from '@relay/shared';
+import type {
+  AccountId,
+  HistoryProgress,
+  MailAccount,
+  OfflineStats,
+  RealtimeEvent,
+} from '@relay/shared';
 import { MailClientError } from '../errors';
 
 const RUNNING = { stored: 12_340, total: 48_000 };
@@ -50,3 +56,5 @@ export class DemoHistory {
     this.emit?.({ type: 'sync.history', at: this.now().toISOString(), data: progress });
   }
 }
+
+export const DEMO_OFFLINE_STATS: OfflineStats = { local: 8_210, remote: 43_380 };

@@ -135,7 +135,11 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     }),
     ...(input.historyCadence === undefined ? {} : { historyCadence: input.historyCadence }),
     watcher: { watch: (accountId) => services.sync.watchAccount(LOCAL_USER_ID, accountId) },
-    dueJobs: createLocalDueJobs(services, aiGate),
+    dueJobs: createLocalDueJobs(services, aiGate, LOCAL_USER_ID),
+    offlineWindow: {
+      settings: infrastructure.deviceSettings,
+      evict: () => services.bodyRetention.evictDue(LOCAL_USER_ID),
+    },
     hub: infrastructure.hub,
     power: input.power,
     timers: input.timers,

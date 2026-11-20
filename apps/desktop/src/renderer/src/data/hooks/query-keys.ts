@@ -27,6 +27,7 @@ export const queryKeys = {
   scheduled: () => ['mail', 'scheduled'] as const,
   settings: () => ['mail', 'settings'] as const,
   historyProgress: () => ['mail', 'sync', 'history'] as const,
+  offlineStats: () => ['mail', 'sync', 'offline'] as const,
   runners: () => ['mail', 'runners'] as const,
   localRunners: () => ['mail', 'runners', 'local'] as const,
   devices: () => ['mail', 'devices'] as const,

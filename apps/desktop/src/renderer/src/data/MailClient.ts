@@ -20,6 +20,7 @@ import type {
   DraftContent,
   DraftId,
   HistoryProgress,
+  OfflineStats,
   Label,
   LabelId,
   MailAccount,
@@ -117,6 +118,7 @@ export interface AccountManager {
   listMailboxes(accountId: AccountId): Promise<Mailbox[]>;
   syncNow(accountId?: AccountId): Promise<void>;
   historyProgress(): Promise<HistoryProgress[]>;
+  offlineStats(): Promise<OfflineStats>;
 }
 
 export interface FolderManager {

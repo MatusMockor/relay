@@ -19,10 +19,13 @@ export interface HistoryAccountLoopDeps {
   readonly onStep: (step: HistoryStep, failures: number) => void;
 }
 
+const coolingDown = (state: HistoryLoopState): boolean => state === 'paused' || state === 'error';
+
 export class HistoryAccountLoop {
   private timer: TimerHandle | null = null;
   private current: Promise<void> | null = null;
   private active = false;
+  private kicked = false;
   private failures: number;
   private status: HistoryLoopState;
 
@@ -41,6 +44,17 @@ export class HistoryAccountLoop {
     }
     this.active = true;
     this.schedule(delayMs);
+  }
+
+  kick(): void {
+    if (!this.active || coolingDown(this.status)) {
+      return;
+    }
+    if (this.current !== null) {
+      this.kicked = true;
+      return;
+    }
+    this.schedule(0);
   }
 
   stop(): void {
@@ -75,10 +89,12 @@ export class HistoryAccountLoop {
       );
     this.deps.onStep(step, this.failures);
     this.enter(step.state);
+    const kicked = this.kicked;
+    this.kicked = false;
     if (this.stopped() || step.delayMs === null) {
       return;
     }
-    this.schedule(step.delayMs);
+    this.schedule(kicked && !coolingDown(step.state) ? 0 : step.delayMs);
   }
 
   private stopped(): boolean {

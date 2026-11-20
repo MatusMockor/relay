@@ -74,6 +74,7 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
     await http.call(api.sync.now, { body: accountId === undefined ? {} : { accountId } });
   },
   historyProgress: () => Promise.resolve([]),
+  offlineStats: () => Promise.resolve({ local: 0, remote: 0 }),
   listDrafts: () => http.call(api.compose.listDrafts, {}),
   createDraft: (body) => http.call(api.compose.createDraft, { body }),
   updateDraft: (id: DraftId, body) => http.call(api.compose.updateDraft, { params: { id }, body }),

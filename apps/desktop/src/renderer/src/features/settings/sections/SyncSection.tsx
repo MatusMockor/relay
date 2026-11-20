@@ -9,6 +9,7 @@ import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
 import { HistoryRow } from './HistoryRow';
+import { OfflineWindowRow } from './OfflineWindowRow';
 
 export function SyncSection() {
   const accounts = useAccounts();
@@ -76,6 +77,7 @@ export function SyncSection() {
         </Button>
       </SettingRow>
       {client.kind === 'remote' ? null : <HistoryRow />}
+      {client.kind === 'remote' ? null : <OfflineWindowRow />}
     </>
   );
 }

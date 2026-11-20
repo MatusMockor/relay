@@ -24,7 +24,7 @@ describe('theme device setting', () => {
   it('loads settings persisted before themes existed and gives them the default theme', () => {
     const parsed = DeviceSettingsSchema.parse(legacyDeviceSettings);
 
-    expect(parsed).toEqual({ ...legacyDeviceSettings, theme: 'dark' });
+    expect(parsed).toEqual({ ...legacyDeviceSettings, theme: 'dark', offlineWindow: '6m' });
   });
 
   it('keeps a stored theme and rejects an unknown one', () => {

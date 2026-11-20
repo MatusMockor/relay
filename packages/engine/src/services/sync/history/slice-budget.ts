@@ -29,6 +29,10 @@ export class SliceBudget implements HistorySearchGate {
     );
   }
 
+  expired(): boolean {
+    return this.clock.now().getTime() >= this.deadline || this.control.shouldYield();
+  }
+
   canSearch(): boolean {
     return this.searches > 0 && !this.exhausted();
   }
