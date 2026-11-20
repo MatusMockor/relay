@@ -87,3 +87,28 @@ export const emitRemoval = (
     });
   });
 };
+
+export const idsOf = (page: ThreadPage | undefined): string[] =>
+  (page?.items ?? []).map((item) => item.id);
+
+export const gatedPages = () => {
+  const gates: (() => void)[] = [];
+  const release = () => {
+    gates.splice(0).forEach((open) => {
+      open();
+    });
+  };
+  const gate = <T>(value: T): Promise<T> =>
+    new Promise((resolve) => {
+      gates.push(() => {
+        resolve(value);
+      });
+    });
+  return { gate, release, pending: () => gates.length };
+};
+
+export const waitForIdle = async (queryClient: QueryClient): Promise<void> => {
+  await waitFor(() => {
+    expect(queryClient.isFetching()).toBe(0);
+  });
+};

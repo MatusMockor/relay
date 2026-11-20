@@ -1,10 +1,12 @@
+import type { ThreadPage } from '@relay/shared';
 import { describe, expect, it } from 'vitest';
-import { fetchThreadRange, RANGE_PAGE_LIMIT, rangeTargetOf } from '../src/data/hooks/thread-range';
+import { fetchThreadRange, RANGE_PAGE_LIMIT } from '../src/data/hooks/thread-range';
 import { threadListParams } from '../src/data/hooks/use-mail-queries';
 import {
   addDemoThread,
   bulkDemoState,
   bulkThread,
+  type CountingClient,
   countingListClient,
 } from './support/bulk-demo-threads';
 
@@ -16,10 +18,21 @@ const setup = (threads: number) => {
   return { state, counting: countingListClient(state, () => NOW) };
 };
 
+const cachedHead = async (counting: CountingClient, loaded: number): Promise<ThreadPage> => {
+  const page = await counting.client.listThreads({ ...INBOX, limit: loaded });
+  counting.listCalls.splice(0);
+  return page;
+};
+
+const ids = (page: ThreadPage): string[] => page.items.map((item) => item.id);
+
 describe('fetchThreadRange', () => {
   it('reads only the head page when nothing is loaded yet', async () => {
     const { counting } = setup(1_000);
-    const range = await fetchThreadRange(counting.client, { params: INBOX, loaded: () => 0 });
+    const range = await fetchThreadRange(counting.client, {
+      params: INBOX,
+      cached: () => undefined,
+    });
 
     expect(range.items).toHaveLength(200);
     expect(range.nextCursor).not.toBeNull();
@@ -28,12 +41,11 @@ describe('fetchThreadRange', () => {
 
   it('re-reads every page of a fully loaded list so a thread that joined mid-range is listed', async () => {
     const { state, counting } = setup(600);
-    const everything = { params: INBOX, loaded: () => Number.POSITIVE_INFINITY };
-    const before = await fetchThreadRange(counting.client, everything);
+    const before = await cachedHead(counting, 10_000);
+    expect(before.nextCursor).toBeNull();
     const joined = { ...bulkThread(300, NOW), id: bulkThread(-7, NOW).id, subject: 'Vrátená' };
     addDemoThread(state, joined);
-    counting.listCalls.splice(0);
-    const range = await fetchThreadRange(counting.client, everything);
+    const range = await fetchThreadRange(counting.client, { params: INBOX, cached: () => before });
 
     expect(range.items).toHaveLength(before.items.length + 1);
     expect(range.items.findIndex((item) => item.id === joined.id)).toBeGreaterThan(290);
@@ -41,20 +53,34 @@ describe('fetchThreadRange', () => {
     expect(counting.listCalls.map((call) => call.cursor)).toEqual([undefined, '200', '400', '600']);
   });
 
-  it('stops once the loaded count is covered and keeps the cursor of the last page', async () => {
+  it('stops once the loaded threads are covered and keeps the cursor of the last page', async () => {
     const { counting } = setup(1_000);
-    const range = await fetchThreadRange(counting.client, { params: INBOX, loaded: () => 400 });
+    const cached = await cachedHead(counting, 400);
+    const range = await fetchThreadRange(counting.client, { params: INBOX, cached: () => cached });
 
     expect(range.items).toHaveLength(400);
     expect(range.nextCursor).toBe('400');
   });
 
+  it('keeps reading until it passes the last loaded thread after new mail shifted the list', async () => {
+    const { state, counting } = setup(1_000);
+    const cached = await cachedHead(counting, 400);
+    addDemoThread(state, { ...bulkThread(-1, NOW), id: bulkThread(-1, NOW).id, subject: 'Nová' });
+    const range = await fetchThreadRange(counting.client, { params: INBOX, cached: () => cached });
+
+    expect(ids(range)).toEqual(expect.arrayContaining(ids(cached)));
+    expect(range.items[0]?.id).toBe(bulkThread(-1, NOW).id);
+    expect(range.nextCursor).toBe(String(range.items.length));
+  });
+
   it('follows pages that were appended while the range was being read', async () => {
     const { counting } = setup(1_000);
-    const loaded = [400, 600];
+    const first = await cachedHead(counting, 400);
+    const later = await cachedHead(counting, 600);
+    const cached = [first, later];
     const range = await fetchThreadRange(counting.client, {
       params: INBOX,
-      loaded: () => loaded.shift() ?? 600,
+      cached: () => cached.shift() ?? later,
     });
 
     expect(range.items).toHaveLength(600);
@@ -64,38 +90,36 @@ describe('fetchThreadRange', () => {
 
   it('stops reading further pages once the request is aborted', async () => {
     const { counting } = setup(1_000);
+    const cached = await cachedHead(counting, 1_000);
     const controller = new AbortController();
     controller.abort();
     await fetchThreadRange(counting.client, {
       params: INBOX,
-      loaded: () => 1_000,
+      cached: () => cached,
       signal: controller.signal,
     });
 
     expect(counting.listCalls).toHaveLength(1);
   });
 
-  it('bounds a refetch to a fixed number of pages', async () => {
+  it('bounds a refetch to a fixed number of pages and keeps the loaded tail beyond it', async () => {
     const { counting } = setup(200 * (RANGE_PAGE_LIMIT + 2));
-    const range = await fetchThreadRange(counting.client, {
-      params: INBOX,
-      loaded: () => Number.POSITIVE_INFINITY,
-    });
+    const cached = await cachedHead(counting, 200 * RANGE_PAGE_LIMIT + 200);
+    const range = await fetchThreadRange(counting.client, { params: INBOX, cached: () => cached });
 
     expect(counting.listCalls).toHaveLength(RANGE_PAGE_LIMIT);
-    expect(range.items).toHaveLength(200 * RANGE_PAGE_LIMIT);
-    expect(range.nextCursor).not.toBeNull();
-  });
-});
-
-describe('rangeTargetOf', () => {
-  it('reads nothing beyond the head for an empty cache', () => {
-    expect(rangeTargetOf(undefined)).toBe(0);
+    expect(ids(range)).toEqual(ids(cached));
+    expect(range.nextCursor).toBe(cached.nextCursor);
   });
 
-  it('covers the loaded threads of a partial list and the whole of a complete one', () => {
-    const items = [bulkThread(0, NOW), bulkThread(1, NOW)];
-    expect(rangeTargetOf({ items, nextCursor: '2' })).toBe(2);
-    expect(rangeTargetOf({ items, nextCursor: null })).toBe(Number.POSITIVE_INFINITY);
+  it('keeps the whole of a complete list that is longer than the refetch bound', async () => {
+    const { counting } = setup(200 * (RANGE_PAGE_LIMIT + 2));
+    const cached = await cachedHead(counting, 200 * (RANGE_PAGE_LIMIT + 5));
+    expect(cached.nextCursor).toBeNull();
+    const range = await fetchThreadRange(counting.client, { params: INBOX, cached: () => cached });
+
+    expect(counting.listCalls).toHaveLength(RANGE_PAGE_LIMIT);
+    expect(ids(range)).toEqual(ids(cached));
+    expect(range.nextCursor).toBeNull();
   });
 });

@@ -1,12 +1,9 @@
 import {
-  type FolderView,
-  isHeldThreadState,
   type LabelId,
   type MailboxRole,
   type ThreadAction,
   type ThreadSummary,
 } from '@relay/shared';
-import type { ThreadListParams } from './MailClient';
 
 export interface ProjectionHint {
   readonly targetRole?: MailboxRole;
@@ -60,22 +57,3 @@ export const projectThreadAction = (
   }
   return { ...thread, labelIds: thread.labelIds.filter((id) => id !== action.labelId) };
 };
-
-export const staysInView = (view: FolderView, thread: ThreadSummary): boolean => {
-  if (view === 'inbox' || view === 'tasks') {
-    return thread.state === 'inbox';
-  }
-  if (view === 'reminders') {
-    return thread.state === 'reminder';
-  }
-  if (view === 'done' || view === 'trash' || view === 'spam') {
-    return thread.state === view;
-  }
-  return !isHeldThreadState(thread.state);
-};
-
-export const matchesListParams = (params: ThreadListParams, thread: ThreadSummary): boolean =>
-  staysInView(params.view, thread) &&
-  (params.labelId === undefined || thread.labelIds.includes(params.labelId)) &&
-  (params.splitId === undefined || thread.splitIds.includes(params.splitId)) &&
-  (params.accountId === undefined || thread.accountId === params.accountId);

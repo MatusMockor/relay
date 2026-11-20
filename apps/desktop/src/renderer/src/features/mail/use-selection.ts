@@ -18,6 +18,7 @@ export interface SelectionModel {
 interface ListSnapshot {
   readonly list: string;
   readonly items: readonly ListItem[];
+  readonly hasMore: boolean;
   readonly settled: boolean;
 }
 
@@ -35,18 +36,18 @@ const useRemovalReplacement = (
     previous === null ||
     previous.list !== current.list
       ? null
-      : replacementKeyOf(stored, previous.items, current.items);
-  const { list, items, settled } = current;
+      : replacementKeyOf(stored, previous.items, current);
+  const { list, items, hasMore, settled } = current;
   useEffect(() => {
     if (!settled) {
       return;
     }
-    seen.current = { list, items, settled };
+    seen.current = { list, items, hasMore, settled };
     if (replacement === null) {
       return;
     }
     selectKey(replacement);
-  }, [list, items, settled, replacement]);
+  }, [list, items, hasMore, settled, replacement]);
   return replacement;
 };
 
@@ -60,7 +61,7 @@ export const useSelection = (): SelectionModel => {
   const openThreadId = useUiStore((state) => state.openThreadId);
   const present = stored !== undefined && items.some((item) => item.key === stored);
   const replacement = useRemovalReplacement(
-    { list, items, settled: !loading && !placeholder },
+    { list, items, hasMore: paging.hasMore, settled: !loading && !placeholder },
     stored,
     present,
   );

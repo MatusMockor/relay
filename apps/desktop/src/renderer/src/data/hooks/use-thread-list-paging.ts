@@ -5,7 +5,7 @@ import type { ThreadListParams } from '../MailClient';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
 import { appendPage } from './thread-pages';
-import { removalMark, withoutRemovedSince } from './thread-tombstones';
+import { reconcilePage, whileWatchingChanges } from './thread-changes';
 import { threadListParams } from './use-mail-queries';
 
 export interface ListPaging {
@@ -29,27 +29,23 @@ interface PageRequest {
   readonly cursor: string;
 }
 
-interface FetchedPage {
-  readonly page: ThreadPage;
-  readonly mark: number;
-}
-
 export const useThreadListPaging = (params: ThreadListParams, page: ThreadPage | undefined) => {
   const client = useClient();
   const queryClient = useQueryClient();
   const cursor = page?.nextCursor ?? null;
   const more = useMutation({
-    mutationFn: async (request: PageRequest): Promise<FetchedPage> => {
-      const mark = removalMark(queryClient);
-      const fetched = await client.listThreads({ ...request.params, cursor: request.cursor });
-      return { page: fetched, mark };
-    },
-    onSuccess: ({ page: next, mark }, request) => {
-      const fresh = withoutRemovedSince(queryClient, mark, next);
-      queryClient.setQueryData<ThreadPage>(queryKeys.threadList(request.params), (latest) =>
-        appendPage(latest, fresh, request.cursor),
-      );
-    },
+    mutationFn: (request: PageRequest): Promise<ThreadPage> =>
+      whileWatchingChanges(
+        queryClient,
+        () => client.listThreads({ ...request.params, cursor: request.cursor }),
+        (next, changes) => {
+          const fresh = reconcilePage(request.params, next, changes);
+          queryClient.setQueryData<ThreadPage>(queryKeys.threadList(request.params), (latest) =>
+            appendPage(latest, fresh, request.cursor),
+          );
+          return fresh;
+        },
+      ),
   });
   const pending = more.isPending && more.variables.cursor === cursor;
   const failed = more.isError && more.variables.cursor === cursor;

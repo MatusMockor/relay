@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-import type { ThreadPage, ThreadSummary } from '@relay/shared';
+import type { ThreadSummary } from '@relay/shared';
 import { act, waitFor } from '@testing-library/react';
-import type { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DemoState } from '../src/data/demo/demo-state';
 import { demoIds } from '../src/data/demo/seed/ids';
@@ -12,10 +11,13 @@ import { scrollElementOf, scrollListTo, scrollListToEnd } from './support/list-s
 import {
   emitRemoval,
   emitUpsert,
+  gatedPages,
+  idsOf,
   loadAllPagesOf,
   loadPagesOf,
   pageOf,
   startPagedList,
+  waitForIdle,
 } from './support/paged-list';
 import { resetStores } from './support/render-app';
 
@@ -46,9 +48,6 @@ const labelEveryOther = (state: DemoState): void => {
   }
 };
 
-const idsOf = (page: ThreadPage | undefined): string[] =>
-  (page?.items ?? []).map((item) => item.id);
-
 const startLabelView = async () => {
   const started = await startPagedList({
     now: NOW,
@@ -59,28 +58,6 @@ const startLabelView = async () => {
   const loaded = () => pageOf(started.queryClient, LABEL_VIEW);
   await loadAllPagesOf(started.listbox, loaded);
   return { ...started, loaded };
-};
-
-const gatedPages = () => {
-  const gates: (() => void)[] = [];
-  const release = () => {
-    gates.splice(0).forEach((open) => {
-      open();
-    });
-  };
-  const gate = <T,>(value: T): Promise<T> =>
-    new Promise((resolve) => {
-      gates.push(() => {
-        resolve(value);
-      });
-    });
-  return { gate, release, pending: () => gates.length };
-};
-
-const waitForIdle = async (queryClient: QueryClient) => {
-  await waitFor(() => {
-    expect(queryClient.isFetching()).toBe(0);
-  });
 };
 
 describe('thread list reconciliation with loaded pages', () => {

@@ -78,13 +78,14 @@ describe('thread list pagination', () => {
       expect(inboxPage(queryClient)?.items[0]?.id).toBe(fresh.id);
     });
     const after = inboxPage(queryClient);
-    expect(after?.items.map((item) => item.id)).toEqual([fresh.id, ...before.slice(0, -1)]);
+    const ids = after?.items.map((item) => item.id) ?? [];
+    expect(ids.slice(0, before.length + 1)).toEqual([fresh.id, ...before]);
     expect(after?.nextCursor).not.toBeNull();
     expect(
       inboxCalls({ ...counting, listCalls: counting.listCalls.slice(calls) }).map(
         (call) => call.cursor,
       ),
-    ).toEqual([undefined, '200', '400']);
+    ).toEqual([undefined, '200', '400', '600']);
   });
 
   it('keeps the rows in view in place when new mail arrives above them', async () => {
