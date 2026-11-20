@@ -22,6 +22,7 @@ export const CalendarSubscriptionIdSchema = EntityIdBaseSchema.brand<'CalendarSu
 export const CalendarConnectionIdSchema = EntityIdBaseSchema.brand<'CalendarConnectionId'>();
 export const GoogleCalendarIdSchema = EntityIdBaseSchema.brand<'GoogleCalendarId'>();
 export const AutomationIdSchema = EntityIdBaseSchema.brand<'AutomationId'>();
+export const AutomationActivityIdSchema = EntityIdBaseSchema.brand<'AutomationActivityId'>();
 
 export type UserId = z.infer<typeof UserIdSchema>;
 export type DeviceId = z.infer<typeof DeviceIdSchema>;
@@ -43,6 +44,7 @@ export type CalendarSubscriptionId = z.infer<typeof CalendarSubscriptionIdSchema
 export type CalendarConnectionId = z.infer<typeof CalendarConnectionIdSchema>;
 export type GoogleCalendarId = z.infer<typeof GoogleCalendarIdSchema>;
 export type AutomationId = z.infer<typeof AutomationIdSchema>;
+export type AutomationActivityId = z.infer<typeof AutomationActivityIdSchema>;
 
 export interface EntityIdMap {
   user: UserId;
@@ -65,6 +67,7 @@ export interface EntityIdMap {
   calendarConnection: CalendarConnectionId;
   googleCalendar: GoogleCalendarId;
   automation: AutomationId;
+  automationActivity: AutomationActivityId;
 }
 
 export type EntityKind = keyof EntityIdMap;

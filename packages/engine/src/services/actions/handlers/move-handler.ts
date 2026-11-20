@@ -9,7 +9,7 @@ import type { ThreadActionContext } from '../thread-action-context';
 import { folderMove } from './folder-move-plans';
 import { gmailMove } from './gmail-move-plans';
 import type { StateMovePlanner } from './state-move-plan';
-import type { StateMoveHandler } from './state-move-handler';
+import type { StateMoveHandler, StateMoveOutcome } from './state-move-handler';
 import { undoMove } from './undo-move-plans';
 
 export interface MoveHandlerDeps {
@@ -27,10 +27,14 @@ export class MoveHandler {
   constructor(private readonly deps: MoveHandlerDeps) {}
 
   async move(context: ThreadActionContext, mailboxId: MailboxId): Promise<ThreadSummary> {
+    return (await this.moveTracked(context, mailboxId)).thread;
+  }
+
+  async moveTracked(context: ThreadActionContext, mailboxId: MailboxId): Promise<StateMoveOutcome> {
     const target = await this.target(context, mailboxId);
     const planner = await this.planner(context, target);
     await this.expireUndoRecords(context);
-    return this.deps.stateMoves.execute(context, planner);
+    return this.deps.stateMoves.executeTracked(context, planner);
   }
 
   async undo(context: ThreadActionContext): Promise<ThreadSummary> {

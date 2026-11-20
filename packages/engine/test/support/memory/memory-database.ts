@@ -30,6 +30,7 @@ import type {
   UserSettings,
 } from '@relay/shared/domain';
 import type {
+  AutomationActivityRecord,
   CalendarSubscriptionRecord,
   GoogleCalendarRecord,
   GoogleConnectionRecord,
@@ -55,6 +56,7 @@ export class MemoryTables {
   readonly splits = new Map<UserId, Split[]>();
   readonly automations = new Map<UserId, Automation[]>();
   readonly automationRuns = new Set<string>();
+  readonly automationActivity: AutomationActivityRecord[] = [];
   readonly removedPresets = new Set<string>();
   readonly tasks = new Map<TaskId, Task>();
   readonly reminders = new Map<ReminderId, Reminder>();

@@ -16,6 +16,7 @@ import { SqliteAiResultRepository } from './repositories/sqlite-ai-result-reposi
 import { SqliteAttachmentReferenceRepository } from './repositories/sqlite-attachment-reference-repository';
 import { SqliteAutomationRepository } from './repositories/sqlite-automation-repository';
 import { SqliteAutomationRunRepository } from './repositories/sqlite-automation-run-repository';
+import { SqliteAutomationActivityRepository } from './repositories/sqlite-automation-activity-repository';
 import { SqliteCalendarEventRepository } from './repositories/sqlite-calendar-event-repository';
 import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-calendar-subscription-repository';
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
@@ -50,6 +51,7 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   splits: new SqliteSplitRepository(executor),
   automations: new SqliteAutomationRepository(executor),
   automationRuns: new SqliteAutomationRunRepository(executor),
+  automationActivity: new SqliteAutomationActivityRepository(executor),
   automationCandidates: new SqliteAutomationCandidateRepository(executor),
   tasks: new SqliteTaskRepository(executor),
   reminders: new SqliteReminderRepository(executor),

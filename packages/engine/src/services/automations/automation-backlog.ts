@@ -14,6 +14,7 @@ import type { MessageRepository } from '../../ports/message-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { AutomationActionExecutor } from './automation-action-executor';
 import type { AutomationBacklogMatcher, BacklogMatch } from './automation-backlog-matcher';
+import type { AutomationActivityRecorder } from './history/automation-activity-recorder';
 
 export const BACKLOG_LIMIT = 500;
 
@@ -26,6 +27,7 @@ export interface AutomationBacklogDeps {
   readonly runs: AutomationRunRepository;
   readonly matcher: AutomationBacklogMatcher;
   readonly executor: AutomationActionExecutor;
+  readonly recorder: AutomationActivityRecorder;
   readonly clock: Clock;
 }
 
@@ -99,11 +101,10 @@ export class AutomationBacklog {
     }
     const headers =
       (await this.deps.messages.findHeaders(userId, messageId)) ?? new Map<string, string[]>();
-    const failed = await this.deps.executor.execute(
-      { userId, automation, arrival: { message, headers, jira: null, live: false } },
-      automation.actions,
-    );
-    return failed.length === 0;
+    const context = { userId, automation, arrival: { message, headers, jira: null, live: false } };
+    const outcomes = await this.deps.executor.execute(context, automation.actions);
+    await this.deps.recorder.record(context, 'apply', outcomes);
+    return outcomes.every(({ outcome }) => outcome === 'ok');
   }
 
   private claim(userId: UserId, automation: Automation, messageId: MessageId): Promise<boolean> {

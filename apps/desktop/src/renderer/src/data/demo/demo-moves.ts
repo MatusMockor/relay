@@ -1,5 +1,6 @@
 import type {
   Label,
+  LabelId,
   Mailbox,
   MailboxId,
   Message,
@@ -14,19 +15,28 @@ import { applyReadFlags } from './demo-read-flags';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 interface DemoMoveOrigin {
+  readonly sequence: number;
   readonly messages: readonly Message[];
   readonly state: ThreadState;
   readonly markedDone?: boolean;
   readonly remindAt: string | null;
-  readonly labelIds: ThreadSummary['labelIds'];
+  readonly addedLabel?: LabelId;
 }
+
+const withoutAdded = (labelIds: readonly LabelId[], origin: DemoMoveOrigin): LabelId[] =>
+  labelIds.filter((labelId) => labelId !== origin.addedLabel);
 
 const restorePlacement = (message: Message, origin: DemoMoveOrigin): Message => {
   const before = origin.messages.find((candidate) => candidate.id === message.id);
   if (before === undefined) {
     return message;
   }
-  return { ...message, mailboxId: before.mailboxId, labelIds: before.labelIds };
+  const gained = origin.addedLabel !== undefined && !before.labelIds.includes(origin.addedLabel);
+  return {
+    ...message,
+    mailboxId: before.mailboxId,
+    labelIds: gained ? withoutAdded(message.labelIds, origin) : message.labelIds,
+  };
 };
 
 const missingFolder = () =>
@@ -34,8 +44,22 @@ const missingFolder = () =>
 
 export class DemoMoves {
   private readonly origins = new Map<ThreadId, DemoMoveOrigin>();
+  private readonly claims = new Map<string, number>();
+  private sequence = 0;
 
   constructor(private readonly state: DemoState) {}
+
+  claimOrigin(claim: string, threadId: ThreadId): void {
+    const origin = this.origins.get(threadId);
+    if (origin !== undefined) {
+      this.claims.set(claim, origin.sequence);
+    }
+  }
+
+  ownsOrigin(claim: string, threadId: ThreadId): boolean {
+    const sequence = this.claims.get(claim);
+    return sequence !== undefined && this.origins.get(threadId)?.sequence === sequence;
+  }
 
   apply(record: DemoThreadRecord, action: ThreadAction): ThreadSummary {
     if (action.type === 'move') {
@@ -57,12 +81,16 @@ export class DemoMoves {
         ? this.mailboxOf(summary, (mailbox) => mailbox.role === 'archive')
         : target;
     const label = target.role === 'label' ? this.gmailLabel(summary, target.path) : undefined;
+    this.sequence += 1;
     this.origins.set(summary.id, {
+      sequence: this.sequence,
       messages: record.messages,
       state: summary.state,
       markedDone: summary.markedDone,
       remindAt: summary.remindAt,
-      labelIds: summary.labelIds,
+      ...(label === undefined || summary.labelIds.includes(label.id)
+        ? {}
+        : { addedLabel: label.id }),
     });
     record.messages = record.messages.map((message) => ({
       ...message,
@@ -90,7 +118,7 @@ export class DemoMoves {
       state: origin.state,
       markedDone: origin.state === 'inbox' ? false : origin.markedDone || record.summary.markedDone,
       remindAt: origin.remindAt,
-      labelIds: origin.labelIds,
+      labelIds: withoutAdded(record.summary.labelIds, origin),
     };
     return record.summary;
   }

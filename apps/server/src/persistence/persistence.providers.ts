@@ -81,6 +81,7 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   splits: PORT_TOKENS.SplitRepository,
   automations: PORT_TOKENS.AutomationRepository,
   automationRuns: PORT_TOKENS.AutomationRunRepository,
+  automationActivity: PORT_TOKENS.AutomationActivityRepository,
   tasks: PORT_TOKENS.TaskRepository,
   reminders: PORT_TOKENS.ReminderRepository,
   drafts: PORT_TOKENS.DraftRepository,

@@ -11,6 +11,7 @@ export type * from './automation-candidate-repository';
 export type * from './automation-matcher';
 export type * from './automation-repository';
 export type * from './automation-run-repository';
+export type * from './automation-activity-repository';
 export type * from './calendar-adapters';
 export type * from './calendar-event-repository';
 export type * from './calendar-subscription-repository';

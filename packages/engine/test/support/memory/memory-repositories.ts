@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Repositories, UnitOfWork } from '../../../src';
 import { MemoryAccountRepository } from './memory-account-repository';
+import { MemoryAutomationActivityRepository } from './memory-automation-activity-repository';
 import {
   MemoryAutomationRepository,
   MemoryAutomationRunRepository,
@@ -43,6 +44,7 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   splits: new MemorySplitRepository(db),
   automations: new MemoryAutomationRepository(db),
   automationRuns: new MemoryAutomationRunRepository(db),
+  automationActivity: new MemoryAutomationActivityRepository(db),
   automationCandidates: new MemoryAutomationCandidateRepository(db),
   tasks: new MemoryTaskRepository(db),
   reminders: new MemoryReminderRepository(db),

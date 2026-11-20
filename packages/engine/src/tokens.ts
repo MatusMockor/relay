@@ -10,6 +10,7 @@ import type { AutomationCandidateRepository } from './ports/automation-candidate
 import type { AutomationMatcher } from './ports/automation-matcher';
 import type { AutomationRepository } from './ports/automation-repository';
 import type { AutomationRunRepository } from './ports/automation-run-repository';
+import type { AutomationActivityRepository } from './ports/automation-activity-repository';
 import type { CalendarAdapters } from './ports/calendar-adapters';
 import type { CalendarEventRepository } from './ports/calendar-event-repository';
 import type { CalendarSubscriptionRepository } from './ports/calendar-subscription-repository';
@@ -57,6 +58,7 @@ export const PORT_TOKENS = {
   SplitRepository: Symbol.for('relay.engine.SplitRepository'),
   AutomationRepository: Symbol.for('relay.engine.AutomationRepository'),
   AutomationRunRepository: Symbol.for('relay.engine.AutomationRunRepository'),
+  AutomationActivityRepository: Symbol.for('relay.engine.AutomationActivityRepository'),
   TaskRepository: Symbol.for('relay.engine.TaskRepository'),
   ReminderRepository: Symbol.for('relay.engine.ReminderRepository'),
   DraftRepository: Symbol.for('relay.engine.DraftRepository'),
@@ -107,6 +109,7 @@ export interface PortRegistry {
   SplitRepository: SplitRepository;
   AutomationRepository: AutomationRepository;
   AutomationRunRepository: AutomationRunRepository;
+  AutomationActivityRepository: AutomationActivityRepository;
   TaskRepository: TaskRepository;
   ReminderRepository: ReminderRepository;
   DraftRepository: DraftRepository;

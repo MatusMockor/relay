@@ -7,6 +7,7 @@ import { DEMO_OFFLINE_STATS, DemoHistory } from './demo-history';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
+import { createDemoAutomationHistory } from './demo-automation-history';
 import { createDemoAutomations } from './demo-automations';
 import { createDemoCalendarClient } from './demo-calendar';
 import { createDemoLabels } from './demo-labels';
@@ -19,6 +20,7 @@ import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
 import { createDemoMessageBodies, type DemoRemoteBodies } from './demo-message-bodies';
 import { DemoMoves } from './demo-moves';
+import { DemoRuleUndo } from './demo-rule-undo';
 import { queryThreads } from './demo-query';
 import { createDemoServerSearch, type DemoServerSearchOptions } from './demo-server-search';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
@@ -199,7 +201,8 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     ...createDemoAttachments(state, now),
-    ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted)),
+    ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted, now)),
+    ...createDemoAutomationHistory(state, now, new DemoRuleUndo(state, moves, upserted)),
     ...createDemoFolders(state, now, emit),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>

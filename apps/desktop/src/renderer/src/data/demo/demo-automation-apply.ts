@@ -7,6 +7,8 @@ import {
 } from '@relay/shared';
 import { MailClientError } from '../errors';
 import { demoRuleMatches } from './demo-automation-match';
+import { trackDemoAction } from './demo-action-effects';
+import { applyActivityOf } from './demo-apply-activity';
 import type { DemoMoves } from './demo-moves';
 import type { DemoState } from './demo-state';
 
@@ -30,12 +32,26 @@ const threadActionOf = (action: AutomationAction): ThreadAction | null => {
 
 const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'archive'];
 
-const rank = (action: ThreadAction): number => ORDER.indexOf(action.type);
+interface PlannedAction {
+  readonly action: AutomationAction;
+  readonly threadAction: ThreadAction;
+}
+
+const rank = ({ threadAction }: PlannedAction): number => ORDER.indexOf(threadAction.type);
+
+const planOf = (actions: readonly AutomationAction[]): PlannedAction[] =>
+  actions
+    .flatMap((action) => {
+      const threadAction = threadActionOf(action);
+      return threadAction === null ? [] : [{ action, threadAction }];
+    })
+    .sort((left, right) => rank(left) - rank(right));
 
 export const createDemoAutomationApply = (
   state: DemoState,
   moves: DemoMoves,
   upserted: (thread: ThreadSummary) => void,
+  now: () => Date,
 ) => {
   const applied = new Set<string>();
   return (automationId: AutomationId): ApplyAutomationResponse => {
@@ -43,9 +59,7 @@ export const createDemoAutomationApply = (
     if (automation === undefined) {
       throw new MailClientError({ code: 'not_found', message: 'Pravidlo neexistuje' });
     }
-    const actions = automation.actions
-      .flatMap((action) => threadActionOf(action) ?? [])
-      .sort((left, right) => rank(left) - rank(right));
+    const actions = planOf(automation.actions);
     if (actions.length === 0) {
       throw new MailClientError({
         code: 'validation_failed',
@@ -65,9 +79,20 @@ export const createDemoAutomationApply = (
         return;
       }
       applied.add(key);
-      actions.forEach((action) => {
-        upserted(moves.apply(record, action));
+      const recorded = actions.map(({ action, threadAction }) => {
+        const tracked = trackDemoAction(record, moves, action, threadAction);
+        upserted(tracked.thread);
+        return tracked.recorded;
       });
+      const activity = applyActivityOf(
+        automation.id,
+        record,
+        recorded,
+        now(),
+        state.ruleHistory.length,
+      );
+      moves.claimOrigin(activity.id, record.summary.id);
+      state.ruleHistory = [...state.ruleHistory, activity];
       count += 1;
     });
     return { matched: Math.min(matches.length, LIMIT), applied: count, failed: 0 };

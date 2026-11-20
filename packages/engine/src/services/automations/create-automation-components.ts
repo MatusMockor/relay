@@ -14,19 +14,20 @@ import { AutomationPreview } from './automation-preview';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
 import { AutomationTargetValidator } from './automation-target-validator';
+import type { AutomationHistoryService } from './history/automation-history-service';
+import { createAutomationHistory } from './history/create-automation-history';
 import { JiraTaskAutomation } from './jira-task-automation';
 import {
   AddLabelAutomationAction,
-  ArchiveAutomationAction,
-  MarkReadAutomationAction,
   MoveToAutomationAction,
   NotifyAutomationAction,
-  PinAutomationAction,
+  TrackedAutomationAction,
 } from './mail-automation-actions';
 
 export interface AutomationComponents {
   readonly service: AutomationService;
   readonly runner: AutomationRunner;
+  readonly history: AutomationHistoryService;
   readonly jiraTasks: JiraTaskSink;
 }
 
@@ -46,14 +47,15 @@ export const createAutomationComponents = (
       notify: new NotifyAutomationAction(shared.events),
       summary: new SummaryAutomationAction(shared.factory),
       task: new TaskAutomationAction(shared.factory),
-      markRead: new MarkReadAutomationAction(shared.actions),
-      pin: new PinAutomationAction(shared.actions),
+      markRead: new TrackedAutomationAction(shared.actions, { type: 'markRead' }),
+      pin: new TrackedAutomationAction(shared.actions, { type: 'pin' }),
       addLabel: new AddLabelAutomationAction(shared.actions),
       moveTo: new MoveToAutomationAction(shared.actions),
-      archive: new ArchiveAutomationAction(shared.actions),
+      archive: new TrackedAutomationAction(shared.actions, { type: 'archive' }),
     },
     deps.logger,
   );
+  const history = createAutomationHistory(deps, shared.actions);
   const patterns = deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY;
   const matcher = new AutomationBacklogMatcher({
     candidates: repositories.automationCandidates,
@@ -76,6 +78,7 @@ export const createAutomationComponents = (
         runs: repositories.automationRuns,
         matcher,
         executor,
+        recorder: history.recorder,
         clock: deps.clock,
       }),
       preview: new AutomationPreview({
@@ -92,8 +95,10 @@ export const createAutomationComponents = (
       runs: repositories.automationRuns,
       matcher: deps.automationMatcher,
       executor,
+      recorder: history.recorder,
       clock: deps.clock,
     }),
+    history: history.service,
     jiraTasks: new JiraTaskAutomation({
       automations: repositories.automations,
       messages: repositories.messages,
