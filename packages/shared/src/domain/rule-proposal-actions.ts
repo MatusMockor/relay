@@ -7,7 +7,7 @@ import { EmailAddressSchema } from './primitives';
 import type { ProposedAction } from './rule-proposal';
 import type { RuleIntent } from './rule-intent';
 import type { RuleSuggestAccount } from './rule-suggestion';
-import { type NamedTarget, namesTarget, spokenMatch } from './rule-target-match';
+import { type NamedTarget, namesTarget, type SpokenName, spokenMatch } from './rule-target-match';
 
 export interface ResolvedActions {
   readonly actions: AutomationAction[];
@@ -53,7 +53,7 @@ const nounOf = (proposed: ProposedAction): string => {
 const targetStep = <Target extends NamedTarget>(
   noun: string,
   name: string,
-  spoken: readonly string[],
+  spoken: readonly SpokenName[],
   targets: readonly Target[] | null,
   build: (target: Target) => AutomationAction,
 ): Step => {

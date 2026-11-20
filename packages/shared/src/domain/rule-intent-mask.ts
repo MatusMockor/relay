@@ -1,4 +1,21 @@
-import { ACTION_WORDS, CONJUNCTIONS, DESTINATION_INTROS, SENDER_WORDS } from './rule-intent-words';
+import {
+  ACTION_WORDS,
+  CONJUNCTIONS,
+  DESTINATION_INTROS,
+  NEGATIONS,
+  SENDER_WORDS,
+  SEQUENCE_JOINTS,
+  UNCERTAIN,
+} from './rule-intent-words';
+
+const NOT_NAMES: readonly ReadonlySet<string>[] = [
+  SENDER_WORDS,
+  DESTINATION_INTROS,
+  CONJUNCTIONS,
+  NEGATIONS,
+  UNCERTAIN,
+  SEQUENCE_JOINTS,
+];
 
 export interface MaskedSentence {
   readonly text: string;
@@ -12,15 +29,14 @@ const QUOTED = /„[^“”"]*[“”"]|"[^"]*"|“[^”]*”/gu;
 const QUOTE_SLOT = /^§q(\d+)§$/u;
 
 export const fold = (value: string): string =>
-  value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('sk');
+  value.normalize('NFD').replace(/\p{M}/gu, '').replace(/[’‘ʼ]/gu, "'").toLocaleLowerCase('sk');
 
 const isNameWord = (word: string): boolean => {
   const plain = fold(word).replace(/[^\p{L}\p{N}'-]/gu, '');
   return (
     plain !== '' &&
-    !SENDER_WORDS.has(plain) &&
-    !DESTINATION_INTROS.has(plain) &&
-    !CONJUNCTIONS.has(plain) &&
+    !/[@§]/u.test(word) &&
+    !NOT_NAMES.some((words) => words.has(plain)) &&
     !ACTION_WORDS.some(([, words]) => words.test(plain))
   );
 };

@@ -225,4 +225,44 @@ describe('resolveRuleProposal action authorization', () => {
       }),
     ).toEqual([]);
   });
+
+  it('matches a quoted name against the whole catalog name', () => {
+    const label = (labels: { id: string; name: string }[], proposed = 'Alpha') =>
+      resolveRuleProposal(
+        proposal({ actions: [{ type: 'addLabel', label: proposed }] }),
+        suggestRequest('Add label "Project Alpha".', {
+          accountId: WORK,
+          accounts: [
+            {
+              ...workAccount,
+              labels: labels.map((item) => ({ ...item, id: LabelIdSchema.parse(item.id) })),
+            },
+          ],
+        }),
+      ).actions;
+
+    expect(label([{ id: 'lbl_alpha', name: 'Alpha' }])).toEqual([]);
+    const both = [
+      { id: 'lbl_alpha', name: 'Alpha' },
+      { id: 'lbl_project', name: 'Project Alpha' },
+    ];
+    expect(label(both)).toEqual([]);
+    expect(label(both, 'Project Alpha')).toEqual([{ type: 'addLabel', labelId: 'lbl_project' }]);
+  });
+
+  it('moves to the folder whose whole path the sentence names', () => {
+    const account = {
+      ...workAccount,
+      folders: [
+        { id: MailboxIdSchema.parse('mbx_work'), name: 'Work/Invoices' },
+        { id: MailboxIdSchema.parse('mbx_personal'), name: 'Personal/Work/Invoices' },
+      ],
+    };
+    const suggestion = resolveRuleProposal(
+      proposal({ actions: [{ type: 'moveTo', folder: 'Work/Invoices' }] }),
+      suggestRequest('Move to Work/Invoices.', { accountId: WORK, accounts: [account] }),
+    );
+
+    expect(suggestion.actions).toEqual([{ type: 'moveTo', mailboxId: 'mbx_work' }]);
+  });
 });

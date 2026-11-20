@@ -145,7 +145,29 @@ describe('rule intent', () => {
     ['move it into the Projects folder', { addLabel: [], moveTo: ['projects'] }],
     ['add label Research and Development', { addLabel: ['research and development'], moveTo: [] }],
   ])('reads the target names of each action in "%s"', (sentence, names) => {
-    expect(ruleIntent(sentence).targetNames).toEqual(names);
+    const { addLabel, moveTo } = ruleIntent(sentence).targetNames;
+    expect({
+      addLabel: addLabel.map((name) => name.text),
+      moveTo: moveTo.map((name) => name.text),
+    }).toEqual(names);
+  });
+
+  it.each([
+    ['Don’t forward to alice@example.com; just archive it.', ['archive']],
+    ['If the email was forwarded to alice@example.com, archive it.', ['archive']],
+    ['Ak je správa prečítaná, archivuj ju.', ['archive']],
+    ['keď príde faktúra tak ju archivuj', ['archive']],
+    ['add label Reports never and forward to ops@example.com', ['addLabel']],
+  ])('does not take negated or conditional words as requests: %s', (sentence, expected) => {
+    expect(actions(sentence)).toEqual(expected);
+    expect(targets(sentence)).toEqual([]);
+  });
+
+  it.each([
+    'forward to never Bob <bob@example.com>',
+    'forward to ops@example.com <bob@example.com>',
+  ])('never swallows a negation or an address as a display name: %s', (sentence) => {
+    expect(targets(sentence)).toEqual([]);
   });
 
   it('keeps forwarding asked for in a separate affirmative clause', () => {

@@ -80,6 +80,7 @@ const PATH = String.raw`\S+(?:\s*\/\s*\S+)*`;
 const VALUE_END = String.raw`\s*[,;]|\s*[.!?](?:\s|$)|\s+(?:then|potom|tak)\b|\s+(?:a|and|plus)\s+(?:\S+\s+){0,2}(?:${ACTION_START})|$`;
 
 export const CONDITION_PHRASES: readonly RegExp[] = [
+  /\b(?:if|when|whenever|ak|ked|pokial)\b[^,;]*?(?=[,;]|[.!?](?:\s|$)|\s(?:then|tak|potom)\b|$)/gu,
   new RegExp(String.raw`\b(?:z|zo|v|vo)\s+priecink\p{L}*\s+${PATH}`, 'gu'),
   new RegExp(String.raw`\b(?:in|from)\s+(?:the\s+)?(?:folder|mailbox)\s+${PATH}`, 'gu'),
   /\b(?:sent|addressed|delivered)\s+to\s+\S+/gu,

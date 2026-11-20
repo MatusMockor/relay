@@ -50,8 +50,11 @@ export const useAutomationEditor = (
 
   const store = (inputs: AutomationInput[], settled: string) => {
     const known = new Set(saved.map((rule) => rule.key));
+    const revision = local.get(settled);
     persist(inputs, (stored: readonly Automation[]) => {
-      setLocal((current) => withoutKey(current, settled));
+      setLocal((current) =>
+        current.get(settled) === revision ? withoutKey(current, settled) : current,
+      );
       const created = stored.find((automation) => !known.has(automation.id));
       if (created === undefined) {
         return;

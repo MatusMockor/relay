@@ -77,6 +77,10 @@ export const findTarget = <Target extends NamedTarget>(
   if (path === '') {
     return NONE;
   }
+  const whole = decided(targets.filter((target) => pathOf(target.name) === path));
+  if (whole !== null) {
+    return whole;
+  }
   const exact = decided(targets.filter((target) => endsWithPath(pathOf(target.name), path)));
   if (exact !== null) {
     return exact;
@@ -126,12 +130,21 @@ const byWords = <Target extends NamedTarget>(
   return tiers.map((tier) => decided(tier)).find((match) => match !== null) ?? NONE;
 };
 
+export interface SpokenName {
+  readonly text: string;
+  readonly quoted: boolean;
+}
+
 const resolveSpoken = <Target extends NamedTarget>(
   targets: readonly Target[],
-  spoken: string,
+  spoken: SpokenName,
 ): TargetMatch<Target> => {
-  const match = findTarget(targets, spoken);
-  return match.kind === 'none' ? byWords(targets, spoken) : match;
+  if (spoken.quoted) {
+    const path = pathOf(spoken.text);
+    return decided(targets.filter((target) => pathOf(target.name) === path)) ?? NONE;
+  }
+  const match = findTarget(targets, spoken.text);
+  return match.kind === 'none' ? byWords(targets, spoken.text) : match;
 };
 
 const agreesWith = (target: NamedTarget, proposed: string): boolean =>
@@ -140,16 +153,16 @@ const agreesWith = (target: NamedTarget, proposed: string): boolean =>
 
 export type SpokenMatch<Target> = TargetMatch<Target> | { readonly kind: 'other' };
 
-export const namesTarget = (spoken: readonly string[], proposed: string): boolean =>
-  spoken.some((name) => mentionsName(name, proposed));
+export const namesTarget = (spoken: readonly SpokenName[], proposed: string): boolean =>
+  spoken.some((name) => mentionsName(name.text, proposed));
 
 export const spokenMatch = <Target extends NamedTarget>(
   targets: readonly Target[],
-  spoken: readonly string[],
+  spoken: readonly SpokenName[],
   proposed: string,
 ): SpokenMatch<Target> => {
   const matches = spoken
-    .filter((name) => mentionsName(name, proposed))
+    .filter((name) => mentionsName(name.text, proposed))
     .map((name) => resolveSpoken(targets, name));
   const agreeing = matches.find(
     (match) => match.kind === 'found' && agreesWith(match.target, proposed),

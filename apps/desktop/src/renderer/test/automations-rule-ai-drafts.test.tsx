@@ -24,6 +24,26 @@ const heldLabels = (base: MailClient, held: Gate): MailClient => ({
   },
 });
 
+const heldAfterFirst = (base: MailClient, held: Gate): MailClient => {
+  const later = heldAi(base, held, []);
+  const calls = { count: 0 };
+  return {
+    ...base,
+    runAi: (request, listener) => {
+      calls.count += 1;
+      return (calls.count === 1 ? base : later).runAi(request, listener);
+    },
+  };
+};
+
+const heldSaves = (base: MailClient, held: Gate): MailClient => ({
+  ...base,
+  replaceAutomations: async (...args: Parameters<MailClient['replaceAutomations']>) => {
+    await held.wait();
+    return base.replaceAutomations(...args);
+  },
+});
+
 describe('Nastavenia > Automatizácie > neuložený návrh pravidla', () => {
   beforeEach(() => {
     resetStores();
@@ -167,6 +187,44 @@ describe('Nastavenia > Automatizácie > neuložený návrh pravidla', () => {
     const current = within(sheet).getByRole('region', { name: 'Pravidlo Tibor' });
     expect(within(current).getByRole('alert').textContent).toBe(STALE);
     expect(within(condition(current, 1)).getByLabelText('Adresa')).toHaveProperty('value', 'jana@');
+  });
+
+  it('ignores a late proposal while the rule name is being typed', async () => {
+    const held = gate();
+    const client = heldAi(demoClient(), held, []);
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
+
+    await describeRule(tibor, 'od gitlab@firma.sk archivuj');
+    click(within(tibor).getByRole('button', { name: 'Premenovať pravidlo Tibor' }));
+    change(within(tibor).getByLabelText('Názov pravidla'), 'Tibor nové');
+    held.open();
+    await settle(40);
+
+    const current = within(sheet).getByRole('region', { name: 'Pravidlo Tibor' });
+    expect(within(current).getByRole('alert').textContent).toBe(STALE);
+    expect(within(current).getByLabelText('Názov pravidla')).toHaveProperty('value', 'Tibor nové');
+  });
+
+  it('keeps a proposal that arrives while the previous one is being saved', async () => {
+    const ai = gate();
+    const saves = gate();
+    const client = heldSaves(heldAfterFirst(demoClient(), ai), saves);
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
+
+    await describeRule(tibor, 'od gitlab@firma.sk pripni');
+    const first = within(sheet).getByRole('region', { name: 'Pravidlo gitlab@firma.sk' });
+    await describeRule(first, 'od jana@firma.sk archivuj');
+    click(within(first).getByRole('button', { name: 'Uložiť pravidlo' }));
+    ai.open();
+    await settle(40);
+    saves.open();
+    await settle(40);
+
+    const second = within(sheet).getByRole('region', { name: 'Pravidlo jana@firma.sk' });
+    expect(within(second).getByText('Neuložené')).toBeTruthy();
+    expect(await stored(client, 'gitlab@firma.sk')).toMatchObject({ actions: [{ type: 'pin' }] });
   });
 
   it('waits for the labels before it asks the AI', async () => {

@@ -43,11 +43,12 @@ export const intentPhrases = (tokens: readonly string[]): IntentPhrase[] => {
       naming = false;
       continue;
     }
-    if (naming) {
+    if (naming && !NEGATIONS.has(token)) {
       current?.words.push({ text: token, denied: false });
       continue;
     }
     if (NEGATIONS.has(token)) {
+      naming = false;
       negated = true;
       continue;
     }

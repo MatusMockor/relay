@@ -1,14 +1,18 @@
 import { Field } from '@relay/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface RuleNameProps {
   readonly name: string;
   readonly disabled: boolean;
   readonly onRename: (name: string) => void;
+  readonly onDraft?: (draft: string | null) => void;
 }
 
-export function RuleName({ name, disabled, onRename }: RuleNameProps) {
+export function RuleName({ name, disabled, onRename, onDraft }: RuleNameProps) {
   const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => {
+    onDraft?.(draft);
+  }, [draft, onDraft]);
   const commit = () => {
     const next = draft?.trim() ?? '';
     setDraft(null);

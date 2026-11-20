@@ -41,6 +41,16 @@ describe('rule target names', () => {
     expect(findTarget(targets, query)).toEqual({ kind: 'none' });
   });
 
+  it('prefers the whole path over a longer path ending with it', () => {
+    const nested = [
+      { id: 'work', name: 'Work/Invoices' },
+      { id: 'personal', name: 'Personal/Work/Invoices' },
+    ];
+
+    expect(found('Work/Invoices', nested)).toBe('work');
+    expect(found('Personal/Work/Invoices', nested)).toBe('personal');
+  });
+
   it('never falls back to another folder with the same leaf when a path is given', () => {
     expect(findTarget(targets, 'Projekty/Gama')).toEqual({ kind: 'none' });
     expect(found('Gama')).toBe('g');
@@ -70,7 +80,7 @@ describe('rule target names', () => {
 
   it('resolves what the user said and checks that the proposal agrees', () => {
     const spoken = (said: string, proposed: string, list = targets): unknown => {
-      const match = spokenMatch(list, [said], proposed);
+      const match = spokenMatch(list, [{ text: said, quoted: false }], proposed);
       return match.kind === 'found' ? match.target.id : match.kind;
     };
     const clients = [

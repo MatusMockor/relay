@@ -8,9 +8,16 @@ export interface RuleDetailHeaderProps {
   readonly disabled: boolean;
   readonly onBack: () => void;
   readonly onChange: (change: RuleChange) => void;
+  readonly onNameDraft: (draft: string | null) => void;
 }
 
-export function RuleDetailHeader({ rule, disabled, onBack, onChange }: RuleDetailHeaderProps) {
+export function RuleDetailHeader({
+  rule,
+  disabled,
+  onBack,
+  onChange,
+  onNameDraft,
+}: RuleDetailHeaderProps) {
   const { input } = rule;
   return (
     <header className="sh-head au-dh">
@@ -23,6 +30,7 @@ export function RuleDetailHeader({ rule, disabled, onBack, onChange }: RuleDetai
             onRename={(name) => {
               onChange({ name });
             }}
+            onDraft={onNameDraft}
           />
         </h2>
         {rule.preset === null ? null : <span className="scope">Predvolené</span>}

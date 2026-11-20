@@ -65,10 +65,17 @@ export function AutomationDetail({
   const previewInput = withLiveDrafts(input, conditionRows.rows, exceptionRows.rows, live.drafts);
   const broken = input.actions.some((action) => describeAction(action, targets).broken);
   const [view, setView] = useState<RuleView>('settings');
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
   const missing = missingPart(rule);
   return (
     <section className="au-detail" aria-label={`Pravidlo ${input.name}`}>
-      <RuleDetailHeader rule={rule} disabled={disabled} onBack={onBack} onChange={onChange} />
+      <RuleDetailHeader
+        rule={rule}
+        disabled={disabled}
+        onBack={onBack}
+        onChange={onChange}
+        onNameDraft={setNameDraft}
+      />
       <Segmented<RuleView>
         label="Zobrazenie pravidla"
         value={view}
@@ -84,7 +91,7 @@ export function AutomationDetail({
           accounts={accounts}
           disabled={disabled}
           note={rule.suggestion ?? null}
-          basis={`${suggestionBasis(previewInput)}\n${conditions.signature}`}
+          basis={[suggestionBasis(previewInput), conditions.signature, nameDraft].join('\n')}
           onSuggest={onPropose}
         />
         <RuleSummaryCard input={input} accounts={accounts} targets={targets} />

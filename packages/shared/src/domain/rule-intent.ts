@@ -4,10 +4,11 @@ import { maskSentence } from './rule-intent-mask';
 import { nameOf } from './rule-intent-names';
 import { intentPhrases } from './rule-intent-phrases';
 import { CONDITION_PHRASES, SENDER_WORDS, UNCERTAIN } from './rule-intent-words';
+import type { SpokenName } from './rule-target-match';
 
 export interface RuleTargetNames {
-  readonly addLabel: readonly string[];
-  readonly moveTo: readonly string[];
+  readonly addLabel: readonly SpokenName[];
+  readonly moveTo: readonly SpokenName[];
 }
 
 export interface RuleIntent {
@@ -43,7 +44,7 @@ export const ruleIntent = (sentence: string): RuleIntent => {
   const isRecipient = (token: string) => PLACEHOLDER.test(token) && !senders.has(token);
   const actions = new Set<AutomationActionType>();
   const forwardTo = new Set<string>();
-  const targetNames = { addLabel: [] as string[], moveTo: [] as string[] };
+  const targetNames = { addLabel: [] as SpokenName[], moveTo: [] as SpokenName[] };
   for (const clause of withoutConditions(text).split(CLAUSE_BREAK)) {
     const tokens = tokensOf(clause);
     if (isUncertain(clause, tokens)) {
