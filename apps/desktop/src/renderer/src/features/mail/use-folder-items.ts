@@ -13,6 +13,7 @@ export interface FolderItems {
   readonly items: readonly ListItem[];
   readonly loading: boolean;
   readonly paging: ListPaging;
+  readonly placeholder: boolean;
 }
 
 export const useFolderItems = (): FolderItems => {
@@ -62,5 +63,6 @@ export const useFolderItems = (): FolderItems => {
     threads.isPending,
     scope,
   ]);
-  return { ...listed, paging };
+  const placeholder = usesThreadList(folder) && threads.isPlaceholderData;
+  return { ...listed, paging, placeholder };
 };

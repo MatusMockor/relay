@@ -3,7 +3,8 @@ import { keepPreviousData, useQueries, useQuery, useQueryClient } from '@tanstac
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
-import { mergeHeadPage } from './thread-pages';
+import { fetchThreadRange, rangeTargetOf } from './thread-range';
+import { removalMark, withoutRemovedSince } from './thread-tombstones';
 
 export const LIST_LIMIT = 200;
 
@@ -19,9 +20,14 @@ export const useThreadList = (params: ThreadListParams, enabled = true) => {
   const queryKey = queryKeys.threadList(full);
   return useQuery({
     queryKey,
-    queryFn: async () => {
-      const head = await client.listThreads(full);
-      return mergeHeadPage(queryClient.getQueryData<ThreadPage>(queryKey), head);
+    queryFn: async ({ signal }) => {
+      const mark = removalMark(queryClient);
+      const range = await fetchThreadRange(client, {
+        params: full,
+        loaded: () => rangeTargetOf(queryClient.getQueryData<ThreadPage>(queryKey)),
+        signal,
+      });
+      return withoutRemovedSince(queryClient, mark, range);
     },
     placeholderData: keepPreviousData,
     enabled,

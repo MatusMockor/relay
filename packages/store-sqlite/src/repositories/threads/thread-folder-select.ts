@@ -5,6 +5,7 @@ import type { RelayDb } from '../../database/sqlite-database';
 import type { TimeIdPosition } from '../../pagination/time-id-cursor';
 import { threads } from '../../schema';
 import { threadFolderCondition } from './thread-folder-condition';
+import { threadFolderPlanOf } from './thread-folder-plan';
 
 export const selectFolderThreads = (
   db: RelayDb,
@@ -16,6 +17,6 @@ export const selectFolderThreads = (
   db
     .select()
     .from(threads)
-    .where(threadFolderCondition(userId, query, position))
+    .where(threadFolderCondition(userId, query, position, threadFolderPlanOf(db, query)))
     .orderBy(desc(threads.lastMessageTs), desc(threads.id))
     .limit(limit);

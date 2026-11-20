@@ -2,9 +2,11 @@ import type { ThreadFolderQuery } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
 import { and, eq, lt, not, or, type SQL, sql } from 'drizzle-orm';
 import type { TimeIdPosition } from '../../pagination/time-id-cursor';
-import { messages, splits, threadSplits, threads } from '../../schema';
+import { splits, threadSplits, threads } from '../../schema';
 import { folderViewCondition, hasOpenTask, notHeld } from './folder-view-condition';
 import { toFtsMatchExpression } from './fts-match-expression';
+import type { ThreadFolderPlan } from './thread-folder-plan';
+import { type PlanConditions, planConditionsOf } from './thread-folder-plan-conditions';
 import { threadMessageCondition } from './thread-message-condition';
 
 const inSplit = (splitId: string): SQL =>
@@ -21,12 +23,10 @@ const labelCondition = (labelId: string | null): SQL | undefined =>
     ? undefined
     : sql`exists (select 1 from json_each(${threads.labelIds}) where value = ${labelId})`;
 
-const mailboxCondition = (mailboxId: string | null): SQL | undefined =>
-  mailboxId === null
-    ? undefined
-    : sql`+${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`;
-
-const folderScopeCondition = (query: ThreadFolderQuery): SQL | undefined => {
+const folderScopeCondition = (
+  query: ThreadFolderQuery,
+  conditions: PlanConditions,
+): SQL | undefined => {
   if (query.everywhere === true) {
     return notHeld;
   }
@@ -38,7 +38,7 @@ const folderScopeCondition = (query: ThreadFolderQuery): SQL | undefined => {
     }),
     splitCondition(query.splitId),
     labelCondition(query.labelId),
-    mailboxCondition(query.mailboxId),
+    query.mailboxId === null ? undefined : conditions.inMailbox(query.mailboxId),
   );
 };
 
@@ -57,12 +57,14 @@ export const threadFolderCondition = (
   userId: UserId,
   query: ThreadFolderQuery,
   position: TimeIdPosition | null,
-): SQL | undefined =>
-  and(
-    eq(threads.userId, userId),
-    query.accountId === null ? undefined : eq(threads.accountId, query.accountId),
-    folderScopeCondition(query),
+  plan: ThreadFolderPlan,
+): SQL | undefined => {
+  const conditions = planConditionsOf(plan);
+  return and(
+    conditions.owner(userId, query.accountId),
+    folderScopeCondition(query, conditions),
     unreadCondition(query.unread),
     threadMessageCondition(userId, query),
     afterCursor(position),
   );
+};

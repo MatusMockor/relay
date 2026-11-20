@@ -7,27 +7,15 @@ import { queryKeys } from '../src/data/hooks/query-keys';
 import { applyRealtimeEvent } from '../src/data/hooks/realtime-cache';
 import { threadListParams } from '../src/data/hooks/use-mail-queries';
 import type { MailClient } from '../src/data/MailClient';
-import { useUiStore } from '../src/state/ui-store';
-import {
-  addDemoThread,
-  bulkDemoState,
-  bulkThread,
-  type CountingClient,
-  countingListClient,
-} from './support/bulk-demo-threads';
+import { addDemoThread, bulkThread, type CountingClient } from './support/bulk-demo-threads';
 import { LIST_ROW_HEIGHT } from './support/list-geometry';
-import {
-  scrollElementOf,
-  scrollListTo,
-  scrollListToEnd,
-  threadListbox,
-  waitForRows,
-} from './support/list-scroll';
+import { scrollElementOf, scrollListTo, scrollListToEnd } from './support/list-scroll';
+import { loadPagesOf, startPagedList } from './support/paged-list';
+import { resetStores } from './support/render-app';
 
 const slotTop = (slot: HTMLElement): number =>
   Number.parseFloat(slot.style.top) +
   Number.parseFloat(slot.closest<HTMLElement>('.a-group')?.style.top ?? '0');
-import { renderApp, resetStores, testQueryClient } from './support/render-app';
 
 const NOW = new Date(2026, 10, 19, 12, 0);
 const THREADS = 1_000;
@@ -41,26 +29,11 @@ const loadedCount = (queryClient: QueryClient): number => inboxPage(queryClient)
 const inboxCalls = (counting: CountingClient) =>
   counting.listCalls.filter((call) => call.view === 'inbox' && call.splitId === undefined);
 
-const start = async (client?: (counting: CountingClient) => MailClient) => {
-  const state = bulkDemoState(THREADS, NOW);
-  const counting = countingListClient(state, () => NOW);
-  const queryClient = testQueryClient();
-  useUiStore.setState({ rightOpen: false });
-  renderApp({ demo: () => client?.(counting) ?? counting.client, queryClient });
-  const listbox = await threadListbox();
-  await waitForRows();
-  return { state, counting, queryClient, listbox };
-};
+const start = (client?: (counting: CountingClient) => MailClient) =>
+  startPagedList({ now: NOW, threads: THREADS, client });
 
-const loadPages = async (listbox: HTMLElement, queryClient: QueryClient, pages: number) => {
-  for (let page = 1; page < pages; page += 1) {
-    const before = loadedCount(queryClient);
-    scrollListToEnd(listbox);
-    await waitFor(() => {
-      expect(loadedCount(queryClient)).toBeGreaterThan(before);
-    });
-  }
-};
+const loadPages = (listbox: HTMLElement, queryClient: QueryClient, pages: number) =>
+  loadPagesOf(listbox, () => inboxPage(queryClient), pages);
 
 describe('thread list pagination', () => {
   beforeEach(() => {
@@ -86,10 +59,10 @@ describe('thread list pagination', () => {
     expect(option?.getAttribute('aria-setsize')).toBe(String(all?.items.length));
   });
 
-  it('puts new mail at the top without dropping or refetching the loaded pages', async () => {
+  it('puts new mail at the top and re-reads the loaded range behind it', async () => {
     const { state, counting, queryClient, listbox } = await start();
     await loadPages(listbox, queryClient, 3);
-    const before = loadedCount(queryClient);
+    const before = inboxPage(queryClient)?.items.map((item) => item.id) ?? [];
     const calls = counting.listCalls.length;
     const fresh = { ...bulkThread(0, NOW), id: bulkThread(-1, NOW).id, subject: 'Úplne nová' };
     addDemoThread(state, fresh);
@@ -104,8 +77,14 @@ describe('thread list pagination', () => {
     await waitFor(() => {
       expect(inboxPage(queryClient)?.items[0]?.id).toBe(fresh.id);
     });
-    expect(loadedCount(queryClient)).toBe(before + 1);
-    expect(counting.listCalls.slice(calls).every((call) => call.cursor === undefined)).toBe(true);
+    const after = inboxPage(queryClient);
+    expect(after?.items.map((item) => item.id)).toEqual([fresh.id, ...before.slice(0, -1)]);
+    expect(after?.nextCursor).not.toBeNull();
+    expect(
+      inboxCalls({ ...counting, listCalls: counting.listCalls.slice(calls) }).map(
+        (call) => call.cursor,
+      ),
+    ).toEqual([undefined, '200', '400']);
   });
 
   it('keeps the rows in view in place when new mail arrives above them', async () => {

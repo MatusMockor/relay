@@ -8,6 +8,7 @@ export interface BulkMailboxes {
   readonly sent: Mailbox;
   readonly folder: Mailbox;
   readonly tiny: Mailbox;
+  readonly single: Mailbox;
 }
 
 export interface BulkSeedInput {
@@ -32,7 +33,11 @@ const STATES: readonly ThreadState[] = [
 
 const stateOf = (index: number): ThreadState => STATES[index % STATES.length] ?? 'done';
 
-const mailboxOf = (index: number, state: ThreadState, mailboxes: BulkMailboxes): Mailbox => {
+const mailboxOf = (index: number, state: ThreadState, input: BulkSeedInput): Mailbox => {
+  const { mailboxes } = input;
+  if (index === input.count - 10) {
+    return mailboxes.single;
+  }
   if (index % 10_000 === 5) {
     return mailboxes.tiny;
   }
@@ -83,7 +88,7 @@ export const bulkSeedThreads = (store: TestStore, input: BulkSeedInput): void =>
         index % 13 === 0 ? BULK_LABEL_IDS : '[]',
         state,
       );
-      const mailbox = mailboxOf(index, state, input.mailboxes);
+      const mailbox = mailboxOf(index, state, input);
       insertMessage.run(
         `${id}-m`,
         LOCAL_USER_ID,
