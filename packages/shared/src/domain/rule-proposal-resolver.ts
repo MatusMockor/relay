@@ -106,7 +106,6 @@ export const resolveRuleProposal = (
   const account = accountFor(proposal, request);
   const actions = resolveProposedActions(proposal.actions, {
     account,
-    sentence: request.sentence,
     intent: ruleIntent(request.sentence),
   });
   const conditions = checkConditions(proposal.conditions);

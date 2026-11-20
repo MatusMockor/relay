@@ -16,7 +16,6 @@ export interface ResolvedActions {
 
 interface ActionContext {
   readonly account: RuleSuggestAccount | null;
-  readonly sentence: string;
   readonly intent: RuleIntent;
 }
 
@@ -78,7 +77,7 @@ const stepOf = (proposed: ProposedAction, context: ActionContext): Step => {
   const { account } = context;
   if (proposed.type === 'addLabel' || proposed.type === 'moveTo') {
     const name = spokenTarget(
-      context.sentence,
+      context.intent.spoken,
       proposed.type === 'addLabel' ? proposed.label : proposed.folder,
     );
     if (name === null) {

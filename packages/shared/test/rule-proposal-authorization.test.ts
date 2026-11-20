@@ -211,4 +211,61 @@ describe('resolveRuleProposal action authorization', () => {
 
     expect(suggestion.actions).toEqual([{ type: 'forward', to: 'ops@example.com' }]);
   });
+
+  it('looks a folder up by the path the sentence says and reports it as ambiguous', () => {
+    const account = {
+      ...workAccount,
+      folders: [
+        { id: MailboxIdSchema.parse('mbx_private'), name: 'Private/Invoices/2024' },
+        { id: MailboxIdSchema.parse('mbx_work'), name: 'Work/Invoices/2024' },
+      ],
+    };
+    const suggestion = resolveRuleProposal(
+      proposal({ actions: [{ type: 'moveTo', folder: 'Private/Invoices/2024' }] }),
+      suggestRequest('presuň do Invoices/2024', { accountId: WORK, accounts: [account] }),
+    );
+
+    expect(suggestion.actions).toEqual([]);
+    expect(suggestion.unmapped).toEqual([
+      'priečinok „Private/Invoices/2024“ (nejednoznačný názov)',
+    ]);
+  });
+
+  it.each([
+    'z priečinka Work/Invoices presuň do Archív',
+    'presuň do Archív, nikdy nie do Work/Invoices',
+  ])('takes a move target only from the asked part of "%s"', (sentence) => {
+    const account = {
+      ...workAccount,
+      folders: [
+        { id: MailboxIdSchema.parse('mbx_invoices'), name: 'Work/Invoices' },
+        { id: MailboxIdSchema.parse('mbx_archive'), name: 'Archív' },
+      ],
+    };
+    const move = (folder: string) =>
+      resolveRuleProposal(
+        proposal({ actions: [{ type: 'moveTo', folder }] }),
+        suggestRequest(sentence, { accountId: WORK, accounts: [account] }),
+      ).actions;
+
+    expect(move('Work/Invoices')).toEqual([]);
+    expect(move('Archív')).toEqual([{ type: 'moveTo', mailboxId: 'mbx_archive' }]);
+  });
+
+  it('forwards only to the first destination of the forward verb', () => {
+    const forward = (to: string) =>
+      resolveRuleProposal(
+        proposal({ actions: [{ type: 'forward', to }] }),
+        suggestRequest(
+          'forward mail sent to me@example.com to ops@example.com or to b@example.com',
+          {
+            accountId: WORK,
+          },
+        ),
+      ).actions;
+
+    expect(forward('me@example.com')).toEqual([]);
+    expect(forward('b@example.com')).toEqual([]);
+    expect(forward('ops@example.com')).toEqual([{ type: 'forward', to: 'ops@example.com' }]);
+  });
 });

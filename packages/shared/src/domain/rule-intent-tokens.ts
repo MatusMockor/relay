@@ -10,6 +10,7 @@ import {
 export interface IntentWord {
   readonly text: string;
   readonly asked: boolean;
+  readonly denied: boolean;
 }
 
 interface Scope {
@@ -43,12 +44,12 @@ const classified = (scope: Scope, token: string): IntentWord => {
   const data = scope.naming;
   scope.denyNext = false;
   scope.naming = data || TARGET_WORDS.test(token);
-  return { text: token, asked: !denied && !data };
+  return { text: token, asked: !denied && !data, denied };
 };
 
 export const intentWords = (tokens: readonly string[]): IntentWord[] => {
   const scope: Scope = { negated: false, denyNext: false, naming: false };
   return tokens.map((token) =>
-    isMarker(scope, token) ? { text: token, asked: false } : classified(scope, token),
+    isMarker(scope, token) ? { text: token, asked: false, denied: true } : classified(scope, token),
   );
 };

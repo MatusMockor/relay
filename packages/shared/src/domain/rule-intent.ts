@@ -1,31 +1,17 @@
 import type { AutomationActionType } from './automation-action';
 import { forwardSlots } from './rule-intent-forward';
+import { maskSentence, unquoted } from './rule-intent-mask';
 import { intentWords } from './rule-intent-tokens';
 import { ACTION_WORDS, CONDITION_PHRASES, SENDER_WORDS, UNCERTAIN } from './rule-intent-words';
 
 export interface RuleIntent {
   readonly actions: ReadonlySet<AutomationActionType>;
   readonly forwardTo: ReadonlySet<string>;
+  readonly spoken: string;
 }
 
-const BRACKETED = /<\s*([^\s<>]+@[^\s<>]+?)\s*>/gu;
-const ADDRESS = /[^\s<>()[\],;:"'„“”]+@[^\s<>()[\],;:"'„“”]+/gu;
-const QUOTED = /„[^“”"]*[“”"]|"[^"]*"|“[^”]*”/gu;
 const PLACEHOLDER = /^§(\d+)§$/u;
 const CLAUSE_BREAK = /(?<=[,;!?.])|\b(?:ale|but|however|avsak)\b/u;
-
-const fold = (value: string): string =>
-  value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('sk');
-
-const masked = (sentence: string, addresses: string[]): string =>
-  sentence
-    .replace(BRACKETED, ' $1 ')
-    .replace(ADDRESS, (match) => {
-      const address = match.replace(/[.!?]+$/u, '');
-      addresses.push(address.toLowerCase());
-      return ` §${String(addresses.length - 1)}§ ${match.slice(address.length)}`;
-    })
-    .replace(QUOTED, ' §q§ ');
 
 const senderSlots = (text: string): Set<string> => {
   const tokens = text.split(/\s+/u);
@@ -51,17 +37,20 @@ const wantedIn = (asked: readonly string[]): AutomationActionType[] =>
   );
 
 export const ruleIntent = (sentence: string): RuleIntent => {
-  const addresses: string[] = [];
-  const text = fold(masked(sentence, addresses));
+  const { text, addresses, quotes } = maskSentence(sentence);
   const senders = senderSlots(text);
   const actions = new Set<AutomationActionType>();
   const forwardTo = new Set<string>();
+  const spoken: string[] = [];
   for (const clause of withoutConditions(text).split(CLAUSE_BREAK)) {
     const tokens = tokensOf(clause);
     if (isUncertain(clause, tokens)) {
       continue;
     }
     const words = intentWords(tokens);
+    words
+      .filter((word) => !word.denied)
+      .forEach((word) => spoken.push(unquoted(word.text, quotes)));
     wantedIn(words.filter((word) => word.asked).map((word) => word.text)).forEach((type) =>
       actions.add(type),
     );
@@ -74,5 +63,5 @@ export const ruleIntent = (sentence: string): RuleIntent => {
         }
       });
   }
-  return { actions, forwardTo };
+  return { actions, forwardTo, spoken: spoken.join(' ') };
 };

@@ -106,6 +106,27 @@ describe('rule intent', () => {
     expect(targets('forward it to Jane <jane@example.com>')).toEqual([]);
   });
 
+  it.each([
+    ['forward to ops@example.com or to boss@example.com', 'ops@example.com'],
+    ['forward mail sent to me@example.com to ops@example.com', 'ops@example.com'],
+    ['forward mail addressed to me@example.com to ops@example.com', 'ops@example.com'],
+    ['forward mail received at me@example.com to ops@example.com', 'ops@example.com'],
+    ['prepošli maily adresované na info@firma.sk na jano@firma.sk', 'jano@firma.sk'],
+    ['maily pre info@firma.sk prepošli na jano@firma.sk', 'jano@firma.sk'],
+    ['prepošli na x@y.sk a upozorni z@w.sk', 'x@y.sk'],
+    ['prepošli na x@y.sk a na z@w.sk', 'x@y.sk'],
+  ])('binds one destination to the forward verb in "%s"', (sentence, destination) => {
+    expect(targets(sentence)).toEqual([destination]);
+  });
+
+  it('tells which names the sentence asks for', () => {
+    expect(ruleIntent('z priečinka Work/Invoices presuň do Archív').spoken).not.toContain('work');
+    expect(ruleIntent('presuň do Archív, nikdy nie do Work/Invoices').spoken).not.toContain(
+      'invoices',
+    );
+    expect(ruleIntent('daj štítok „Klienti/Acme“').spoken).toContain('klienti/acme');
+  });
+
   it('keeps forwarding asked for in a separate affirmative clause', () => {
     expect(targets("don't archive it, forward it to jano@firma.sk")).toEqual(['jano@firma.sk']);
     expect(actions("don't archive it, forward it to jano@firma.sk")).toEqual(['forward']);

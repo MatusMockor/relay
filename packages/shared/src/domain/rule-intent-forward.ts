@@ -10,17 +10,17 @@ const phraseAfter = (words: readonly IntentWord[], start: number): IntentWord[] 
   return end === -1 ? rest : rest.slice(0, end);
 };
 
-const introduced = (phrase: readonly IntentWord[], slot: RegExp): string[] =>
-  phrase
-    .filter(
-      (word, index) =>
-        word.asked && slot.test(word.text) && DESTINATION_INTROS.has(phrase[index - 1]?.text ?? ''),
-    )
-    .map((word) => word.text);
+const firstIntroduced = (phrase: readonly IntentWord[], slot: RegExp): string[] => {
+  const first = phrase.find(
+    (word, index) =>
+      word.asked && slot.test(word.text) && DESTINATION_INTROS.has(phrase[index - 1]?.text ?? ''),
+  );
+  return first === undefined ? [] : [first.text];
+};
 
 export const forwardSlots = (words: readonly IntentWord[], slot: RegExp): string[] =>
   words.flatMap((word, index) =>
     word.asked && FORWARD_WORDS.test(word.text)
-      ? introduced(phraseAfter(words, index + 1), slot)
+      ? firstIntroduced(phraseAfter(words, index + 1), slot)
       : [],
   );

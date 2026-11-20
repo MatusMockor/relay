@@ -108,12 +108,8 @@ const spokenPaths = (sentence: string, leaf: string): string[] =>
     .map((match) => pathOf(match[0]))
     .filter((path) => mentions(leafOf(path).split(WORD_BREAK), leaf));
 
-const agreeing = (proposed: string, spoken: string): string | null => {
-  if (endsWithPath(proposed, spoken)) {
-    return proposed;
-  }
-  return endsWithPath(spoken, proposed) ? spoken : null;
-};
+const agrees = (proposed: string, spoken: string): boolean =>
+  endsWithPath(proposed, spoken) || endsWithPath(spoken, proposed);
 
 export const spokenTarget = (sentence: string, name: string): string | null => {
   const said = wordsOf(sentence);
@@ -124,7 +120,7 @@ export const spokenTarget = (sentence: string, name: string): string | null => {
   }
   const qualified = spokenPaths(sentence, leaf);
   if (qualified.length > 0) {
-    return qualified.map((spoken) => agreeing(pathOf(name), spoken)).find(Boolean) ?? null;
+    return qualified.find((spoken) => agrees(pathOf(name), spoken)) ?? null;
   }
   return segments.every((segment) => mentions(said, segment)) ? name : leaf;
 };

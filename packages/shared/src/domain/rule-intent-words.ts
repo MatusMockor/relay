@@ -36,7 +36,7 @@ export const NEGATION_ENDS: ReadonlySet<string> = new Set(['then', 'potom']);
 
 export const NAME_ENDS: ReadonlySet<string> = new Set(['a', 'and', 'then', 'potom']);
 
-export const PHRASE_ENDS: ReadonlySet<string> = new Set(['and', 'then', 'potom']);
+export const PHRASE_ENDS: ReadonlySet<string> = new Set(['a', 'and', 'then', 'potom']);
 
 export const DESTINATION_INTROS: ReadonlySet<string> = new Set(['to', 'na', 'on', 'at', 'komu']);
 
@@ -54,11 +54,19 @@ export const UNCERTAIN: ReadonlySet<string> = new Set([
 
 export const SENDER_WORDS: ReadonlySet<string> = new Set(['od', 'from', 'z', 'zo', 'sender']);
 
+const PATH = String.raw`\S+(?:\s*\/\s*\S+)*`;
+
 export const CONDITION_PHRASES: readonly RegExp[] = [
+  new RegExp(String.raw`\b(?:z|zo|v|vo)\s+priecink\p{L}*\s+${PATH}`, 'gu'),
+  new RegExp(String.raw`\b(?:in|from)\s+(?:the\s+)?(?:folder|mailbox)\s+${PATH}`, 'gu'),
+  /\b(?:sent|addressed|delivered)\s+to\s+\S+/gu,
+  /\breceived\s+(?:at|by)\s+\S+/gu,
+  /\b(?:adresovan|poslan|dorucen)\p{L}*\s+(?:na|pre)\s+\S+/gu,
+  /\bpre\s+§\d+§/gu,
   /\bz\s+domeny\s+\S+/gu,
   /\bfrom\s+(?:the\s+)?domain\s+\S+/gu,
   new RegExp(
-    String.raw`\b(?:predmet\p{L}*|subject)\s+(?:obsahuje\s+|contains\s+|containing\s+|with\s+|je\s+|is\s+)?(?:§q§|(?:[^,;!?.]|[.!?](?!\s|$))+)`,
+    String.raw`\b(?:predmet\p{L}*|subject)\s+(?:obsahuje\s+|contains\s+|containing\s+|with\s+|je\s+|is\s+)?(?:§q\d+§|(?:[^,;!?.]|[.!?](?!\s|$))+)`,
     'gu',
   ),
   /\b(?:od|from)\s+\S+/gu,
