@@ -26,7 +26,12 @@ export const useContactThreads = (matches: ContactMatcher): ContactThreads => {
   const own = useOwnAddresses();
   const inbox = useInboxThreads();
   const done = useThreadScan({ view: 'done' });
-  const threads = uniqueThreads([...inbox, ...(done.data?.items ?? [])])
+  const archive = useThreadScan({ view: 'archive' });
+  const threads = uniqueThreads([
+    ...inbox,
+    ...(done.data?.items ?? []),
+    ...(archive.data?.items ?? []),
+  ])
     .filter((item) => matches(item, own))
     .sort(newestFirst);
   return { own, threads };

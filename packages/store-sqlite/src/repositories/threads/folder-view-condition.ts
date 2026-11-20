@@ -41,7 +41,9 @@ export const folderViewCondition = (input: FolderViewConditionInput): SQL | unde
     case 'inbox':
       return inboxCondition(input);
     case 'done':
-      return eq(threads.state, 'done');
+      return and(eq(threads.state, 'done'), eq(threads.markedDone, true));
+    case 'archive':
+      return and(eq(threads.state, 'done'), eq(threads.markedDone, false));
     case 'trash':
       return eq(threads.state, 'trash');
     case 'spam':

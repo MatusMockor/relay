@@ -1,0 +1,1 @@
+ALTER TABLE `threads` ADD `marked_done` integer DEFAULT false NOT NULL;

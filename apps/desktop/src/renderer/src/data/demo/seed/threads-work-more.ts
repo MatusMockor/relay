@@ -136,6 +136,7 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     acct: 'efa',
     from: 'mk',
     state: 'done',
+    markedDone: true,
     subj: 'Load test vo štvrtok večer',
     msgs: [
       [

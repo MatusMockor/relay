@@ -70,6 +70,9 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
       thread.labelIds.includes(params.labelId)
     );
   }
+  if (params.view === 'done' || params.view === 'archive') {
+    return thread.state === 'done' && (thread.markedDone === true) === (params.view === 'done');
+  }
   return thread.state === params.view;
 };
 

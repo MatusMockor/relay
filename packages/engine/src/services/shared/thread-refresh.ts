@@ -52,7 +52,11 @@ export const refreshThread = async (
     return { kind: 'removed', threadId, accountId };
   }
   const state = hint.resolveState?.(existing, messages) ?? projected.state;
-  const thread = await repositories.threads.upsert({ ...projected, state });
+  const thread = await repositories.threads.upsert({
+    ...projected,
+    state,
+    markedDone: state !== 'inbox' && (existing?.markedDone ?? false),
+  });
   return { kind: 'upserted', thread };
 };
 

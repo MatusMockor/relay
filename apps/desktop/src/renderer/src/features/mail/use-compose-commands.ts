@@ -121,7 +121,7 @@ export const useComposeCommands = (items: readonly ListItem[]) => {
       if (sent !== true) {
         return;
       }
-      await client.applyThreadAction(threadId, { type: 'done' }).catch(() => undefined);
+      await client.applyThreadAction(threadId, { type: 'archive' }).catch(() => undefined);
       refresh();
     });
     const via = accounts.length > 1 ? ` z ${account.email}` : '';

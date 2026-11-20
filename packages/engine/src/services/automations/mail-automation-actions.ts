@@ -46,7 +46,7 @@ export class ArchiveAutomationAction implements AutomationActionHandler {
   constructor(private readonly actions: MessageActionsService) {}
 
   async run({ userId, arrival }: AutomationActionContext): Promise<void> {
-    await this.actions.apply(userId, arrival.message.threadId, { type: 'done' });
+    await this.actions.apply(userId, arrival.message.threadId, { type: 'archive' });
   }
 }
 

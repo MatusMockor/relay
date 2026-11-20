@@ -16,6 +16,7 @@ import type { DemoState, DemoThreadRecord } from './demo-state';
 interface DemoMoveOrigin {
   readonly messages: readonly Message[];
   readonly state: ThreadState;
+  readonly markedDone?: boolean;
   readonly remindAt: string | null;
   readonly labelIds: ThreadSummary['labelIds'];
 }
@@ -59,6 +60,7 @@ export class DemoMoves {
     this.origins.set(summary.id, {
       messages: record.messages,
       state: summary.state,
+      markedDone: summary.markedDone,
       remindAt: summary.remindAt,
       labelIds: summary.labelIds,
     });
@@ -86,6 +88,7 @@ export class DemoMoves {
     record.summary = {
       ...record.summary,
       state: origin.state,
+      markedDone: origin.state === 'inbox' ? false : origin.markedDone || record.summary.markedDone,
       remindAt: origin.remindAt,
       labelIds: origin.labelIds,
     };

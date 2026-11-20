@@ -23,12 +23,12 @@ const threadActionOf = (action: AutomationAction): ThreadAction | null => {
     return { type: 'move', mailboxId: action.mailboxId };
   }
   if (action.type === 'archive') {
-    return { type: 'done' };
+    return { type: 'archive' };
   }
   return null;
 };
 
-const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'done'];
+const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'archive'];
 
 const rank = (action: ThreadAction): number => ORDER.indexOf(action.type);
 

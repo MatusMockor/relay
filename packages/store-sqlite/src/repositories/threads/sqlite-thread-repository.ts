@@ -72,7 +72,7 @@ export class SqliteThreadRepository implements ThreadRepository {
   ): Promise<ThreadSummary | null> {
     return this.executor.execute((db) => {
       const owned = and(eq(threads.userId, userId), eq(threads.id, threadId));
-      db.update(threads).set({ state: change.state, remindAt: change.remindAt }).where(owned).run();
+      db.update(threads).set(change).where(owned).run();
       return this.findWhere(db, owned);
     });
   }

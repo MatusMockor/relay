@@ -21,7 +21,7 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     'Akcie',
     [
       ['Hotovo', ['E']],
-      ['Vrátiť z Hotovo, Spamu alebo Koša', ['E']],
+      ['Vrátiť z Hotovo, Archívu, Spamu alebo Koša', ['E']],
       ['Pripomenúť', ['H']],
       ['Presunúť do priečinka alebo štítka', ['V']],
       ['Štítok', ['L']],
@@ -69,6 +69,7 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Úlohy', ['G', 'U']],
       ['Pripomenuté', ['G', 'H']],
       ['Hotovo', ['G', 'E']],
+      ['Archív', ['G', 'A']],
       ['Odoslané', ['G', 'T']],
       ['Koncepty', ['G', 'D']],
       ['Naplánované', ['G', 'N']],

@@ -3,7 +3,6 @@ import type { ThreadListParams } from './MailClient';
 
 const STATE_VIEWS: Partial<Record<ThreadListParams['view'], ThreadSummary['state']>> = {
   inbox: 'inbox',
-  done: 'done',
   trash: 'trash',
   spam: 'spam',
   reminders: 'reminder',
@@ -12,6 +11,9 @@ const STATE_VIEWS: Partial<Record<ThreadListParams['view'], ThreadSummary['state
 const leavesView = (params: ThreadListParams, thread: ThreadSummary): boolean => {
   if (params.everywhere === true) {
     return isHeldThreadState(thread.state);
+  }
+  if (params.view === 'done' || params.view === 'archive') {
+    return thread.state !== 'done' || (thread.markedDone === true) !== (params.view === 'done');
   }
   const state = STATE_VIEWS[params.view];
   if (state !== undefined) {

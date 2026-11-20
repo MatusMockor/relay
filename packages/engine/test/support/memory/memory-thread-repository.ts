@@ -71,7 +71,11 @@ export class MemoryThreadRepository implements ThreadRepository {
     if (thread === undefined || !this.db.ownsAccount(userId, thread.accountId)) {
       return Promise.resolve(null);
     }
-    const updated: ThreadSummary = { ...thread, state: change.state, remindAt: change.remindAt };
+    const updated: ThreadSummary = {
+      ...thread,
+      ...change,
+      markedDone: change.markedDone ?? thread.markedDone,
+    };
     this.db.tables.threads.set(threadId, updated);
     return Promise.resolve(updated);
   }

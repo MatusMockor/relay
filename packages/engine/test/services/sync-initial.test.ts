@@ -56,7 +56,7 @@ describe('SyncService initial sync', () => {
       'jana@partner.test',
     ]);
     const done = await engine.services.inbox.list(USER_ID, { view: 'done', limit: 50 });
-    expect(done.items.map((thread) => thread.subject)).toEqual(['Lunch?']);
+    expect(done.items).toEqual([]);
     const sent = await engine.services.inbox.list(USER_ID, { view: 'sent', limit: 50 });
     expect(sent.items.map((thread) => thread.subject)).toEqual(['Lunch?']);
   });

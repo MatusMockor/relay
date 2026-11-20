@@ -18,6 +18,7 @@ export const toThreadSummary = (row: ThreadRow, splitIds: readonly string[]): Th
     splitIds,
     labelIds: row.labelIds,
     state: row.state,
+    markedDone: row.markedDone,
     remindAt: row.remindAt,
     hasDraft: row.hasDraft,
   });
@@ -41,6 +42,7 @@ export const toThreadRow = (
   jiraActor: thread.jiraActor,
   labelIds: thread.labelIds,
   state: thread.state,
+  markedDone: thread.markedDone ?? false,
   remindAt: thread.remindAt,
   hasDraft: thread.hasDraft,
 });

@@ -9,6 +9,7 @@ export interface MoveOrigin {
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
   readonly held?: readonly HeldOriginWork[];
+  readonly markedDone?: boolean;
 }
 
 export const moveOrigins = async (

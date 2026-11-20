@@ -75,11 +75,38 @@ describe('mail flows', () => {
     await waitFor(() => {
       expect(rows().map(subjectOf)).not.toContain(subject);
     });
+    key('g');
+    key('e');
+    await waitFor(() => {
+      expect(rows().map(subjectOf)).toContain(subject);
+      expect(rows().map(subjectOf)).not.toContain('Re: Onboarding checklist');
+    });
     key('z');
+    key('g');
+    key('i');
     await waitFor(() => {
       expect(rows().map(subjectOf)).toContain(subject);
     });
     expect(toast().textContent).toContain('Vrátené');
+  });
+
+  it('returns an archived conversation to Archive when restoring it is undone', async () => {
+    renderApp();
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    key('g');
+    key('a');
+    expect(await screen.findByRole('heading', { name: /^Archív/ })).toBeDefined();
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    const subject = selectedSubject();
+    expect(subject).not.toBe('');
+    key('e');
+    await waitFor(() => {
+      expect(rows().map(subjectOf)).not.toContain(subject);
+    });
+    key('z');
+    await waitFor(() => {
+      expect(rows().map(subjectOf)).toContain(subject);
+    });
   });
 
   it('snoozes with a Slovak time phrase', async () => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { AiRunRequest, ThreadId } from '@relay/shared';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { setUi, useUiStore } from '../src/state/ui-store';
@@ -13,6 +13,26 @@ describe('reply composer', () => {
   });
   afterEach(() => {
     resetStores();
+  });
+
+  it('archives the thread after sending a reply without marking it done', async () => {
+    const client = demoClient();
+    const subject = 'Obed v piatok?';
+    renderApp({ demo: () => client });
+    await openThreadBySubject(subject);
+    press('r', {}, document.body);
+    const area = await screen.findByRole('textbox', { name: 'Odpoveď' });
+    fireEvent.change(area, { target: { value: 'V piatok môžem.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Odoslať' }));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Odoslať/ }));
+
+    await waitFor(async () => {
+      const archive = await client.listThreads({ view: 'archive' });
+      expect(archive.items.map((item) => item.subject)).toContain(subject);
+    });
+    const done = await client.listThreads({ view: 'done' });
+    expect(done.items.map((item) => item.subject)).not.toContain(subject);
   });
 
   it('restores the reply when saving its draft fails', async () => {

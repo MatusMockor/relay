@@ -19,6 +19,19 @@ const setup = async (engine: TestEngine, deliveries: readonly (readonly [string,
 };
 
 describe('undoing a move', () => {
+  it('restores completion after undoing a move from Done to the inbox', async () => {
+    const engine = createTestEngine();
+    const { thread, mailboxId, act } = await setup(engine, [['INBOX', { id: 'm1', date: DATE }]]);
+    await act({ type: 'done' });
+
+    const moved = await act({ type: 'move', mailboxId: await mailboxId('INBOX') });
+    expect(moved).toMatchObject({ state: 'inbox', markedDone: false });
+    await act({ type: 'undoMove' });
+
+    const done = await engine.services.inbox.list(USER_ID, { view: 'done', limit: 50 });
+    expect(done.items.map((item) => item.id)).toEqual([thread.id]);
+  });
+
   it('honors the new UID of a plain IMAP move when the folder already has a copy with the same email id', async () => {
     const engine = createTestEngine();
     const copy: MailSpec = { id: 'm1', emailId: 'obj-1', date: DATE };
