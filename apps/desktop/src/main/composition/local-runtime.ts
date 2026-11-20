@@ -176,6 +176,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     close: async () => {
       await oauth.shutdown();
       await background.shutdown();
+      await services.readSessions.closeAll();
       await mailTools?.close();
       engine.close();
     },

@@ -39,6 +39,7 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   listThreads: (query) => http.call(api.threads.list, { query }),
   getThread: (id: ThreadId) => http.call(api.threads.get, { params: { id } }),
   searchServer: (request) => Promise.resolve(unsupportedServerSearch(request)),
+  getMessageBody: () => Promise.resolve({ status: 'gone' }),
   prepareThreadAi: (id, timeZone) =>
     http.call(api.threads.prepareAi, { params: { id }, query: { timeZone } }),
   requestThreadSummary: (id, timeZone) =>

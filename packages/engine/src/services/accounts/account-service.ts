@@ -19,6 +19,7 @@ import type { Logger } from '../../ports/logger';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { AccountAttachmentRelease } from '../attachments/account-attachment-release';
 import type { EngineEvents } from '../shared/engine-events';
+import type { LingeringSessions } from '../shared/lingering-sessions';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { AccountRegistration, AccountPreferences } from './account-registration';
 import type { AccountUpdater } from './account-updater';
@@ -46,6 +47,7 @@ export interface AccountServiceDeps {
   readonly tester: ConnectionTester;
   readonly attachments: AccountAttachmentRelease;
   readonly events: EngineEvents;
+  readonly readSessions: Pick<LingeringSessions, 'closeAccount'>;
   readonly logger: Logger;
 }
 
@@ -114,6 +116,7 @@ export class AccountService {
     const account = await this.require(userId, accountId);
     const before = await this.deps.accounts.listByUser(userId);
     const updated = await this.deps.updater.update(userId, account, body);
+    await this.deps.readSessions.closeAccount(accountId);
     return this.deps.primary.publish(userId, updated, before);
   }
 
@@ -121,6 +124,7 @@ export class AccountService {
     const account = await this.require(userId, accountId);
     const attachments = await this.deps.attachments.attachmentsOf(userId, accountId);
     await this.deps.accounts.delete(userId, accountId);
+    await this.deps.readSessions.closeAccount(accountId);
     await this.deps.vault.delete(accountId).catch((error: unknown) => {
       this.deps.logger.warn('Deleting account credentials failed', {
         accountId,

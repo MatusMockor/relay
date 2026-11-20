@@ -1,0 +1,62 @@
+.msg-remote {
+  display: grid;
+  gap: 12px;
+}
+.msg-skeleton {
+  display: grid;
+  gap: 8px;
+  max-width: 640px;
+  margin-left: 44px;
+}
+.msg-skeleton span {
+  height: 10px;
+  border-radius: var(--radius-xs);
+  background: var(--hover);
+  animation: msg-skeleton-pulse 1.2s ease-in-out infinite alternate;
+}
+.msg-skeleton span:nth-child(2) {
+  width: 82%;
+}
+.msg-skeleton span:nth-child(3) {
+  width: 64%;
+}
+.msg-offline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 640px;
+  margin: 0 0 0 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.msg-offline::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+.msg-offline.gone::before {
+  background: var(--bad);
+}
+@keyframes msg-skeleton-pulse {
+  to {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-skeleton span {
+    animation: none;
+  }
+}
+@container main (max-width: 700px) {
+  .msg-skeleton,
+  .msg-offline {
+    margin-left: 0;
+  }
+}

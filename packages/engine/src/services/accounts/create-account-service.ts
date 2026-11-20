@@ -2,6 +2,7 @@ import type { EngineDeps } from '../../engine-deps';
 import { AccountAttachmentRelease } from '../attachments/account-attachment-release';
 import type { AttachmentSweeper } from '../attachments/attachment-sweeper';
 import type { EngineEvents } from '../shared/engine-events';
+import type { LingeringSessions } from '../shared/lingering-sessions';
 import { AccountRegistration } from './account-registration';
 import { AccountService } from './account-service';
 import { AccountUpdater } from './account-updater';
@@ -10,7 +11,11 @@ import { PrimaryAccountPublisher } from './primary-account-publisher';
 
 export const createAccountService = (
   deps: EngineDeps,
-  shared: { readonly events: EngineEvents; readonly attachmentSweeper: AttachmentSweeper },
+  shared: {
+    readonly events: EngineEvents;
+    readonly attachmentSweeper: AttachmentSweeper;
+    readonly readSessions: LingeringSessions;
+  },
 ): AccountService => {
   const { repositories, credentialVault: vault, clock, idGenerator: ids, logger } = deps;
   const tester = new ConnectionTester(deps.mailProviderFactory, deps.mailSender);
@@ -34,6 +39,7 @@ export const createAccountService = (
       logger,
     ),
     events: shared.events,
+    readSessions: shared.readSessions,
     logger,
   });
 };

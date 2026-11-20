@@ -2,6 +2,7 @@ import type { AiRunnerLocation, UserId } from '@relay/shared/domain';
 import {
   type ActionOptions,
   type AiOptions,
+  type BodyOptions,
   type CalendarOptions,
   createEngineServices,
   type EngineServices,
@@ -31,12 +32,14 @@ import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
 import { RecordingUnsubscribeSender } from './fakes/recording-unsubscribe-sender';
 import { FakeMailSender } from './mail/fake-mail-sender';
+import { HeaderAttachmentExtractor } from './mail/header-attachment-extractor';
 import { HeaderThreadResolver } from './mail/header-thread-resolver';
 import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-matcher';
 import { SimpleMessageParser } from './mail/simple-message-parser';
 import { SubjectJiraClassifier } from './mail/subject-jira-classifier';
 import { MemoryDatabase } from './memory/memory-database';
 import { MemoryHistoryBackfills } from './memory/memory-history-backfills';
+import { MemoryMessageAttachmentLookup } from './memory/memory-message-attachment-lookup';
 import { MemoryMessageBodyRepairs } from './memory/memory-message-body-repairs';
 import { createMemoryRepositories, MemoryUnitOfWork } from './memory/memory-repositories';
 
@@ -51,6 +54,8 @@ export interface TestEngineOptions {
   readonly settings?: SettingsOptions;
   readonly calendar?: Partial<CalendarOptions>;
   readonly actions?: Partial<ActionOptions>;
+  readonly bodies?: Partial<BodyOptions>;
+  readonly receivedAttachments?: boolean;
   readonly splitMatcher?: SplitMatcher;
   readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
   readonly historyBackfills?: ((db: MemoryDatabase) => HistoryBackfillRepository) | null;
@@ -113,6 +118,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     messageParser: new SimpleMessageParser(),
     messageBodyRepairs: options.messageBodyRepairs?.(db) ?? new MemoryMessageBodyRepairs(db),
     ...historyBackfillsOf(options, db),
+    ...receivedAttachmentsOf(options, db),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
@@ -132,6 +138,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
       settings: options.settings,
       calendar: options.calendar,
       actions: options.actions,
+      bodies: options.bodies,
     },
   });
   return {
@@ -166,3 +173,11 @@ const historyBackfillsOf = (
   }
   return { historyBackfills: options.historyBackfills?.(db) ?? new MemoryHistoryBackfills(db) };
 };
+
+const receivedAttachmentsOf = (options: TestEngineOptions, db: MemoryDatabase) =>
+  options.receivedAttachments === true
+    ? {
+        messageAttachmentLookup: new MemoryMessageAttachmentLookup(db),
+        attachmentExtractor: new HeaderAttachmentExtractor(),
+      }
+    : {};

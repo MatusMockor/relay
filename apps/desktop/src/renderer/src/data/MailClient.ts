@@ -26,6 +26,7 @@ import type {
   MailboxId,
   MarkFolderReadBody,
   MarkFolderReadResponse,
+  MessageBodyResult,
   MessageId,
   Draft,
   RealtimeEvent,
@@ -91,6 +92,7 @@ export type Unsubscribe = () => void;
 export interface ThreadReader {
   listThreads(params: ThreadListParams): Promise<ThreadPage>;
   getThread(threadId: ThreadId): Promise<ThreadDetail>;
+  getMessageBody(messageId: MessageId): Promise<MessageBodyResult>;
   prepareThreadAi(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   requestThreadSummary(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   applyThreadAction(threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary>;

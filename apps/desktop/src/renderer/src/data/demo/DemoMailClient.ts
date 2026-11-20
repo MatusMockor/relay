@@ -16,6 +16,7 @@ import { createDemoTaskMethods, demoTaskFromAi } from './demo-tasks';
 import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
+import { createDemoMessageBodies, type DemoRemoteBodies } from './demo-message-bodies';
 import { DemoMoves } from './demo-moves';
 import { queryThreads } from './demo-query';
 import { createDemoServerSearch, type DemoServerSearchOptions } from './demo-server-search';
@@ -29,6 +30,7 @@ export interface DemoMailClientOptions {
   readonly aiStepMs?: number;
   readonly state?: DemoState;
   readonly serverSearch?: DemoServerSearchOptions;
+  readonly remoteBodies?: DemoRemoteBodies;
 }
 
 const run = <T>(work: () => T): Promise<T> => {
@@ -99,6 +101,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
           replySuggestions: found.replySuggestions,
         };
       }),
+    ...createDemoMessageBodies(state, options.remoteBodies),
     prepareThreadAi: (threadId) =>
       run(() => {
         record(threadId);
