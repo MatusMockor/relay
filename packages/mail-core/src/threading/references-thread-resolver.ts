@@ -30,9 +30,14 @@ export class ReferencesThreadResolver implements ThreadResolver {
   ) {}
 
   async resolve(accountId: AccountId, message: ParsedMessage): Promise<ThreadResolution> {
-    const byReference = await this.lookup.findByMessageIds(accountId, relatedMessageIds(message));
+    const related = relatedMessageIds(message);
+    const byReference = await this.lookup.findByMessageIds(accountId, related);
     if (byReference) {
       return { threadId: byReference, isNew: false };
+    }
+    const byReply = await this.lookup.findByReplyTo(accountId, related);
+    if (byReply) {
+      return { threadId: byReply, isNew: false };
     }
     const bySubject = await this.findBySubject(accountId, message);
     if (bySubject) {

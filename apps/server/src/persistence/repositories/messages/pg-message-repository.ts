@@ -29,6 +29,7 @@ import { toMessageHeaders, toStoredHeaders } from './message-headers';
 import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
 import { toMessage, toMessageInsert } from './message.mapper';
 import { messageSelection } from './message-selection';
+import { replyThreadCondition } from './reply-thread-condition';
 
 export class PgMessageRepository implements MessageRepository {
   constructor(private readonly db: DbExecutor) {}
@@ -110,6 +111,22 @@ export class PgMessageRepository implements MessageRepository {
         ),
       )
       .orderBy(desc(messages.date), desc(messages.id))
+      .limit(1);
+    return row?.threadId ?? null;
+  }
+
+  async findThreadIdByReplyTo(
+    accountId: AccountId,
+    messageIds: readonly string[],
+  ): Promise<ThreadId | null> {
+    if (messageIds.length === 0) {
+      return null;
+    }
+    const [row] = await this.db
+      .select({ threadId: messages.threadId })
+      .from(messages)
+      .where(and(eq(messages.accountId, accountId), replyThreadCondition(messageIds)))
+      .orderBy(asc(messages.date), asc(messages.id))
       .limit(1);
     return row?.threadId ?? null;
   }

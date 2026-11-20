@@ -8,6 +8,7 @@ import {
 } from '@relay/engine';
 import {
   createSqliteAttachmentReferences,
+  createSqliteHistoryBackfills,
   createSqliteMessageAttachmentLookup,
   createSqliteMessageBodyRepairs,
   createSqliteRepositories,
@@ -68,6 +69,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     splitPatternPolicy: { isUnsafe: isUnsafeRegex },
     messageAttachmentLookup: createSqliteMessageAttachmentLookup(database),
     messageBodyRepairs: createSqliteMessageBodyRepairs(database),
+    historyBackfills: createSqliteHistoryBackfills(database),
     attachmentExtractor: new MailparserAttachmentExtractor(),
     unsubscribeSender: new HttpsUnsubscribeSender(),
     credentialVault: infrastructure.vault,

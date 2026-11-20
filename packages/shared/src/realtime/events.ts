@@ -37,6 +37,11 @@ export const ThreadRemovedEventSchema = event(
   z.object({ threadId: ThreadIdSchema, accountId: AccountIdSchema }),
 );
 
+export const ThreadsChangedEventSchema = event(
+  'threads.changed',
+  z.object({ accountId: AccountIdSchema, count: z.number().int().nonnegative() }),
+);
+
 export const MessageUpsertedEventSchema = event(
   'message.upserted',
   z.object({ message: MessageSchema }),
@@ -130,6 +135,7 @@ export const LabelsUpdatedEventSchema = event(
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
+  ThreadsChangedEventSchema,
   MessageUpsertedEventSchema,
   TaskUpsertedEventSchema,
   AccountStatusEventSchema,

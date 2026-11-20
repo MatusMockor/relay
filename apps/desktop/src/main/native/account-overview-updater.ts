@@ -15,6 +15,7 @@ export interface AccountOverviewView {
 const RELEVANT = new Set<RealtimeEvent['type']>([
   'thread.upserted',
   'thread.removed',
+  'threads.changed',
   'account.removed',
   'account.upserted',
   'account.status',

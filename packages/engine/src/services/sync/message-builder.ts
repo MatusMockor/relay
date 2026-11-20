@@ -1,6 +1,13 @@
-import type { AccountId, LabelId, Mailbox, Message, ThreadId } from '@relay/shared/domain';
+import type {
+  AccountId,
+  LabelId,
+  Mailbox,
+  Message,
+  MessageBodyState,
+  ThreadId,
+} from '@relay/shared/domain';
 import type { ParsedMessage } from '../../model/parsed-message';
-import type { RawMessage } from '../../model/remote-mail';
+import type { RemoteMessageMeta } from '../../model/remote-mail';
 import type { IdGenerator } from '../../ports/id-generator';
 import { normalizeIso } from '../shared/dates';
 
@@ -8,9 +15,10 @@ export interface MessageDraft {
   readonly accountId: AccountId;
   readonly threadId: ThreadId;
   readonly mailbox: Mailbox;
-  readonly raw: RawMessage;
+  readonly raw: RemoteMessageMeta;
   readonly parsed: ParsedMessage;
   readonly labelIds: readonly LabelId[];
+  readonly bodyState?: MessageBodyState;
 }
 
 export const buildMessage = (draft: MessageDraft, ids: IdGenerator): Message => {
@@ -45,5 +53,6 @@ export const buildMessage = (draft: MessageDraft, ids: IdGenerator): Message => 
       contentId: attachment.contentId,
       inline: attachment.inline,
     })),
+    ...(draft.bodyState === 'remote' ? { bodyState: 'remote' as const } : {}),
   };
 };

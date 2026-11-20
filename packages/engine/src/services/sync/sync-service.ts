@@ -1,5 +1,6 @@
 import type { AccountId, UserId } from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
+import type { HistorySliceReport } from '../../model/history-backfill';
 import type { Disposer } from '../../model/remote-mail';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { Logger } from '../../ports/logger';
@@ -7,40 +8,48 @@ import type { MailProvider } from '../../ports/mail-provider';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { AccountSynchronizer, SyncReport } from './account-synchronizer';
+import { AccountRunQueue } from './account-run-queue';
+import type { HistoryBackfill } from './history/history-backfill';
 
 export interface SyncServiceDeps {
   readonly accounts: AccountRepository;
   readonly mailboxes: MailboxRepository;
   readonly synchronizer: AccountSynchronizer;
   readonly sessions: MailProviderSessions;
+  readonly history: HistoryBackfill | null;
   readonly logger: Logger;
 }
 
 const DEFAULT_INBOX_PATH = 'INBOX';
 
 export class SyncService {
-  private readonly running = new Map<AccountId, Promise<SyncReport>>();
-  private readonly queued = new Map<AccountId, Promise<SyncReport>>();
+  private readonly runs = new AccountRunQueue<SyncReport>();
 
   constructor(private readonly deps: SyncServiceDeps) {}
 
   syncAccount(userId: UserId, accountId: AccountId): Promise<SyncReport> {
-    const queued = this.queued.get(accountId);
-    if (queued !== undefined) {
-      return queued;
+    return this.runs.sync(accountId, () =>
+      this.requireAccount(userId, accountId).then((account) =>
+        this.deps.synchronizer.run(userId, account),
+      ),
+    );
+  }
+
+  async backfillHistory(userId: UserId, accountId: AccountId): Promise<HistorySliceReport> {
+    const { history } = this.deps;
+    if (history === null) {
+      return { skipped: true, reason: 'unsupported' };
     }
-    const running = this.running.get(accountId);
-    if (running === undefined) {
-      return this.start(userId, accountId);
-    }
-    const next = running
-      .catch(() => undefined)
-      .then(() => {
-        this.queued.delete(accountId);
-        return this.start(userId, accountId);
-      });
-    this.queued.set(accountId, next);
-    return next;
+    const run = this.runs.history(accountId, async () => {
+      const account = await this.requireAccount(userId, accountId);
+      return this.deps.sessions.with(account, (provider) =>
+        history.slice(
+          { userId, account, provider },
+          { shouldYield: () => this.runs.hasPendingSync(accountId) },
+        ),
+      );
+    });
+    return (await run) ?? { skipped: true, reason: 'busy' };
   }
 
   async syncUser(userId: UserId): Promise<SyncReport[]> {
@@ -89,14 +98,6 @@ export class SyncService {
       await provider.close().catch(() => undefined);
       throw error;
     }
-  }
-
-  private start(userId: UserId, accountId: AccountId): Promise<SyncReport> {
-    const run = this.requireAccount(userId, accountId)
-      .then((account) => this.deps.synchronizer.run(userId, account))
-      .finally(() => this.running.delete(accountId));
-    this.running.set(accountId, run);
-    return run;
   }
 
   private async requireAccount(userId: UserId, accountId: AccountId) {

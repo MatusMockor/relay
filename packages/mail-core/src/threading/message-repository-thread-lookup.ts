@@ -22,6 +22,13 @@ export class MessageRepositoryThreadLookup implements ThreadLookup {
     return found[0]?.threadId ?? null;
   }
 
+  findByReplyTo(accountId: AccountId, messageIds: readonly string[]): Promise<ThreadId | null> {
+    if (messageIds.length === 0) {
+      return Promise.resolve(null);
+    }
+    return this.messages.findThreadIdByReplyTo(accountId, messageIds);
+  }
+
   findBySubject(accountId: AccountId, window: SubjectWindow): Promise<ThreadId | null> {
     return this.messages.findThreadIdBySubject(accountId, window.normalizedSubject, {
       since: window.since,

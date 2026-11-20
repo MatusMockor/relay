@@ -33,7 +33,7 @@ export class SyncJournal {
     splitIds: readonly SplitId[],
     effects: ArrivalEffects,
   ): Promise<void> {
-    await this.thread(work, message.threadId, { arrivedIn: [role], addSplitIds: splitIds });
+    await this.filed(work, message, role, splitIds);
     const arrival = role === 'inbox';
     if (!effects.publish && !arrival) {
       return;
@@ -53,6 +53,15 @@ export class SyncJournal {
       },
       createdAt: this.now(),
     });
+  }
+
+  filed(
+    work: PendingWorkRepository,
+    message: Message,
+    role: MailboxRole,
+    splitIds: readonly SplitId[],
+  ): Promise<void> {
+    return this.thread(work, message.threadId, { arrivedIn: [role], addSplitIds: splitIds });
   }
 
   async jira(work: PendingWorkRepository, messageId: MessageId, event: JiraEventWork) {

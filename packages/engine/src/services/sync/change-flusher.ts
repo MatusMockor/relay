@@ -8,7 +8,11 @@ import { errorMessage } from '../shared/mail-provider-sessions';
 import { MailCopies } from '../shared/mail-copies';
 import { pendingMoveRoles } from '../shared/provider-ops';
 import type { CalendarPartsSink } from './calendar-parts-sink';
-import { publishThreadOutcomes, refreshThread } from '../shared/thread-refresh';
+import {
+  publishThreadOutcomes,
+  refreshThread,
+  type ThreadRefreshOutcome,
+} from '../shared/thread-refresh';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncContext } from './sync-context';
 import { messageRoleOf } from './synced-thread-state';
@@ -22,23 +26,38 @@ export interface ChangeFlusherDeps {
   readonly tasks: JiraTaskSink;
   readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
+  readonly bulkEventThreshold: number;
 }
 
 export class ChangeFlusher {
   constructor(private readonly deps: ChangeFlusherDeps) {}
 
   async flush(context: SyncContext): Promise<void> {
-    const removed = await this.refreshThreads(context);
+    const outcomes = await this.refreshThreads(context);
+    await publishThreadOutcomes(this.deps.events, context.userId, outcomes);
+    const removed = removedThreads(outcomes);
     await this.applyMessageEffects(context, removed);
     await this.applyJiraEvents(context, removed);
     await this.deps.calendarParts.flush(context.userId, context.account);
   }
 
-  private async refreshThreads(context: SyncContext): Promise<Set<ThreadId>> {
+  async flushQuietly(context: SyncContext): Promise<void> {
+    const outcomes = await this.refreshThreads(context);
+    if (outcomes.length <= this.deps.bulkEventThreshold) {
+      await publishThreadOutcomes(this.deps.events, context.userId, outcomes);
+      return;
+    }
+    await this.deps.events.emit(context.userId, 'threads.changed', {
+      accountId: context.account.id,
+      count: outcomes.length,
+    });
+  }
+
+  private async refreshThreads(context: SyncContext): Promise<ThreadRefreshOutcome[]> {
     const { userId, account } = context;
     const work = await this.deps.pendingWork.list(account.id, 'thread-refresh');
     if (work.length === 0) {
-      return new Set();
+      return [];
     }
     const outcomes = await this.deps.unitOfWork.run(async (repositories) => {
       const pendingMoves = await pendingMoveRoles(repositories.pendingWork, account.id);
@@ -55,10 +74,7 @@ export class ChangeFlusher {
       return results;
     });
     context.stats.updatedThreads += outcomes.length;
-    await publishThreadOutcomes(this.deps.events, userId, outcomes);
-    return new Set(
-      outcomes.flatMap((outcome) => (outcome.kind === 'removed' ? [outcome.threadId] : [])),
-    );
+    return outcomes;
   }
 
   private async applyMessageEffects(context: SyncContext, removed: ReadonlySet<ThreadId>) {
@@ -116,3 +132,6 @@ export class ChangeFlusher {
     }
   }
 }
+
+const removedThreads = (outcomes: readonly ThreadRefreshOutcome[]): Set<ThreadId> =>
+  new Set(outcomes.flatMap((outcome) => (outcome.kind === 'removed' ? [outcome.threadId] : [])));

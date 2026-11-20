@@ -23,14 +23,17 @@ export interface RemoteSyncCursor {
   readonly highestModseq: string | null;
 }
 
-export interface RawMessage {
-  readonly mailboxPath: string;
+export interface RemoteMessageMeta {
   readonly uid: number;
   readonly flags: MessageFlags;
   readonly keywords: readonly string[];
   readonly labels: readonly string[] | null;
   readonly emailId: string | null;
   readonly internalDate: string;
+}
+
+export interface RawMessage extends RemoteMessageMeta {
+  readonly mailboxPath: string;
   readonly size: number;
   readonly modseq: string | null;
   readonly source: Uint8Array;
@@ -44,13 +47,7 @@ export interface RemoteAttachmentMeta {
   readonly inline: boolean;
 }
 
-export interface RemoteMessageSummary {
-  readonly uid: number;
-  readonly flags: MessageFlags;
-  readonly keywords: readonly string[];
-  readonly labels: readonly string[] | null;
-  readonly emailId: string | null;
-  readonly internalDate: string;
+export interface RemoteMessageSummary extends RemoteMessageMeta {
   readonly size: number;
   readonly modseq: string | null;
   readonly header: Uint8Array;

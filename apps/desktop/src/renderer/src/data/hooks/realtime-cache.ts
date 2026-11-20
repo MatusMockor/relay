@@ -37,6 +37,11 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     invalidate(client, queryKeys.thread(event.data.threadId));
     return;
   }
+  if (event.type === 'threads.changed') {
+    invalidate(client, queryKeys.threadLists());
+    invalidateAccountThreads(client, event.data.accountId);
+    return;
+  }
   if (event.type === 'message.upserted') {
     invalidate(client, queryKeys.thread(event.data.message.threadId));
     return;

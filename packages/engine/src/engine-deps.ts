@@ -10,6 +10,7 @@ import type { Clock } from './ports/clock';
 import type { ConditionalCredentialVault } from './ports/credential-vault';
 import type { EventPublisher } from './ports/event-publisher';
 import type { GoogleCalendarAdapters } from './ports/google-calendar-adapters';
+import type { HistoryBackfillRepository } from './ports/history-backfill-repository';
 import type { IdGenerator } from './ports/id-generator';
 import type { IntervalTimer } from './ports/interval-timer';
 import type { JiraClassifier } from './ports/jira-classifier';
@@ -75,6 +76,7 @@ export interface EngineDeps {
   readonly attachmentBlobs: AttachmentBlobCatalog;
   readonly messageAttachmentLookup?: MessageAttachmentLookup;
   readonly messageBodyRepairs?: MessageBodyRepairRepository;
+  readonly historyBackfills?: HistoryBackfillRepository;
   readonly attachmentExtractor?: AttachmentExtractor;
   readonly unsubscribeSender?: UnsubscribeSender;
   readonly messageParser: MessageParser;
