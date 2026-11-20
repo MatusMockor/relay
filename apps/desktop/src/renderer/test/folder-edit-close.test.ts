@@ -32,4 +32,14 @@ describe('closing a folder edit', () => {
 
     expect(useFolderEdit.getState().edit).toBe(newer);
   });
+
+  it('closes the same edit when it was opened again while the old one was finishing', () => {
+    const own = labelEdit('efa');
+    setFolderEdit(own);
+    setFolderEdit(labelEdit('efa'));
+
+    closeFolderEdit(own);
+
+    expect(useFolderEdit.getState().edit).toBeNull();
+  });
 });

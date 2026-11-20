@@ -1,6 +1,7 @@
 import type { AccountId, LabelId, Mailbox } from '@relay/shared';
 import type { AnchorRect } from '@relay/ui';
 import { create } from 'zustand';
+import { sameEdit } from './edit-identity';
 
 export type FolderKind = 'folder' | 'label';
 
@@ -33,7 +34,7 @@ export const setFolderEdit = (edit: FolderEdit | null): void => {
 };
 
 export const closeFolderEdit = (edit: FolderEdit | null): void => {
-  if (useFolderEdit.getState().edit !== edit) {
+  if (!sameEdit(useFolderEdit.getState().edit, edit)) {
     return;
   }
   useFolderEdit.setState({ edit: null });
