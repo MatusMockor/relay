@@ -24,6 +24,17 @@ const answer = stdin.includes('Prepíš')
     ? { text: 'Jana posiela faktúru za október.' }
     : stdin.includes('vytvor jednu úlohu')
       ? { title: 'Skontrolovať faktúru', what: 'Skontrolovať faktúru za október do piatka.' }
+      : stdin.includes('návrh pravidla automatizácie')
+        ? {
+            name: 'Faktúry',
+            accountId: null,
+            match: 'all',
+            conditions: [{ type: 'hasAttachment' }],
+            exceptions: [],
+            actions: [{ type: 'addLabel', label: 'faktury' }, { type: 'archive' }],
+            understood: 'Maily s prílohou dostanú štítok Faktúry a archivujú sa.',
+            unmapped: ['od dodávateľov'],
+          }
       : stdin.includes('Navrhni presne 3')
         ? {
             suggestions: [

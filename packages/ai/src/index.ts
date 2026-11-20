@@ -28,6 +28,7 @@ export {
 export { oneLinerPrompt } from './prompts/specs/one-liner';
 export { replySuggestionsPrompt } from './prompts/specs/reply-suggestions';
 export { rewritePrompt } from './prompts/specs/rewrite';
+export { ruleSuggestPrompt } from './prompts/specs/rule-suggest';
 export { summaryPrompt } from './prompts/specs/summary';
 export { prepareTaskPrompt } from './prompts/task-prompts';
 export { mergeReferences, threadMarkersIn } from './prompts/thread-references';

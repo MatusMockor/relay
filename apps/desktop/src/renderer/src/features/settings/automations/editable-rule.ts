@@ -11,6 +11,7 @@ import {
   isParameterizedAction,
   needsAccountScope,
 } from '@relay/shared';
+import type { SuggestionNote } from './rule-ai/suggestion-note';
 import type { RuleTemplate } from './rule-templates';
 
 export type RuleInput = AutomationInput & {
@@ -24,6 +25,7 @@ export interface EditableRule {
   readonly saved: boolean;
   readonly pending: AutomationConditionType | null;
   readonly input: RuleInput;
+  readonly suggestion?: SuggestionNote;
 }
 
 export type RuleChange = Partial<RuleInput>;
@@ -70,7 +72,21 @@ export const newRule = (
   },
 });
 
-export const isComplete = (rule: EditableRule): boolean => rule.input.conditions.length > 0;
+export const isComplete = (rule: EditableRule): boolean =>
+  rule.input.conditions.length > 0 && rule.input.actions.length > 0;
+
+export const missingPart = (rule: EditableRule): string | null => {
+  if (rule.input.conditions.length === 0) {
+    return 'Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.';
+  }
+  if (rule.input.actions.length === 0) {
+    return 'Vyber aspoň jednu akciu, potom sa pravidlo uloží.';
+  }
+  return null;
+};
+
+export const isStaged = (rule: EditableRule): boolean =>
+  rule.saved && rule.suggestion !== undefined;
 
 const DEFAULT_ACTIONS: AutomationAction[] = [{ type: 'task' }];
 

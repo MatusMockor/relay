@@ -2,23 +2,28 @@ import { useCallback, useState } from 'react';
 
 export interface DirtyRows {
   readonly dirty: boolean;
-  readonly mark: (id: string, dirty: boolean) => void;
+  readonly signature: string;
+  readonly mark: (id: string, raw: string | null) => void;
 }
 
 export const useDirtyRows = (): DirtyRows => {
-  const [rows, setRows] = useState<ReadonlySet<string>>(new Set());
-  const mark = useCallback((id: string, dirty: boolean) => {
+  const [rows, setRows] = useState<ReadonlyMap<string, string>>(new Map());
+  const mark = useCallback((id: string, raw: string | null) => {
     setRows((current) => {
-      if (current.has(id) === dirty) {
+      if ((current.get(id) ?? null) === raw) {
         return current;
       }
-      const next = new Set(current);
+      const next = new Map(current);
       next.delete(id);
-      if (dirty) {
-        next.add(id);
+      if (raw !== null) {
+        next.set(id, raw);
       }
       return next;
     });
   }, []);
-  return { dirty: rows.size > 0, mark };
+  const signature = [...rows.entries()]
+    .map(([id, raw]) => `${id}=${raw}`)
+    .sort()
+    .join('\n');
+  return { dirty: rows.size > 0, signature, mark };
 };
