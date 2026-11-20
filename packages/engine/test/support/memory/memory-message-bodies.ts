@@ -74,6 +74,11 @@ export class MemoryMessageBodies implements MessageBodyStore {
     return Promise.resolve({ local: messages.length - remote, remote });
   }
 
+  newestRemoteDate(accountId: AccountId): Promise<Date | null> {
+    const dates = this.ofAccount(accountId).filter(isRemote).map(dateOf);
+    return Promise.resolve(dates.length === 0 ? null : new Date(Math.max(...dates)));
+  }
+
   private ofAccount(accountId: AccountId): Message[] {
     return [...this.db.tables.messages.values()].filter(
       (message) => message.accountId === accountId,

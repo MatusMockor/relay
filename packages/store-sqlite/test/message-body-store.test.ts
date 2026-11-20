@@ -120,6 +120,28 @@ describe('sqlite message body store', () => {
     );
   });
 
+  it('reports the date of the newest remote body per account', async () => {
+    const { store, seeded, other, bodies } = await setup();
+    const remote = { textBody: null, htmlBody: null, bodyState: 'remote' as const };
+    seedBodyRows(store, [
+      bodyMessage(seeded, 1, 300, remote),
+      bodyMessage(seeded, 2, 40, remote),
+      bodyMessage(seeded, 3, 1),
+      bodyMessage(other, 4, 0, { ...remote, mailboxId: other.inbox.id }),
+    ]);
+
+    expect(await bodies.newestRemoteDate(seeded.account.id)).toEqual(
+      new Date(Date.UTC(2026, 10, 20) - 40 * 86_400_000),
+    );
+    await bodies.saveBody(messageId('body-4'), {
+      textBody: 'Telo',
+      htmlBody: null,
+      snippet: 'Telo',
+      attachments: [],
+    });
+    expect(await bodies.newestRemoteDate(other.account.id)).toBeNull();
+  });
+
   it('serves eviction and hydration from the body date index', async () => {
     const { store, seeded } = await setup();
     const evictPlan = queryPlan(
@@ -132,7 +154,13 @@ describe('sqlite message body store', () => {
       `select id from messages where account_id = ? and body_state = 'remote' and date_ts >= ? and uid <> 0 order by date_ts desc, seq desc limit 50`,
       [seeded.account.id, CUTOFF.getTime()],
     );
+    const newestPlan = queryPlan(
+      store,
+      `select max(date_ts) from messages where account_id = ? and body_state = 'remote'`,
+      [seeded.account.id],
+    );
 
+    expect(newestPlan).toContain('messages_account_body_date_idx');
     expect(evictPlan).toContain('messages_account_body_date_idx');
     expect(evictPlan).not.toContain('TEMP B-TREE');
     expect(hydratePlan).toContain('messages_account_body_date_idx');

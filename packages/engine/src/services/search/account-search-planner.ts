@@ -1,11 +1,11 @@
 import type { MailAccount, UserId } from '@relay/shared/domain';
 import type { RemoteTextSearchField } from '../../model/remote-mail';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
-import type { OfflineWindowPolicy } from '../../ports/offline-window-policy';
 import type { SplitRepository } from '../../ports/split-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { SyncOptions } from '../sync/sync-options';
 import type { HistoryCompletion } from './history-completion';
+import type { RemoteBodies } from './remote-bodies';
 import { searchMailboxes } from './search-mailboxes';
 import { type AccountSearchPlan, planAccountSearch } from './search-plan';
 import type { SearchOptions } from './search-options';
@@ -16,7 +16,7 @@ export interface AccountSearchPlannerDeps {
   readonly syncStates: SyncStateRepository;
   readonly splits: SplitRepository;
   readonly completion: HistoryCompletion;
-  readonly offlineWindow: OfflineWindowPolicy | undefined;
+  readonly remoteBodies: RemoteBodies;
   readonly sync: SyncOptions;
   readonly options: SearchOptions;
 }
@@ -45,11 +45,12 @@ export class AccountSearchPlanner {
       sync: this.deps.sync,
       maxFolders: this.deps.options.maxFolders,
     });
+    const historyComplete = await this.deps.completion.isComplete(mailboxes, states);
     const plan = planAccountSearch({
       ...intent,
       targets,
-      historyComplete: await this.deps.completion.isComplete(mailboxes, states),
-      cutoff: await this.deps.offlineWindow?.cutoff(),
+      historyComplete,
+      remoteBodies: await this.deps.remoteBodies.bound(account.id, intent.field, historyComplete),
       limit: this.deps.options.uidsPerMailbox,
     });
     const splits =

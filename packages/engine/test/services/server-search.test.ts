@@ -90,25 +90,20 @@ describe('ServerSearchService', () => {
     });
   });
 
-  it('skips the server once history is complete and local search covers the query', async () => {
-    let cutoff: Date | null = null;
-    const { engine, seeded } = await setupServerSearch({
-      offlineWindow: { cutoff: () => Promise.resolve(cutoff) },
-    });
+  it('searches whole text on the server when body coverage is unknown', async () => {
+    const { engine, seeded } = await setupServerSearch();
     await backfillUntilDone(engine, seeded.account.id);
 
     const field = await searchServer(engine, 'faktúru', { searchField: 'from' });
-    const keepAll = await searchServer(engine, 'faktúru');
-    cutoff = new Date('2026-05-15T00:00:00.000Z');
-    const windowed = await searchServer(engine, 'faktúru');
+    const whole = await searchServer(engine, 'faktúru');
 
     expect(field).toMatchObject({ status: 'skipped', hits: [] });
-    expect(keepAll).toMatchObject({ status: 'skipped', hits: [] });
-    expect(windowed.status).toBe('ok');
+    expect(whole.status).toBe('ok');
+    expect(subjectsOf(whole)).toContain('Ročné vyúčtovanie');
     expect(seeded.server.textSearches.map(({ query }) => query.before)).toEqual([
-      cutoff,
-      cutoff,
-      cutoff,
+      undefined,
+      undefined,
+      undefined,
     ]);
   });
 

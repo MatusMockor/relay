@@ -34,4 +34,5 @@ export interface MessageBodyStore {
     excluding: readonly MessageId[],
   ): Promise<HydrationCandidate[]>;
   stats(accountId: AccountId): Promise<OfflineStats>;
+  newestRemoteDate(accountId: AccountId): Promise<Date | null>;
 }

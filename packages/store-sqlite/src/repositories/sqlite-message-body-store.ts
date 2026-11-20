@@ -8,7 +8,7 @@ import {
   type OfflineStats,
   ThreadIdSchema,
 } from '@relay/shared/domain';
-import { and, asc, count, desc, eq, gte, inArray, lt, ne, notInArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lt, max, ne, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { messages } from '../schema';
@@ -113,6 +113,18 @@ export class SqliteMessageBodyStore implements MessageBodyStore {
       const totalOf = (state: 'local' | 'remote') =>
         rows.find((row) => row.state === state)?.total ?? 0;
       return { local: totalOf('local'), remote: totalOf('remote') };
+    });
+  }
+
+  newestRemoteDate(accountId: AccountId): Promise<Date | null> {
+    return this.executor.execute((db) => {
+      const row = db
+        .select({ newest: max(messages.dateTs) })
+        .from(messages)
+        .where(and(eq(messages.accountId, accountId), eq(messages.bodyState, 'remote')))
+        .get();
+      const newest = row?.newest ?? null;
+      return newest === null ? null : new Date(newest);
     });
   }
 }

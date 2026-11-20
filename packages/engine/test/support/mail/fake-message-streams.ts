@@ -25,7 +25,7 @@ export async function* streamRecords(
   for (const record of records) {
     if (server.interruptStreamAfter === 0) {
       server.interruptStreamAfter = null;
-      yield* failingItems<RawMessage>(new Error('Connection reset'));
+      yield* failingItems<RawMessage>(server.interruptStreamError ?? new Error('Connection reset'));
       return;
     }
     if (server.interruptStreamAfter !== null) {

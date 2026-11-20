@@ -201,6 +201,29 @@ describe('HistoryBackfillScheduler', () => {
     await scheduler.stop();
   });
 
+  it('pauses and ignores kicks until the cooldown ends when body hydration throttles', async () => {
+    const hydrationThrottled = new ProviderError('Offline body hydration throttled', {
+      cause: Object.assign(new Error('Command failed'), { responseText: '[LIMIT] Fetch limit' }),
+    });
+    const { time, calls, scheduler } = setup([slice(false), hydrationThrottled]);
+    await scheduler.start();
+    await time.advance(0);
+    expect(scheduler.stateOf(accountA)).toBe('idle');
+
+    scheduler.kick();
+    await time.advance(0);
+    expect(scheduler.stateOf(accountA)).toBe('paused');
+
+    scheduler.kick();
+    await time.advance(60 * 60_000 - 1);
+    expect(calls.map((call) => call.at)).toEqual([0, 0]);
+
+    await time.advance(1);
+    expect(calls.map((call) => call.at)).toEqual([0, 0, 60 * 60_000]);
+    expect(scheduler.stateOf(accountA)).toBe('idle');
+    await scheduler.stop();
+  });
+
   it('keeps the error backoff when kicked after a failed slice', async () => {
     const { time, calls, scheduler } = setup([new Error('IMAP down')]);
     await scheduler.start();

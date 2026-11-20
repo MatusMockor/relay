@@ -1,13 +1,15 @@
+import { ProviderError } from '../../errors/errors';
+import { isThrottlingError } from '../../errors/throttling-error';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
-import type { RawMessage } from '../../model/remote-mail';
-import type { HydrationCandidate, MessageBodyStore } from '../../ports/message-body-store';
+import type { MessageBodyStore } from '../../ports/message-body-store';
 import type { OfflineWindowPolicy } from '../../ports/offline-window-policy';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from '../sync/change-flusher';
 import type { HistoryTarget } from '../sync/history/history-mailboxes';
 import type { SyncContext } from '../sync/sync-context';
+import { HydrationBatchFetch, type HydrationProgress } from './hydration-batch-fetch';
 import { type HydrationBatch, planHydration } from './hydration-batches';
 import type { HydrationParse } from './hydration-parse';
 import type { HydrationSkips } from './hydration-skips';
@@ -34,41 +36,59 @@ export interface BodyHydratorDeps {
   readonly options: OfflineBodyOptions;
 }
 
-interface Progress {
-  hydrated: number;
-  bytes: number;
-  more: boolean;
+interface Failure {
+  readonly error: unknown;
 }
 
 export class BodyHydrator {
-  constructor(private readonly deps: BodyHydratorDeps) {}
+  private readonly batches: HydrationBatchFetch;
+
+  constructor(private readonly deps: BodyHydratorDeps) {
+    this.batches = new HydrationBatchFetch(deps);
+  }
 
   async run(
     context: SyncContext,
     targets: readonly HistoryTarget[],
     gate: HydrationGate,
   ): Promise<HydrationReport> {
-    const progress: Progress = { hydrated: 0, bytes: 0, more: false };
-    try {
-      await this.hydrate(context, targets, gate, progress);
-    } catch (error) {
-      progress.more = false;
-      this.deps.logger.warn('Offline body hydration paused', {
-        accountId: context.account.id,
-        error: errorMessage(error),
-      });
-    }
+    const progress: HydrationProgress = { hydrated: 0, bytes: 0, more: false };
+    const failure = await this.attempt(context, targets, gate, progress);
     if (progress.hydrated > 0) {
       await this.deps.flusher.flushThreads(context);
     }
-    return { hydrated: progress.hydrated, more: progress.more };
+    if (failure === null) {
+      return { hydrated: progress.hydrated, more: progress.more };
+    }
+    if (isThrottlingError(failure.error)) {
+      throw new ProviderError('Offline body hydration throttled', { cause: failure.error });
+    }
+    this.deps.logger.warn('Offline body hydration paused', {
+      accountId: context.account.id,
+      error: errorMessage(failure.error),
+    });
+    return { hydrated: progress.hydrated, more: false };
+  }
+
+  private async attempt(
+    context: SyncContext,
+    targets: readonly HistoryTarget[],
+    gate: HydrationGate,
+    progress: HydrationProgress,
+  ): Promise<Failure | null> {
+    try {
+      await this.hydrate(context, targets, gate, progress);
+      return null;
+    } catch (error) {
+      return { error };
+    }
   }
 
   private async hydrate(
     context: SyncContext,
     targets: readonly HistoryTarget[],
     gate: HydrationGate,
-    progress: Progress,
+    progress: HydrationProgress,
   ): Promise<void> {
     if (gate.expired()) {
       return;
@@ -94,57 +114,11 @@ export class BodyHydrator {
         progress.more = true;
         return;
       }
-      await this.batch(context, batch, progress);
+      await this.batches.run(context, batch, progress);
     }
   }
 
-  private overBudget(progress: Progress, batch: HydrationBatch): boolean {
+  private overBudget(progress: HydrationProgress, batch: HydrationBatch): boolean {
     return progress.bytes > 0 && progress.bytes + batch.bytes >= this.deps.options.hydrateBytes;
-  }
-
-  private async batch(context: SyncContext, batch: HydrationBatch, progress: Progress) {
-    const { target, candidates } = batch;
-    const pending = new Map(candidates.map((candidate) => [candidate.uid, candidate]));
-    try {
-      if (target !== null) {
-        const uids = candidates.map((candidate) => candidate.uid);
-        const { path } = target.mailbox;
-        for await (const raw of context.provider.fetchUids(path, target.state.uidValidity, uids)) {
-          await this.one(context, pending, raw, progress);
-        }
-      }
-    } finally {
-      pending.forEach((candidate) => {
-        this.deps.skips.add(candidate.messageId, this.deps.clock.now());
-      });
-    }
-  }
-
-  private async one(
-    context: SyncContext,
-    pending: Map<number, HydrationCandidate>,
-    raw: RawMessage,
-    progress: Progress,
-  ): Promise<void> {
-    const candidate = pending.get(raw.uid);
-    if (candidate === undefined) {
-      return;
-    }
-    progress.bytes += raw.source.byteLength;
-    if (raw.source.byteLength > this.deps.options.hydrateMaxMessageBytes) {
-      return;
-    }
-    const body = await this.deps.parse.parse(raw.source, candidate);
-    if (body === null) {
-      return;
-    }
-    pending.delete(raw.uid);
-    if (!(await this.deps.store.saveBody(candidate.messageId, body))) {
-      return;
-    }
-    progress.hydrated += 1;
-    await this.deps.unitOfWork.run((repositories) =>
-      context.journal.touched(repositories.pendingWork, candidate.threadId),
-    );
   }
 }

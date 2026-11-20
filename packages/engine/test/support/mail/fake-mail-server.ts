@@ -72,6 +72,7 @@ export class FakeMailServer {
   onUidSearch: ((range: UidRange) => void) | null = null;
   failFetchUid: number | null = null;
   interruptStreamAfter: number | null = null;
+  interruptStreamError: Error | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();
   connections = 0;
