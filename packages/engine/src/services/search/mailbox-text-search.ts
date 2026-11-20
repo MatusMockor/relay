@@ -7,10 +7,12 @@ import type { LingeringSessions } from '../shared/lingering-sessions';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { reachable } from '../shared/provider-reachability';
 import type { SearchTarget } from './search-mailboxes';
+import type { SearchLiveness } from './search-scope';
 
-export type MailboxSearchResult = RemoteTextSearchResult | 'failed' | 'offline';
+export type MailboxSearchResult = RemoteTextSearchResult | 'failed' | 'offline' | 'obsolete';
 
 const FAILED: MailboxSearchResult = 'failed';
+const OBSOLETE: MailboxSearchResult = 'obsolete';
 
 const searchReachable = async (
   provider: MailProvider,
@@ -37,10 +39,11 @@ export class MailboxTextSearch {
     account: MailAccount,
     target: SearchTarget,
     query: RemoteTextSearch,
+    live: SearchLiveness,
   ): Promise<MailboxSearchResult> {
     try {
       return await this.sessions.with(account, (provider) =>
-        searchReachable(provider, target, query),
+        live() ? searchReachable(provider, target, query) : Promise.resolve(OBSOLETE),
       );
     } catch (error) {
       this.logger.info('Server search cannot reach the mail server', {

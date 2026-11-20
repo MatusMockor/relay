@@ -1,6 +1,6 @@
 import type { ImapFlow } from 'imapflow';
 import type { SearchAttribute } from './imap-search-attributes';
-import { MAX_EXPANDED_UIDS, searchResultUids } from './search-response';
+import { searchResponsesUids } from './search-response';
 
 type UntaggedHandler = (untagged: unknown) => Promise<void>;
 
@@ -14,11 +14,19 @@ const finish = (response: unknown): void => {
   }
 };
 
+const endIdle = async (client: ImapFlow): Promise<void> => {
+  if (!client.idling) {
+    return;
+  }
+  await client.noop();
+};
+
 const execute = async (
   client: ImapFlow,
   attributes: readonly SearchAttribute[],
   untagged: Record<string, UntaggedHandler>,
 ): Promise<void> => {
+  await endIdle(client);
   const exec: unknown = Reflect.get(client, 'exec');
   if (typeof exec !== 'function') {
     throw new Error('The IMAP client cannot send a raw SEARCH command');
@@ -35,9 +43,9 @@ export const rawUidSearch = async (
   client: ImapFlow,
   attributes: readonly SearchAttribute[],
 ): Promise<number[] | false> => {
-  const found: number[] = [];
+  const responses: unknown[] = [];
   const collect: UntaggedHandler = (untagged) => {
-    found.push(...searchResultUids(untagged, MAX_EXPANDED_UIDS - found.length));
+    responses.push(untagged);
     return Promise.resolve();
   };
   try {
@@ -48,5 +56,5 @@ export const rawUidSearch = async (
     }
     return false;
   }
-  return found;
+  return searchResponsesUids(responses);
 };

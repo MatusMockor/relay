@@ -41,17 +41,24 @@ export class AccountTextSearch {
   }
 
   private async mailbox(run: SearchRun, target: SearchTarget): Promise<MailboxOutcome> {
-    const found = await this.deps.mailboxSearch.search(run.scope.account, target, run.query);
+    const { account } = run.scope;
+    const found = await this.deps.mailboxSearch.search(account, target, run.query, run.live);
     if (found === 'offline') {
       return 'offline';
     }
-    if (found === 'failed') {
+    if (found === 'failed' || found === 'obsolete') {
       return 'incomplete';
     }
-    const stored = await this.deps.resolver.stored(target.mailbox.id, found.uids);
+    const stored = await this.deps.resolver.stored(target, found.uids);
+    if (stored === null) {
+      return 'incomplete';
+    }
     const missing = found.uids.filter((uid) => !stored.has(uid) && uid <= target.state.lastUid);
     const ingested = await this.ingestMissing(run, target, missing);
-    const added = await this.deps.resolver.stored(target.mailbox.id, ingested ? missing : []);
+    const added = await this.deps.resolver.stored(target, ingested ? missing : []);
+    if (added === null) {
+      return 'incomplete';
+    }
     await run.hits.add(found.uids.flatMap((uid) => present(stored.get(uid) ?? added.get(uid))));
     return found.complete && ingested ? 'complete' : 'incomplete';
   }

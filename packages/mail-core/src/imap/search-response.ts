@@ -1,3 +1,5 @@
+import { newestUids, type UidRange } from './newest-uids';
+
 export const MAX_EXPANDED_UIDS = 100_000;
 
 const valueOf = (attribute: unknown): string | null => {
@@ -23,51 +25,37 @@ const uidOf = (value: string | null): number | null => {
   return Number(value);
 };
 
-const rangeOf = (part: string): readonly [number, number] | null => {
+const rangeOf = (part: string): UidRange[] => {
   const [from = '', to = from] = part.split(':');
   const low = uidOf(from);
   const high = uidOf(to);
   if (low === null || high === null) {
-    return null;
-  }
-  return [Math.min(low, high), Math.max(low, high)];
-};
-
-const newestOf = (range: readonly [number, number], budget: number): number[] => {
-  const start = Math.max(range[0], range[1] - budget + 1);
-  return Array.from({ length: Math.max(0, range[1] - start + 1) }, (_, index) => start + index);
-};
-
-const expand = (set: string, budget: number): number[] =>
-  set
-    .split(',')
-    .reverse()
-    .reduce<number[]>((taken, part) => {
-      const range = rangeOf(part);
-      const left = budget - taken.length;
-      if (range === null || left <= 0) {
-        return taken;
-      }
-      return [...newestOf(range, left), ...taken];
-    }, []);
-
-const esearchAll = (attributes: readonly unknown[], budget: number): number[] => {
-  const index = attributes.findIndex((attribute) => valueOf(attribute)?.toUpperCase() === 'ALL');
-  const set = index === -1 ? null : valueOf(attributes[index + 1]);
-  return set === null ? [] : expand(set, budget);
-};
-
-export const searchResultUids = (untagged: unknown, budget = MAX_EXPANDED_UIDS): number[] => {
-  if (budget <= 0) {
     return [];
   }
+  return [{ low: Math.min(low, high), high: Math.max(low, high) }];
+};
+
+const esearchAll = (attributes: readonly unknown[]): UidRange[] => {
+  const index = attributes.findIndex((attribute) => valueOf(attribute)?.toUpperCase() === 'ALL');
+  const set = index === -1 ? null : valueOf(attributes[index + 1]);
+  return set === null ? [] : set.split(',').flatMap(rangeOf);
+};
+
+const searchResultRanges = (untagged: unknown): UidRange[] => {
   const attributes = attributesOf(untagged);
   if (attributes.some((attribute) => valueOf(attribute)?.toUpperCase() === 'ALL')) {
-    return esearchAll(attributes, budget);
+    return esearchAll(attributes);
   }
-  const uids = attributes.map(valueOf).flatMap((value) => {
+  return attributes.map(valueOf).flatMap((value) => {
     const uid = uidOf(value);
-    return uid === null ? [] : [uid];
+    return uid === null ? [] : [{ low: uid, high: uid }];
   });
-  return uids.slice(Math.max(0, uids.length - budget));
 };
+
+export const searchResponsesUids = (
+  responses: readonly unknown[],
+  budget = MAX_EXPANDED_UIDS,
+): number[] => newestUids(responses.flatMap(searchResultRanges), budget);
+
+export const searchResultUids = (untagged: unknown, budget = MAX_EXPANDED_UIDS): number[] =>
+  searchResponsesUids([untagged], budget);

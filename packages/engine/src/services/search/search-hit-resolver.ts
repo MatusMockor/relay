@@ -1,27 +1,43 @@
 import type { MailboxId, Message } from '@relay/shared/domain';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { MessageUidLookup } from '../../ports/message-uid-lookup';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import type { SearchTarget } from './search-mailboxes';
+
+export interface SearchHitResolverDeps {
+  readonly messages: MessageRepository;
+  readonly syncStates: SyncStateRepository;
+  readonly lookup: MessageUidLookup | undefined;
+}
 
 export class SearchHitResolver {
-  constructor(
-    private readonly messages: MessageRepository,
-    private readonly lookup: MessageUidLookup | undefined,
-  ) {}
+  constructor(private readonly deps: SearchHitResolverDeps) {}
 
-  async stored(mailboxId: MailboxId, uids: readonly number[]): Promise<Map<number, Message>> {
+  async stored(
+    target: SearchTarget,
+    uids: readonly number[],
+  ): Promise<Map<number, Message> | null> {
     if (uids.length === 0) {
       return new Map();
     }
-    const found = await this.find(mailboxId, uids);
+    const found = await this.find(target.mailbox.id, uids);
+    if (!(await this.sameUidValidity(target))) {
+      return null;
+    }
     return new Map(found.map((message) => [message.uid, message]));
   }
 
+  private async sameUidValidity(target: SearchTarget): Promise<boolean> {
+    const current = await this.deps.syncStates.find(target.mailbox.id);
+    return current?.uidValidity === target.state.uidValidity;
+  }
+
   private async find(mailboxId: MailboxId, uids: readonly number[]): Promise<Message[]> {
-    if (this.lookup !== undefined) {
-      return this.lookup.findByUids(mailboxId, uids);
+    if (this.deps.lookup !== undefined) {
+      return this.deps.lookup.findByUids(mailboxId, uids);
     }
     const found = await Promise.all(
-      uids.map((uid) => this.messages.findByLocation({ mailboxId, uid })),
+      uids.map((uid) => this.deps.messages.findByLocation({ mailboxId, uid })),
     );
     return found.filter((message): message is Message => message !== null);
   }

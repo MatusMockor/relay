@@ -34,7 +34,11 @@ export const createServerSearchService = (
     }),
     search: new AccountTextSearch({
       mailboxSearch: new MailboxTextSearch(sessions, logger),
-      resolver: new SearchHitResolver(repositories.messages, deps.messageUids),
+      resolver: new SearchHitResolver({
+        messages: repositories.messages,
+        syncStates: repositories.syncStates,
+        lookup: deps.messageUids,
+      }),
       ingest: new SearchHitIngest({
         runs: sync.runs,
         sessions,
