@@ -17,6 +17,8 @@ const expectOk = <T>(result: { ok: true; data: T } | { ok: false; error: unknown
 };
 
 interface Row {
+  readonly id: string;
+  readonly header: string;
   readonly state: string;
   readonly ts: number;
   readonly body: string | null;
@@ -31,7 +33,7 @@ describe('offline window on desktop (SQLite + GreenMail)', () => {
   const archiveRows = (): Row[] =>
     harness.runtime.engine.database.sqlite
       .prepare(
-        "select m.body_state as state, m.date_ts as ts, m.text_body as body from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Archive'",
+        "select m.id as id, m.message_id_header as header, m.body_state as state, m.date_ts as ts, m.text_body as body from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Archive'",
       )
       .all() as Row[];
 
@@ -76,6 +78,12 @@ describe('offline window on desktop (SQLite + GreenMail)', () => {
       });
   };
 
+  const textOf = (row: Row): string =>
+    `Obsah spravy ${row.header.replace(/^<arch-(\d+)@.*$/, '$1')} v Archive.`;
+
+  const bodyOf = async (row: Row) =>
+    expectOk(await harness.bridge.invoke('local.messages.body', { messageId: row.id }));
+
   const choose = async (window: OfflineWindow): Promise<void> => {
     const saved = expectOk(
       await harness.bridge.invoke('settings.device.set', { offlineWindow: window }),
@@ -112,9 +120,20 @@ describe('offline window on desktop (SQLite + GreenMail)', () => {
       remote: ARCHIVE.count - inSixMonths,
     });
 
+    const before = archiveRows();
     await choose('3m');
 
     expectWindow('3m');
+    const evicted = archiveRows().filter(
+      (row) =>
+        row.state === 'remote' && before.some((old) => old.id === row.id && old.state === 'local'),
+    );
+    expect(evicted.length).toBeGreaterThan(0);
+    for (const row of evicted) {
+      const body = await bodyOf(row);
+      expect(body).toMatchObject({ status: 'ok' });
+      expect(body.status === 'ok' && body.textBody?.trim()).toBe(textOf(row));
+    }
     expect(archiveRows().filter((row) => row.state === 'local').length).toBeLessThan(inSixMonths);
     expect(harness.events.some((event) => event.type === 'threads.changed')).toBe(true);
 
@@ -122,8 +141,37 @@ describe('offline window on desktop (SQLite + GreenMail)', () => {
 
     expect(await stepUntil(() => windowSettled('1y'))).toBeLessThan(MAX_STEPS);
     expectWindow('1y');
+    const hydrated = archiveRows().filter(
+      (row) =>
+        row.state === 'local' && before.some((old) => old.id === row.id && old.state === 'remote'),
+    );
+    expect(hydrated.length).toBeGreaterThan(0);
+    for (const row of [...hydrated, ...evicted]) {
+      const body = await bodyOf(row);
+      expect(body).toMatchObject({ status: 'local' });
+      expect(body.status === 'local' && body.textBody?.trim()).toBe(textOf(row));
+    }
     const stats = expectOk(await harness.bridge.invoke('local.sync.offline'));
     expect(stats.local).toBeGreaterThan(inSixMonths);
     expect(stats.local + stats.remote).toBe(ARCHIVE.count);
+  }, 60_000);
+
+  it('bounds a whole-text server search by the six month cutoff once the history is complete', async () => {
+    const account: MailAccount = await seedImapAccount(harness.runtime, mailbox);
+    expectOk(await harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+    await harness.runtime.background.start();
+    expect(await stepUntil(() => windowSettled('6m'))).toBeLessThan(MAX_STEPS);
+    const progress = expectOk(await harness.bridge.invoke('local.sync.history'));
+    expect(progress.map((entry) => entry.state)).toEqual(['done']);
+
+    const response = expectOk(
+      await harness.bridge.invoke('local.search.server', { requestId: 'obsah', q: 'Obsah' }),
+    );
+
+    const cutoff = cutoffOf('6m');
+    const older = archiveRows().filter((row) => row.ts < cutoff);
+    expect(response.status).toBe('ok');
+    expect(response.hits.length).toBeGreaterThanOrEqual(older.length - 1);
+    expect(response.hits.filter((hit) => Date.parse(hit.date) >= cutoff)).toEqual([]);
   }, 60_000);
 });

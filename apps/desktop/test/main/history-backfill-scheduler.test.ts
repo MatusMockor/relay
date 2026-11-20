@@ -189,10 +189,7 @@ describe('HistoryBackfillScheduler', () => {
   });
 
   it('ignores a kick while the server throttles the account', async () => {
-    const throttled = new ProviderError('Mailbox unavailable', {
-      cause: Object.assign(new Error('Command failed'), { serverResponseCode: 'OVERQUOTA' }),
-    });
-    const { time, calls, scheduler } = setup([throttled]);
+    const { time, calls, scheduler } = setup([throttled()]);
     await scheduler.start();
     await time.advance(0);
     expect(scheduler.stateOf(accountA)).toBe('paused');
@@ -201,6 +198,21 @@ describe('HistoryBackfillScheduler', () => {
     await time.advance(60_000);
 
     expect(calls).toHaveLength(1);
+    await scheduler.stop();
+  });
+
+  it('keeps the error backoff when kicked after a failed slice', async () => {
+    const { time, calls, scheduler } = setup([new Error('IMAP down')]);
+    await scheduler.start();
+    await time.advance(0);
+    expect(scheduler.stateOf(accountA)).toBe('error');
+
+    scheduler.kick();
+    await time.advance(10_000);
+    expect(calls).toHaveLength(1);
+
+    await time.advance(20_000);
+    expect(calls.map((call) => call.at)).toEqual([0, 30_000]);
     await scheduler.stop();
   });
 });
