@@ -1,4 +1,10 @@
-import type { Automation, AutomationInput } from '@relay/shared';
+import {
+  type Automation,
+  type AutomationEntry,
+  type AutomationInput,
+  type AutomationReplaceItem,
+  isUnsupportedAutomation,
+} from '@relay/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
@@ -16,12 +22,20 @@ export const toAutomationInput = (automation: Automation): AutomationInput => ({
   actions: automation.actions,
 });
 
+export const keptUnsupported = (
+  entries: readonly AutomationEntry[] | undefined,
+): AutomationReplaceItem[] =>
+  (entries ?? []).filter(isUnsupportedAutomation).map((entry) => ({ id: entry.id, keep: true }));
+
 export const useReplaceAutomations = () => {
   const client = useClient();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (automations: AutomationInput[]) =>
-      client.replaceAutomations(automations.map((automation, order) => ({ ...automation, order }))),
+      client.replaceAutomations([
+        ...automations.map((automation, order) => ({ ...automation, order })),
+        ...keptUnsupported(queryClient.getQueryData<AutomationEntry[]>(queryKeys.automations())),
+      ]),
     onSuccess: (saved) => {
       queryClient.setQueryData(queryKeys.automations(), saved);
     },

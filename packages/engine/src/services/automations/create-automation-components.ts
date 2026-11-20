@@ -6,14 +6,22 @@ import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { PERMISSIVE_PATTERN_POLICY } from '../splits/split-rule-validator';
 import type { JiraTaskSink } from '../sync/jira-task-sink';
 import type { TaskService } from '../tasks/task-service';
-import { SummaryAutomationAction, TaskAutomationAction } from './ai-automation-actions';
+import {
+  DraftReplyAutomationAction,
+  SummaryAutomationAction,
+  TaskAutomationAction,
+} from './ai-automation-actions';
 import { AutomationActionExecutor } from './automation-action-executor';
 import { AutomationBacklog } from './automation-backlog';
 import { AutomationBacklogMatcher } from './automation-backlog-matcher';
 import { AutomationPreview } from './automation-preview';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
+import { AutomationForwardValidator } from './automation-forward-validator';
 import { AutomationTargetValidator } from './automation-target-validator';
+import { ForwardAutomationAction } from './forward/forward-automation-action';
+import { ForwardRateLimit } from './forward/forward-rate-limit';
+import type { MailForwarder } from './forward/mail-forwarder';
 import type { AutomationHistoryService } from './history/automation-history-service';
 import { createAutomationHistory } from './history/create-automation-history';
 import { JiraTaskAutomation } from './jira-task-automation';
@@ -23,6 +31,7 @@ import {
   NotifyAutomationAction,
   TrackedAutomationAction,
 } from './mail-automation-actions';
+import { RemindAutomationAction } from './remind-automation-action';
 
 export interface AutomationComponents {
   readonly service: AutomationService;
@@ -39,6 +48,7 @@ export const createAutomationComponents = (
     readonly actions: MessageActionsService;
     readonly factory: AiJobFactory;
     readonly tasks: TaskService;
+    readonly forwarder: MailForwarder;
   },
 ): AutomationComponents => {
   const { repositories } = deps;
@@ -47,9 +57,16 @@ export const createAutomationComponents = (
       notify: new NotifyAutomationAction(shared.events),
       summary: new SummaryAutomationAction(shared.factory),
       task: new TaskAutomationAction(shared.factory),
+      draftReply: new DraftReplyAutomationAction(shared.factory),
+      forward: new ForwardAutomationAction({
+        forwarder: shared.forwarder,
+        accounts: repositories.accounts,
+        limit: new ForwardRateLimit(repositories.automationActivity, deps.clock),
+      }),
       markRead: new TrackedAutomationAction(shared.actions, { type: 'markRead' }),
       pin: new TrackedAutomationAction(shared.actions, { type: 'pin' }),
       addLabel: new AddLabelAutomationAction(shared.actions),
+      remind: new RemindAutomationAction(shared.actions, repositories.reminders, deps.clock),
       moveTo: new MoveToAutomationAction(shared.actions),
       archive: new TrackedAutomationAction(shared.actions, { type: 'archive' }),
     },
@@ -71,6 +88,7 @@ export const createAutomationComponents = (
       ids: deps.idGenerator,
       patterns,
       targets: new AutomationTargetValidator(repositories.mailboxes, repositories.labels),
+      forwards: new AutomationForwardValidator(repositories.accounts),
       backlog: new AutomationBacklog({
         accounts: repositories.accounts,
         messages: repositories.messages,

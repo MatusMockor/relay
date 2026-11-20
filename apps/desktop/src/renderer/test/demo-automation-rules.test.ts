@@ -3,6 +3,7 @@ import {
   type AutomationInput,
   type AutomationPreviewBody,
   MessageIdSchema,
+  supportedAutomations,
 } from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import { toAutomationInput } from '../src/data/hooks/use-replace-automations';
@@ -37,7 +38,7 @@ describe('demo automation rules', () => {
 
   it('refuses exceptions the demo cannot evaluate', async () => {
     const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
-    const rules = (await client.listAutomations()).map(toAutomationInput);
+    const rules = supportedAutomations(await client.listAutomations()).map(toAutomationInput);
     const withException = (exception: AutomationCondition): AutomationInput[] =>
       rules.map((rule, index) => (index === 0 ? { ...rule, exceptions: [exception] } : rule));
 

@@ -6,7 +6,13 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 
-export type ReversibleActionType = 'markRead' | 'pin' | 'addLabel' | 'moveTo' | 'archive';
+export type ReversibleActionType =
+  | 'markRead'
+  | 'pin'
+  | 'addLabel'
+  | 'remind'
+  | 'moveTo'
+  | 'archive';
 
 export type ReverseOutcome = 'undone' | 'skipped';
 
@@ -30,6 +36,7 @@ export type ActivityReversers = {
 export const REVERSE_ORDER: readonly ReversibleActionType[] = [
   'archive',
   'moveTo',
+  'remind',
   'addLabel',
   'pin',
   'markRead',

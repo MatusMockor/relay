@@ -5,11 +5,11 @@ import type {
   AiJobId,
   ApplyAutomationResponse,
   AttachmentId,
-  Automation,
+  AutomationEntry,
   AutomationActivityId,
   AutomationHistoryResponse,
   AutomationId,
-  AutomationInput,
+  AutomationReplaceItem,
   AutomationPreviewBody,
   AutomationPreviewResponse,
   ChecklistResponse,
@@ -152,9 +152,9 @@ export interface Organizer {
   createLabel(body: CreateLabelBody): Promise<Label>;
   updateLabel(labelId: LabelId, patch: UpdateLabelBody): Promise<Label>;
   deleteLabel(labelId: LabelId): Promise<void>;
-  listAutomations(): Promise<Automation[]>;
-  replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
-  restoreDefaultAutomation(): Promise<Automation[]>;
+  listAutomations(): Promise<AutomationEntry[]>;
+  replaceAutomations(automations: AutomationReplaceItem[]): Promise<AutomationEntry[]>;
+  restoreDefaultAutomation(): Promise<AutomationEntry[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
   previewAutomation(body: AutomationPreviewBody): Promise<AutomationPreviewResponse>;
   automationHistory(automationId: AutomationId): Promise<AutomationHistoryResponse>;

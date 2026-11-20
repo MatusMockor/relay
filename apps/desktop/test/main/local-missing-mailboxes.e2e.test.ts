@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import { LOCAL_USER_ID } from '@relay/store-sqlite';
 import { type AiJob, AiJobIdSchema } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -50,11 +51,13 @@ describe('local mode with an INBOX-only IMAP account (SQLite + GreenMail)', () =
 
   it('creates Archive and Sent on first use and keeps Jira subjects out of task titles', async () => {
     const { bridge } = harness;
-    const rules = expectOk(await bridge.invoke('local.automations.list'));
-    expectOk(
-      await bridge.invoke('local.automations.replace', {
-        automations: rules.map((rule) => ({ ...rule, enabled: true })),
-      }),
+    const rules = supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
+    supportedAutomations(
+      expectOk(
+        await bridge.invoke('local.automations.replace', {
+          automations: rules.map((rule) => ({ ...rule, enabled: true })),
+        }),
+      ),
     );
     const account = expectOk(
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),

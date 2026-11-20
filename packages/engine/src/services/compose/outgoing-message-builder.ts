@@ -1,6 +1,10 @@
 import type { DraftContent, MailAccount, UserId } from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
-import type { OutgoingAttachment, OutgoingMessage } from '../../model/outgoing-message';
+import type {
+  OutgoingAttachment,
+  OutgoingHeaders,
+  OutgoingMessage,
+} from '../../model/outgoing-message';
 import type { AttachmentStore } from '../../ports/attachment-store';
 import type { MessageRepository } from '../../ports/message-repository';
 
@@ -14,6 +18,7 @@ export class OutgoingMessageBuilder {
     userId: UserId,
     account: MailAccount,
     content: DraftContent,
+    headers: OutgoingHeaders = {},
   ): Promise<OutgoingMessage> {
     const threading = await this.threading(userId, content);
     return {
@@ -26,6 +31,7 @@ export class OutgoingMessageBuilder {
       html: null,
       ...threading,
       attachments: await this.loadAttachments(userId, content),
+      headers,
     };
   }
 

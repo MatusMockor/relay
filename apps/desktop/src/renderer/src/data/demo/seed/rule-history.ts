@@ -103,6 +103,8 @@ const activityOf = (
         previousState: 'inbox' as const,
         origins: [],
         labelled: [],
+        reminder: null,
+        reason: null,
         undo: effective && seed.undoneAfterMs !== undefined ? ('undone' as const) : null,
       };
     }),

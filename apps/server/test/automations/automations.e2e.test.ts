@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { api } from '@relay/shared/api';
-import type { Automation } from '@relay/shared/domain';
+import { type Automation, supportedAutomations } from '@relay/shared/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { registerUser } from '../support/auth-flow';
 import { authenticateRealtime } from '../support/realtime-client';
@@ -29,42 +29,50 @@ describe('automations', () => {
     const other = await registerUser(app.api, email());
     const socket = await authenticateRealtime(app.baseUrl, session.accessToken);
 
-    const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
+    const preset = required(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken))[0],
+    );
     expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false });
-    const saved = await app.api.ok(
-      api.automations.replace,
-      {
-        body: {
-          automations: [
-            { ...preset, enabled: true },
-            {
-              accountId: null,
-              name: 'eFabrica spomenutia',
-              enabled: true,
-              order: 1,
-              conditions: [
-                { type: 'jira', projectKeys: ['EF'] },
-                { type: 'jiraEvent', kind: 'mention' },
-              ],
-              ai: {
-                runner: 'claude',
-                model: 'claude-opus-5-5',
-                effort: 'high',
-                instructions: 'Task vytvor iba ak odo mňa niekto niečo chce.',
+    const saved = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        {
+          body: {
+            automations: [
+              { ...preset, enabled: true },
+              {
+                accountId: null,
+                name: 'eFabrica spomenutia',
+                enabled: true,
+                order: 1,
+                conditions: [
+                  { type: 'jira', projectKeys: ['EF'] },
+                  { type: 'jiraEvent', kind: 'mention' },
+                ],
+                ai: {
+                  runner: 'claude',
+                  model: 'claude-opus-5-5',
+                  effort: 'high',
+                  instructions: 'Task vytvor iba ak odo mňa niekto niečo chce.',
+                },
+                actions: [{ type: 'summary' }, { type: 'task' }],
               },
-              actions: [{ type: 'summary' }, { type: 'task' }],
-            },
-          ],
+            ],
+          },
         },
-      },
-      session.accessToken,
+        session.accessToken,
+      ),
     );
     expect(saved.map((item) => [item.name, item.enabled, item.userId])).toEqual([
       ['Jira tasky', true, session.user.id],
       ['eFabrica spomenutia', true, session.user.id],
     ]);
-    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(saved);
-    expect(await app.api.ok(api.automations.list, {}, other.accessToken)).toHaveLength(1);
+    expect(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken)),
+    ).toEqual(saved);
+    expect(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, other.accessToken)),
+    ).toHaveLength(1);
     await socket.waitFor(
       (message) => message.type === 'event' && message.event.type === 'automations.updated',
     );
@@ -89,27 +97,39 @@ describe('automations', () => {
 
   it('removes the default Jira rule for good and restores it on request', async () => {
     const session = await registerUser(app.api, email());
-    const [preset, ...rest] = await app.api.ok(api.automations.list, {}, session.accessToken);
+    const [preset, ...rest] = supportedAutomations(
+      await app.api.ok(api.automations.list, {}, session.accessToken),
+    );
     expect(preset?.preset).toBe('jiraTasks');
 
-    const removed = await app.api.ok(
-      api.automations.replace,
-      { body: { automations: rest } },
-      session.accessToken,
+    const removed = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        { body: { automations: rest } },
+        session.accessToken,
+      ),
     );
 
     expect(removed).toEqual([]);
-    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual([]);
-    const restored = await app.api.ok(api.automations.restoreDefault, {}, session.accessToken);
+    expect(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken)),
+    ).toEqual([]);
+    const restored = supportedAutomations(
+      await app.api.ok(api.automations.restoreDefault, {}, session.accessToken),
+    );
     expect(restored).toEqual([
       expect.objectContaining({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false }),
     ]);
-    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(restored);
+    expect(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken)),
+    ).toEqual(restored);
   });
 
   it('applies a rule to existing mail and refuses moves for all accounts', async () => {
     const session = await registerUser(app.api, email());
-    const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
+    const preset = required(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken))[0],
+    );
     const rule = {
       accountId: null,
       name: 'Faktúry',
@@ -119,10 +139,12 @@ describe('automations', () => {
       ai: { runner: 'claude' as const, model: null, effort: null, instructions: null },
       actions: [{ type: 'markRead' as const }],
     };
-    const saved = await app.api.ok(
-      api.automations.replace,
-      { body: { automations: [preset, rule] } },
-      session.accessToken,
+    const saved = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        { body: { automations: [preset, rule] } },
+        session.accessToken,
+      ),
     );
 
     const applied = await app.api.ok(
@@ -148,7 +170,9 @@ describe('automations', () => {
 
   it('previews a draft rule without saving it and validates the draft', async () => {
     const session = await registerUser(app.api, email());
-    const before = await app.api.ok(api.automations.list, {}, session.accessToken);
+    const before = supportedAutomations(
+      await app.api.ok(api.automations.list, {}, session.accessToken),
+    );
     const draft = {
       accountId: null,
       match: 'any' as const,
@@ -159,7 +183,9 @@ describe('automations', () => {
     expect(await app.api.ok(api.automations.preview, { body: draft }, session.accessToken)).toEqual(
       { days: 30, count: 0, truncated: false, samples: [] },
     );
-    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(before);
+    expect(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken)),
+    ).toEqual(before);
     expect(
       await app.api.fail(
         api.automations.preview,
@@ -183,7 +209,9 @@ describe('automations', () => {
 
   it('keeps the match mode and exceptions of a rule replaced by an older client', async () => {
     const session = await registerUser(app.api, email());
-    const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
+    const preset = required(
+      supportedAutomations(await app.api.ok(api.automations.list, {}, session.accessToken))[0],
+    );
     const legacyRule = {
       accountId: null,
       name: 'Dodávatelia',
@@ -193,36 +221,40 @@ describe('automations', () => {
       ai: { runner: 'claude' as const, model: null, effort: null, instructions: null },
       actions: [{ type: 'markRead' as const }],
     };
-    const saved = await app.api.ok(
-      api.automations.replace,
-      {
-        body: {
-          automations: [
-            preset,
-            {
-              ...legacyRule,
-              match: 'any',
-              exceptions: [{ type: 'fromAddress', address: 'noreply@firma.test' }],
-            },
-          ],
+    const saved = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        {
+          body: {
+            automations: [
+              preset,
+              {
+                ...legacyRule,
+                match: 'any',
+                exceptions: [{ type: 'fromAddress', address: 'noreply@firma.test' }],
+              },
+            ],
+          },
         },
-      },
-      session.accessToken,
+        session.accessToken,
+      ),
     );
     const stored = required(saved[1]);
 
-    const replaced = await app.api.ok(
-      api.automations.replace,
-      {
-        body: {
-          automations: [
-            preset,
-            { ...legacyRule, id: stored.id, enabled: false },
-            { ...legacyRule, name: 'Nové' },
-          ],
+    const replaced = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        {
+          body: {
+            automations: [
+              preset,
+              { ...legacyRule, id: stored.id, enabled: false },
+              { ...legacyRule, name: 'Nové' },
+            ],
+          },
         },
-      },
-      session.accessToken,
+        session.accessToken,
+      ),
     );
 
     expect(replaced[1]).toMatchObject({

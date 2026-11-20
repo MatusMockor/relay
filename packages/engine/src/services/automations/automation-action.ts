@@ -26,9 +26,12 @@ export const ACTION_ORDER: readonly AutomationActionType[] = [
   'notify',
   'summary',
   'task',
+  'draftReply',
+  'forward',
   'markRead',
   'pin',
   'addLabel',
+  'remind',
   'moveTo',
   'archive',
 ];

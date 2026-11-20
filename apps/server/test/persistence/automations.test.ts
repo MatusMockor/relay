@@ -64,6 +64,24 @@ describe('PgAutomationRepository', () => {
     ]);
   });
 
+  it('stores reminder, forward and AI reply draft actions', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const rule = buildAutomation(seeded.user.id, {
+      accountId: seeded.account.id,
+      actions: [
+        { type: 'draftReply' },
+        { type: 'forward', to: 'uctovnicka@firma.sk' },
+        { type: 'remind', afterDays: 7 },
+      ],
+    });
+
+    await context.repositories.automations.replaceAll(seeded.user.id, [rule]);
+
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
+      rule,
+    ]);
+  });
+
   it('rejects automations of another user and foreign accounts', async () => {
     const owner = await seedAccount(context.repositories);
     const other = await seedAccount(context.repositories);

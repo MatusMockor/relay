@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGreenMailAccount, deliverMail, type GreenMailAccount } from './support/greenmail';
 import { type LocalRuntimeHarness, startLocalRuntime } from './support/local-runtime-harness';
@@ -33,7 +34,9 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
 
   it('seeds the Jira rule, stores new rules and runs them on new mail only', async () => {
     const { bridge } = harness;
-    const preset = required(expectOk(await bridge.invoke('local.automations.list'))[0]);
+    const preset = required(
+      supportedAutomations(expectOk(await bridge.invoke('local.automations.list')))[0],
+    );
     expect(preset).toMatchObject({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false });
     const account = expectOk(
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),
@@ -45,21 +48,23 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
     });
     expectOk(await bridge.invoke('local.sync.now', { accountId: account.id }));
 
-    const saved = expectOk(
-      await bridge.invoke('local.automations.replace', {
-        automations: [
-          { ...preset, enabled: true },
-          {
-            accountId: account.id,
-            name: 'Od Tibora',
-            enabled: true,
-            order: 1,
-            conditions: [{ type: 'fromDomain', domain: 'efabrica.test' }],
-            ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: null },
-            actions: ['notify', 'markRead'],
-          },
-        ],
-      }),
+    const saved = supportedAutomations(
+      expectOk(
+        await bridge.invoke('local.automations.replace', {
+          automations: [
+            { ...preset, enabled: true },
+            {
+              accountId: account.id,
+              name: 'Od Tibora',
+              enabled: true,
+              order: 1,
+              conditions: [{ type: 'fromDomain', domain: 'efabrica.test' }],
+              ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: null },
+              actions: ['notify', 'markRead'],
+            },
+          ],
+        }),
+      ),
     );
     expect(saved.map((item) => [item.name, item.enabled])).toEqual([
       ['Jira tasky', true],
@@ -106,7 +111,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
       text: 'Ideme?',
     });
     expectOk(await bridge.invoke('local.sync.now', { accountId: account.id }));
-    const before = expectOk(await bridge.invoke('local.automations.list'));
+    const before = supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
 
     const preview = expectOk(
       await bridge.invoke('local.automations.preview', {
@@ -122,7 +127,9 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
       count: 1,
       samples: [{ subject: 'FAKTÚRA 2026-11', from: { email: 'fakturacia@dodavatel.test' } }],
     });
-    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual(before);
+    expect(supportedAutomations(expectOk(await bridge.invoke('local.automations.list')))).toEqual(
+      before,
+    );
   });
 
   it('rejects a rule with a model that is not in the catalog', async () => {
@@ -145,17 +152,25 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
 
   it('removes the default Jira rule for good and restores it on request', async () => {
     const { bridge } = harness;
-    expectOk(await bridge.invoke('local.automations.list'));
+    supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
 
-    expect(expectOk(await bridge.invoke('local.automations.replace', { automations: [] }))).toEqual(
+    expect(
+      supportedAutomations(
+        expectOk(await bridge.invoke('local.automations.replace', { automations: [] })),
+      ),
+    ).toEqual([]);
+    expect(supportedAutomations(expectOk(await bridge.invoke('local.automations.list')))).toEqual(
       [],
     );
-    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual([]);
-    const restored = expectOk(await bridge.invoke('local.automations.restoreDefault'));
+    const restored = supportedAutomations(
+      expectOk(await bridge.invoke('local.automations.restoreDefault')),
+    );
 
     expect(restored).toEqual([
       expect.objectContaining({ name: 'Jira tasky', preset: 'jiraTasks', enabled: false }),
     ]);
-    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual(restored);
+    expect(supportedAutomations(expectOk(await bridge.invoke('local.automations.list')))).toEqual(
+      restored,
+    );
   });
 });

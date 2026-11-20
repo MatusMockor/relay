@@ -1,5 +1,6 @@
 import { type AiJobInput, aiModelChoiceIssue } from '@relay/shared/domain';
 import type { AiJobFactory } from '../ai/ai-job-factory';
+import { AutomationActionRefusal } from './automation-action-refusal';
 import { type ActionEffect, NO_EFFECT } from './action-effect';
 import type { AutomationActionContext, AutomationActionHandler } from './automation-action';
 import { runsLegacyJiraTasks } from './automation-presets';
@@ -48,6 +49,26 @@ export class TaskAutomationAction implements AutomationActionHandler {
       automationId: context.automation.id,
       instructions: context.automation.ai.instructions,
       jiraKey: jira?.jiraKey ?? null,
+    });
+  }
+}
+
+export class DraftReplyAutomationAction implements AutomationActionHandler {
+  constructor(private readonly factory: AiJobFactory) {}
+
+  run(context: AutomationActionContext): Promise<ActionEffect> {
+    const { message, live } = context.arrival;
+    if (!live) {
+      return Promise.reject(
+        new AutomationActionRefusal('Koncept odpovede sa pripravuje iba pre novo prijatý mail'),
+      );
+    }
+    return enqueue(this.factory, context, {
+      kind: 'automationDraft',
+      threadId: message.threadId,
+      messageId: message.id,
+      automationId: context.automation.id,
+      instructions: context.automation.ai.instructions,
     });
   }
 }

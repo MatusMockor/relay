@@ -1,4 +1,4 @@
-import type { ThreadId } from '@relay/shared';
+import { supportedAutomations, type ThreadId } from '@relay/shared';
 import {
   useAutomations,
   useThreadDetail,
@@ -52,7 +52,7 @@ function RuleFromMailContent({ threadId, onClose }: RuleFromMailContentProps) {
         subject: message.subject,
         newsletter: isNewsletterSource(message, detail.data.messages, ownEmails, unsubscribe.data),
       })}
-      existing={automations.data}
+      existing={supportedAutomations(automations.data)}
       runner={settings.data?.ai.defaultRunner ?? 'claude'}
       onClose={onClose}
     />

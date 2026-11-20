@@ -1,4 +1,4 @@
-import type { Automation } from '@relay/shared';
+import { type Automation, supportedAutomations } from '@relay/shared';
 import { useRef } from 'react';
 import { describeError } from '../../data/errors';
 import { useApplyAutomation } from '../../data/hooks/use-apply-automation';
@@ -49,7 +49,7 @@ export const useCreateMailRule = (existing: readonly Automation[]): CreateMailRu
         .then(
           (stored) => {
             onCreated();
-            saved(input, applyExisting, known)(stored);
+            saved(input, applyExisting, known)(supportedAutomations(stored));
           },
           (error: unknown) => {
             showToast(describeError(error));

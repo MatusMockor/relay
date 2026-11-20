@@ -13,6 +13,7 @@ export * from './automation';
 export * from './automation-action';
 export * from './automation-activity';
 export * from './automation-criteria';
+export * from './automation-entry';
 export * from './credentials';
 export * from './device';
 export * from './draft';

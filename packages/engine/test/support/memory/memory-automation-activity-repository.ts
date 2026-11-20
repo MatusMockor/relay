@@ -1,9 +1,12 @@
-import type {
-  AutomationActivity,
-  AutomationActivityAction,
-  AutomationActivityId,
-  AutomationId,
-  UserId,
+import {
+  type AccountId,
+  type AutomationActionType,
+  type AutomationActivity,
+  type AutomationActivityAction,
+  type AutomationActivityId,
+  type AutomationId,
+  countOkActions,
+  type UserId,
 } from '@relay/shared/domain';
 import type {
   AutomationActivityRecord,
@@ -69,6 +72,18 @@ export class MemoryAutomationActivityRepository implements AutomationActivityRep
         .flatMap((row) => row.actions)
         .filter((action) => action.outcome === 'failed').length,
     });
+  }
+
+  countOkActionsSince(
+    userId: UserId,
+    accountId: AccountId,
+    type: AutomationActionType,
+    since: string,
+  ): Promise<number> {
+    const rows = this.db.tables.automationActivity.filter(
+      (row) => row.userId === userId && row.accountId === accountId && row.createdAt >= since,
+    );
+    return Promise.resolve(rows.reduce((sum, row) => sum + countOkActions(row.actions, type), 0));
   }
 
   findById(userId: UserId, id: AutomationActivityId): Promise<AutomationActivity | null> {

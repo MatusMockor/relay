@@ -3,6 +3,7 @@ import type {
   AutomationId,
   AutomationPreset,
   MessageId,
+  UnsupportedAutomation,
   UserId,
 } from '@relay/shared/domain';
 import type {
@@ -23,8 +24,21 @@ export class MemoryAutomationRepository implements AutomationRepository {
     );
   }
 
-  replaceAll(userId: UserId, automations: readonly Automation[]): Promise<Automation[]> {
+  listUnsupported(userId: UserId): Promise<UnsupportedAutomation[]> {
+    return Promise.resolve([...(this.db.tables.unsupportedAutomations.get(userId) ?? [])]);
+  }
+
+  replaceAll(
+    userId: UserId,
+    automations: readonly Automation[],
+    keep: readonly AutomationId[] = [],
+  ): Promise<Automation[]> {
     this.db.tables.automations.set(userId, [...automations]);
+    const unsupported = this.db.tables.unsupportedAutomations.get(userId) ?? [];
+    this.db.tables.unsupportedAutomations.set(
+      userId,
+      unsupported.filter((entry) => keep.includes(entry.id)),
+    );
     return this.listByUser(userId);
   }
 

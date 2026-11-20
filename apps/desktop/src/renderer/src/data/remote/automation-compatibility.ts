@@ -1,4 +1,13 @@
-import { api, type Automation, type AutomationInput } from '@relay/shared';
+import {
+  api,
+  type Automation,
+  type AutomationEntry,
+  type AutomationInput,
+  type AutomationReplaceItem,
+  isUnsupportedAutomation,
+  replaceInputsOf,
+  supportedAutomations,
+} from '@relay/shared';
 import { MailClientError } from '../errors';
 import type { HttpApi } from './HttpApi';
 
@@ -39,18 +48,22 @@ const inputOf = (automation: Automation): AutomationInput => ({
   actions: automation.actions,
 });
 
+const restoreOf = (entry: AutomationEntry): AutomationReplaceItem =>
+  isUnsupportedAutomation(entry) ? { id: entry.id, keep: true } : inputOf(entry);
+
 export const replaceAutomationsChecked = async (
   http: HttpApi,
-  inputs: AutomationInput[],
-): Promise<Automation[]> => {
-  const risky = inputs.filter(usesNewFields);
+  items: AutomationReplaceItem[],
+): Promise<AutomationEntry[]> => {
+  const risky = replaceInputsOf(items).filter(usesNewFields);
   const previous = risky.length === 0 ? null : await http.call(api.automations.list, {});
-  const stored = await http.call(api.automations.replace, { body: { automations: inputs } });
-  if (previous === null || risky.every((input) => keeps(input, counterpartOf(input, stored)))) {
+  const stored = await http.call(api.automations.replace, { body: { automations: items } });
+  const saved = supportedAutomations(stored);
+  if (previous === null || risky.every((input) => keeps(input, counterpartOf(input, saved)))) {
     return stored;
   }
   await http
-    .call(api.automations.replace, { body: { automations: previous.map(inputOf) } })
+    .call(api.automations.replace, { body: { automations: previous.map(restoreOf) } })
     .catch(() => undefined);
   throw new MailClientError({ code: 'not_implemented', message: OUTDATED_AUTOMATIONS });
 };

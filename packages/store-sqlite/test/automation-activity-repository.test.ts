@@ -22,6 +22,8 @@ const UNDONE_ACTIONS: AutomationActivityRecord['actions'] = [
     previousState: 'inbox',
     origins: [],
     labelled: [],
+    reminder: null,
+    reason: null,
     undo: 'undone',
   },
 ];
@@ -67,6 +69,8 @@ describe('SqliteAutomationActivityRepository', () => {
           previousState: 'inbox',
           origins: [],
           labelled: [MessageIdSchema.parse(`msg-${id}`)],
+          reminder: null,
+          reason: null,
           undo: null,
         },
         {
@@ -76,6 +80,8 @@ describe('SqliteAutomationActivityRepository', () => {
           previousState: null,
           origins: [],
           labelled: [],
+          reminder: null,
+          reason: null,
           undo: null,
         },
       ],

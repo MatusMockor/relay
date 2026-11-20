@@ -2,6 +2,7 @@ import type { AiJobInput, AiOutput } from '@relay/shared/domain';
 import { preparePrompt } from './prepare-prompt';
 import type { PreparedPrompt } from './prepared-prompt';
 import type { PromptContext } from './prompt-spec';
+import { automationDraftPrompt } from './specs/automation-draft';
 import { automationTaskPrompt } from './specs/automation-task';
 import { chatAnswerPrompt } from './specs/chat-answer';
 import { createTaskPrompt } from './specs/create-task';
@@ -29,5 +30,7 @@ export function prepareTaskPrompt(
       return preparePrompt(createTaskPrompt, input, context);
     case 'automationTask':
       return preparePrompt(automationTaskPrompt, input, context);
+    case 'automationDraft':
+      return preparePrompt(automationDraftPrompt, input, context);
   }
 }

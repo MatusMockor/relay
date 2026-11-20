@@ -28,6 +28,7 @@ import type {
   ThreadSummary,
   UserId,
   UserSettings,
+  UnsupportedAutomation,
 } from '@relay/shared/domain';
 import type {
   AutomationActivityRecord,
@@ -55,6 +56,7 @@ export class MemoryTables {
   readonly labels = new Map<LabelId, Label>();
   readonly splits = new Map<UserId, Split[]>();
   readonly automations = new Map<UserId, Automation[]>();
+  readonly unsupportedAutomations = new Map<UserId, UnsupportedAutomation[]>();
   readonly automationRuns = new Set<string>();
   readonly automationActivity: AutomationActivityRecord[] = [];
   readonly removedPresets = new Set<string>();

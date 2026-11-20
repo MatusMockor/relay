@@ -11,6 +11,8 @@ export interface OutgoingCalendarPart {
   readonly content: string;
 }
 
+export type OutgoingHeaders = Readonly<Record<string, string>>;
+
 export interface OutgoingMessage {
   readonly from: Address;
   readonly to: readonly Address[];
@@ -23,6 +25,7 @@ export interface OutgoingMessage {
   readonly references: readonly string[];
   readonly attachments: readonly OutgoingAttachment[];
   readonly calendar?: OutgoingCalendarPart;
+  readonly headers?: OutgoingHeaders;
 }
 
 export interface SentMessage {

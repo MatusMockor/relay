@@ -1,9 +1,18 @@
 import type { AutomationRepository, PresetAutomation } from '@relay/engine';
-import type { Automation, AutomationPreset, UserId } from '@relay/shared/domain';
+import {
+  type Automation,
+  type AutomationEntry,
+  type AutomationId,
+  type AutomationPreset,
+  isUnsupportedAutomation,
+  supportedAutomations,
+  type UnsupportedAutomation,
+  type UserId,
+} from '@relay/shared/domain';
 import { and, asc, eq, notInArray } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toAutomation, toAutomationRow } from '../mappers/automation-mapper';
+import { toAutomationEntry, toAutomationRow } from '../mappers/automation-mapper';
 import { automations, removedAutomationPresets } from '../schema';
 
 const removedPresetOf = (userId: UserId, preset: AutomationPreset) =>
@@ -13,19 +22,26 @@ export class SqliteAutomationRepository implements AutomationRepository {
   constructor(private readonly executor: SqliteExecutor) {}
 
   listByUser(userId: UserId): Promise<Automation[]> {
-    return this.executor.execute((db) => this.listOwned(db, userId));
+    return this.executor.execute((db) => supportedAutomations(this.listOwned(db, userId)));
   }
 
-  replaceAll(userId: UserId, items: readonly Automation[]): Promise<Automation[]> {
+  listUnsupported(userId: UserId): Promise<UnsupportedAutomation[]> {
+    return this.executor.execute((db) =>
+      this.listOwned(db, userId).filter(isUnsupportedAutomation),
+    );
+  }
+
+  replaceAll(
+    userId: UserId,
+    items: readonly Automation[],
+    keep: readonly AutomationId[] = [],
+  ): Promise<Automation[]> {
     return this.executor.execute((db) => {
       db.delete(automations)
         .where(
           and(
             eq(automations.userId, userId),
-            notInArray(
-              automations.id,
-              items.map((automation) => automation.id),
-            ),
+            notInArray(automations.id, [...items.map((automation) => automation.id), ...keep]),
           ),
         )
         .run();
@@ -41,7 +57,7 @@ export class SqliteAutomationRepository implements AutomationRepository {
           })
           .run();
       });
-      return this.listOwned(db, userId);
+      return supportedAutomations(this.listOwned(db, userId));
     });
   }
 
@@ -74,13 +90,13 @@ export class SqliteAutomationRepository implements AutomationRepository {
     });
   }
 
-  private listOwned(db: RelayDb, userId: UserId): Automation[] {
+  private listOwned(db: RelayDb, userId: UserId): AutomationEntry[] {
     return db
       .select()
       .from(automations)
       .where(eq(automations.userId, userId))
       .orderBy(asc(automations.position), asc(automations.id))
       .all()
-      .map(toAutomation);
+      .map(toAutomationEntry);
   }
 }

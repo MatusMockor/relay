@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import type { AutomationInput } from '@relay/shared';
 import { act, fireEvent, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -19,10 +20,12 @@ import { resetStores } from './support/render-app';
 const APPLY = 'Použiť na maily, ktoré už mám';
 
 const withTibor = async (client: MailClient, update: Partial<AutomationInput>) => {
-  const rules = await client.listAutomations();
-  await client.replaceAutomations(
-    rules.map((rule) =>
-      rule.name === 'Tibor' ? { ...toAutomationInput(rule), ...update } : toAutomationInput(rule),
+  const rules = supportedAutomations(await client.listAutomations());
+  supportedAutomations(
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'Tibor' ? { ...toAutomationInput(rule), ...update } : toAutomationInput(rule),
+      ),
     ),
   );
 };

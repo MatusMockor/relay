@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import type { AutomationInput } from '@relay/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -56,7 +57,9 @@ describe('local automation that moves mail into a folder (SQLite + GreenMail)', 
       await bridge.invoke('local.accounts.mailboxes', { accountId: account.id }),
     );
     const folder = required(mailboxes.find((candidate) => candidate.path === folderPath));
-    const preset = required(expectOk(await bridge.invoke('local.automations.list'))[0]);
+    const preset = required(
+      supportedAutomations(expectOk(await bridge.invoke('local.automations.list')))[0],
+    );
     const rule: AutomationInput = {
       accountId: account.id,
       name: 'Faktúry',
@@ -68,8 +71,8 @@ describe('local automation that moves mail into a folder (SQLite + GreenMail)', 
       ai: { runner: 'claude', model: null, effort: null, instructions: null },
       actions: [{ type: 'moveTo', mailboxId: folder.id }, { type: 'markRead' }],
     };
-    const saved = expectOk(
-      await bridge.invoke('local.automations.replace', { automations: [preset, rule] }),
+    const saved = supportedAutomations(
+      expectOk(await bridge.invoke('local.automations.replace', { automations: [preset, rule] })),
     );
     return { account, folder, saved: required(saved.find((item) => item.name === 'Faktúry')) };
   };

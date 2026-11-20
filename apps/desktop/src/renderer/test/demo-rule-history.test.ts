@@ -1,4 +1,9 @@
-import { AutomationActivityIdSchema, type AutomationId } from '@relay/shared';
+import {
+  type AccountId,
+  AutomationActivityIdSchema,
+  type AutomationId,
+  supportedAutomations,
+} from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import { automationId } from '../src/data/demo/seed/automations';
@@ -41,6 +46,71 @@ describe('demo rule history', () => {
       alreadyUndone: true,
       results: [],
     });
+  });
+
+  it('snoozes existing mail on apply, never forwards it and cancels the reminder on undo', async () => {
+    const demo = client();
+    const rules = supportedAutomations(await demo.listAutomations());
+    supportedAutomations(
+      await demo.replaceAutomations(
+        rules.map((rule) =>
+          rule.id === GITLAB
+            ? {
+                ...rule,
+                actions: [
+                  { type: 'forward', to: 'uctovnicka@firma.sk' },
+                  { type: 'draftReply' },
+                  { type: 'remind', afterDays: 2 },
+                  { type: 'markRead' },
+                ],
+              }
+            : rule,
+        ),
+      ),
+    );
+
+    await demo.applyAutomation(GITLAB);
+    const snoozed = (await demo.getThread(demoIds.thread('o-pipeline'))).thread;
+    const applied = (await demo.automationHistory(GITLAB)).entries.find(
+      (entry) => entry.source === 'apply' && entry.undoneAt === null,
+    );
+
+    expect(snoozed).toMatchObject({
+      state: 'reminder',
+      remindAt: new Date(NOW.getTime() + 2 * 24 * 60 * 60_000).toISOString(),
+    });
+    expect(applied?.actions.map(({ action }) => action.type)).toEqual(['markRead', 'remind']);
+    const undone = await demo.undoAutomationActivity(
+      GITLAB,
+      applied?.id ?? AutomationActivityIdSchema.parse('missing'),
+    );
+
+    expect(undone.results.map(({ action, outcome }) => [action.type, outcome])).toEqual([
+      ['markRead', 'undone'],
+      ['remind', 'undone'],
+    ]);
+    expect((await demo.getThread(demoIds.thread('o-pipeline'))).thread).toMatchObject({
+      state: 'inbox',
+      remindAt: null,
+    });
+  });
+
+  it('refuses a forward on a rule for all accounts or to its own address', async () => {
+    const demo = client();
+    const rules = supportedAutomations(await demo.listAutomations());
+    const withForward = (accountId: AccountId | null, to: string) =>
+      demo.replaceAutomations(
+        rules.map((rule) =>
+          rule.id === GITLAB ? { ...rule, accountId, actions: [{ type: 'forward', to }] } : rule,
+        ),
+      );
+
+    await expect(withForward(null, 'uctovnicka@firma.sk')).rejects.toThrow(
+      'Pravidlo pre všetky účty nemôže preposielať, vyber účet',
+    );
+    await expect(withForward(demoIds.account('efa'), 'meno@efabrica.sk')).rejects.toThrow(
+      'nemôže preposielať na adresu vlastného účtu',
+    );
   });
 
   it('reports AI actions as not undoable and keeps the run open', async () => {

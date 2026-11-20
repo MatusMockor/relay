@@ -120,7 +120,7 @@ describe('RemoteMailClient automations on an older server', () => {
       })),
     }));
 
-    expect((await connect().replaceAutomations([rule]))[0]?.match).toBe('any');
+    expect((await connect().replaceAutomations([rule]))[0]).toMatchObject({ match: 'any' });
   });
 
   it('asks for a server update when the preview endpoint is missing', async () => {

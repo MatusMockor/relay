@@ -5,6 +5,7 @@ import type {
   SimpleAutomationActionType,
 } from '@relay/shared';
 import { moveTargetsOf } from '../../mail/move-targets';
+import { daysLabel } from './action-params';
 import type { ActionTargets } from './action-targets';
 import { JIRA_EVENT_LABELS } from './automation-labels';
 import { isNewsletterHeader } from './newsletter-condition';
@@ -18,6 +19,7 @@ const RECIPIENT_PHRASES: Readonly<Record<RecipientField, (value: string) => stri
 const SIMPLE_ACTION_PHRASES: Readonly<Record<SimpleAutomationActionType, string>> = {
   summary: 'pripraví AI zhrnutie',
   task: 'vytvorí úlohu',
+  draftReply: 'pripraví koncept odpovede cez AI',
   notify: 'pošle notifikáciu',
   markRead: 'označí ho ako prečítaný',
   pin: 'pripne ho',
@@ -62,6 +64,12 @@ export const actionPhrase = (action: AutomationAction, targets: ActionTargets): 
       (item) => item.mailbox.id === action.mailboxId,
     );
     return target === undefined ? 'presunie ho' : `presunie ho do ${target.label}`;
+  }
+  if (action.type === 'remind') {
+    return `pripomenie ho o ${daysLabel(action.afterDays)}`;
+  }
+  if (action.type === 'forward') {
+    return `prepošle ho na ${action.to}`;
   }
   return SIMPLE_ACTION_PHRASES[action.type];
 };

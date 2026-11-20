@@ -27,6 +27,7 @@ export const AiTaskKindSchema = z.enum([
   'rewrite',
   'createTask',
   'automationTask',
+  'automationDraft',
 ]);
 export type AiTaskKind = z.infer<typeof AiTaskKindSchema>;
 
@@ -86,6 +87,14 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     jiraKey: JiraKeySchema.nullable(),
     timeZone: JobTimeZoneSchema,
   }),
+  z.object({
+    kind: z.literal('automationDraft'),
+    threadId: ThreadIdSchema,
+    messageId: MessageIdSchema,
+    automationId: AutomationIdSchema,
+    instructions: z.string().min(1).max(2_000).nullable(),
+    timeZone: JobTimeZoneSchema,
+  }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;
 
@@ -115,6 +124,12 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     actionable: z.boolean(),
     title: z.string().max(500),
     description: z.string().max(2_000),
+  }),
+  z.object({
+    kind: z.literal('automationDraft'),
+    threadId: ThreadIdSchema,
+    messageId: MessageIdSchema,
+    body: z.string().min(1).max(10_000),
   }),
 ]);
 export type AiOutput = z.infer<typeof AiOutputSchema>;

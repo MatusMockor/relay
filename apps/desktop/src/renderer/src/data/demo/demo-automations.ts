@@ -3,10 +3,12 @@ import {
   type Automation,
   type AutomationId,
   type AutomationInput,
-  isParameterizedAction,
+  isKeepAutomationInput,
   ReplaceAutomationsBodySchema,
+  replaceInputsOf,
 } from '@relay/shared';
 import type { Organizer } from '../MailClient';
+import { demoActionScopeIssue } from './demo-action-scope';
 import { DEMO_UNSUPPORTED_EXCEPTIONS } from './demo-automation-match';
 import { createDemoAutomationPreview } from './demo-automation-preview';
 import type { DemoState } from './demo-state';
@@ -37,8 +39,6 @@ const usesUnsupportedException = (input: AutomationInput): boolean =>
   (input.exceptions ?? []).some((condition) =>
     DEMO_UNSUPPORTED_EXCEPTIONS.includes(condition.type),
   );
-
-const ALL_ACCOUNTS_MESSAGE = 'Pravidlo pre všetky účty nemôže presúvať ani štítkovať, vyber účet';
 
 const toAutomation = (
   state: DemoState,
@@ -72,18 +72,18 @@ export const createDemoAutomations = (
       if (!parsed.success) {
         return Promise.reject(new Error('Automatizácia nie je platná'));
       }
-      if (
-        parsed.data.automations.some(
-          (input) => input.accountId === null && input.actions.some(isParameterizedAction),
-        )
-      ) {
-        return Promise.reject(new Error(ALL_ACCOUNTS_MESSAGE));
+      const inputs = replaceInputsOf(parsed.data.automations);
+      const scopeIssue = demoActionScopeIssue(inputs, state.accounts);
+      if (scopeIssue !== null) {
+        return Promise.reject(new Error(scopeIssue));
       }
-      if (parsed.data.automations.some(usesUnsupportedException)) {
+      if (inputs.some(usesUnsupportedException)) {
         return Promise.reject(new Error(UNSUPPORTED_EXCEPTION_MESSAGE));
       }
-      const next = parsed.data.automations.map((input, order) =>
-        toAutomation(state, input, order, now),
+      const next = parsed.data.automations.flatMap((item, order) =>
+        isKeepAutomationInput(item)
+          ? state.automations.filter((automation) => automation.id === item.id)
+          : [toAutomation(state, item, order, now)],
       );
       state.automations = next;
       return Promise.resolve([...state.automations]);

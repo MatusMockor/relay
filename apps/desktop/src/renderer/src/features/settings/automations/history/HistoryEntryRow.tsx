@@ -1,5 +1,5 @@
 import { type AutomationActivity, isUndoableActivity } from '@relay/shared';
-import { Button } from '@relay/ui';
+import { Button, cx } from '@relay/ui';
 import { messageTimeLabel } from '../../../../lib/dates';
 import type { ActionTargets } from '../action-targets';
 import { historyChipsOf } from './history-chips';
@@ -27,7 +27,11 @@ export function HistoryEntryRow({ entry, targets, busy, onUndo }: HistoryEntryRo
         </p>
         <ul className="au-hist-chips" aria-label="Vykonané akcie">
           {historyChipsOf(entry.actions, targets).map((chip) => (
-            <li key={chip.key} className={chip.failed ? 'bad' : undefined}>
+            <li
+              key={chip.key}
+              className={cx(chip.failed && 'bad', !chip.reversible && 'fixed')}
+              title={chip.reason ?? (chip.reversible ? undefined : 'Nedá sa vrátiť')}
+            >
               {chip.failed ? `${chip.label} (zlyhalo)` : chip.label}
             </li>
           ))}
