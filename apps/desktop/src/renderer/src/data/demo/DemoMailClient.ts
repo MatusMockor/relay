@@ -167,7 +167,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
     syncNow: () => Promise.resolve(),
-    historyProgress: () => Promise.resolve(history.progress(state.accounts)),
+    historyProgress: () => run(() => history.progress(state.accounts)),
     listDrafts: () => Promise.resolve([...state.drafts]),
     createDraft: (content) =>
       run(() => {

@@ -1,58 +1,11 @@
 // @vitest-environment jsdom
-import type { HistoryProgress, MailAccount } from '@relay/shared';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
-import { DemoHistory, type DemoHistorySeed } from '../src/data/demo/demo-history';
 import type { MailClient } from '../src/data/MailClient';
-import { setUi } from '../src/state/ui-store';
+import { firstRunning, historyClient, historyText, openSync } from './support/history-settings';
 import { present } from './support/present';
 import { renderApp, resetStores } from './support/render-app';
-
-const NBSP = new RegExp(String.fromCharCode(0xa0), 'g');
-
-const historyClient = (seed?: DemoHistorySeed) => {
-  const seen: MailAccount[] = [];
-  const history = new DemoHistory((accounts) => {
-    seen.splice(0, seen.length, ...accounts);
-    return seed === undefined ? [] : seed(accounts);
-  });
-  const client = createDemoMailClient({ aiStepMs: 0, history });
-  const progressOf = (patch: Partial<HistoryProgress>): HistoryProgress => ({
-    accountId: present(seen[0]).id,
-    stored: 12_340,
-    total: 48_000,
-    state: 'running',
-    ...patch,
-  });
-  const publish = async (patch: Partial<HistoryProgress>) => {
-    const progress = progressOf(patch);
-    await act(async () => {
-      history.publish(progress);
-      await Promise.resolve();
-    });
-  };
-  return { client, history, publish };
-};
-
-const firstRunning: DemoHistorySeed = (accounts) =>
-  accounts.slice(0, 1).map((account) => ({
-    accountId: account.id,
-    stored: 12_340,
-    total: 48_000,
-    state: 'running',
-  }));
-
-const openSync = async () => {
-  await screen.findByRole('listbox', { name: 'Konverzácie' });
-  act(() => {
-    setUi({ overlay: { kind: 'settings', section: 'sync', adding: false } });
-  });
-  return screen.getByRole('dialog', { name: 'Nastavenia' });
-};
-
-const historyText = (sheet: HTMLElement): string =>
-  (within(sheet).getByText('Staršia pošta').closest('.srow')?.textContent ?? '').replace(NBSP, ' ');
 
 describe('older mail progress in sync settings', () => {
   beforeEach(() => {

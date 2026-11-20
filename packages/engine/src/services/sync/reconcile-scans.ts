@@ -50,13 +50,10 @@ export class ReconcileScans {
     this.fullDiffs.set(mailboxId, this.deps.clock.now().getTime());
   }
 
-  async flagScanUids(
-    mailboxId: MailboxId,
-    localUids: readonly number[],
-  ): Promise<number[] | undefined> {
+  async flagScanUids(mailboxId: MailboxId, localUids: readonly number[]): Promise<number[]> {
     const { newestFlagUids, rotatingFlagUids } = this.deps.options;
     if (localUids.length <= newestFlagUids + rotatingFlagUids) {
-      return undefined;
+      return [...localUids].sort((left, right) => left - right);
     }
     const sorted = [...localUids].sort((left, right) => right - left);
     const older = sorted.slice(newestFlagUids);

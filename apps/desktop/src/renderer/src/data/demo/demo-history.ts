@@ -1,4 +1,5 @@
 import type { AccountId, HistoryProgress, MailAccount, RealtimeEvent } from '@relay/shared';
+import { MailClientError } from '../errors';
 
 const RUNNING = { stored: 12_340, total: 48_000 };
 const DONE_TOTAL = 3_250;
@@ -19,6 +20,7 @@ export class DemoHistory {
   private emit: Emit | null = null;
   private now: () => Date = () => new Date();
   private readCount = 0;
+  private failing = false;
 
   constructor(private readonly seed: DemoHistorySeed = demoHistoryProgress) {}
 
@@ -31,8 +33,15 @@ export class DemoHistory {
     this.now = now;
   }
 
+  failReads(failing: boolean): void {
+    this.failing = failing;
+  }
+
   progress(accounts: readonly MailAccount[]): HistoryProgress[] {
     this.readCount += 1;
+    if (this.failing) {
+      throw new MailClientError({ code: 'internal', message: 'Priebeh histórie je nedostupný' });
+    }
     return this.seed(accounts).map((entry) => this.published.get(entry.accountId) ?? entry);
   }
 

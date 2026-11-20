@@ -72,7 +72,7 @@ describe('reconciler fallbacks', () => {
       options: RECONCILE,
     });
     const local = storedUidsIn(engine, archive.id);
-    const scanned = present(await restarted.flagScanUids(archive.id, local));
+    const scanned = await restarted.flagScanUids(archive.id, local);
 
     const older = [...local].sort((left, right) => right - left).slice(10);
     const expected = [...older, ...older].slice(

@@ -10,6 +10,16 @@ import { createTempDir, type TempDir } from './support/temp-dir';
 
 const MESSAGES = 5_000;
 const NS_PER_MS = 1e6;
+const MAX_ROUNDS = 100;
+
+const storedLocations = ({ runtime }: LocalRuntimeHarness): string[] =>
+  (
+    runtime.engine.database.sqlite
+      .prepare(
+        "select b.path || ':' || m.uid as location from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Archive'",
+      )
+      .all() as { location: string }[]
+  ).map((row) => row.location);
 
 describe.skipIf(process.env.RELAY_PERF !== '1')('history backfill throughput (GreenMail)', () => {
   let dir: TempDir;
@@ -40,22 +50,22 @@ describe.skipIf(process.env.RELAY_PERF !== '1')('history backfill throughput (Gr
     const { runtime } = harness;
     const account = await seedImapAccount(runtime, mailbox);
     await runtime.engine.services.sync.syncAccount(LOCAL_USER_ID, account.id);
+    const initial = storedLocations(harness);
     const timing = timeProviders(runtime.engine.mail.mailProviderFactory);
     const delay = monitorEventLoopDelay({ resolution: 10 });
     let processed = 0;
     let slices = 0;
+    let completed = false;
     const started = performance.now();
     delay.enable();
-    for (let round = 0; round < 100; round += 1) {
+    for (let round = 0; round < MAX_ROUNDS && !completed; round += 1) {
       const report = await runtime.engine.services.sync.backfillHistory(LOCAL_USER_ID, account.id);
       if (report.skipped) {
         continue;
       }
       processed += report.processed;
       slices += 1;
-      if (!report.more) {
-        break;
-      }
+      completed = !report.more;
     }
     delay.disable();
     const seconds = (performance.now() - started) / 1_000;
@@ -69,6 +79,13 @@ describe.skipIf(process.env.RELAY_PERF !== '1')('history backfill throughput (Gr
       `history perf: ${String(processed)} messages in ${seconds.toFixed(1)} s over ${String(slices)} slices = ${rate.toFixed(0)} msg/s end to end, ${(timing.totalMs / 1_000).toFixed(1)} s in IMAP, local processing ${localRate.toFixed(0)} msg/s; event loop delay p50 ${p50.toFixed(1)} ms, p99 ${p99.toFixed(1)} ms, max ${max.toFixed(1)} ms`,
     );
 
+    expect(completed).toBe(true);
+    const progress = await harness.bridge.invoke('local.sync.history');
+    expect(progress).toMatchObject({ ok: true, data: [{ accountId: account.id, state: 'done' }] });
+    const stored = storedLocations(harness);
+    expect(initial.length).toBeGreaterThan(0);
+    expect(new Set(stored).size).toBe(MESSAGES);
+    expect(stored).toEqual(expect.arrayContaining(initial));
     expect(processed).toBeGreaterThan(MESSAGES - 300);
     expect(localRate).toBeGreaterThanOrEqual(150);
     expect(rate).toBeGreaterThanOrEqual(40);

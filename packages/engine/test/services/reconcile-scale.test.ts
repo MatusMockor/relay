@@ -105,10 +105,10 @@ describe('mailbox reconciler at scale', () => {
     expect(stored?.flags.seen).toBe(true);
   });
 
-  it('scans the whole mailbox at once while it fits the budget', async () => {
+  it('scans every stored UID at once while they fit the budget', async () => {
     const engine = createTestEngine({ sync: { reconcile: RECONCILE } });
     const { account, server } = await seedAccount(engine, {}, { condstore: false });
-    Array.from({ length: 20 }, (_, index) =>
+    const uids = Array.from({ length: 20 }, (_, index) =>
       deliverMail(server, 'INBOX', { id: `small-${String(index)}` }),
     );
     await engine.services.sync.syncAccount(USER_ID, account.id);
@@ -117,7 +117,7 @@ describe('mailbox reconciler at scale', () => {
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
     expect(server.flagScans.filter((scan) => scan.path === 'INBOX')).toEqual([
-      { path: 'INBOX', uids: null },
+      { path: 'INBOX', uids },
     ]);
   });
 });
