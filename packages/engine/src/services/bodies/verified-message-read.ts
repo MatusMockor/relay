@@ -1,17 +1,12 @@
 import type { RawMessage } from '../../model/remote-mail';
 import type { MailProvider } from '../../ports/mail-provider';
+import { reachable } from '../shared/provider-reachability';
 
 export interface MessageLocation {
   readonly path: string;
   readonly uid: number;
   readonly uidValidity: number;
 }
-
-const reachable = (provider: MailProvider): Promise<boolean> =>
-  provider.listMailboxes().then(
-    () => true,
-    () => false,
-  );
 
 const readAt = async (
   provider: MailProvider,

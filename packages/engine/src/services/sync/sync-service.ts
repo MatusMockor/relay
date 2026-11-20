@@ -8,7 +8,7 @@ import type { MailProvider } from '../../ports/mail-provider';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { AccountSynchronizer, SyncReport } from './account-synchronizer';
-import { AccountRunQueue } from './account-run-queue';
+import type { AccountRunQueue } from './account-run-queue';
 import type { HistoryBackfill } from './history/history-backfill';
 
 export interface SyncServiceDeps {
@@ -17,15 +17,18 @@ export interface SyncServiceDeps {
   readonly synchronizer: AccountSynchronizer;
   readonly sessions: MailProviderSessions;
   readonly history: HistoryBackfill | null;
+  readonly runs: AccountRunQueue<SyncReport>;
   readonly logger: Logger;
 }
 
 const DEFAULT_INBOX_PATH = 'INBOX';
 
 export class SyncService {
-  private readonly runs = new AccountRunQueue<SyncReport>();
+  private readonly runs: AccountRunQueue<SyncReport>;
 
-  constructor(private readonly deps: SyncServiceDeps) {}
+  constructor(private readonly deps: SyncServiceDeps) {
+    this.runs = deps.runs;
+  }
 
   syncAccount(userId: UserId, accountId: AccountId): Promise<SyncReport> {
     return this.runs.sync(accountId, () =>
@@ -45,7 +48,7 @@ export class SyncService {
       return this.deps.sessions.with(account, (provider) =>
         history.slice(
           { userId, account, provider },
-          { shouldYield: () => this.runs.hasPendingSync(accountId) },
+          { shouldYield: () => this.runs.hasPendingWork(accountId) },
         ),
       );
     });

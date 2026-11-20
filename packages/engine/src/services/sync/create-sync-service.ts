@@ -2,7 +2,8 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import { AccountSynchronizer } from './account-synchronizer';
+import { AccountRunQueue } from './account-run-queue';
+import { AccountSynchronizer, type SyncReport } from './account-synchronizer';
 import { ChangeFlusher } from './change-flusher';
 import { createMessageFetchers } from './create-message-fetchers';
 import type { CalendarPartsSink } from './calendar-parts-sink';
@@ -20,7 +21,7 @@ import { MailboxStatusProbe } from './mailbox-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
 import { MessageLabelsResolver } from './message-labels-resolver';
-import { DEFAULT_SYNC_OPTIONS } from './sync-options';
+import { DEFAULT_SYNC_OPTIONS, type SyncOptions } from './sync-options';
 import { SyncReporter } from './sync-reporter';
 import { SyncService } from './sync-service';
 
@@ -28,6 +29,8 @@ export interface SyncComponents {
   readonly service: SyncService;
   readonly ingestor: MessageIngestor;
   readonly flusher: ChangeFlusher;
+  readonly runs: AccountRunQueue<SyncReport>;
+  readonly options: SyncOptions;
 }
 
 export const createSyncComponents = (
@@ -132,13 +135,15 @@ export const createSyncComponents = (
     logger,
     options,
   });
+  const runs = new AccountRunQueue<SyncReport>();
   const service = new SyncService({
     accounts: repositories.accounts,
     mailboxes: repositories.mailboxes,
     synchronizer,
     sessions: shared.sessions,
     history: createHistoryBackfill(deps, { ingestor, flusher, options }),
+    runs,
     logger,
   });
-  return { service, ingestor, flusher };
+  return { service, ingestor, flusher, runs, options };
 };

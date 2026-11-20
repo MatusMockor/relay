@@ -28,6 +28,7 @@ import { createSettingsHandlers } from '../handlers/local/settings-handlers';
 import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-handlers';
 import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createMessageHandlers } from '../handlers/local/message-handlers';
+import { createSearchHandlers } from '../handlers/local/search-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
 import { createMenuCommandStreamHandlers } from '../handlers/menu-command-handlers';
 import { mergeInvokeHandlers, mergeStreamHandlers } from '../handlers/merge-handlers';
@@ -98,6 +99,7 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
   mergeInvokeHandlers(
     createThreadHandlers(local.services, local.userId),
     createMessageHandlers(local.services, local.userId),
+    createSearchHandlers(local.services, local.userId),
     createLabelHandlers(local.services, local.userId),
     createAiJobHandlers(local.services, local.userId),
     createTaskHandlers(local.services, local.userId),

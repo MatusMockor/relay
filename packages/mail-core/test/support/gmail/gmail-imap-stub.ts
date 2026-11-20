@@ -21,6 +21,7 @@ export interface GmailImapStub {
 
 export interface GmailImapStubOptions {
   readonly permanentFlags?: string;
+  readonly rejectCharsetSearch?: boolean;
 }
 
 interface Session {
@@ -53,8 +54,10 @@ const handlers = (
     SELECT: select,
     EXAMINE: select,
     STATUS: status,
-    'UID SEARCH': (command, _line, session) =>
-      session.selected === null ? [] : searchResponse(session.selected, command.args),
+    'UID SEARCH': (command, line, session) =>
+      session.selected === null || rejectsSearch(line, options)
+        ? []
+        : searchResponse(session.selected, command.args),
     'UID FETCH': (_command, line, session) =>
       session.selected === null ? [] : fetchResponse(session.selected, line),
     CREATE: (command) => createMailbox(mailboxes, command.args[0] ?? ''),
@@ -63,7 +66,17 @@ const handlers = (
   };
 };
 
-const completion = (command: ParsedCommand): string => {
+const rejectsSearch = (line: string, options: GmailImapStubOptions): boolean =>
+  options.rejectCharsetSearch === true && /^\S+ UID SEARCH CHARSET/i.test(line);
+
+const completion = (
+  command: ParsedCommand,
+  line: string,
+  options: GmailImapStubOptions,
+): string => {
+  if (rejectsSearch(line, options)) {
+    return `${command.tag} NO [BADCHARSET (US-ASCII)] Unsupported charset`;
+  }
   if (command.name === 'LOGIN') {
     return `${command.tag} OK [CAPABILITY ${GMAIL_CAPABILITIES}] Logged in`;
   }
@@ -73,7 +86,12 @@ const completion = (command: ParsedCommand): string => {
   return `${command.tag} OK ${command.name} completed`;
 };
 
-const serve = (socket: Socket, commands: string[], table: Record<string, Handler>): void => {
+const serve = (
+  socket: Socket,
+  commands: string[],
+  table: Record<string, Handler>,
+  options: GmailImapStubOptions,
+): void => {
   const session: Session = { selected: null };
   let buffer = '';
   const write = (lines: readonly string[]) => socket.write(lines.map((l) => `${l}\r\n`).join(''));
@@ -88,7 +106,7 @@ const serve = (socket: Socket, commands: string[], table: Record<string, Handler
       const command = parseCommand(line);
       const untagged = table[command.name]?.(command, line, session) ?? [];
       const bye = command.name === 'LOGOUT' ? ['* BYE Logging out'] : [];
-      write([...untagged, ...bye, completion(command)]);
+      write([...untagged, ...bye, completion(command, line, options)]);
       if (command.name === 'LOGOUT') {
         socket.end();
       }
@@ -106,7 +124,7 @@ export const startGmailImapStub = async (
   const server: Server = createServer((socket) => {
     sockets.add(socket);
     socket.on('close', () => sockets.delete(socket));
-    serve(socket, commands, table);
+    serve(socket, commands, table, options);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;

@@ -55,6 +55,20 @@ export interface RemoteMessageSummary extends RemoteMessageMeta {
   readonly attachments: readonly RemoteAttachmentMeta[];
 }
 
+export type RemoteTextSearchField = 'all' | 'from' | 'subject';
+
+export interface RemoteTextSearch {
+  readonly terms: readonly string[];
+  readonly field: RemoteTextSearchField;
+  readonly before?: Date;
+  readonly limit: number;
+}
+
+export interface RemoteTextSearchResult {
+  readonly uids: readonly number[];
+  readonly complete: boolean;
+}
+
 export interface RemoteThreadHeaders {
   readonly uid: number;
   readonly internalDate: string;

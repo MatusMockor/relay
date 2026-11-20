@@ -32,6 +32,8 @@ export * from './inbox/inbox-query-service';
 export * from './inbox/label-query-service';
 export * from './labels/label-service';
 export * from './reminders/reminder-service';
+export * from './search/search-options';
+export * from './search/server-search-service';
 export * from './settings/settings-service';
 export * from './splits/split-service';
 export * from './automations/automation-service';

@@ -12,6 +12,8 @@ import type {
   RemoteMailboxStatus,
   RemoteMessageSummary,
   RemoteSyncCursor,
+  RemoteTextSearch,
+  RemoteTextSearchResult,
   RemoteThreadHeaders,
   UidListOptions,
 } from '@relay/engine';
@@ -35,6 +37,7 @@ import { fetchMessage, listUids } from './message-reads';
 import { purgeKeyword, storeKeywords } from './keyword-writes';
 import { appendMessage, moveMessages, setFlags } from './message-writes';
 import { searchRelated } from './search-related';
+import { searchText } from './search-text';
 import { requireBatchSize } from './uid-batches';
 
 export interface ImapMailProviderOptions {
@@ -129,6 +132,14 @@ export class ImapMailProvider implements MailProvider {
     messageIds: readonly string[],
   ): Promise<number[]> {
     return searchRelated(this.connection, mailboxPath, uidValidity, messageIds);
+  }
+
+  searchText(
+    mailboxPath: string,
+    uidValidity: number,
+    query: RemoteTextSearch,
+  ): Promise<RemoteTextSearchResult> {
+    return searchText(this.connection, mailboxPath, uidValidity, query);
   }
 
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {
