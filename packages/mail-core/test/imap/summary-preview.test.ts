@@ -56,6 +56,9 @@ describe('summary preview decoding', () => {
     expect(previewSnippet(Buffer.from('+AQ8-akujem'), part('7bit', 'utf-7'))).toBe('ďakujem');
     expect(previewSnippet(Buffer.from([0x61, 0x62, 0xff]), part('7bit', 'x-unknown'))).toBe('ab�');
     expect(
+      previewSnippet(Buffer.from('\u001b$BF|K\\8l\u001b(B', 'latin1'), part('7bit', 'iso-2022-jp')),
+    ).toBe('日本語');
+    expect(
       previewSnippet(
         Buffer.from('Spojené slo \r\nvo'),
         part('8bit', 'utf-8', { flowed: true, delSp: true }),
