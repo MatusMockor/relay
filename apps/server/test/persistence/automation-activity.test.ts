@@ -37,6 +37,7 @@ const recordOf = (
   seeded: SeededAccount,
   automation: Automation,
   createdAt: string,
+  labelled = newId('message'),
 ): AutomationActivityRecord => ({
   id: newId('automationActivity'),
   userId: seeded.user.id,
@@ -51,10 +52,10 @@ const recordOf = (
     {
       action: { type: 'archive' },
       outcome: 'ok',
-      changed: [],
+      changed: [labelled],
       previousState: 'inbox',
       origins: [],
-      labelled: [],
+      labelled: [labelled],
       undo: null,
     },
     {

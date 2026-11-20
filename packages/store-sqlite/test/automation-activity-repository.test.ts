@@ -63,10 +63,10 @@ describe('SqliteAutomationActivityRepository', () => {
         {
           action: { type: 'archive' },
           outcome: 'ok',
-          changed: [],
+          changed: [MessageIdSchema.parse(`msg-${id}`)],
           previousState: 'inbox',
           origins: [],
-          labelled: [],
+          labelled: [MessageIdSchema.parse(`msg-${id}`)],
           undo: null,
         },
         {
