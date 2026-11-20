@@ -36,6 +36,7 @@ export const AutomationActivityActionSchema = z.object({
   changed: z.array(MessageIdSchema).default([]),
   previousState: ThreadStateSchema.nullable().default(null),
   origins: z.array(MoveOriginRefSchema).default([]),
+  labelled: z.array(MessageIdSchema).default([]),
   undo: AutomationUndoOutcomeSchema.nullable().default(null),
 });
 export type AutomationActivityAction = z.infer<typeof AutomationActivityActionSchema>;

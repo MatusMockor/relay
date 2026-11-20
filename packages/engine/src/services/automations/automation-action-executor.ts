@@ -45,6 +45,7 @@ export class AutomationActionExecutor {
         changed: [],
         previousState: null,
         origins: [],
+        labelled: [],
         undo: null,
       };
     }

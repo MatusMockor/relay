@@ -26,6 +26,7 @@ export interface TrackedChange {
   readonly thread: ThreadSummary;
   readonly previousState: ThreadState;
   readonly written: readonly MessageId[];
+  readonly labelled: readonly MessageId[];
   readonly origins: readonly MoveOriginRef[];
 }
 

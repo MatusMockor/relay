@@ -62,28 +62,24 @@ export class MessageActionsService implements ThreadReadMarker {
   ): Promise<TrackedChange> {
     const context = await this.context(userId, threadId);
     const written = writtenBy(action, context.messages);
-    const outcome = await this.runTracked(context, action).catch(
+    const outcome = await this.locationOrFlags(context, action).catch(
       async (error: unknown): Promise<StateMoveOutcome> => ({
         thread: await this.committedThread(context, action, written, error),
         moved: [],
+        labelled: [],
         origins: [],
       }),
     );
+    await this.deps.events
+      .emit(userId, 'thread.upserted', { thread: outcome.thread })
+      .catch(() => undefined);
     return {
       thread: outcome.thread,
       previousState: context.thread.state,
       written: [...written.map(({ id }) => id), ...outcome.moved],
+      labelled: outcome.labelled,
       origins: outcome.origins,
     };
-  }
-
-  private async runTracked(
-    context: ThreadActionContext,
-    action: TrackedAction,
-  ): Promise<StateMoveOutcome> {
-    const outcome = await this.locationOrFlags(context, action);
-    await this.deps.events.emit(context.userId, 'thread.upserted', { thread: outcome.thread });
-    return outcome;
   }
 
   private async locationOrFlags(
@@ -100,7 +96,7 @@ export class MessageActionsService implements ThreadReadMarker {
       action.type === 'pin'
         ? await this.deps.pins.pin(context)
         : await this.dispatch(context, action);
-    return { thread, moved: [], origins: [] };
+    return { thread, moved: [], labelled: [], origins: [] };
   }
 
   private async committedThread(

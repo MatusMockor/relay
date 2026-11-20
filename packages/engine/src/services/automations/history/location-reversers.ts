@@ -135,10 +135,10 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
     recorded: RecordedAction<'moveTo'>,
     { labelId }: LocatedMoveTarget,
   ): Promise<ReverseOutcome> {
-    if (labelId === null || !thread.labelIds.includes(labelId)) {
+    if (labelId === null || recorded.labelled.length === 0 || !thread.labelIds.includes(labelId)) {
       return 'skipped';
     }
-    await this.actions.revert(userId, thread.id, recorded.changed, {
+    await this.actions.revert(userId, thread.id, recorded.labelled, {
       type: 'removeLabel',
       labelId,
     });

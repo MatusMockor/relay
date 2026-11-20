@@ -29,6 +29,27 @@ describe('rule history when a step around the action fails', () => {
     expect(threadBySubject(setup.engine, 'Faktúra 1').unread).toBe(true);
   });
 
+  it('keeps a committed archive when publishing the thread afterwards fails', async () => {
+    const setup = await folderSetup();
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra 1' });
+    await syncNow(setup);
+    const rule = await saveRule(setup, { actions: [{ type: 'archive' }] });
+    setup.engine.events.failing = 'thread.upserted';
+
+    await expect(
+      setup.engine.services.automations.applyToExisting(USER_ID, rule.id),
+    ).resolves.toEqual({ matched: 1, applied: 1, failed: 0 });
+
+    setup.engine.events.failing = null;
+    const entry = await onlyEntry(setup, rule);
+    expect(entry.actions).toMatchObject([{ outcome: 'ok' }]);
+    expect(present(entry.actions[0]).changed).toHaveLength(1);
+    await expect(undoEntry(setup, rule, entry)).resolves.toMatchObject({
+      results: [{ outcome: 'undone' }],
+    });
+    expect(setup.server.mailbox('INBOX').messages.size).toBe(1);
+  });
+
   it('does not attribute a concurrent label change to an archive', async () => {
     const setup = await folderSetup();
     deliverMail(setup.server, 'Archive', { id: 'm1', from: TIBOR, subject: 'Faktúra 1' });

@@ -17,6 +17,17 @@ const labelledReply = (server: FakeMailServer) => {
   inboxAndAllMail(server, { ...GMAIL_FIRST, inReplyTo: 'g0' });
 };
 
+const labelledInboxMail = (server: FakeMailServer) => {
+  inboxAndAllMail(server, { ...GMAIL_FIRST, labels: ['\\Inbox', 'Klienti'] });
+  inboxAndAllMail(server, {
+    id: 'g2',
+    labels: ['\\Inbox'],
+    emailId: 'gm-2',
+    inReplyTo: 'g1',
+    date: '2026-11-14T09:00:00.000Z',
+  });
+};
+
 const movedThread = async (deliver: (server: FakeMailServer) => void = inboxAndAllMail) => {
   const engine = createTestEngine();
   const setup = await gmailMoveThread(engine, deliver);
@@ -80,5 +91,19 @@ describe('undoing an automation move on Gmail', () => {
       state: 'inbox',
       labelIds: [label.id],
     });
+  });
+
+  it('keeps the label on inbox mail that already had it when the move ran', async () => {
+    const { engine, thread, label, undo } = await movedThread(labelledInboxMail);
+    engine.clock.advance(2 * HOUR_MS);
+
+    const result = await undo();
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['undone']);
+    const headers = [...engine.db.tables.messages.values()]
+      .filter((message) => message.threadId === thread.id && message.labelIds.includes(label.id))
+      .map(({ messageIdHeader }) => messageIdHeader);
+    expect(new Set(headers)).toEqual(new Set(['<g1@mail.test>']));
+    expect(engine.db.tables.threads.get(thread.id)?.state).toBe('inbox');
   });
 });

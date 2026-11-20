@@ -33,6 +33,7 @@ const ran = (
   changed: outcome === 'ok' ? [MessageIdSchema.parse('message-1')] : [],
   previousState: 'inbox',
   origins: [],
+  labelled: [],
   undo: null,
 });
 

@@ -60,6 +60,7 @@ const applyOrigins = async (
 export interface StateMoveOutcome {
   readonly thread: ThreadSummary;
   readonly moved: readonly MessageId[];
+  readonly labelled: readonly MessageId[];
   readonly origins: readonly MoveOriginRef[];
 }
 
@@ -147,6 +148,11 @@ export class StateMoveHandler {
       };
     });
     await this.deps.mirror.apply(context.account, ops);
-    return { thread, moved: movedBy(plan, context, copies), origins };
+    return {
+      thread,
+      moved: movedBy(plan, context, copies),
+      labelled: plan.labels.flatMap((change) => (change.value ? change.messageIds : [])),
+      origins,
+    };
   }
 }

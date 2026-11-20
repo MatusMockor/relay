@@ -72,6 +72,7 @@ export const trackDemoAction = (
       changed: changedOf(action, before, { messages: record.messages, summary: thread }),
       previousState: before.summary.state,
       origins: [],
+      labelled: [],
       undo: null,
     },
   };
