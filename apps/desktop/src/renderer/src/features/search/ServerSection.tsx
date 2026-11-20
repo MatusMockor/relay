@@ -38,7 +38,7 @@ export function ServerSection({ state, results, renderRow }: ServerSectionProps)
   }
   if (state.status === 'pending') {
     return (
-      <section aria-label={SERVER_TITLE} aria-busy="true">
+      <div role="group" aria-label={SERVER_TITLE} aria-busy="true">
         <div className="spal-sec">
           <span className="spal-spin" aria-hidden="true" />
           {SERVER_TITLE}
@@ -46,11 +46,11 @@ export function ServerSection({ state, results, renderRow }: ServerSectionProps)
         </div>
         <SkeletonRow width="72%" />
         <SkeletonRow width="61%" />
-      </section>
+      </div>
     );
   }
   return (
-    <section aria-label={SERVER_TITLE}>
+    <div role="group" aria-label={SERVER_TITLE}>
       <div className="spal-sec">
         <Icon name="mail" size={14} />
         {SERVER_TITLE}
@@ -58,6 +58,6 @@ export function ServerSection({ state, results, renderRow }: ServerSectionProps)
       </div>
       {results.map(renderRow)}
       {state.status === 'partial' ? <div className="spal-note quiet">{PARTIAL_NOTE}</div> : null}
-    </section>
+    </div>
   );
 }

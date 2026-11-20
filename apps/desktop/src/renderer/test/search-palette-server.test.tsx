@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { demoIds } from '../src/data/demo/seed/ids';
 import { resetStores } from './support/render-app';
 import {
   advance,
@@ -49,52 +48,35 @@ describe('search palette server section', () => {
     expect(within(palette()).getByRole('status').textContent).toContain('Si offline.');
     expect(optionsIn('Maily')).toHaveLength(1);
     await advance(2_000);
-    expect(requests).toHaveLength(0);
+    expect(requests()).toHaveLength(0);
   });
 
   it('hides the server section when the client cannot search the server', async () => {
-    const { requests } = await startSearch({
-      answer: (request) =>
-        Promise.resolve({ requestId: request.requestId, status: 'unsupported', hits: [] }),
-    });
+    const { requests } = await startSearch({ serverSearch: { status: () => 'unsupported' } });
     openPalette();
     typeQuery('DPH');
-    await advance(DEBOUNCE_MS);
+    await advance(DEBOUNCE_MS + SERVER_DELAY_MS);
     expect(serverSection()).toBeNull();
     typeQuery('faktúra');
     await advance(0);
     expect(serverSection()).toBeNull();
     await advance(2_000);
-    expect(requests).toHaveLength(1);
+    expect(requests()).toHaveLength(1);
   });
 
   it('hides the server section when the server search is skipped and notes a partial answer', async () => {
     let status: 'skipped' | 'partial' = 'skipped';
-    const { state } = await startSearch({
-      answer: (request) =>
-        Promise.resolve({
-          requestId: request.requestId,
-          status,
-          hits:
-            status === 'skipped'
-              ? []
-              : [...state.archive.values()].slice(0, 1).map((record) => ({
-                  thread: record.summary,
-                  messageId: record.messages[0]?.id ?? demoIds.message('none'),
-                  date: record.summary.lastMessageAt,
-                })),
-        }),
-    });
+    await startSearch({ serverSearch: { status: () => status } });
     openPalette();
     typeQuery('DPH');
-    await advance(DEBOUNCE_MS);
+    await advance(DEBOUNCE_MS + SERVER_DELAY_MS);
     expect(serverSection()).toBeNull();
 
     status = 'partial';
     typeQuery('DPH 09');
     await advance(0);
     expect(serverSection()?.getAttribute('aria-busy')).toBe('true');
-    await advance(DEBOUNCE_MS);
+    await advance(DEBOUNCE_MS + SERVER_DELAY_MS);
     expect(optionsIn('Staršia pošta na serveri')).toHaveLength(1);
     expect(serverSection()?.textContent).toContain('staršia pošta nemusí byť úplná');
   });

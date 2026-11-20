@@ -33,7 +33,7 @@ describe('search palette shortcuts', () => {
     const dialog = searchDialog();
     expect(dialog).not.toBeNull();
     expect(document.activeElement).toBe(
-      within(dialog ?? document.body).getByRole('textbox', { name: 'Hľadať v pošte' }),
+      within(dialog ?? document.body).getByRole('combobox', { name: 'Hľadať v pošte' }),
     );
   });
 
@@ -67,7 +67,7 @@ describe('search palette shortcuts', () => {
   it('keeps the palette open and selects the query on Cmd+F inside it', async () => {
     await start();
     press('f', { ctrlKey: true, code: 'KeyF' }, document.body);
-    const box = screen.getByRole<HTMLInputElement>('textbox', { name: 'Hľadať v pošte' });
+    const box = screen.getByRole<HTMLInputElement>('combobox', { name: 'Hľadať v pošte' });
     act(() => {
       fireEvent.change(box, { target: { value: 'obed' } });
     });

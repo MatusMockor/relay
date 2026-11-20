@@ -1,4 +1,4 @@
-import { ServerSearchResponseSchema, ThreadIdSchema } from '@relay/shared';
+import { ServerSearchResponseSchema, type ServerSearchStatus, ThreadIdSchema } from '@relay/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import { buildDemoState } from '../src/data/demo/seed/build-state';
@@ -56,6 +56,28 @@ describe('demo search', () => {
       status: 'offline',
       hits: [],
     });
+  });
+
+  it('answers with the configured status and keeps hits only for a complete or partial answer', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    let status: ServerSearchStatus = 'partial';
+    const client = createDemoMailClient({
+      now: () => NOW,
+      serverSearch: { delayMs: 0, status: () => status },
+    });
+    const run = async (requestId: string) => {
+      const answer = client.searchServer({ requestId, q: 'DPH 09' });
+      await vi.advanceTimersByTimeAsync(0);
+      return answer;
+    };
+
+    const partial = await run('a');
+    expect(partial.status).toBe('partial');
+    expect(partial.hits).toHaveLength(1);
+    status = 'skipped';
+    expect(await run('b')).toEqual({ requestId: 'b', status: 'skipped', hits: [] });
+    status = 'unsupported';
+    expect(await run('c')).toEqual({ requestId: 'c', status: 'unsupported', hits: [] });
   });
 
   it('filters local threads everywhere, by field and by unread', async () => {

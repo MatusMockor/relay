@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { DEFAULT_SEARCH_FILTERS, type SearchFilters } from '../../state/search-filters';
 import { useUiStore } from '../../state/ui-store';
 import { openSearchResult, showResultsInList } from './search-actions';
@@ -17,6 +17,9 @@ export interface SearchPaletteModel {
   readonly results: SearchResults;
   readonly entries: readonly PaletteEntry[];
   readonly active: PaletteEntry | undefined;
+  readonly listId: string;
+  readonly followActive: boolean;
+  readonly optionId: (entry: PaletteEntry) => string;
   readonly setQuery: (value: string) => void;
   readonly toggle: (chip: SearchChip) => void;
   readonly hover: (entry: PaletteEntry) => void;
@@ -44,6 +47,8 @@ export const useSearchPalette = (): SearchPaletteModel => {
   const [filters, setFilters] = useState(initialFilters);
   const [cursorKey, setCursorKey] = useState<string | null>(null);
   const [recent] = useState(readRecentSearches);
+  const listId = useId();
+  const [followActive, setFollowActive] = useState(false);
   const results = useSearchResults(query, filters);
   const entries: PaletteEntry[] =
     query.trim() === ''
@@ -60,17 +65,22 @@ export const useSearchPalette = (): SearchPaletteModel => {
     results,
     entries,
     active,
+    listId,
+    followActive,
+    optionId: (entry) => `${listId}-${String(entries.indexOf(entry))}`,
     setQuery,
     toggle: (chip) => {
       setFilters((current) => toggleChip(current, chip));
       setCursorKey(null);
     },
     hover: (entry) => {
+      setFollowActive(false);
       setCursorKey(entry.key);
     },
     move: (delta) => {
       const index = active === undefined ? 0 : entries.indexOf(active);
       const next = entries[Math.max(0, Math.min(entries.length - 1, index + delta))];
+      setFollowActive(true);
       setCursorKey(next?.key ?? null);
     },
     pick: (entry) => {

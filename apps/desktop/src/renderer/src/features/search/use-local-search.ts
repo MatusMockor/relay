@@ -1,6 +1,5 @@
 import type { ThreadSummary } from '@relay/shared';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
 import type { SearchFilters } from '../../state/search-filters';
@@ -10,12 +9,15 @@ import { searchKeyOf } from './search-key';
 
 export const LOCAL_SEARCH_LIMIT = 8;
 
+export type LocalSearchStatus = 'pending' | 'ready' | 'error';
+
 export interface LocalSearch {
   readonly key: string;
+  readonly status: LocalSearchStatus;
   readonly threads: readonly ThreadSummary[];
 }
 
-const NONE: LocalSearch = { key: '', threads: [] };
+const NONE: LocalSearch = { key: '', status: 'ready', threads: [] };
 
 export const useLocalSearch = (query: string, filters: SearchFilters): LocalSearch => {
   const client = useClient();
@@ -26,17 +28,15 @@ export const useLocalSearch = (query: string, filters: SearchFilters): LocalSear
   const list = useQuery({
     queryKey: queryKeys.threadList(params),
     queryFn: () => client.listThreads(params),
-    placeholderData: keepPreviousData,
     enabled: q !== '',
     networkMode: client.kind === 'remote' ? 'online' : 'always',
   });
-  const settled = useRef<LocalSearch>(NONE);
   if (q === '') {
-    settled.current = NONE;
     return NONE;
   }
-  if (list.data !== undefined && !list.isPlaceholderData) {
-    settled.current = { key: searchKeyOf(q, filters), threads: list.data.items };
+  const key = searchKeyOf(q, filters);
+  if (list.data !== undefined) {
+    return { key, status: 'ready', threads: list.data.items };
   }
-  return settled.current;
+  return { key, status: list.isError ? 'error' : 'pending', threads: [] };
 };

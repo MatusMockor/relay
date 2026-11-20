@@ -1,8 +1,10 @@
 import { Highlight } from '../list/Highlight';
+import { PaletteOption } from './PaletteOption';
 import { searchDateLabel } from './search-date';
 import type { SearchResult } from './search-session';
 
 export interface SearchResultRowProps {
+  readonly id: string;
   readonly result: SearchResult;
   readonly query: string;
   readonly active: boolean;
@@ -12,6 +14,7 @@ export interface SearchResultRowProps {
 }
 
 export function SearchResultRow({
+  id,
   result,
   query,
   active,
@@ -23,15 +26,7 @@ export function SearchResultRow({
   const who = thread.participants[0]?.name ?? thread.participants[0]?.email ?? '';
   const subject = thread.subject === '' ? '(bez predmetu)' : thread.subject;
   return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={active}
-      data-key={result.key}
-      className={active ? 'spal-row on' : 'spal-row'}
-      onMouseMove={onHover}
-      onClick={onPick}
-    >
+    <PaletteOption id={id} active={active} className="spal-row" onHover={onHover} onPick={onPick}>
       <span className="w">
         <Highlight text={who} query={query} />
       </span>
@@ -47,6 +42,6 @@ export function SearchResultRow({
         {result.source === 'server' ? <span className="spal-srv">server</span> : null}
         {searchDateLabel(thread.lastMessageAt, now)}
       </span>
-    </button>
+    </PaletteOption>
   );
 }

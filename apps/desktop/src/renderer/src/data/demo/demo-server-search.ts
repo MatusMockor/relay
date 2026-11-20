@@ -1,4 +1,9 @@
-import type { ServerSearchHit, ServerSearchRequest, ServerSearchResponse } from '@relay/shared';
+import type {
+  ServerSearchHit,
+  ServerSearchRequest,
+  ServerSearchResponse,
+  ServerSearchStatus,
+} from '@relay/shared';
 import type { ServerSearcher } from '../MailClient';
 import { matchesDemoSearch } from './demo-search-match';
 import type { DemoState, DemoThreadRecord } from './demo-state';
@@ -6,6 +11,7 @@ import type { DemoState, DemoThreadRecord } from './demo-state';
 export interface DemoServerSearchOptions {
   readonly delayMs?: number;
   readonly offline?: () => boolean;
+  readonly status?: () => ServerSearchStatus;
 }
 
 const DEFAULT_DELAY_MS = 900;
@@ -28,10 +34,10 @@ const ingest = (state: DemoState, record: DemoThreadRecord): DemoThreadRecord =>
 const answer = (
   state: DemoState,
   request: ServerSearchRequest,
-  offline: boolean,
+  status: ServerSearchStatus,
 ): ServerSearchResponse => {
-  if (offline) {
-    return { requestId: request.requestId, status: 'offline', hits: [] };
+  if (status !== 'ok' && status !== 'partial') {
+    return { requestId: request.requestId, status, hits: [] };
   }
   const hits = [...state.archive.values()]
     .filter(
@@ -41,7 +47,14 @@ const answer = (
     .sort((a, b) => Date.parse(b.summary.lastMessageAt) - Date.parse(a.summary.lastMessageAt))
     .map((record) => ingest(state, record))
     .flatMap(hitOf);
-  return { requestId: request.requestId, status: 'ok', hits };
+  return { requestId: request.requestId, status, hits };
+};
+
+const statusOf = (options: DemoServerSearchOptions): ServerSearchStatus => {
+  if (options.offline?.() === true) {
+    return 'offline';
+  }
+  return options.status?.() ?? 'ok';
 };
 
 export const createDemoServerSearch = (
@@ -51,7 +64,7 @@ export const createDemoServerSearch = (
   searchServer: (request) =>
     new Promise((resolve) => {
       setTimeout(() => {
-        resolve(answer(state, request, options.offline?.() ?? false));
+        resolve(answer(state, request, statusOf(options)));
       }, options.delayMs ?? DEFAULT_DELAY_MS);
     }),
 });

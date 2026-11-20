@@ -1,4 +1,4 @@
-import type { ServerSearchRequest, ServerSearchResponse, ThreadState } from '@relay/shared';
+import type { ServerSearchRequest, ThreadId, ThreadState } from '@relay/shared';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { expect, vi } from 'vitest';
 import { createDemoMailClient } from '../../src/data/demo/DemoMailClient';
@@ -25,13 +25,13 @@ export const setOnline = (online: boolean): void => {
 export interface SearchHarness {
   readonly state: DemoState;
   readonly client: MailClient;
-  readonly requests: ServerSearchRequest[];
+  readonly requests: () => readonly ServerSearchRequest[];
 }
 
 export interface SearchHarnessOptions {
   readonly serverSearch?: DemoServerSearchOptions;
-  readonly answer?: (request: ServerSearchRequest) => Promise<ServerSearchResponse>;
   readonly seed?: (state: DemoState) => void;
+  readonly connect?: (client: MailClient) => MailClient;
 }
 
 export const addThread = (
@@ -62,18 +62,12 @@ export const startSearch = async (options: SearchHarnessOptions = {}): Promise<S
   const state = buildDemoState(new Date());
   options.seed?.(state);
   const demo = createDemoMailClient({ aiStepMs: 0, state, serverSearch: options.serverSearch });
-  const requests: ServerSearchRequest[] = [];
-  const client: MailClient = {
-    ...demo,
-    searchServer: (request) => {
-      requests.push(request);
-      return options.answer === undefined ? demo.searchServer(request) : options.answer(request);
-    },
-  };
+  const searches = vi.spyOn(demo, 'searchServer');
+  const client = options.connect?.(demo) ?? demo;
   renderApp({ demo: () => client });
   await screen.findByRole('listbox', { name: 'Konverzácie' });
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-  return { state, client, requests };
+  return { state, client, requests: () => searches.mock.calls.map(([request]) => request) };
 };
 
 export const advance = async (ms: number): Promise<void> => {
@@ -91,7 +85,7 @@ export const openPalette = (): void => {
 export const palette = (): HTMLElement => screen.getByRole('dialog', { name: 'Hľadať v pošte' });
 
 export const searchBox = (): HTMLInputElement =>
-  within(palette()).getByRole<HTMLInputElement>('textbox', { name: 'Hľadať v pošte' });
+  within(palette()).getByRole<HTMLInputElement>('combobox', { name: 'Hľadať v pošte' });
 
 export const typeQuery = (value: string): void => {
   act(() => {
@@ -106,7 +100,7 @@ export const pressInPalette = (key: string, init: KeyboardEventInit = {}): void 
 };
 
 export const section = (name: string): HTMLElement =>
-  within(palette()).getByRole('region', { name });
+  within(palette()).getByRole('group', { name });
 
 export const optionsIn = (name: string): HTMLElement[] =>
   within(section(name)).queryAllByRole('option');
@@ -117,6 +111,35 @@ export const selectedText = (): string =>
     .find((option) => option.getAttribute('aria-selected') === 'true')?.textContent ?? '';
 
 export const serverSection = (): HTMLElement | null =>
-  within(palette()).queryByRole('region', { name: 'Staršia pošta na serveri' });
+  within(palette()).queryByRole('group', { name: 'Staršia pošta na serveri' });
 
 export const chip = (name: string): HTMLElement => within(palette()).getByRole('button', { name });
+
+export const startReply = async (
+  state: DemoState,
+  threadId: ThreadId,
+  text: string,
+): Promise<HTMLTextAreaElement | null> => {
+  const record = state.threads.get(threadId);
+  expect(record).toBeDefined();
+  if (record === undefined) {
+    return null;
+  }
+  act(() => {
+    setUi({
+      openThreadId: threadId,
+      reply: {
+        threadId,
+        accountId: record.summary.accountId,
+        text,
+        draftId: null,
+        aiOpen: false,
+        busy: false,
+      },
+    });
+  });
+  await advance(0);
+  const area = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Odpoveď' });
+  expect(area.value).toBe(text);
+  return area;
+};

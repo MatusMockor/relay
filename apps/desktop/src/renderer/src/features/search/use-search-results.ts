@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import type { SearchFilters } from '../../state/search-filters';
-import { searchKeyOf } from './search-key';
 import {
   EMPTY_SESSION,
   localResults,
@@ -9,14 +8,14 @@ import {
   type SearchResult,
   serverResults,
 } from './search-session';
-import { useLocalSearch } from './use-local-search';
+import { type LocalSearchStatus, useLocalSearch } from './use-local-search';
 import { type ServerSearchState, useServerSearch } from './use-server-search';
 
 export interface SearchResults {
   readonly local: readonly SearchResult[];
   readonly server: readonly SearchResult[];
   readonly serverState: ServerSearchState;
-  readonly localReady: boolean;
+  readonly localStatus: LocalSearchStatus;
 }
 
 export const useSearchResults = (query: string, filters: SearchFilters): SearchResults => {
@@ -33,6 +32,6 @@ export const useSearchResults = (query: string, filters: SearchFilters): SearchR
     local: localResults(merged),
     server: serverResults(merged),
     serverState,
-    localReady: merged.query === searchKeyOf(query, filters),
+    localStatus: local.status,
   };
 };

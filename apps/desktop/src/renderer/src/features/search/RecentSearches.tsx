@@ -1,14 +1,22 @@
 import { Icon } from '@relay/ui';
+import { PaletteOption } from './PaletteOption';
 import type { PaletteEntry } from './use-search-palette';
 
 export interface RecentSearchesProps {
   readonly entries: readonly PaletteEntry[];
   readonly active: PaletteEntry | undefined;
+  readonly optionId: (entry: PaletteEntry) => string;
   readonly onHover: (entry: PaletteEntry) => void;
   readonly onPick: (entry: PaletteEntry) => void;
 }
 
-export function RecentSearches({ entries, active, onHover, onPick }: RecentSearchesProps) {
+export function RecentSearches({
+  entries,
+  active,
+  optionId,
+  onHover,
+  onPick,
+}: RecentSearchesProps) {
   if (entries.length === 0) {
     return (
       <div className="pal-empty">
@@ -17,28 +25,27 @@ export function RecentSearches({ entries, active, onHover, onPick }: RecentSearc
     );
   }
   return (
-    <section aria-label="Nedávne hľadania">
+    <div role="group" aria-label="Nedávne hľadania">
       <div className="spal-sec">Nedávne hľadania</div>
       {entries.map((entry) =>
         entry.kind === 'recent' ? (
-          <button
+          <PaletteOption
             key={entry.key}
-            type="button"
-            role="option"
-            aria-selected={entry === active}
-            className={entry === active ? 'spal-cmd on' : 'spal-cmd'}
-            onMouseMove={() => {
+            id={optionId(entry)}
+            active={entry === active}
+            className="spal-cmd"
+            onHover={() => {
               onHover(entry);
             }}
-            onClick={() => {
+            onPick={() => {
               onPick(entry);
             }}
           >
             <Icon name="search" size={14} />
             {entry.query}
-          </button>
+          </PaletteOption>
         ) : null,
       )}
-    </section>
+    </div>
   );
 }

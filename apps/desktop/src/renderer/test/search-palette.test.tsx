@@ -53,7 +53,7 @@ describe('search palette', () => {
     expect(palette().textContent).toContain('všetky výsledky v zozname');
     expect(palette().textContent).toContain('Hľadaj podľa odosielateľa, predmetu alebo textu.');
     await advance(2_000);
-    expect(requests).toHaveLength(0);
+    expect(requests()).toHaveLength(0);
     expect(serverSection()).toBeNull();
   });
 
@@ -74,9 +74,9 @@ describe('search palette', () => {
     expect(serverSection()?.getAttribute('aria-busy')).toBe('true');
     expect(serverSection()?.textContent).toContain('hľadám…');
     await advance(DEBOUNCE_MS - 1);
-    expect(requests).toHaveLength(0);
+    expect(requests()).toHaveLength(0);
     await advance(1);
-    expect(requests).toEqual([expect.objectContaining({ q: 'DPH', searchField: undefined })]);
+    expect(requests()).toEqual([expect.objectContaining({ q: 'DPH', searchField: undefined })]);
     expect(serverSection()?.getAttribute('aria-busy')).toBe('true');
   });
 
@@ -112,7 +112,7 @@ describe('search palette', () => {
     await advance(DEBOUNCE_MS);
     typeQuery('DPH 08');
     await advance(DEBOUNCE_MS);
-    expect(requests.map((request) => request.q)).toEqual(['DPH', 'DPH 08']);
+    expect(requests().map((request) => request.q)).toEqual(['DPH', 'DPH 08']);
 
     await advance(SERVER_DELAY_MS - DEBOUNCE_MS);
     expect(serverSection()?.getAttribute('aria-busy')).toBe('true');
@@ -196,11 +196,11 @@ describe('search palette', () => {
       expect.stringContaining('DPH neprečítané'),
     ]);
     await advance(DEBOUNCE_MS);
-    expect(requests.at(-1)).toEqual(
+    expect(requests().at(-1)).toEqual(
       expect.objectContaining({ q: 'Hollá', searchField: 'from', unread: true }),
     );
 
-    const count = requests.length;
+    const count = requests().length;
     act(() => {
       fireEvent.click(chip('Tento priečinok'));
     });
@@ -208,7 +208,7 @@ describe('search palette', () => {
     expect(chip('Všetko').getAttribute('aria-pressed')).toBe('false');
     expect(serverSection()).toBeNull();
     await advance(2_000);
-    expect(requests).toHaveLength(count);
+    expect(requests()).toHaveLength(count);
   });
 
   it('remembers what was searched and runs a recent search again', async () => {
