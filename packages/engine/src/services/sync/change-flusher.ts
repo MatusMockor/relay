@@ -16,7 +16,7 @@ import {
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncContext } from './sync-context';
 import { messageRoleOf } from './synced-thread-state';
-import { threadWorkHint } from './thread-refresh-work';
+import { isQuietWork, threadWorkHint } from './thread-refresh-work';
 
 export interface ChangeFlusherDeps {
   readonly unitOfWork: UnitOfWork;
@@ -28,51 +28,63 @@ export interface ChangeFlusherDeps {
   readonly logger: Logger;
 }
 
+interface RefreshedThread {
+  readonly outcome: ThreadRefreshOutcome;
+  readonly quiet: boolean;
+}
+
 export class ChangeFlusher {
   constructor(private readonly deps: ChangeFlusherDeps) {}
 
   async flush(context: SyncContext): Promise<void> {
-    const outcomes = await this.refreshThreads(context);
-    await publishThreadOutcomes(this.deps.events, context.userId, outcomes);
+    const outcomes = await this.flushThreads(context);
     const removed = removedThreads(outcomes);
     await this.applyMessageEffects(context, removed);
     await this.applyJiraEvents(context, removed);
     await this.deps.calendarParts.flush(context.userId, context.account);
   }
 
-  async flushQuietly(context: SyncContext): Promise<void> {
-    const outcomes = await this.refreshThreads(context);
-    if (outcomes.length === 0) {
-      return;
+  async flushThreads(context: SyncContext): Promise<ThreadRefreshOutcome[]> {
+    const refreshed = await this.refreshThreads(context);
+    const loud = refreshed.filter((item) => !item.quiet).map((item) => item.outcome);
+    await publishThreadOutcomes(this.deps.events, context.userId, loud);
+    const quiet = refreshed.length - loud.length;
+    if (quiet > 0) {
+      await this.deps.events.emit(context.userId, 'threads.changed', {
+        accountId: context.account.id,
+        count: quiet,
+      });
     }
-    await this.deps.events.emit(context.userId, 'threads.changed', {
-      accountId: context.account.id,
-      count: outcomes.length,
-    });
+    return refreshed.map((item) => item.outcome);
   }
 
-  private async refreshThreads(context: SyncContext): Promise<ThreadRefreshOutcome[]> {
+  private async refreshThreads(context: SyncContext): Promise<RefreshedThread[]> {
     const { userId, account } = context;
     const work = await this.deps.pendingWork.list(account.id, 'thread-refresh');
     if (work.length === 0) {
       return [];
     }
-    const outcomes = await this.deps.unitOfWork.run(async (repositories) => {
+    const refreshed = await this.deps.unitOfWork.run(async (repositories) => {
       const pendingMoves = await pendingMoveRoles(repositories.pendingWork, account.id);
       const roleOf = messageRoleOf(context.mailboxRoles, pendingMoves);
       const copies = MailCopies.of(account);
-      const results = [];
+      const results: RefreshedThread[] = [];
       for (const item of work) {
         const hint = threadWorkHint(item.payload, roleOf, copies);
-        results.push(
-          await refreshThread(repositories, userId, account.id, item.payload.threadId, hint),
+        const outcome = await refreshThread(
+          repositories,
+          userId,
+          account.id,
+          item.payload.threadId,
+          hint,
         );
+        results.push({ outcome, quiet: isQuietWork(item.payload) });
       }
       await repositories.pendingWork.remove(work);
       return results;
     });
-    context.stats.updatedThreads += outcomes.length;
-    return outcomes;
+    context.stats.updatedThreads += refreshed.length;
+    return refreshed;
   }
 
   private async applyMessageEffects(context: SyncContext, removed: ReadonlySet<ThreadId>) {

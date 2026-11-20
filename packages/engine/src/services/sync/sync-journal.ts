@@ -20,10 +20,15 @@ export interface ArrivalEffects {
   readonly jira: JiraClassification | null;
 }
 
+export interface SyncJournalOptions {
+  readonly quiet: boolean;
+}
+
 export class SyncJournal {
   constructor(
     private readonly accountId: AccountId,
     private readonly clock: Clock,
+    private readonly options: SyncJournalOptions = { quiet: false },
   ) {}
 
   async arrived(
@@ -95,9 +100,13 @@ export class SyncJournal {
   ): Promise<void> {
     const key = { accountId: this.accountId, kind: 'thread-refresh' as const, ref: threadId };
     const stored = await work.find(key);
+    const { quiet } = this.options;
     await work.put({
       ...key,
-      payload: mergeThreadWork(stored?.payload ?? emptyThreadWork(threadId), change),
+      payload: mergeThreadWork(stored?.payload ?? emptyThreadWork(threadId, quiet), {
+        ...change,
+        quiet,
+      }),
       createdAt: stored?.createdAt ?? this.now(),
     });
   }

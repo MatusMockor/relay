@@ -38,7 +38,7 @@ export class HistoryBackfill {
       ...session,
       splits: await this.deps.splits.listForAccount(userId, account.id),
       mailboxRoles: new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.role])),
-      journal: new SyncJournal(account.id, this.deps.clock),
+      journal: new SyncJournal(account.id, this.deps.clock, { quiet: true }),
       stats: { newMessages: 0, updatedThreads: 0 },
       arrivals: [],
       arrivalWork: [],

@@ -49,6 +49,7 @@ export class HistoryMailboxBackfill {
       });
       return { mailboxId, processed: 0, done: false };
     }
+    await this.deps.flusher.flushThreads(context);
     return this.windows(context, target, budget, { cursor, processed: 0, complete: true });
   }
 
@@ -106,7 +107,7 @@ export class HistoryMailboxBackfill {
       if (!ingested) {
         return { cursor, processed, complete: false };
       }
-      await this.deps.flusher.flushQuietly(context);
+      await this.deps.flusher.flushThreads(context);
       cursor = await this.deps.cursors.advance(cursor, Math.min(...batch));
       budget.spend(batch.length);
       processed += batch.length;

@@ -33,6 +33,7 @@ export interface ThreadRefreshWork {
   readonly jiraKey: JiraKey | null;
   readonly jiraActor: string | null;
   readonly expungedFromInbox: boolean;
+  readonly quiet?: boolean;
 }
 
 export interface HeldOriginWork {
