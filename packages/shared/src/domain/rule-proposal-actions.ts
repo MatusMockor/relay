@@ -3,91 +3,116 @@ import {
   type AutomationActionType,
   PLACEMENT_ACTION_TYPES,
 } from './automation-action';
+import { EmailAddressSchema } from './primitives';
 import type { ProposedAction } from './rule-proposal';
-import { asksForReplyDraft, asksToForward, quotesAddress } from './rule-sentence';
+import type { RuleIntent } from './rule-intent';
 import type { RuleSuggestAccount } from './rule-suggestion';
-import { findTarget } from './rule-target-match';
+import { findTarget, mentionsName, type NamedTarget } from './rule-target-match';
 
 export interface ResolvedActions {
   readonly actions: AutomationAction[];
   readonly notes: string[];
 }
 
+interface ActionContext {
+  readonly account: RuleSuggestAccount | null;
+  readonly sentence: string;
+  readonly intent: RuleIntent;
+}
+
 type Step = { readonly action: AutomationAction } | { readonly note: string };
 
-const PLACEMENT_NAMES: Readonly<Partial<Record<AutomationActionType, string>>> = {
+const NOUNS: Readonly<Record<AutomationActionType, string>> = {
+  summary: 'AI zhrnutie',
+  task: 'úloha',
+  draftReply: 'návrh odpovede',
+  notify: 'upozornenie',
+  markRead: 'označenie ako prečítané',
+  pin: 'pripnutie',
   archive: 'archivovanie',
   moveTo: 'presun',
+  addLabel: 'štítok',
   remind: 'pripomenutie',
+  forward: 'preposlanie',
 };
+
+const NOT_ASKED = '(veta to nežiada)';
 
 const keyOf = (action: AutomationAction): string =>
   action.type === 'addLabel' ? `addLabel:${action.labelId}` : action.type;
 
-const forwardStep = (to: string, account: RuleSuggestAccount | null, sentence: string): Step => {
-  if (!asksToForward(sentence)) {
-    return { note: 'preposlanie (veta ho nežiada)' };
-  }
-  if (!quotesAddress(sentence, to)) {
-    return { note: `preposlanie na „${to}“ (adresa nie je vo vete)` };
-  }
-  if (account === null) {
-    return { note: 'preposlanie (vyber účet)' };
-  }
-  return { action: { type: 'forward', to } };
-};
-
-const labelStep = (name: string, account: RuleSuggestAccount | null): Step => {
-  if (account === null) {
-    return { note: `štítok „${name}“ (vyber účet)` };
-  }
-  const label = findTarget(account.labels, name);
-  return label === null
-    ? { note: `štítok „${name}“ (neexistuje)` }
-    : { action: { type: 'addLabel', labelId: label.id } };
-};
-
-const folderStep = (name: string, account: RuleSuggestAccount | null): Step => {
-  if (account === null) {
-    return { note: `priečinok „${name}“ (vyber účet)` };
-  }
-  const folder = findTarget(account.folders, name);
-  return folder === null
-    ? { note: `priečinok „${name}“ (neexistuje)` }
-    : { action: { type: 'moveTo', mailboxId: folder.id } };
-};
-
-const stepOf = (
-  proposed: ProposedAction,
-  account: RuleSuggestAccount | null,
-  sentence: string,
-): Step => {
+const nounOf = (proposed: ProposedAction): string => {
   if (proposed.type === 'addLabel') {
-    return labelStep(proposed.label, account);
+    return `štítok „${proposed.label}“`;
   }
   if (proposed.type === 'moveTo') {
-    return folderStep(proposed.folder, account);
+    return `priečinok „${proposed.folder}“`;
+  }
+  return NOUNS[proposed.type];
+};
+
+const targetStep = <Target extends NamedTarget>(
+  noun: string,
+  name: string,
+  targets: readonly Target[] | null,
+  build: (target: Target) => AutomationAction,
+): Step => {
+  if (targets === null) {
+    return { note: `${noun} (vyber účet)` };
+  }
+  const match = findTarget(targets, name);
+  if (match.kind === 'ambiguous') {
+    return { note: `${noun} (nejednoznačný názov)` };
+  }
+  if (match.kind === 'none') {
+    return { note: `${noun} (neexistuje)` };
+  }
+  return { action: build(match.target) };
+};
+
+const stepOf = (proposed: ProposedAction, context: ActionContext): Step => {
+  const noun = nounOf(proposed);
+  if (!context.intent.actions.has(proposed.type)) {
+    return { note: `${noun} ${NOT_ASKED}` };
+  }
+  const { account } = context;
+  if (proposed.type === 'addLabel' || proposed.type === 'moveTo') {
+    const name = proposed.type === 'addLabel' ? proposed.label : proposed.folder;
+    if (!mentionsName(context.sentence, name)) {
+      return { note: `${noun} (veta ho nemenuje)` };
+    }
+    return proposed.type === 'addLabel'
+      ? targetStep(noun, name, account?.labels ?? null, (label) => ({
+          type: 'addLabel',
+          labelId: label.id,
+        }))
+      : targetStep(noun, name, account?.folders ?? null, (folder) => ({
+          type: 'moveTo',
+          mailboxId: folder.id,
+        }));
   }
   if (proposed.type === 'forward') {
-    return forwardStep(proposed.to, account, sentence);
+    const listed = context.intent.forwardTo.has(proposed.to.toLowerCase());
+    if (!listed || !EmailAddressSchema.safeParse(proposed.to).success) {
+      return { note: `preposlanie na „${proposed.to}“ (adresa nie je vo vete ako cieľ)` };
+    }
+    return account === null
+      ? { note: 'preposlanie (vyber účet)' }
+      : { action: { type: 'forward', to: proposed.to } };
   }
   if (proposed.type === 'remind') {
     return { action: { type: 'remind', afterDays: proposed.afterDays } };
-  }
-  if (proposed.type === 'draftReply' && !asksForReplyDraft(sentence)) {
-    return { note: 'návrh odpovede (veta ho nežiada)' };
   }
   return { action: { type: proposed.type } };
 };
 
 export const resolveProposedActions = (
   proposed: readonly ProposedAction[],
-  account: RuleSuggestAccount | null,
-  sentence: string,
+  context: ActionContext,
 ): ResolvedActions => {
   const actions: AutomationAction[] = [];
   const notes: string[] = [];
-  for (const step of proposed.map((item) => stepOf(item, account, sentence))) {
+  for (const step of proposed.map((item) => stepOf(item, context))) {
     if ('note' in step) {
       notes.push(step.note);
       continue;
@@ -98,7 +123,7 @@ export const resolveProposedActions = (
     const placed = PLACEMENT_ACTION_TYPES.includes(step.action.type);
     if (placed && actions.some((action) => PLACEMENT_ACTION_TYPES.includes(action.type))) {
       notes.push(
-        `${PLACEMENT_NAMES[step.action.type] ?? step.action.type} (pravidlo mail iba presunie, archivuje alebo pripomenie)`,
+        `${NOUNS[step.action.type]} (pravidlo mail iba presunie, archivuje alebo pripomenie)`,
       );
       continue;
     }

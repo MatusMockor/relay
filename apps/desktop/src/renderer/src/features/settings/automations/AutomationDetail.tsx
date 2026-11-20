@@ -6,7 +6,8 @@ import { ActionChecklist } from './ActionChecklist';
 import { AdvancedSection } from './AdvancedSection';
 import { AiSection } from './AiSection';
 import { NEW_CONDITION_TYPE } from './condition-fields';
-import { type EditableRule, isComplete, type RuleChange } from './editable-rule';
+import { type EditableRule, missingPart, type RuleChange } from './editable-rule';
+import { suggestionBasis } from './rule-ai/apply-suggestion';
 import { RuleAiBar } from './rule-ai/RuleAiBar';
 import { RuleDetailFooter } from './RuleDetailFooter';
 import { ExceptionsSection } from './ExceptionsSection';
@@ -62,6 +63,7 @@ export function AutomationDetail({
   const previewInput = withLiveDrafts(input, conditionRows.rows, exceptionRows.rows, live.drafts);
   const broken = input.actions.some((action) => describeAction(action, targets).broken);
   const [view, setView] = useState<RuleView>('settings');
+  const missing = missingPart(rule);
   return (
     <section className="au-detail" aria-label={`Pravidlo ${input.name}`}>
       <RuleDetailHeader rule={rule} disabled={disabled} onBack={onBack} onChange={onChange} />
@@ -80,6 +82,7 @@ export function AutomationDetail({
           accounts={accounts}
           disabled={disabled}
           note={rule.suggestion ?? null}
+          basis={suggestionBasis(input)}
           onSuggest={onPropose}
         />
         <RuleSummaryCard input={input} accounts={accounts} targets={targets} />
@@ -120,9 +123,9 @@ export function AutomationDetail({
             Cieľ niektorej akcie už neexistuje. Pravidlo ostatné akcie vykoná, túto preskočí.
           </p>
         ) : null}
-        {isComplete(rule) ? null : (
+        {missing === null ? null : (
           <p className="au-hint" role="status">
-            Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.
+            {missing}
           </p>
         )}
         <RuleDetailFooter

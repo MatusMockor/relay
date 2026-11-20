@@ -33,7 +33,7 @@ export * from './primitives';
 export * from './reminder';
 export * from './rule-proposal';
 export * from './rule-proposal-resolver';
-export * from './rule-sentence';
+export * from './rule-intent';
 export * from './rule-suggestion';
 export * from './rule-target-match';
 export * from './scheduled-send';

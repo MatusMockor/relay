@@ -72,7 +72,18 @@ export const newRule = (
   },
 });
 
-export const isComplete = (rule: EditableRule): boolean => rule.input.conditions.length > 0;
+export const isComplete = (rule: EditableRule): boolean =>
+  rule.input.conditions.length > 0 && rule.input.actions.length > 0;
+
+export const missingPart = (rule: EditableRule): string | null => {
+  if (rule.input.conditions.length === 0) {
+    return 'Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.';
+  }
+  if (rule.input.actions.length === 0) {
+    return 'Vyber aspoň jednu akciu, potom sa pravidlo uloží.';
+  }
+  return null;
+};
 
 export const isStaged = (rule: EditableRule): boolean =>
   rule.saved && rule.suggestion !== undefined;

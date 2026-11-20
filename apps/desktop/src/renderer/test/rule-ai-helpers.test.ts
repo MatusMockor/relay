@@ -89,10 +89,10 @@ describe('rule AI helpers', () => {
     });
   });
 
-  it('keeps the current actions when nothing could be mapped', () => {
-    expect(applySuggestion(input(), suggestion({ actions: [] })).actions).toEqual([
-      { type: 'task' },
-    ]);
+  it('leaves the actions empty when none could be mapped, even over a sensitive existing one', () => {
+    const forwarding = input({ actions: [{ type: 'forward', to: 'jana@firma.sk' }] });
+
+    expect(applySuggestion(forwarding, suggestion({ actions: [] })).actions).toEqual([]);
   });
 
   it('turns an invalid AI answer into a friendly message', async () => {

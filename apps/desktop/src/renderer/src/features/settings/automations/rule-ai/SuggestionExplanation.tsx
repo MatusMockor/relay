@@ -13,6 +13,11 @@ export function SuggestionExplanation({ note }: { readonly note: SuggestionNote 
           <b>Nepodarilo sa priradiť:</b> {note.unmapped.join(', ')}
         </p>
       )}
+      {note.actionless ? (
+        <p>
+          <b>Akcie z vety som nerozpoznal.</b> Vyber ich v časti Potom, inak sa pravidlo neuloží.
+        </p>
+      ) : null}
       <p className="au-ai-hint">Návrh zatiaľ nie je uložený. Skontroluj ho a ulož pravidlo.</p>
     </div>
   );

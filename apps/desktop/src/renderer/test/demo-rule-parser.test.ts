@@ -9,7 +9,7 @@ describe('demo rule parser', () => {
     );
 
     expect(proposal).toEqual({
-      name: 'Faktúry',
+      name: 'Maily s prílohou',
       accountId: null,
       match: 'all',
       conditions: [{ type: 'hasAttachment' }],
@@ -58,7 +58,7 @@ describe('demo rule parser', () => {
     expect(proposal.understood).toBe(
       'Maily z domény firma.sk, okrem od sef@firma.sk: označiť ako prečítané.',
     );
-    expect(proposal.name).toBe('Z domény firma.sk');
+    expect(proposal.name).toBe('Nové pravidlo');
   });
 
   it('reports a reminder outside the allowed range', () => {

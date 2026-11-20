@@ -8,12 +8,15 @@ import {
   type RuleSuggestion,
   type RuleSuggestRequest,
 } from './rule-suggestion';
+import { ruleIntent } from './rule-intent';
 import { findTarget } from './rule-target-match';
 
 interface CheckedConditions {
   readonly kept: AutomationCondition[];
   readonly notes: string[];
 }
+
+const RULE_NAME_MAX_LENGTH = 100;
 
 const compiles = (pattern: string): boolean => {
   try {
@@ -41,16 +44,29 @@ const checkConditions = (conditions: readonly AutomationCondition[]): CheckedCon
   return { kept, notes };
 };
 
+const strongestName = (conditions: readonly AutomationCondition[]): string | null => {
+  const sender = conditions.find((condition) => condition.type === 'fromAddress');
+  if (sender?.type === 'fromAddress') {
+    return sender.address;
+  }
+  const domain = conditions.find((condition) => condition.type === 'fromDomain');
+  if (domain?.type === 'fromDomain') {
+    return domain.domain;
+  }
+  const subject = conditions.find((condition) => condition.type === 'subjectContains');
+  return subject?.type === 'subjectContains' ? subject.value : null;
+};
+
 const needsAccount = (action: ProposedAction): boolean =>
   action.type === 'addLabel' || action.type === 'moveTo' || action.type === 'forward';
 
 const holdsTargets = (account: RuleSuggestAccount, actions: readonly ProposedAction[]) =>
   actions.every((action) => {
     if (action.type === 'addLabel') {
-      return findTarget(account.labels, action.label) !== null;
+      return findTarget(account.labels, action.label).kind === 'found';
     }
     if (action.type === 'moveTo') {
-      return findTarget(account.folders, action.folder) !== null;
+      return findTarget(account.folders, action.folder).kind === 'found';
     }
     return true;
   });
@@ -88,11 +104,15 @@ export const resolveRuleProposal = (
   request: RuleSuggestRequest,
 ): RuleSuggestion => {
   const account = accountFor(proposal, request);
-  const actions = resolveProposedActions(proposal.actions, account, request.sentence);
+  const actions = resolveProposedActions(proposal.actions, {
+    account,
+    sentence: request.sentence,
+    intent: ruleIntent(request.sentence),
+  });
   const conditions = checkConditions(proposal.conditions);
   const exceptions = checkConditions(proposal.exceptions);
   return {
-    name: proposal.name,
+    name: (strongestName(conditions.kept) ?? proposal.name).slice(0, RULE_NAME_MAX_LENGTH),
     accountId: account?.id ?? null,
     match: proposal.match,
     conditions: conditions.kept,

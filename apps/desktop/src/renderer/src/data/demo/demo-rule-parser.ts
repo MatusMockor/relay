@@ -1,9 +1,8 @@
-import type { ProposedAction, RuleProposal } from '@relay/shared';
+import type { AutomationCondition, RuleProposal } from '@relay/shared';
 import { parseActions } from './demo-rule-actions';
 import { parseConditions } from './demo-rule-conditions';
 
 const EXCEPT = /(?:^|[\s,])okrem\s/iu;
-const NAME_MAX = 100;
 
 interface SentenceParts {
   readonly main: string;
@@ -21,23 +20,10 @@ const splitExcept = (sentence: string): SentenceParts => {
   };
 };
 
-const capitalized = (value: string): string =>
-  `${value.charAt(0).toLocaleUpperCase('sk')}${value.slice(1)}`;
-
-const targetName = (actions: readonly ProposedAction[]): string | null => {
-  for (const action of actions) {
-    if (action.type === 'addLabel') {
-      return action.label;
-    }
-    if (action.type === 'moveTo') {
-      return action.folder;
-    }
-  }
-  return null;
-};
-
-const nameOf = (actions: readonly ProposedAction[], when: readonly string[]): string =>
-  capitalized(targetName(actions) ?? when[0] ?? 'Nové pravidlo').slice(0, NAME_MAX);
+const nameOf = (conditions: readonly AutomationCondition[]): string =>
+  conditions.some((condition) => condition.type === 'hasAttachment')
+    ? 'Maily s prílohou'
+    : 'Nové pravidlo';
 
 const understoodOf = (
   when: readonly string[],
@@ -59,7 +45,7 @@ export const parseRuleSentence = (sentence: string): RuleProposal => {
   const except = parseConditions(parts.except);
   const actions = parseActions(parts.main);
   return {
-    name: nameOf(actions.actions, when.phrases),
+    name: nameOf(when.conditions),
     accountId: null,
     match: 'all',
     conditions: when.conditions,

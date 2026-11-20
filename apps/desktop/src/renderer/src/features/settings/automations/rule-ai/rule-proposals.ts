@@ -43,7 +43,9 @@ export const ruleProposals = (
     if (rule === undefined) {
       return;
     }
-    setLocal((current) => new Map(current).set(key, proposed(rule, suggestion, sentence)));
+    setLocal((current) =>
+      new Map(current).set(key, proposed(current.get(key) ?? rule, suggestion, sentence)),
+    );
   },
   addProposed: (runner, suggestion, sentence) => {
     const key = nextDraftKey();
