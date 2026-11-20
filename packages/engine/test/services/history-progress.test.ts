@@ -3,7 +3,7 @@ import { deliverMail, ME, seedAccount } from '../support/fixtures';
 import { backfillUntilDone, historyDate, seedHistory } from '../support/history';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
-const TIGHT = { sliceMessages: 200, sliceMs: 15_000, batch: 100, sliceSearches: 64 };
+const TIGHT = { sliceMessages: 10, sliceMs: 15_000, batch: 5, sliceSearches: 64 };
 const GMAIL_SETTINGS = {
   imap: { host: 'imap.gmail.com', port: 993, secure: true },
   smtp: { host: 'smtp.gmail.com', port: 465, secure: true },
@@ -14,25 +14,26 @@ describe('history progress', () => {
   it('reports stored and total messages per account until the history is done', async () => {
     const engine = createTestEngine({ sync: { history: TIGHT } });
     const { account, server } = await seedAccount(engine);
-    seedHistory(server, 'Archive', 700);
-    seedHistory(server, 'INBOX', 50);
+    const total =
+      seedHistory(server, 'Archive', 40).length + seedHistory(server, 'INBOX', 10).length;
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
     const [before] = await engine.services.sync.historyProgress(USER_ID);
-    expect(before).toMatchObject({ accountId: account.id, total: 750, state: 'running' });
-    expect(before?.stored).toBeLessThan(750);
+    expect(before).toMatchObject({ accountId: account.id, total, state: 'running' });
+    expect(before?.stored).toBeLessThan(total);
     engine.events.clear();
 
     const reports = await backfillUntilDone(engine, account.id);
 
     const published = engine.events.ofType('sync.history').map((event) => event.data);
+    expect(reports.length).toBeGreaterThan(1);
     expect(published).toHaveLength(reports.length);
     const stored = published.map((progress) => progress.stored);
     expect(stored).toEqual([...stored].sort((left, right) => left - right));
     expect(published.at(-1)).toEqual({
       accountId: account.id,
-      stored: 750,
-      total: 750,
+      stored: total,
+      total,
       state: 'done',
     });
     expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([published.at(-1)]);
