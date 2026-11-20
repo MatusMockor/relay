@@ -11,9 +11,11 @@ import {
 import { MemoryHistoryBackfills } from '../support/memory/memory-history-backfills';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-const ARCHIVE_SIZE = 1500;
-const RESET_SIZE = 700;
-const TIGHT = { sliceMessages: 500, sliceMs: 15_000, batch: 100, sliceSearches: 64 };
+const ARCHIVE_SIZE = 450;
+const RESET_SIZE = 210;
+const SLICE = 150;
+const BATCH = 30;
+const TIGHT = { sliceMessages: SLICE, sliceMs: 15_000, batch: BATCH, sliceSearches: 64 };
 
 interface Setup {
   readonly engine: TestEngine;
@@ -54,10 +56,10 @@ describe('history backfill', () => {
 
     const report = await engine.services.sync.backfillHistory(USER_ID, seeded.account.id);
 
-    expect(report).toMatchObject({ skipped: false, processed: 500, more: true });
+    expect(report).toMatchObject({ skipped: false, processed: SLICE, more: true });
     const added = storedUidsIn(engine, archive.id).filter((uid) => !initial.includes(uid));
     expect(added).toEqual(
-      allUids(500)
+      allUids(SLICE)
         .map((offset) => lowestInitial - offset)
         .reverse(),
     );
@@ -72,11 +74,7 @@ describe('history backfill', () => {
     const archiveCursors = backfills.saved.filter((cursor) => cursor.mailboxId === archive.id);
     expect(archiveCursors.map((cursor) => cursor.belowUid)).toEqual([
       ARCHIVE_SIZE + 1,
-      lowest - 100,
-      lowest - 200,
-      lowest - 300,
-      lowest - 400,
-      lowest - 500,
+      ...allUids(SLICE / BATCH).map((step) => lowest - step * BATCH),
     ]);
   });
 
