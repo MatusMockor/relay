@@ -1,4 +1,5 @@
 import type { AccountRepository } from './account-repository';
+import type { AutomationActivityRepository } from './automation-activity-repository';
 import type { AiJobRepository } from './ai-job-repository';
 import type { AiResultRepository } from './ai-result-repository';
 import type { AutomationCandidateRepository } from './automation-candidate-repository';
@@ -34,6 +35,7 @@ export interface Repositories {
   readonly splits: SplitRepository;
   readonly automations: AutomationRepository;
   readonly automationRuns: AutomationRunRepository;
+  readonly automationActivity: AutomationActivityRepository;
   readonly automationCandidates: AutomationCandidateRepository;
   readonly tasks: TaskRepository;
   readonly reminders: ReminderRepository;

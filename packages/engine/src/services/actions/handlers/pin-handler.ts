@@ -11,4 +11,9 @@ export class PinHandler {
     const targets = latest === undefined || latest.flags.flagged ? [] : [latest];
     return this.flags.write(context, targets, 'flagged', true);
   }
+
+  unpin(context: ThreadActionContext): Promise<ThreadSummary> {
+    const targets = context.messages.filter((message) => message.flags.flagged);
+    return this.flags.write(context, targets, 'flagged', false);
+  }
 }

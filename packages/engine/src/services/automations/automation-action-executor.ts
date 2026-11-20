@@ -1,4 +1,4 @@
-import type { AutomationAction, AutomationActionType } from '@relay/shared/domain';
+import type { AutomationAction, AutomationActivityAction } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import {
@@ -17,19 +17,29 @@ export class AutomationActionExecutor {
   async execute(
     context: AutomationActionContext,
     actions: readonly AutomationAction[],
-  ): Promise<AutomationActionType[]> {
-    const failed: AutomationActionType[] = [];
+  ): Promise<AutomationActivityAction[]> {
+    const outcomes: AutomationActivityAction[] = [];
     for (const action of orderedActions(actions)) {
-      await runAction(this.handlers, context, action).catch((error: unknown) => {
-        failed.push(action.type);
-        this.logger.warn('An automation action failed', {
-          automationId: context.automation.id,
-          action: action.type,
-          messageId: context.arrival.message.id,
-          error: errorMessage(error),
-        });
-      });
+      outcomes.push(await this.run(context, action));
     }
-    return failed;
+    return outcomes;
+  }
+
+  private async run(
+    context: AutomationActionContext,
+    action: AutomationAction,
+  ): Promise<AutomationActivityAction> {
+    try {
+      await runAction(this.handlers, context, action);
+      return { action, outcome: 'ok' };
+    } catch (error: unknown) {
+      this.logger.warn('An automation action failed', {
+        automationId: context.automation.id,
+        action: action.type,
+        messageId: context.arrival.message.id,
+        error: errorMessage(error),
+      });
+      return { action, outcome: 'failed' };
+    }
   }
 }

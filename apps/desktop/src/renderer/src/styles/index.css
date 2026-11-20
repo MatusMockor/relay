@@ -33,6 +33,7 @@
 @import './automation-actions.css';
 @import './automation-templates.css';
 @import './automation-preview.css';
+@import './automation-history.css';
 @import './rule-from-mail.css';
 @import './model-picker.css';
 @import './onboarding.css';

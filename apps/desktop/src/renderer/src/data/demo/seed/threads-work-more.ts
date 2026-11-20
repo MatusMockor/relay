@@ -82,6 +82,21 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     ],
   },
   {
+    id: 'o-mr-merged',
+    acct: 'efa',
+    from: 'gl',
+    split: 'other',
+    state: 'done',
+    subj: 'Merge request !409 bol zlúčený',
+    msgs: [
+      [
+        'gl',
+        [0, 7, 40],
+        'Merge request !409 Export objednávok do CSV bol zlúčený do vetvy main.\n\nZlúčil Peter Novák.',
+      ],
+    ],
+  },
+  {
     id: 'o-sentry',
     acct: 'efa',
     from: 'se',

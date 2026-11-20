@@ -27,6 +27,7 @@ describe('runMigrations', () => {
       'ai_jobs',
       'ai_results',
       'attachments',
+      'automation_activity',
       'automation_runs',
       'automations',
       'calendar_events',

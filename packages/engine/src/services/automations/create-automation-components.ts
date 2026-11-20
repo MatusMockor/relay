@@ -14,6 +14,8 @@ import { AutomationPreview } from './automation-preview';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
 import { AutomationTargetValidator } from './automation-target-validator';
+import type { AutomationHistoryService } from './history/automation-history-service';
+import { createAutomationHistory } from './history/create-automation-history';
 import { JiraTaskAutomation } from './jira-task-automation';
 import {
   AddLabelAutomationAction,
@@ -27,6 +29,7 @@ import {
 export interface AutomationComponents {
   readonly service: AutomationService;
   readonly runner: AutomationRunner;
+  readonly history: AutomationHistoryService;
   readonly jiraTasks: JiraTaskSink;
 }
 
@@ -54,6 +57,7 @@ export const createAutomationComponents = (
     },
     deps.logger,
   );
+  const history = createAutomationHistory(deps, shared.actions);
   const patterns = deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY;
   const matcher = new AutomationBacklogMatcher({
     candidates: repositories.automationCandidates,
@@ -76,6 +80,7 @@ export const createAutomationComponents = (
         runs: repositories.automationRuns,
         matcher,
         executor,
+        recorder: history.recorder,
         clock: deps.clock,
       }),
       preview: new AutomationPreview({
@@ -92,8 +97,10 @@ export const createAutomationComponents = (
       runs: repositories.automationRuns,
       matcher: deps.automationMatcher,
       executor,
+      recorder: history.recorder,
       clock: deps.clock,
     }),
+    history: history.service,
     jiraTasks: new JiraTaskAutomation({
       automations: repositories.automations,
       messages: repositories.messages,

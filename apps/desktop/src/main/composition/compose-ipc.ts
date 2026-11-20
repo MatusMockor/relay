@@ -25,6 +25,7 @@ import { createDraftAttachmentHandlers } from '../handlers/local/draft-attachmen
 import { createEventStreamHandlers } from '../handlers/local/event-stream-handlers';
 import { createLabelHandlers } from '../handlers/local/label-handlers';
 import { createSettingsHandlers } from '../handlers/local/settings-handlers';
+import { createAutomationHistoryHandlers } from '../handlers/local/automation-history-handlers';
 import {
   createSyncHandlers,
   type HistoryProgressList,
@@ -117,6 +118,7 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createAccountHandlers(local.services, local.userId),
     createFolderHandlers(local.services, local.userId),
     createSettingsHandlers(local.services, local.userId),
+    createAutomationHistoryHandlers(local.services, local.userId),
     createCalendarHandlers(local.services, local.userId),
     createFailedInvitationHandlers(local.services, local.userId),
     createGoogleCalendarHandlers(local.services, local.userId),

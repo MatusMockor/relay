@@ -1,4 +1,10 @@
-import type { AccountId, AutomationPreviewBody, MessageId, ThreadId } from '@relay/shared';
+import type {
+  AccountId,
+  AutomationId,
+  AutomationPreviewBody,
+  MessageId,
+  ThreadId,
+} from '@relay/shared';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 
 export const queryKeys = {
@@ -23,6 +29,8 @@ export const queryKeys = {
   automations: () => ['mail', 'automations'] as const,
   automationPreview: (body: AutomationPreviewBody | null) =>
     ['mail', 'automation-preview', body] as const,
+  automationHistories: () => ['mail', 'automation-history'] as const,
+  automationHistory: (id: AutomationId | null) => ['mail', 'automation-history', id] as const,
   tasks: (params: TaskListParams) => ['mail', 'tasks', params] as const,
   taskLists: () => ['mail', 'tasks'] as const,
   drafts: () => ['mail', 'drafts'] as const,

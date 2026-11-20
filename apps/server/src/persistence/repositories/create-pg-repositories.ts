@@ -5,6 +5,7 @@ import { PgAiJobRepository } from './ai-jobs/pg-ai-job-repository';
 import { PgAiResultRepository } from './ai-results/pg-ai-result-repository';
 import { PgAutomationRepository } from './automations/pg-automation-repository';
 import { PgAutomationRunRepository } from './automations/pg-automation-run-repository';
+import { PgAutomationActivityRepository } from './automations/pg-automation-activity-repository';
 import { PgCalendarEventRepository } from './calendar/pg-calendar-event-repository';
 import { PgCalendarSubscriptionRepository } from './calendar/pg-calendar-subscription-repository';
 import { PgDeviceRepository } from './devices/pg-device-repository';
@@ -37,6 +38,7 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   splits: new PgSplitRepository(db),
   automations: new PgAutomationRepository(db),
   automationRuns: new PgAutomationRunRepository(db),
+  automationActivity: new PgAutomationActivityRepository(db),
   automationCandidates: new PgAutomationCandidateRepository(db),
   tasks: new PgTaskRepository(db),
   reminders: new PgReminderRepository(db),

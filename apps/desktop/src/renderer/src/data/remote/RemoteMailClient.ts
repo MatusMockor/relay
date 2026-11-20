@@ -10,6 +10,7 @@ import { EventBus } from '../event-bus';
 import type { MailClient, MailEventListener } from '../MailClient';
 import { unsupportedServerSearch } from '../server-search';
 import { outdatedPreview, replaceAutomationsChecked } from './automation-compatibility';
+import { createRemoteAutomationHistory } from './remote-automation-history';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
 import { RemoteAiRuns } from './RemoteAiRuns';
@@ -108,6 +109,7 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
     http.call(api.automations.preview, { body }).catch((error: unknown) => {
       throw outdatedPreview(error);
     }),
+  ...createRemoteAutomationHistory(http),
   listTasks: (query) => http.call(api.tasks.list, { query }),
   updateTask: (id: TaskId, body) => http.call(api.tasks.update, { params: { id }, body }),
   updateChecklistItem: (id, body) =>

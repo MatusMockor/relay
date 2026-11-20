@@ -6,6 +6,8 @@ import type {
   ApplyAutomationResponse,
   AttachmentId,
   Automation,
+  AutomationActivityId,
+  AutomationHistoryResponse,
   AutomationId,
   AutomationInput,
   AutomationPreviewBody,
@@ -55,6 +57,8 @@ import type {
   ThreadListQuery,
   ThreadPage,
   ThreadSummary,
+  UndoAutomationActivityResponse,
+  UndoAutomationSinceResponse,
   UpdateAccountBody,
   UpdateChecklistItemBody,
   UpdateDraftBody,
@@ -153,6 +157,15 @@ export interface Organizer {
   restoreDefaultAutomation(): Promise<Automation[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
   previewAutomation(body: AutomationPreviewBody): Promise<AutomationPreviewResponse>;
+  automationHistory(automationId: AutomationId): Promise<AutomationHistoryResponse>;
+  undoAutomationActivity(
+    automationId: AutomationId,
+    activityId: AutomationActivityId,
+  ): Promise<UndoAutomationActivityResponse>;
+  undoAutomationSince(
+    automationId: AutomationId,
+    since: string,
+  ): Promise<UndoAutomationSinceResponse>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;
   updateChecklistItem(

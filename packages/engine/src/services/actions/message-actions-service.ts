@@ -39,6 +39,12 @@ export class MessageActionsService implements ThreadReadMarker {
     return thread;
   }
 
+  async unpin(userId: UserId, threadId: ThreadId): Promise<ThreadSummary> {
+    const thread = await this.deps.pins.unpin(await this.context(userId, threadId));
+    await this.deps.events.emit(userId, 'thread.upserted', { thread });
+    return thread;
+  }
+
   async apply(userId: UserId, threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary> {
     if (action.type === 'remind') {
       return this.deps.reminders.schedule(userId, threadId, action.at);

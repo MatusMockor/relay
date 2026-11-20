@@ -1,6 +1,7 @@
 export * from './accounts';
 export * from './ai-jobs';
 export * from './ai-results';
+export * from './automation-activity';
 export * from './automations';
 export * from './calendar-events';
 export * from './calendar-subscriptions';

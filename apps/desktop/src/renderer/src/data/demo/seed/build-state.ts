@@ -1,5 +1,6 @@
 import { DEFAULT_USER_SETTINGS, type MailAccount, type Split, type Task } from '@relay/shared';
 import { buildDemoAutomations } from './automations';
+import { buildDemoRuleHistory } from './rule-history';
 import type { DemoState, DemoThreadRecord } from '../demo-state';
 import { buildArchive } from './build-archive';
 import { buildDrafts } from './build-drafts';
@@ -119,6 +120,7 @@ export const buildDemoState = (now: Date = new Date()): DemoState => {
     accounts: buildAccounts(now),
     splits: buildSplits(),
     automations: buildDemoAutomations(),
+    ruleHistory: buildDemoRuleHistory(threads, now),
     labels: DEMO_LABELS.map((label) => ({
       id: demoIds.label(label.key),
       accountId: demoIds.account(label.acct),

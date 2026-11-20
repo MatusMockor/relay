@@ -232,6 +232,13 @@
       "when": 1795187067920,
       "tag": "0032_automation_match_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1795191979813,
+      "tag": "0033_automation_activity",
+      "breakpoints": true
     }
   ]
 }

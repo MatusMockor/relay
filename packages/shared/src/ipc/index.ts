@@ -1,6 +1,7 @@
 export * from './app-channels';
 export * from './attachment-channels';
 export * from './attachment-open-channels';
+export * from './automation-history-channels';
 export * from './bridge';
 export * from './calendar-channels';
 export * from './channels';

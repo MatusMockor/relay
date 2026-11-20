@@ -24,6 +24,7 @@ import { createInviteComponents } from './services/calendar/create-invite-compon
 import type { FailedInvitationService } from './services/calendar/failed-invitation-service';
 import { createAiComponents } from './services/ai/create-ai-service';
 import type { AutomationService } from './services/automations/automation-service';
+import type { AutomationHistoryService } from './services/automations/history/automation-history-service';
 import { createAutomationComponents } from './services/automations/create-automation-components';
 import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
 import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
@@ -89,6 +90,7 @@ export interface EngineServices {
   readonly offlineStats: OfflineStatsReader;
   readonly splits: SplitService;
   readonly automations: AutomationService;
+  readonly automationHistory: AutomationHistoryService;
   readonly ai: AiService;
   readonly calendar: CalendarService;
   readonly failedInvitations: FailedInvitationService;
@@ -258,6 +260,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
     }),
     automations: automations.service,
+    automationHistory: automations.history,
     ai: ai.service,
     calendar,
     failedInvitations: invites.failed,
