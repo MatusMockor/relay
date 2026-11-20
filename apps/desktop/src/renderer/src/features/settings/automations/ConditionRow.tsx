@@ -20,6 +20,7 @@ import {
 } from './condition-fields';
 import { ConditionSelect, ConditionText } from './ConditionControls';
 import { useConditionDraft } from './use-condition-draft';
+import type { RowTracker } from './use-live-drafts';
 
 export interface ConditionRowProps {
   readonly id: string;
@@ -31,7 +32,7 @@ export interface ConditionRowProps {
   readonly disabled: boolean;
   readonly onSave: (condition: AutomationCondition) => void;
   readonly onRemove: () => void;
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly tracker: RowTracker;
 }
 
 export function ConditionRow({
@@ -44,14 +45,14 @@ export function ConditionRow({
   disabled,
   onSave,
   onRemove,
-  onDirty,
+  tracker,
 }: ConditionRowProps) {
   const { draft, fresh, invalid, pick, edit, commit } = useConditionDraft({
     id,
     saved,
     freshType,
     onSave,
-    onDirty,
+    tracker,
   });
   const valueField = VALUE_FIELDS[draft.type];
   return (

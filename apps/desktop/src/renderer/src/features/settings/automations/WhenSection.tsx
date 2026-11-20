@@ -4,6 +4,7 @@ import { ConditionList } from './ConditionList';
 import { type RuleChange, scopeChange, type RuleInput } from './editable-rule';
 import { MATCH_JOINERS } from './rule-summary';
 import type { ConditionRowsState } from './use-condition-rows';
+import type { RowTracker } from './use-live-drafts';
 
 const MATCH_OPTIONS: readonly { value: AutomationMatchMode; label: string }[] = [
   { value: 'all', label: 'všetky' },
@@ -15,6 +16,7 @@ const COPY = {
   add: '+ Pridať podmienku',
   remove: 'Odstrániť podmienku',
   cancel: 'Zrušiť novú podmienku',
+  limit: 'Najviac 20 podmienok.',
 };
 
 export interface WhenSectionProps {
@@ -23,7 +25,7 @@ export interface WhenSectionProps {
   readonly rows: ConditionRowsState;
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly tracker: RowTracker;
 }
 
 export function WhenSection({
@@ -32,7 +34,7 @@ export function WhenSection({
   rows,
   disabled,
   onChange,
-  onDirty,
+  tracker,
 }: WhenSectionProps) {
   return (
     <section className="au-sec" aria-labelledby="au-when">
@@ -77,7 +79,7 @@ export function WhenSection({
         onChange={(conditions) => {
           onChange({ conditions });
         }}
-        onDirty={onDirty}
+        tracker={tracker}
       />
     </section>
   );

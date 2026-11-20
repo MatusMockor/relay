@@ -1,4 +1,4 @@
-import type { Message, ThreadId } from '@relay/shared/domain';
+import { type Message, MessageIdSchema, type ThreadId } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
@@ -131,6 +131,7 @@ export class ChangeFlusher {
       try {
         await this.deps.tasks.applyJiraEvent(context.userId, item.payload, {
           accountId: context.account.id,
+          messageId: MessageIdSchema.parse(item.ref),
         });
         await this.deps.pendingWork.remove([item]);
       } catch (error) {

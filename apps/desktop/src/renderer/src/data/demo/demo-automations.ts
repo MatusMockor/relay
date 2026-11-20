@@ -7,6 +7,7 @@ import {
   ReplaceAutomationsBodySchema,
 } from '@relay/shared';
 import type { Organizer } from '../MailClient';
+import { DEMO_UNSUPPORTED_EXCEPTIONS } from './demo-automation-match';
 import { createDemoAutomationPreview } from './demo-automation-preview';
 import type { DemoState } from './demo-state';
 import { automationId, jiraTasksPreset } from './seed/automations';
@@ -28,6 +29,14 @@ const settled = <Result>(work: () => Result): Promise<Result> => {
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 };
+
+const UNSUPPORTED_EXCEPTION_MESSAGE =
+  'Ukážka nevie vyhodnotiť výnimku na Jira udalosť ani na hlavičku mailu.';
+
+const usesUnsupportedException = (input: AutomationInput): boolean =>
+  (input.exceptions ?? []).some((condition) =>
+    DEMO_UNSUPPORTED_EXCEPTIONS.includes(condition.type),
+  );
 
 const ALL_ACCOUNTS_MESSAGE = 'Pravidlo pre všetky účty nemôže presúvať ani štítkovať, vyber účet';
 
@@ -69,6 +78,9 @@ export const createDemoAutomations = (
         )
       ) {
         return Promise.reject(new Error(ALL_ACCOUNTS_MESSAGE));
+      }
+      if (parsed.data.automations.some(usesUnsupportedException)) {
+        return Promise.reject(new Error(UNSUPPORTED_EXCEPTION_MESSAGE));
       }
       const next = parsed.data.automations.map((input, order) =>
         toAutomation(state, input, order, now),

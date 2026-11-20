@@ -64,13 +64,43 @@ describe('RemoteMailClient automations on an older server', () => {
     },
   ];
 
-  it('refuses to report success when the server dropped the match mode and exceptions', async () => {
+  it('restores the previous rules when the server dropped the match mode and exceptions', async () => {
+    const previous = [
+      {
+        ...legacyResponse[0],
+        conditions: [{ type: 'fromAddress', address: 'faktury@dodavatel.sk' }],
+        actions: [{ type: 'markRead' }],
+      },
+    ];
+    server.handle('automations.list', () => ({ body: previous }));
     server.handle('automations.replace', () => ({ body: legacyResponse }));
 
     await expect(connect().replaceAutomations([rule])).rejects.toMatchObject({
       code: 'not_implemented',
       message: 'Server je starší a nepodporuje režim podmienok ani výnimky. Aktualizuj server.',
     });
+
+    const replaces = server.requests.filter((item) => item.key === 'automations.replace');
+    expect(replaces).toHaveLength(2);
+    expect(replaces[1]?.body).toMatchObject({
+      automations: [
+        {
+          id: 'automation-1',
+          conditions: [{ type: 'fromAddress', address: 'faktury@dodavatel.sk' }],
+          actions: [{ type: 'markRead' }],
+        },
+      ],
+    });
+  });
+
+  it('checks only the fields the request supplies', async () => {
+    server.handle('automations.replace', () => ({ body: legacyResponse }));
+    const { match: _match, exceptions: _exceptions, ...legacyInput } = rule;
+
+    const saved = await connect().replaceAutomations([legacyInput]);
+
+    expect(saved[0]?.name).toBe('Dodávatelia');
+    expect(server.requests.filter((item) => item.key === 'automations.list')).toHaveLength(0);
   });
 
   it('accepts an older server response for a rule without the new fields', async () => {

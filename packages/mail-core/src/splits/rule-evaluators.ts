@@ -65,7 +65,7 @@ const matchesSubjectRegex: RuleEvaluator<'subjectRegex'> = (rule, context) =>
     ?.test(capped(context.message.subject)) ?? false;
 
 const matchesSubjectContains: RuleEvaluator<'subjectContains'> = (rule, context) =>
-  subjectContains(capped(context.message.subject), rule.value);
+  subjectContains(context.message.subject, rule.value);
 
 const matchesHeader: RuleEvaluator<'header'> = (rule, context) => {
   const regex = context.regex.get(rule.pattern, 'iu');

@@ -2,12 +2,14 @@ import type { AutomationCondition } from '@relay/shared';
 import { ConditionList } from './ConditionList';
 import type { RuleChange } from './editable-rule';
 import type { ConditionRowsState } from './use-condition-rows';
+import type { RowTracker } from './use-live-drafts';
 
 const COPY = {
   group: 'Výnimka',
   add: '+ Pridať výnimku',
   remove: 'Odstrániť výnimku',
   cancel: 'Zrušiť novú výnimku',
+  limit: 'Najviac 20 výnimiek.',
 };
 
 export interface ExceptionsSectionProps {
@@ -15,7 +17,7 @@ export interface ExceptionsSectionProps {
   readonly rows: ConditionRowsState;
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly tracker: RowTracker;
 }
 
 export function ExceptionsSection({
@@ -23,7 +25,7 @@ export function ExceptionsSection({
   rows,
   disabled,
   onChange,
-  onDirty,
+  tracker,
 }: ExceptionsSectionProps) {
   return (
     <section className="au-sec" aria-labelledby="au-except">
@@ -40,7 +42,7 @@ export function ExceptionsSection({
         onChange={(next) => {
           onChange({ exceptions: next });
         }}
-        onDirty={onDirty}
+        tracker={tracker}
       />
     </section>
   );

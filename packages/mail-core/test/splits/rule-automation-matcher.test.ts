@@ -133,4 +133,17 @@ describe('RuleAutomationMatcher', () => {
   ])('matches the subject containing %s ignoring case and diacritics', async (value, expected) => {
     expect(await matches([{ type: 'subjectContains', value }])).toBe(expected);
   });
+
+  it('searches the whole subject for a word, beyond the regex input cap', async () => {
+    const long = { ...message, subject: `${'Dlhý predmet '.repeat(300)}FAKTÚRA` };
+
+    expect(long.subject.length).toBeGreaterThan(3_000);
+    expect(
+      await matcher.matches({
+        message: long,
+        jira: null,
+        criteria: all([{ type: 'subjectContains', value: 'faktura' }]),
+      }),
+    ).toBe(true);
+  });
 });

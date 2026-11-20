@@ -96,6 +96,7 @@ export const createAutomationComponents = (
     }),
     jiraTasks: new JiraTaskAutomation({
       automations: repositories.automations,
+      messages: repositories.messages,
       matcher: deps.automationMatcher,
       tasks: shared.tasks,
     }),

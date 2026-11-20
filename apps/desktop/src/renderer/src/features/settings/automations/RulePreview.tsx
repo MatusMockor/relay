@@ -17,9 +17,18 @@ const senderOf = (sample: AutomationPreviewSample): string =>
   sample.from?.name ?? sample.from?.email ?? 'Neznámy odosielateľ';
 
 export function RulePreview({ input }: { readonly input: RuleInput }) {
-  const { enabled, waiting, query } = useRulePreview(input);
+  const { enabled, invalid, waiting, query } = useRulePreview(input);
   if (!enabled) {
     return null;
+  }
+  if (invalid) {
+    return (
+      <section className="au-prev" aria-label="Náhľad pravidla">
+        <p className="au-prev-h">
+          Náhľad sa nedá spočítať. Pravidlo môže mať najviac 20 podmienok a 20 výnimiek.
+        </p>
+      </section>
+    );
   }
   const { data } = query;
   const busy = waiting || query.isFetching;

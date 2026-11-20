@@ -12,6 +12,7 @@ import type { DemoState, DemoThreadRecord } from './demo-state';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEMO_PREVIEW_LIMIT = 500;
+const DEMO_MESSAGES_PER_THREAD = 50;
 
 interface DemoPreviewMatch {
   readonly record: DemoThreadRecord;
@@ -38,8 +39,12 @@ export const createDemoAutomationPreview =
           (criteria.accountId === null || record.summary.accountId === criteria.accountId),
       )
       .flatMap((record): DemoPreviewMatch[] => {
-        const message = record.messages
-          .filter((item) => received(item) && demoMessageMatches(criteria, item))
+        const message = [...record.messages]
+          .sort((left, right) => left.date.localeCompare(right.date))
+          .slice(-DEMO_MESSAGES_PER_THREAD)
+          .filter(
+            (item) => received(item) && demoMessageMatches(criteria, item, record.summary.jiraKey),
+          )
           .at(-1);
         return message === undefined ? [] : [{ record, message }];
       })

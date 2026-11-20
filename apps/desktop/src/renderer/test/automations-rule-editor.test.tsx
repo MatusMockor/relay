@@ -120,18 +120,44 @@ describe('Nastavenia > Automatizácie > editor pravidla', () => {
     );
 
     click(within(tibor).getByRole('radio', { name: 'Okrem' }));
-    click(within(tibor).getByRole('button', { name: '+ Hlavička mailu' }));
-    const header = exception(tibor, 1);
-    expect(within(header).getByLabelText('Typ podmienky')).toHaveProperty('value', 'header');
-    change(within(header).getByLabelText('Hlavička'), 'List-Id');
-    const headerPattern = within(header).getByLabelText('Obsahuje (regulárny výraz)');
-    change(headerPattern, 'novinky');
-    enter(headerPattern);
+    click(within(tibor).getByRole('button', { name: '+ Predmet podľa regulárneho výrazu' }));
+    const regexException = exception(tibor, 1);
+    expect(within(regexException).getByLabelText('Typ podmienky')).toHaveProperty(
+      'value',
+      'subjectRegex',
+    );
+    const exceptionPattern = within(regexException).getByLabelText('Obsahuje (regulárny výraz)');
+    change(exceptionPattern, 'newsletter');
+    enter(exceptionPattern);
     await settle();
 
     expect((await stored(client, 'Tibor'))?.exceptions).toEqual([
-      { type: 'header', name: 'List-Id', pattern: 'novinky' },
+      { type: 'subjectRegex', pattern: 'newsletter', caseSensitive: false },
     ]);
+  });
+
+  it('keeps an unsaved row when an advanced condition is requested for its section', async () => {
+    const sheet = await openAutomations(demoClient());
+    const tibor = openRule(sheet, 'Tibor');
+    click(within(tibor).getByRole('button', { name: '+ Pridať podmienku' }));
+    change(within(condition(tibor, 2)).getByLabelText('Adresa'), 'rozpisane@firma.sk');
+    click(within(tibor).getByRole('button', { name: 'Pokročilé' }));
+    const regex = () =>
+      within(tibor).getByRole('button', { name: '+ Predmet podľa regulárneho výrazu' });
+
+    expect(regex()).toHaveProperty('disabled', true);
+    expect(
+      within(tibor).getByText('Najprv dokonči alebo zruš rozpísaný riadok v tejto sekcii.'),
+    ).toBeDefined();
+    click(regex());
+    expect(within(condition(tibor, 2)).getByLabelText('Adresa')).toHaveProperty(
+      'value',
+      'rozpisane@firma.sk',
+    );
+
+    click(within(tibor).getByRole('radio', { name: 'Okrem' }));
+
+    expect(regex()).toHaveProperty('disabled', false);
   });
 
   it('shows how many recent mails the draft rule would catch', async () => {

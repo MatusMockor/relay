@@ -16,10 +16,11 @@ const TARGETS: readonly { value: AdvancedTarget; label: string }[] = [
 
 export interface AdvancedSectionProps {
   readonly disabled: boolean;
+  readonly canAdd: Readonly<Record<AdvancedTarget, boolean>>;
   readonly onAdd: (target: AdvancedTarget, type: AutomationConditionType) => void;
 }
 
-export function AdvancedSection({ disabled, onAdd }: AdvancedSectionProps) {
+export function AdvancedSection({ disabled, canAdd, onAdd }: AdvancedSectionProps) {
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<AdvancedTarget>('conditions');
   return (
@@ -58,7 +59,7 @@ export function AdvancedSection({ disabled, onAdd }: AdvancedSectionProps) {
                 key={choice.type}
                 variant="ghost"
                 className="au-add"
-                disabled={disabled}
+                disabled={disabled || !canAdd[target]}
                 onClick={() => {
                   onAdd(target, choice.type);
                 }}
@@ -67,6 +68,9 @@ export function AdvancedSection({ disabled, onAdd }: AdvancedSectionProps) {
               </Button>
             ))}
           </div>
+          {canAdd[target] ? null : (
+            <p className="au-note">Najprv dokonči alebo zruš rozpísaný riadok v tejto sekcii.</p>
+          )}
         </div>
       ) : null}
     </section>

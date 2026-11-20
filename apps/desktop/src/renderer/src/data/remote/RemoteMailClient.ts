@@ -9,7 +9,7 @@ import {
 import { EventBus } from '../event-bus';
 import type { MailClient, MailEventListener } from '../MailClient';
 import { unsupportedServerSearch } from '../server-search';
-import { assertAutomationsKept, outdatedPreview } from './automation-compatibility';
+import { outdatedPreview, replaceAutomationsChecked } from './automation-compatibility';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
 import { RemoteAiRuns } from './RemoteAiRuns';
@@ -100,11 +100,7 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   listSplits: () => http.call(api.splits.list, {}),
   replaceSplits: (splits) => http.call(api.splits.replace, { body: { splits } }),
   listAutomations: () => http.call(api.automations.list, {}),
-  replaceAutomations: async (automations) =>
-    assertAutomationsKept(
-      automations,
-      await http.call(api.automations.replace, { body: { automations } }),
-    ),
+  replaceAutomations: (automations) => replaceAutomationsChecked(http, automations),
   restoreDefaultAutomation: () => http.call(api.automations.restoreDefault, {}),
   applyAutomation: (automationId) =>
     http.call(api.automations.apply, { params: { id: automationId } }),

@@ -5,12 +5,14 @@ import { describeCondition } from './automation-labels';
 import { NEW_CONDITION_TYPE } from './condition-fields';
 import { ConditionRow } from './ConditionRow';
 import type { ConditionRowsState } from './use-condition-rows';
+import type { RowTracker } from './use-live-drafts';
 
 export interface ConditionListCopy {
   readonly group: string;
   readonly add: string;
   readonly remove: string;
   readonly cancel: string;
+  readonly limit: string;
 }
 
 export interface ConditionListProps {
@@ -20,7 +22,7 @@ export interface ConditionListProps {
   readonly copy: ConditionListCopy;
   readonly disabled: boolean;
   readonly onChange: (conditions: AutomationCondition[]) => void;
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly tracker: RowTracker;
 }
 
 export function ConditionList({
@@ -30,7 +32,7 @@ export function ConditionList({
   copy,
   disabled,
   onChange,
-  onDirty,
+  tracker,
 }: ConditionListProps) {
   const { rows } = state;
   const entries = [
@@ -74,7 +76,7 @@ export function ConditionList({
                   }
                   onChange(conditions.filter((_, position) => position !== index));
                 }}
-                onDirty={onDirty}
+                tracker={tracker}
               />
             </Fragment>
           ))}
@@ -83,13 +85,14 @@ export function ConditionList({
       <Button
         variant="ghost"
         className="au-add"
-        disabled={disabled || rows.pending !== null}
+        disabled={disabled || !state.canAdd}
         onClick={() => {
           state.addPending(NEW_CONDITION_TYPE);
         }}
       >
         {copy.add}
       </Button>
+      {state.full ? <p className="au-note">{copy.limit}</p> : null}
     </>
   );
 }
