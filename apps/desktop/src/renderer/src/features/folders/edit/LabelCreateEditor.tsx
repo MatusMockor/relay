@@ -3,12 +3,8 @@ import { describeError } from '../../../data/errors';
 import { useCreateLabel } from '../../../data/hooks/use-label-mutations';
 import { showToast } from '../../../state/toast-store';
 import { FOLDER_COPY } from './folder-copy';
-import { setFolderEdit } from './folder-edit-store';
 import { FolderNameInput } from './FolderNameInput';
-
-const close = () => {
-  setFolderEdit(null);
-};
+import { useOwnEditClose } from './use-own-edit-close';
 
 export function LabelCreateEditor({
   accountId,
@@ -18,6 +14,7 @@ export function LabelCreateEditor({
   readonly depth: number;
 }) {
   const create = useCreateLabel();
+  const close = useOwnEditClose();
   const submit = (name: string): Promise<boolean> =>
     create
       .mutateAsync({ accountId, name })

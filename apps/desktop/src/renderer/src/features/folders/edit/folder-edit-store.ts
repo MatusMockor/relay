@@ -32,6 +32,13 @@ export const setFolderEdit = (edit: FolderEdit | null): void => {
   useFolderEdit.setState({ edit });
 };
 
+export const closeFolderEdit = (edit: FolderEdit | null): void => {
+  if (useFolderEdit.getState().edit !== edit) {
+    return;
+  }
+  useFolderEdit.setState({ edit: null });
+};
+
 export const isRenaming = (edit: FolderEdit | null, mailbox: Mailbox): boolean =>
   edit?.kind === 'rename' && edit.target.mailbox.id === mailbox.id;
 

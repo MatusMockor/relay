@@ -37,6 +37,9 @@ export function FolderNameInput({
     setBusy(true);
     const saved = await onSubmit(name);
     if (!mounted.current) {
+      if (saved) {
+        onClose();
+      }
       return;
     }
     setBusy(false);
