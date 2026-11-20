@@ -95,6 +95,7 @@ const SCENARIO: readonly ScenarioThread[] = [
     message: {
       subject: 'Zmluva o dielo',
       from: CONTRACTOR,
+      to: [{ name: 'Zuzana Bieliková', email: 'zuzana@firma.sk' }],
       snippet: 'Návrh zmluvy',
       textBody: 'Návrh zmluvy v texte.',
     },

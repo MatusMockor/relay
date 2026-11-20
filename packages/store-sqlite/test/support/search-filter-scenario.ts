@@ -117,6 +117,7 @@ export const seedSearchFilterScenario = async (
     {
       subject: 'Zmluva o dielo',
       from: CONTRACTOR,
+      to: [{ name: 'Zuzana Bieliková', email: 'zuzana@firma.sk' }],
       date: at(6),
       snippet: 'Návrh zmluvy',
       textBody: 'Návrh zmluvy v texte.',

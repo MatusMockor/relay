@@ -12,6 +12,9 @@ const FILTER_CASES: readonly FilterCase[] = [
   ['searches every column by default', { search: 'jana' }, ['t-meeting', 't-invoice']],
   ['limits the search to the sender', { search: 'jana', searchField: 'from' }, ['t-invoice']],
   ['matches sender email parts', { search: 'klient.sk', searchField: 'from' }, ['t-invoice']],
+  ['folds diacritics in the sender field', { search: 'novak', searchField: 'from' }, ['t-invoice']],
+  ['skips recipient names in the sender field', { search: 'bielikova', searchField: 'from' }, []],
+  ['skips recipient emails in the sender field', { search: 'zuzana', searchField: 'from' }, []],
   ['limits the search to the subject', { search: 'faktur', searchField: 'subject' }, ['t-invoice']],
   ['requires every term in the field', { search: 'faktur jana', searchField: 'subject' }, []],
   [

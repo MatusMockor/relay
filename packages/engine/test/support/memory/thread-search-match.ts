@@ -1,21 +1,19 @@
 import type { Message, ThreadSearchField, ThreadSummary } from '@relay/shared/domain';
 import { hasFileAttachments, type ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { matchesEveryPhrase, toSearchPhrases } from './search-text-match';
 
-const activeSearch = (search: string | null): string | null => {
-  const trimmed = search?.trim() ?? '';
-  return trimmed === '' ? null : trimmed.toLowerCase();
-};
+const senderOf = (message: Message): string =>
+  `${message.from?.name ?? ''} ${message.from?.email ?? ''}`;
 
 const messageFields = (message: Message, field: ThreadSearchField | null): (string | null)[] => {
-  const sender = [message.from?.name ?? null, message.from?.email ?? null];
   if (field === 'from') {
-    return sender;
+    return [senderOf(message)];
   }
   if (field === 'subject') {
     return [message.subject];
   }
-  return [message.subject, ...sender, message.snippet, message.textBody];
+  return [message.subject, senderOf(message), message.snippet, message.textBody];
 };
 
 const summaryFields = (thread: ThreadSummary): string[] => [
@@ -24,30 +22,30 @@ const summaryFields = (thread: ThreadSummary): string[] => [
   ...thread.participants.flatMap((address) => [address.email, address.name ?? '']),
 ];
 
-const contains =
-  (needle: string) =>
-  (value: string | null): boolean =>
-    (value ?? '').toLowerCase().includes(needle);
-
 const withFileAttachment = (message: Message): boolean => hasFileAttachments(message.attachments);
+
+export const hasSearchTerms = (query: ThreadFolderQuery): boolean =>
+  toSearchPhrases(query.search).length > 0;
 
 export class ThreadSearchMatch {
   constructor(private readonly db: MemoryDatabase) {}
 
   matches(thread: ThreadSummary, query: ThreadFolderQuery): boolean {
-    const needle = activeSearch(query.search);
+    const phrases = toSearchPhrases(query.search);
     const attachmentRequired = query.hasAttachment === true;
-    if (needle === null) {
+    if (phrases.length === 0) {
       return !attachmentRequired || this.messagesOf(thread).some(withFileAttachment);
     }
     const field = query.searchField ?? null;
     const matched = this.messagesOf(thread).filter((message) =>
-      messageFields(message, field).some(contains(needle)),
+      matchesEveryPhrase(messageFields(message, field), phrases),
     );
     if (attachmentRequired) {
       return matched.some(withFileAttachment);
     }
-    return matched.length > 0 || (field === null && summaryFields(thread).some(contains(needle)));
+    return (
+      matched.length > 0 || (field === null && matchesEveryPhrase(summaryFields(thread), phrases))
+    );
   }
 
   private messagesOf(thread: ThreadSummary): Message[] {

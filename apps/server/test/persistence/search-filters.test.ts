@@ -11,6 +11,9 @@ const FILTER_CASES: readonly FilterCase[] = [
   ['searches every column by default', { search: 'jana' }, ['t-meeting', 't-invoice']],
   ['limits the search to the sender', { search: 'jana', searchField: 'from' }, ['t-invoice']],
   ['matches sender email parts', { search: 'klient.sk', searchField: 'from' }, ['t-invoice']],
+  ['folds diacritics in the sender field', { search: 'novak', searchField: 'from' }, ['t-invoice']],
+  ['skips recipient names in the sender field', { search: 'bielikova', searchField: 'from' }, []],
+  ['skips recipient emails in the sender field', { search: 'zuzana', searchField: 'from' }, []],
   ['limits the search to the subject', { search: 'faktur', searchField: 'subject' }, ['t-invoice']],
   ['requires every term in the field', { search: 'faktur jana', searchField: 'subject' }, []],
   [
@@ -104,24 +107,6 @@ describe('PgThreadRepository.queryFolder search filters', () => {
     await expect(keysOf({ view: 'mailbox', mailboxId: work.mailboxes.sent.id })).resolves.toEqual(
       [],
     );
-  });
-
-  it('matches recipients with the sender field', async () => {
-    const { thread } = await seedThread(
-      context.repositories,
-      work,
-      { state: 'done' },
-      {
-        subject: 'Kópia',
-        from: { name: 'Ondrej', email: 'ondrej@firma.sk' },
-        to: [{ name: 'Zuzana Bieliková', email: 'zuzana@firma.sk' }],
-      },
-    );
-    keys.set(thread.id, 't-copy');
-
-    await expect(
-      keysOf({ everywhere: true, search: 'bielikova', searchField: 'from' }),
-    ).resolves.toEqual(['t-copy']);
   });
 
   it('keeps the account scope everywhere', async () => {

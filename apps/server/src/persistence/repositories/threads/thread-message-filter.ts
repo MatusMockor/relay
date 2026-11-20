@@ -1,13 +1,8 @@
 import type { ThreadFolderQuery } from '@relay/engine';
-import type { ThreadSearchField } from '@relay/shared/domain';
 import { and, type SQL, sql } from 'drizzle-orm';
 import { messages, threads } from '../../schema';
-import { prefixTsQuery, type SearchWeight, toSearchTerms } from './search-query';
-
-const FIELD_WEIGHTS: Readonly<Record<ThreadSearchField, SearchWeight>> = {
-  from: 'B',
-  subject: 'A',
-};
+import { prefixTsQuery, toSearchTerms } from './search-query';
+import { senderSearchMatch } from './sender-search-match';
 
 const hasFileAttachment = sql`${messages.attachments} @> '[{"inline": false}]'::jsonb`;
 
@@ -16,8 +11,10 @@ const searchMatch = (query: ThreadFolderQuery): SQL | undefined => {
   if (terms.length === 0) {
     return undefined;
   }
-  const field = query.searchField ?? null;
-  const weight = field === null ? null : FIELD_WEIGHTS[field];
+  if (query.searchField === 'from') {
+    return senderSearchMatch(terms);
+  }
+  const weight = query.searchField === 'subject' ? 'A' : null;
   return sql`${messages.searchVector} @@ ${prefixTsQuery(terms, weight)}`;
 };
 
