@@ -146,7 +146,7 @@ describe('top bar search field', () => {
 
     await waitFor(() => {
       const options = screen.getAllByRole('option');
-      expect(options.length).toBeGreaterThan(100);
+      expect(options.length).toBeGreaterThan(50);
       expect(options.every((option) => option.textContent.includes(TOKEN))).toBe(true);
     });
     expect(field().querySelector('.srch-count')).toBeNull();

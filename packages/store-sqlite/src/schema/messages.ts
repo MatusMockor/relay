@@ -42,6 +42,7 @@ export const messages = sqliteTable(
   (table) => [
     uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
     index('messages_thread_date_idx').on(table.threadId, table.dateTs),
+    index('messages_mailbox_thread_idx').on(table.mailboxId, table.threadId),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
     index('messages_account_email_idx').on(table.accountId, table.emailId),
     index('messages_user_idx').on(table.userId),

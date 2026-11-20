@@ -69,14 +69,20 @@ function Snippet({ item, context }: { readonly item: ListItem; readonly context:
   );
 }
 
+export interface RowPosition {
+  readonly index: number;
+  readonly setSize: number;
+}
+
 export interface ListRowProps {
   readonly item: ListItem;
   readonly selected: boolean;
   readonly context: RowContext;
   readonly onOpen: (item: ListItem) => void;
+  readonly position?: RowPosition;
 }
 
-export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
+export function ListRow({ item, selected, context, onOpen, position }: ListRowProps) {
   const showThreadMenu = useThreadMenu();
   const thread = item.kind === 'thread' ? item.thread : null;
   const subject =
@@ -100,6 +106,8 @@ export function ListRow({ item, selected, context, onOpen }: ListRowProps) {
       title={context.unified ? context.account?.displayName : undefined}
       role="option"
       aria-selected={selected}
+      aria-posinset={position === undefined ? undefined : position.index + 1}
+      aria-setsize={position?.setSize}
       onClick={() => {
         onOpen(item);
       }}

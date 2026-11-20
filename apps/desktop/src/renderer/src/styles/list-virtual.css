@@ -1,0 +1,25 @@
+.a-list-body {
+  position: relative;
+}
+.a-group {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.a-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.a-group.first > .a-day {
+  padding-top: 12px;
+}
+.a-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 14px 0;
+  color: var(--fg4);
+  font-size: var(--fs-sm);
+}

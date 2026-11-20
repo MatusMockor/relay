@@ -24,7 +24,7 @@ const labelCondition = (labelId: string | null): SQL | undefined =>
 const mailboxCondition = (mailboxId: string | null): SQL | undefined =>
   mailboxId === null
     ? undefined
-    : sql`${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`;
+    : sql`+${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`;
 
 const folderScopeCondition = (query: ThreadFolderQuery): SQL | undefined => {
   if (query.everywhere === true) {
