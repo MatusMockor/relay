@@ -37,6 +37,10 @@ export class DemoMoves {
 
   constructor(private readonly state: DemoState) {}
 
+  hasOrigin(threadId: ThreadId): boolean {
+    return this.origins.has(threadId);
+  }
+
   apply(record: DemoThreadRecord, action: ThreadAction): ThreadSummary {
     if (action.type === 'move') {
       return this.move(record, action.mailboxId);

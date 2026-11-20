@@ -6,6 +6,16 @@ import { usePgTestContext } from './support/pg-test-context';
 
 const RETENTION = { olderThan: at(0), keep: 3 };
 
+const UNDONE_ACTIONS: AutomationActivityRecord['actions'] = [
+  {
+    action: { type: 'archive' },
+    outcome: 'ok',
+    changed: [],
+    previousState: 'inbox',
+    undo: 'undone',
+  },
+];
+
 const ruleOf = (seeded: SeededAccount): Automation => ({
   id: newId('automation'),
   userId: seeded.user.id,
@@ -36,8 +46,14 @@ const recordOf = (
   from: { name: 'Tibor', email: 'tibor@efabrica.sk' },
   subject: 'Faktúra',
   actions: [
-    { action: { type: 'archive' }, outcome: 'ok' },
-    { action: { type: 'markRead' }, outcome: 'failed' },
+    { action: { type: 'archive' }, outcome: 'ok', changed: [], previousState: 'inbox', undo: null },
+    {
+      action: { type: 'markRead' },
+      outcome: 'failed',
+      changed: [],
+      previousState: null,
+      undo: null,
+    },
   ],
   createdAt,
   undoneAt: null,
@@ -85,10 +101,15 @@ describe('PgAutomationActivityRepository', () => {
       await activity.append(record, RETENTION);
     }
 
-    await expect(activity.markUndone(seeded.user.id, undone.id, at(40))).resolves.toBe(true);
-    await expect(activity.markUndone(seeded.user.id, undone.id, at(50))).resolves.toBe(false);
+    await expect(
+      activity.recordUndo(seeded.user.id, undone.id, UNDONE_ACTIONS, at(40)),
+    ).resolves.toBe(true);
+    await expect(
+      activity.recordUndo(seeded.user.id, undone.id, UNDONE_ACTIONS, at(50)),
+    ).resolves.toBe(false);
 
     await expect(activity.findById(seeded.user.id, undone.id)).resolves.toMatchObject({
+      actions: UNDONE_ACTIONS,
       undoneAt: at(40),
     });
     const listed = await activity.listOpenSince(seeded.user.id, automation.id, at(15));
@@ -103,12 +124,15 @@ describe('PgAutomationActivityRepository', () => {
 
     await expect(activity.findById(other, record.id)).resolves.toBeNull();
     await expect(activity.listRecent(other, automation.id, 10)).resolves.toEqual([]);
-    await expect(activity.markUndone(other, record.id, at(20))).resolves.toBe(false);
+    await expect(activity.recordUndo(other, record.id, UNDONE_ACTIONS, at(20))).resolves.toBe(
+      false,
+    );
   });
 
   it('prunes entries past the retention age and beyond the per rule cap', async () => {
     const { seeded, automation, activity } = await seed();
     await activity.append(recordOf(seeded, automation, at(-10)), RETENTION);
+    await expect(activity.listRecent(seeded.user.id, automation.id, 10)).resolves.toEqual([]);
     const recent = [10, 20, 30, 40].map((minutes) => recordOf(seeded, automation, at(minutes)));
     for (const record of recent) {
       await activity.append(record, RETENTION);

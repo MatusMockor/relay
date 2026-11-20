@@ -1,6 +1,7 @@
 import {
   AccountIdSchema,
   type AutomationActivity,
+  type AutomationActivityAction,
   AutomationActivityIdSchema,
   AutomationIdSchema,
   LabelIdSchema,
@@ -23,6 +24,17 @@ const targets = (loaded: boolean): ActionTargets => ({
   gmail: false,
 });
 
+const ran = (
+  action: AutomationActivityAction['action'],
+  outcome: AutomationActivityAction['outcome'],
+): AutomationActivityAction => ({
+  action,
+  outcome,
+  changed: outcome === 'ok' ? [MessageIdSchema.parse('message-1')] : [],
+  previousState: 'inbox',
+  undo: null,
+});
+
 const entry = (undoneAt: string | null): AutomationActivity => ({
   id: AutomationActivityIdSchema.parse('activity-1'),
   automationId: AutomationIdSchema.parse('automation-1'),
@@ -32,7 +44,7 @@ const entry = (undoneAt: string | null): AutomationActivity => ({
   source: 'live',
   from: null,
   subject: 'Faktúra',
-  actions: [{ action: { type: 'archive' }, outcome: 'ok' }],
+  actions: [ran({ type: 'archive' }, 'ok')],
   createdAt: '2026-11-19T08:00:00.000Z',
   undoneAt,
 });
@@ -41,14 +53,14 @@ describe('rule history helpers', () => {
   it('labels every action chip and marks failed ones', () => {
     const chips = historyChipsOf(
       [
-        { action: { type: 'notify' }, outcome: 'ok' },
-        { action: { type: 'summary' }, outcome: 'ok' },
-        { action: { type: 'task' }, outcome: 'ok' },
-        { action: { type: 'markRead' }, outcome: 'ok' },
-        { action: { type: 'pin' }, outcome: 'ok' },
-        { action: { type: 'archive' }, outcome: 'failed' },
-        { action: { type: 'addLabel', labelId: LabelIdSchema.parse('l1') }, outcome: 'ok' },
-        { action: { type: 'moveTo', mailboxId: MailboxIdSchema.parse('m1') }, outcome: 'ok' },
+        ran({ type: 'notify' }, 'ok'),
+        ran({ type: 'summary' }, 'ok'),
+        ran({ type: 'task' }, 'ok'),
+        ran({ type: 'markRead' }, 'ok'),
+        ran({ type: 'pin' }, 'ok'),
+        ran({ type: 'archive' }, 'failed'),
+        ran({ type: 'addLabel', labelId: LabelIdSchema.parse('l1') }, 'ok'),
+        ran({ type: 'moveTo', mailboxId: MailboxIdSchema.parse('m1') }, 'ok'),
       ],
       targets(true),
     );
@@ -67,7 +79,7 @@ describe('rule history helpers', () => {
 
   it('keeps neutral target chips while the targets load', () => {
     const chips = historyChipsOf(
-      [{ action: { type: 'addLabel', labelId: LabelIdSchema.parse('l1') }, outcome: 'ok' }],
+      [ran({ type: 'addLabel', labelId: LabelIdSchema.parse('l1') }, 'ok')],
       targets(false),
     );
 

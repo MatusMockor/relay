@@ -1,5 +1,6 @@
 import type {
   AutomationActivity,
+  AutomationActivityAction,
   AutomationActivityId,
   AutomationId,
   UserId,
@@ -37,5 +38,10 @@ export interface AutomationActivityRepository {
     since: string,
   ): Promise<AutomationActivityStats>;
   findById(userId: UserId, id: AutomationActivityId): Promise<AutomationActivity | null>;
-  markUndone(userId: UserId, id: AutomationActivityId, at: string): Promise<boolean>;
+  recordUndo(
+    userId: UserId,
+    id: AutomationActivityId,
+    actions: readonly AutomationActivityAction[],
+    undoneAt: string | null,
+  ): Promise<boolean>;
 }

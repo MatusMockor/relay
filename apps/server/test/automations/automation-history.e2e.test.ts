@@ -79,8 +79,8 @@ describe('automation history over the server', () => {
       token,
     );
     expect(undone.results).toEqual([
-      { action: { type: 'archive' }, outcome: 'undone' },
       { action: { type: 'markRead' }, outcome: 'undone' },
+      { action: { type: 'archive' }, outcome: 'undone' },
     ]);
     expect((await listInbox(app.api, token)).items.map((thread) => thread.id)).toEqual([
       first.threadId,

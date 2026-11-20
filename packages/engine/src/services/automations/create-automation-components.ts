@@ -6,6 +6,7 @@ import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { PERMISSIVE_PATTERN_POLICY } from '../splits/split-rule-validator';
 import type { JiraTaskSink } from '../sync/jira-task-sink';
 import type { TaskService } from '../tasks/task-service';
+import { ActionEffectTracker } from './action-effect-tracker';
 import { SummaryAutomationAction, TaskAutomationAction } from './ai-automation-actions';
 import { AutomationActionExecutor } from './automation-action-executor';
 import { AutomationBacklog } from './automation-backlog';
@@ -55,6 +56,7 @@ export const createAutomationComponents = (
       moveTo: new MoveToAutomationAction(shared.actions),
       archive: new ArchiveAutomationAction(shared.actions),
     },
+    new ActionEffectTracker(repositories.messages, repositories.threads),
     deps.logger,
   );
   const history = createAutomationHistory(deps, shared.actions);

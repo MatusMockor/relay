@@ -3,7 +3,7 @@ import type { MessageActionsService } from '../../actions/message-actions-servic
 import { AutomationActivityRecorder } from './automation-activity-recorder';
 import { AutomationActivityUndo } from './automation-activity-undo';
 import { AutomationHistoryService } from './automation-history-service';
-import { AddLabelReverser, MarkReadReverser, PinReverser } from './flag-reversers';
+import { addLabelReverser, markReadReverser, pinReverser } from './flag-reversers';
 import { ArchiveReverser, MoveToReverser } from './location-reversers';
 import { MoveTargetProbe } from './move-target-probe';
 
@@ -24,11 +24,11 @@ export const createAutomationHistory = (
   );
   const undo = new AutomationActivityUndo(
     {
-      markRead: new MarkReadReverser(actions),
-      pin: new PinReverser(actions),
-      addLabel: new AddLabelReverser(actions),
-      moveTo: new MoveToReverser(actions, probe),
-      archive: new ArchiveReverser(actions),
+      markRead: markReadReverser(actions, repositories.messages),
+      pin: pinReverser(actions, repositories.messages),
+      addLabel: addLabelReverser(actions, repositories.messages),
+      moveTo: new MoveToReverser(actions, probe, repositories.messages),
+      archive: new ArchiveReverser(actions, probe),
     },
     repositories.threads,
     deps.logger,

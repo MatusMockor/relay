@@ -1,4 +1,11 @@
-import type { ThreadAction, ThreadId, ThreadSummary, UserId } from '@relay/shared/domain';
+import type {
+  LabelId,
+  MessageId,
+  ThreadAction,
+  ThreadId,
+  ThreadSummary,
+  UserId,
+} from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { MessageRepository } from '../../ports/message-repository';
@@ -12,6 +19,11 @@ import type { PinHandler } from './handlers/pin-handler';
 import type { ReadStateHandler } from './handlers/read-state-handler';
 import type { StateMoveHandler } from './handlers/state-move-handler';
 import type { ThreadActionContext } from './thread-action-context';
+
+export type MessageRevert =
+  | { readonly type: 'markUnread' }
+  | { readonly type: 'unpin' }
+  | { readonly type: 'removeLabel'; readonly labelId: LabelId };
 
 export interface MessageActionsServiceDeps {
   readonly threads: ThreadRepository;
@@ -39,8 +51,18 @@ export class MessageActionsService implements ThreadReadMarker {
     return thread;
   }
 
-  async unpin(userId: UserId, threadId: ThreadId): Promise<ThreadSummary> {
-    const thread = await this.deps.pins.unpin(await this.context(userId, threadId));
+  async revert(
+    userId: UserId,
+    threadId: ThreadId,
+    messageIds: readonly MessageId[],
+    revert: MessageRevert,
+  ): Promise<ThreadSummary> {
+    const context = await this.context(userId, threadId);
+    const targets = new Set<string>(messageIds);
+    const thread = await this.revertOn(
+      { ...context, messages: context.messages.filter((message) => targets.has(message.id)) },
+      revert,
+    );
     await this.deps.events.emit(userId, 'thread.upserted', { thread });
     return thread;
   }
@@ -56,6 +78,17 @@ export class MessageActionsService implements ThreadReadMarker {
     const thread = await this.dispatch(context, action);
     await this.deps.events.emit(userId, 'thread.upserted', { thread });
     return thread;
+  }
+
+  private revertOn(context: ThreadActionContext, revert: MessageRevert): Promise<ThreadSummary> {
+    switch (revert.type) {
+      case 'markUnread':
+        return this.deps.readState.markAllUnread(context);
+      case 'unpin':
+        return this.deps.pins.unpinAll(context);
+      case 'removeLabel':
+        return this.deps.labels.remove(context, revert.labelId);
+    }
   }
 
   private dispatch(

@@ -29,8 +29,8 @@ describe('demo rule history', () => {
     );
 
     expect(undone.results.map(({ action, outcome }) => [action.type, outcome])).toEqual([
-      ['moveTo', 'undone'],
       ['addLabel', 'undone'],
+      ['moveTo', 'undone'],
     ]);
     expect(undone.entry.undoneAt).toBe(NOW.toISOString());
     expect((await demo.getThread(demoIds.thread('o-pipeline'))).thread).toMatchObject({
@@ -90,4 +90,62 @@ describe('demo rule history', () => {
       unread: true,
     });
   });
+
+  it('skips the reversals of a thread the user moved to the trash', async () => {
+    const demo = client();
+    const merged = await mergedRun(demo);
+    await demo.applyThreadAction(demoIds.thread('o-mr-merged'), { type: 'trash' });
+
+    const result = await demo.undoAutomationActivity(GITLAB, merged);
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['skipped', 'skipped']);
+    expect((await demo.getThread(demoIds.thread('o-mr-merged'))).thread).toMatchObject({
+      state: 'trash',
+      unread: false,
+    });
+  });
+
+  it('skips an archive the user later filed into a folder', async () => {
+    const demo = client();
+    const merged = await mergedRun(demo);
+    await demo.applyThreadAction(demoIds.thread('o-mr-merged'), {
+      type: 'move',
+      mailboxId: demoIds.folder('efa', 'projekty'),
+    });
+
+    const result = await demo.undoAutomationActivity(GITLAB, merged);
+
+    expect(result.results.map(({ action, outcome }) => [action.type, outcome])).toEqual([
+      ['markRead', 'undone'],
+      ['archive', 'skipped'],
+    ]);
+  });
+
+  it('skips a move the user already reversed and then archived', async () => {
+    const demo = client();
+    await demo.applyAutomation(GITLAB);
+    const thread = demoIds.thread('o-pipeline');
+    await demo.applyThreadAction(thread, { type: 'undoMove' });
+    await demo.applyThreadAction(thread, { type: 'archive' });
+    const { entries } = await demo.automationHistory(GITLAB);
+    const applied = entries.find((entry) => entry.source === 'apply' && entry.undoneAt === null);
+
+    const result = await demo.undoAutomationActivity(
+      GITLAB,
+      applied?.id ?? AutomationActivityIdSchema.parse('missing'),
+    );
+
+    expect(result.results.map(({ action, outcome }) => [action.type, outcome])).toEqual([
+      ['addLabel', 'undone'],
+      ['moveTo', 'skipped'],
+    ]);
+    expect((await demo.getThread(thread)).thread.state).toBe('done');
+  });
 });
+
+async function mergedRun(demo: ReturnType<typeof client>) {
+  const { entries } = await demo.automationHistory(GITLAB);
+  const merged = entries.find((entry) => entry.threadId === demoIds.thread('o-mr-merged'));
+  expect(merged).toBeDefined();
+  return merged?.id ?? AutomationActivityIdSchema.parse('missing');
+}

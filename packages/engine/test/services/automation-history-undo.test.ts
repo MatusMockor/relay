@@ -30,10 +30,10 @@ describe('undoing an automation run', () => {
     expect(result.alreadyUndone).toBe(false);
     expect(result.entry.undoneAt).toBe(setup.engine.clock.now().toISOString());
     expect(result.results).toEqual([
-      { action: { type: 'archive' }, outcome: 'undone' },
-      { action: { type: 'addLabel', labelId: setup.label.id }, outcome: 'undone' },
-      { action: { type: 'pin' }, outcome: 'undone' },
       { action: { type: 'markRead' }, outcome: 'undone' },
+      { action: { type: 'pin' }, outcome: 'undone' },
+      { action: { type: 'addLabel', labelId: setup.label.id }, outcome: 'undone' },
+      { action: { type: 'archive' }, outcome: 'undone' },
     ]);
     expect(threadBySubject(setup.engine, 'Faktúra 1')).toMatchObject({
       state: 'inbox',
@@ -115,9 +115,9 @@ describe('undoing an automation run', () => {
     const result = await undoEntry(setup, rule, await onlyEntry(setup, rule));
 
     expect(result.results).toEqual([
-      { action: { type: 'archive' }, outcome: 'skipped' },
-      { action: { type: 'markRead' }, outcome: 'skipped' },
       { action: { type: 'notify' }, outcome: 'notUndoable' },
+      { action: { type: 'markRead' }, outcome: 'skipped' },
+      { action: { type: 'archive' }, outcome: 'skipped' },
     ]);
     expect(result.entry.undoneAt).not.toBeNull();
   });

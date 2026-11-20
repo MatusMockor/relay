@@ -35,4 +35,14 @@ export class MoveTargetProbe {
       ? { role: mailbox.role, labelId: null }
       : null;
   }
+
+  async hasMailIn(userId: UserId, thread: ThreadSummary, role: MailboxRole): Promise<boolean> {
+    const messages = await this.messages.listByThread(userId, thread.id);
+    for (const mailboxId of new Set(messages.map((message) => message.mailboxId))) {
+      if ((await this.mailboxes.findById(mailboxId))?.role === role) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

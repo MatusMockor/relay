@@ -68,15 +68,21 @@ export const createDemoAutomationHistory = (
     if (entry.undoneAt !== null) {
       return { entry, alreadyUndone: true, results: [] };
     }
-    const results = undo.undo(entry);
-    const settledEntry =
-      isUndoableActivity(entry) && results.every((result) => result.outcome !== 'failed')
-        ? { ...entry, undoneAt: now().toISOString() }
-        : entry;
-    state.ruleHistory = state.ruleHistory.map((item) =>
-      item.id === entry.id ? settledEntry : item,
-    );
-    return { entry: settledEntry, alreadyUndone: false, results };
+    const actions = undo.undo(entry);
+    const outcomes = actions.map((action) => action.undo);
+    const done =
+      outcomes.every((outcome) => outcome !== 'failed') &&
+      outcomes.some((outcome) => outcome !== 'notUndoable');
+    const saved = { ...entry, actions, undoneAt: done ? now().toISOString() : null };
+    state.ruleHistory = state.ruleHistory.map((item) => (item.id === entry.id ? saved : item));
+    return {
+      entry: saved,
+      alreadyUndone: false,
+      results: actions.map((action) => ({
+        action: action.action,
+        outcome: action.undo ?? 'skipped',
+      })),
+    };
   };
   const undoActivity = (automationId: AutomationId, activityId: AutomationActivityId) => {
     const entry = entriesOf(automationId).find((item) => item.id === activityId);

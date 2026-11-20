@@ -6,6 +6,7 @@ import type {
 } from '@relay/engine';
 import type {
   AutomationActivity,
+  AutomationActivityAction,
   AutomationActivityId,
   AutomationId,
   UserId,
@@ -30,7 +31,7 @@ export class SqliteAutomationActivityRepository implements AutomationActivityRep
   append(record: AutomationActivityRecord, retention: AutomationActivityRetention): Promise<void> {
     return this.executor.execute((db) => {
       db.insert(activity).values(toAutomationActivityRow(record)).run();
-      const rule = eq(activity.automationId, record.automationId);
+      const rule = ofRule(record.userId, record.automationId);
       db.delete(activity)
         .where(and(rule, lt(activity.createdTs, toTimestamp(retention.olderThan))))
         .run();
@@ -111,11 +112,16 @@ export class SqliteAutomationActivityRepository implements AutomationActivityRep
     });
   }
 
-  markUndone(userId: UserId, id: AutomationActivityId, at: string): Promise<boolean> {
+  recordUndo(
+    userId: UserId,
+    id: AutomationActivityId,
+    actions: readonly AutomationActivityAction[],
+    undoneAt: string | null,
+  ): Promise<boolean> {
     return this.executor.execute((db) => {
       const updated = db
         .update(activity)
-        .set({ undoneAt: at })
+        .set({ actions: [...actions], undoneAt })
         .where(and(eq(activity.userId, userId), eq(activity.id, id), isNull(activity.undoneAt)))
         .returning({ id: activity.id })
         .all();

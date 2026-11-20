@@ -90,19 +90,17 @@ export class AutomationHistoryService {
     if (activity.undoneAt !== null) {
       return { entry: activity, alreadyUndone: true, results: [] };
     }
-    const results = await this.deps.undo.undo(userId, activity);
+    const actions = await this.deps.undo.undo(userId, activity);
+    const outcomes = actions.map(({ undo }) => undo);
     const settled =
-      results.every(({ outcome }) => outcome !== 'failed') &&
-      results.some(({ outcome }) => outcome !== 'notUndoable');
-    if (!settled) {
-      return { entry: activity, alreadyUndone: false, results };
-    }
-    const at = this.deps.clock.now().toISOString();
-    const marked = await this.deps.activity.markUndone(userId, activity.id, at);
+      outcomes.every((outcome) => outcome !== 'failed') &&
+      outcomes.some((outcome) => outcome !== 'notUndoable');
+    const undoneAt = settled ? this.deps.clock.now().toISOString() : null;
+    const saved = await this.deps.activity.recordUndo(userId, activity.id, actions, undoneAt);
     return {
-      entry: marked ? { ...activity, undoneAt: at } : activity,
+      entry: saved ? { ...activity, actions, undoneAt } : activity,
       alreadyUndone: false,
-      results,
+      results: actions.map(({ action, undo }) => ({ action, outcome: undo ?? 'skipped' })),
     };
   }
 

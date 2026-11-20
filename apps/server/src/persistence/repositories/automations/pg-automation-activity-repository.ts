@@ -6,6 +6,7 @@ import type {
 } from '@relay/engine';
 import type {
   AutomationActivity,
+  AutomationActivityAction,
   AutomationActivityId,
   AutomationId,
   UserId,
@@ -13,7 +14,7 @@ import type {
 import { and, count, desc, eq, gte, isNull, lt, notInArray, sum } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { automationActivity as activity } from '../../schema';
-import { toDate } from '../../support/timestamps';
+import { toDate, toDateOrNull } from '../../support/timestamps';
 import { toAutomationActivity, toAutomationActivityInsert } from './automation-activity.mapper';
 
 const NEWEST_FIRST = [desc(activity.createdAt), desc(activity.id)] as const;
@@ -27,7 +28,10 @@ export class PgAutomationActivityRepository implements AutomationActivityReposit
   ): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx.insert(activity).values(toAutomationActivityInsert(record));
-      const ofRule = eq(activity.automationId, record.automationId);
+      const ofRule = and(
+        eq(activity.userId, record.userId),
+        eq(activity.automationId, record.automationId),
+      );
       await tx
         .delete(activity)
         .where(and(ofRule, lt(activity.createdAt, toDate(retention.olderThan))));
@@ -101,10 +105,15 @@ export class PgAutomationActivityRepository implements AutomationActivityReposit
     return row === undefined ? null : toAutomationActivity(row);
   }
 
-  async markUndone(userId: UserId, id: AutomationActivityId, at: string): Promise<boolean> {
+  async recordUndo(
+    userId: UserId,
+    id: AutomationActivityId,
+    actions: readonly AutomationActivityAction[],
+    undoneAt: string | null,
+  ): Promise<boolean> {
     const updated = await this.db
       .update(activity)
-      .set({ undoneAt: toDate(at) })
+      .set({ actions: [...actions], undoneAt: toDateOrNull(undoneAt) })
       .where(and(eq(activity.userId, userId), eq(activity.id, id), isNull(activity.undoneAt)))
       .returning({ id: activity.id });
     return updated.length > 0;

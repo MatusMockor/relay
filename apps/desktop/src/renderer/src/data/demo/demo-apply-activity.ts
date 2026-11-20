@@ -1,6 +1,6 @@
 import {
-  type AutomationAction,
   type AutomationActivity,
+  type AutomationActivityAction,
   AutomationActivityIdSchema,
   type AutomationId,
   MessageIdSchema,
@@ -10,7 +10,7 @@ import type { DemoThreadRecord } from './demo-state';
 export const applyActivityOf = (
   automationId: AutomationId,
   record: DemoThreadRecord,
-  actions: readonly AutomationAction[],
+  actions: readonly AutomationActivityAction[],
   at: Date,
   sequence: number,
 ): AutomationActivity => {
@@ -24,7 +24,7 @@ export const applyActivityOf = (
     source: 'apply',
     from: message?.from ?? null,
     subject: message?.subject ?? record.summary.subject,
-    actions: actions.map((action) => ({ action, outcome: 'ok' })),
+    actions: [...actions],
     createdAt: at.toISOString(),
     undoneAt: null,
   };

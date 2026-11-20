@@ -1,5 +1,6 @@
 import type {
   AutomationActivity,
+  AutomationActivityAction,
   AutomationActivityId,
   AutomationId,
   UserId,
@@ -77,7 +78,12 @@ export class MemoryAutomationActivityRepository implements AutomationActivityRep
     return Promise.resolve(row === undefined ? null : publicOf(structuredClone(row)));
   }
 
-  markUndone(userId: UserId, id: AutomationActivityId, at: string): Promise<boolean> {
+  recordUndo(
+    userId: UserId,
+    id: AutomationActivityId,
+    actions: readonly AutomationActivityAction[],
+    undoneAt: string | null,
+  ): Promise<boolean> {
     const rows = this.db.tables.automationActivity;
     const index = rows.findIndex(
       (item) => item.userId === userId && item.id === id && item.undoneAt === null,
@@ -86,7 +92,7 @@ export class MemoryAutomationActivityRepository implements AutomationActivityRep
     if (row === undefined) {
       return Promise.resolve(false);
     }
-    rows[index] = { ...row, undoneAt: at };
+    rows[index] = { ...row, actions: structuredClone([...actions]), undoneAt };
     return Promise.resolve(true);
   }
 

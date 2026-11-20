@@ -11,6 +11,7 @@ import type { ActionTargets } from '../action-targets';
 import { HistoryEntryRow } from './HistoryEntryRow';
 import { HistoryStats } from './HistoryStats';
 import { startOfToday, undoEntryMessage, undoSinceMessage } from './undo-messages';
+import { useLocalDay } from './use-local-day';
 
 export interface RuleHistoryProps {
   readonly automationId: AutomationId | null;
@@ -31,6 +32,7 @@ function SavedRuleHistory({
   const history = useAutomationHistory(automationId);
   const undoEntry = useUndoAutomationActivity(automationId);
   const undoToday = useUndoAutomationSince(automationId);
+  const day = useLocalDay();
   const busy = undoEntry.isPending || undoToday.isPending;
   if (history.isError) {
     return <p className="au-hint">{describeError(history.error)}</p>;
@@ -39,8 +41,7 @@ function SavedRuleHistory({
     return <p className="au-hist-note">Načítavam históriu…</p>;
   }
   const { stats, entries } = history.data;
-  const since = startOfToday(new Date());
-  const today = entries.filter((entry) => entry.createdAt >= since && isUndoableActivity(entry));
+  const today = entries.filter((entry) => entry.createdAt >= day && isUndoableActivity(entry));
   const undo = (entry: AutomationActivity) => {
     undoEntry.mutate(entry.id, {
       onSuccess: (result) => {
@@ -57,7 +58,7 @@ function SavedRuleHistory({
         <Button
           disabled={busy || today.length === 0}
           onClick={() => {
-            undoToday.mutate(since, {
+            undoToday.mutate(startOfToday(new Date()), {
               onSuccess: (result) => {
                 showToast(undoSinceMessage(result));
               },

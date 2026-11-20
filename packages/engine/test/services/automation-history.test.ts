@@ -64,10 +64,11 @@ describe('automation history', () => {
     const history = await historyOf(setup, rule);
     expect(history.stats).toMatchObject({ runs: 2, failedActions: 2 });
     expect(history.entries.map((entry) => entry.source)).toEqual(['apply', 'apply']);
-    expect(history.entries[0]?.actions).toEqual([
-      { action: { type: 'markRead' }, outcome: 'ok' },
-      { action: { type: 'addLabel', labelId: missing }, outcome: 'failed' },
+    expect(history.entries[0]?.actions).toMatchObject([
+      { action: { type: 'markRead' }, outcome: 'ok', previousState: 'inbox', undo: null },
+      { action: { type: 'addLabel', labelId: missing }, outcome: 'failed', changed: [] },
     ]);
+    expect(history.entries[0]?.actions[0]?.changed).toHaveLength(1);
   });
 
   it('lists the newest entries first and prunes entries past the retention', async () => {

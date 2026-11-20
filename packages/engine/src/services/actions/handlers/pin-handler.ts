@@ -12,7 +12,7 @@ export class PinHandler {
     return this.flags.write(context, targets, 'flagged', true);
   }
 
-  unpin(context: ThreadActionContext): Promise<ThreadSummary> {
+  unpinAll(context: ThreadActionContext): Promise<ThreadSummary> {
     const targets = context.messages.filter((message) => message.flags.flagged);
     return this.flags.write(context, targets, 'flagged', false);
   }

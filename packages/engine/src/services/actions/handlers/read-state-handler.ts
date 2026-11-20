@@ -16,4 +16,9 @@ export class ReadStateHandler {
     const targets = latest === undefined || !latest.flags.seen ? [] : [latest];
     return this.flags.write(context, targets, 'seen', false);
   }
+
+  markAllUnread(context: ThreadActionContext): Promise<ThreadSummary> {
+    const targets = context.messages.filter((message) => message.flags.seen);
+    return this.flags.write(context, targets, 'seen', false);
+  }
 }

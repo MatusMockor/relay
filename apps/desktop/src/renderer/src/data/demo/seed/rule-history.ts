@@ -1,9 +1,11 @@
 import {
+  type AutomationAction,
   type AutomationActivity,
   type AutomationActivityAction,
   AutomationActivityIdSchema,
   type AutomationActivitySource,
   type AutomationId,
+  isReversibleAction,
 } from '@relay/shared';
 import type { DemoThreadRecord } from '../demo-state';
 import { automationId } from './automations';
@@ -12,12 +14,19 @@ import { demoIds } from './ids';
 
 const MINUTE_MS = 60_000;
 
+type SeedAction = Pick<AutomationActivityAction, 'action' | 'outcome'>;
+
+const ran = (action: AutomationAction, outcome: SeedAction['outcome']): SeedAction => ({
+  action,
+  outcome,
+});
+
 interface DemoRunSeed {
   readonly key: string;
   readonly automation: AutomationId;
   readonly thread: string;
   readonly source: AutomationActivitySource;
-  readonly actions: readonly AutomationActivityAction[];
+  readonly actions: readonly SeedAction[];
   readonly at?: (messageAt: number) => number;
   readonly undoneAfterMs?: number;
 }
@@ -37,10 +46,7 @@ const seeds = (now: Date): DemoRunSeed[] => [
     automation: automationId('gitlab'),
     thread: 'o-mr-merged',
     source: 'live',
-    actions: [
-      { action: { type: 'markRead' }, outcome: 'ok' },
-      { action: { type: 'archive' }, outcome: 'ok' },
-    ],
+    actions: [ran({ type: 'markRead' }, 'ok'), ran({ type: 'archive' }, 'ok')],
     at: (messageAt) => Math.max(startOfDay(now), Math.min(messageAt + MINUTE_MS, now.getTime())),
   },
   {
@@ -48,20 +54,14 @@ const seeds = (now: Date): DemoRunSeed[] => [
     automation: automationId('gitlab'),
     thread: 'o-pipeline',
     source: 'live',
-    actions: [
-      { action: efaLabel, outcome: 'failed' },
-      { action: projekty, outcome: 'failed' },
-    ],
+    actions: [ran(efaLabel, 'failed'), ran(projekty, 'failed')],
   },
   {
     key: 'pipeline-apply',
     automation: automationId('gitlab'),
     thread: 'o-pipeline',
     source: 'apply',
-    actions: [
-      { action: efaLabel, outcome: 'ok' },
-      { action: projekty, outcome: 'ok' },
-    ],
+    actions: [ran(efaLabel, 'ok'), ran(projekty, 'ok')],
     at: () => Date.parse(atTime(now, [-3, 14, 5])),
     undoneAfterMs: 15 * MINUTE_MS,
   },
@@ -70,10 +70,7 @@ const seeds = (now: Date): DemoRunSeed[] => [
     automation: automationId('mentions'),
     thread: 'c-web482',
     source: 'live',
-    actions: [
-      { action: { type: 'summary' }, outcome: 'ok' },
-      { action: { type: 'task' }, outcome: 'ok' },
-    ],
+    actions: [ran({ type: 'summary' }, 'ok'), ran({ type: 'task' }, 'ok')],
   },
 ];
 
@@ -97,7 +94,16 @@ const activityOf = (
     source: seed.source,
     from: message.from,
     subject: message.subject,
-    actions: [...seed.actions],
+    actions: seed.actions.map(({ action, outcome }) => {
+      const effective = outcome === 'ok' && isReversibleAction(action);
+      return {
+        action,
+        outcome,
+        changed: effective ? record.messages.map(({ id }) => id) : [],
+        previousState: 'inbox' as const,
+        undo: effective && seed.undoneAfterMs !== undefined ? ('undone' as const) : null,
+      };
+    }),
     createdAt: new Date(at).toISOString(),
     undoneAt:
       seed.undoneAfterMs === undefined ? null : new Date(at + seed.undoneAfterMs).toISOString(),

@@ -1,5 +1,6 @@
 import type { AutomationActivityRecord } from '@relay/engine';
-import type { AutomationActivity } from '@relay/shared/domain';
+import { type AutomationActivity, AutomationActivityActionSchema } from '@relay/shared/domain';
+import { z } from 'zod';
 import type { automationActivity } from '../../schema';
 import { toDate, toDateOrNull, toIso, toIsoOrNull } from '../../support/timestamps';
 
@@ -15,7 +16,7 @@ export const toAutomationActivity = (row: ActivityRow): AutomationActivity => ({
   source: row.source,
   from: row.sender ?? null,
   subject: row.subject,
-  actions: row.actions,
+  actions: z.array(AutomationActivityActionSchema).parse(row.actions),
   createdAt: toIso(row.createdAt),
   undoneAt: toIsoOrNull(row.undoneAt),
 });

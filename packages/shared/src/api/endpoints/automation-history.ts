@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { AutomationActionSchema } from '../../domain/automation-action';
-import { AutomationActivitySchema } from '../../domain/automation-activity';
+import {
+  AutomationActivitySchema,
+  AutomationUndoOutcomeSchema,
+} from '../../domain/automation-activity';
 import { AutomationActivityIdSchema, AutomationIdSchema } from '../../domain/ids';
 import { IsoDateTimeSchema } from '../../domain/primitives';
 import { idParamsOf } from '../common';
@@ -22,9 +25,6 @@ export const AutomationHistoryResponseSchema = z.object({
   entries: z.array(AutomationActivitySchema).max(AUTOMATION_HISTORY_LIMIT),
 });
 export type AutomationHistoryResponse = z.infer<typeof AutomationHistoryResponseSchema>;
-
-export const AutomationUndoOutcomeSchema = z.enum(['undone', 'skipped', 'failed', 'notUndoable']);
-export type AutomationUndoOutcome = z.infer<typeof AutomationUndoOutcomeSchema>;
 
 export const AutomationUndoResultSchema = z.object({
   action: AutomationActionSchema,

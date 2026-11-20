@@ -1,17 +1,23 @@
-import type { AutomationUndoOutcome, AutomationUndoResult } from '@relay/shared/api';
-import type { AutomationActivity, AutomationActivityAction, UserId } from '@relay/shared/domain';
+import type {
+  AutomationActivity,
+  AutomationActivityAction,
+  AutomationUndoOutcome,
+  UserId,
+} from '@relay/shared/domain';
 import type { Logger } from '../../../ports/logger';
 import type { ThreadRepository } from '../../../ports/thread-repository';
 import { errorMessage } from '../../shared/mail-provider-sessions';
 import {
   type ActivityReverser,
   type ActivityReversers,
-  isReversible,
+  isRecordedReversible,
   reverseRank,
 } from './activity-reverser';
 
-const byReverseOrder = (left: AutomationActivityAction, right: AutomationActivityAction): number =>
-  reverseRank(left.action) - reverseRank(right.action);
+const HELD_STATES = new Set(['trash', 'spam']);
+
+const isSettled = (entry: AutomationActivityAction): boolean =>
+  entry.undo !== null && entry.undo !== 'failed';
 
 export class AutomationActivityUndo {
   constructor(
@@ -20,38 +26,41 @@ export class AutomationActivityUndo {
     private readonly logger: Logger,
   ) {}
 
-  async undo(userId: UserId, activity: AutomationActivity): Promise<AutomationUndoResult[]> {
-    const results: AutomationUndoResult[] = [];
-    for (const entry of [...activity.actions].sort(byReverseOrder)) {
-      results.push({
-        action: entry.action,
-        outcome: await this.outcomeOf(userId, activity, entry),
-      });
+  async undo(userId: UserId, activity: AutomationActivity): Promise<AutomationActivityAction[]> {
+    const actions = [...activity.actions];
+    const order = actions
+      .map((entry, index) => ({ entry, index }))
+      .sort((left, right) => reverseRank(left.entry.action) - reverseRank(right.entry.action));
+    for (const { entry, index } of order) {
+      if (isSettled(entry)) {
+        continue;
+      }
+      actions[index] = { ...entry, undo: await this.outcomeOf(userId, activity, entry) };
     }
-    return results;
+    return actions;
   }
 
   private async outcomeOf(
     userId: UserId,
     activity: AutomationActivity,
-    { action, outcome }: AutomationActivityAction,
+    entry: AutomationActivityAction,
   ): Promise<AutomationUndoOutcome> {
-    if (!isReversible(action)) {
+    if (!isRecordedReversible(entry)) {
       return 'notUndoable';
     }
-    if (outcome === 'failed') {
+    if (entry.outcome === 'failed' || entry.changed.length === 0) {
       return 'skipped';
     }
     const thread = await this.threads.findById(userId, activity.threadId);
-    if (thread === null) {
+    if (thread === null || HELD_STATES.has(thread.state)) {
       return 'skipped';
     }
-    const reverser = this.reversers[action.type] as ActivityReverser;
-    return reverser.reverse(userId, thread, action).catch((error: unknown) => {
+    const reverser = this.reversers[entry.action.type] as ActivityReverser;
+    return reverser.reverse(userId, thread, entry).catch((error: unknown) => {
       this.logger.warn('Undoing an automation action failed', {
         automationId: activity.automationId,
         activityId: activity.id,
-        action: action.type,
+        action: entry.action.type,
         error: errorMessage(error),
       });
       return 'failed' as const;
