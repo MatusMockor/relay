@@ -76,7 +76,7 @@ describe('rules from a newer Relay version', () => {
     ]);
   });
 
-  it('positions every rule by its place in the replace list, whatever order it sends', async () => {
+  it('orders rules by their submitted order and breaks ties by their place in the list', async () => {
     const setup = await folderSetup();
     const { automations } = setup.engine.services;
     setup.engine.db.tables.unsupportedAutomations.set(USER_ID, [{ ...NEWER, order: 1 }]);
@@ -93,6 +93,26 @@ describe('rules from a newer Relay version', () => {
       ['Prvé', 0],
       [NEWER.name, 1],
       ['Druhé', 2],
+    ]);
+  });
+
+  it('honours unequal submitted orders around a kept newer rule', async () => {
+    const setup = await folderSetup();
+    const { automations } = setup.engine.services;
+    setup.engine.db.tables.unsupportedAutomations.set(USER_ID, [{ ...NEWER, order: 1 }]);
+
+    const saved = await automations.replace(USER_ID, {
+      automations: [
+        automationInput({ name: 'Prvé', order: 2 }),
+        { id: NEWER.id, keep: true },
+        automationInput({ name: 'Druhé', order: 0 }),
+      ],
+    });
+
+    expect(saved.map((entry) => [entry.name, entry.order])).toEqual([
+      ['Druhé', 0],
+      [NEWER.name, 1],
+      ['Prvé', 2],
     ]);
   });
 
