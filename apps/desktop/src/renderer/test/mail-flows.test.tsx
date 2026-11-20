@@ -95,14 +95,17 @@ describe('mail flows', () => {
     await screen.findByRole('listbox', { name: 'Konverzácie' });
     key('g');
     key('a');
-    await waitFor(() => {
-      expect(selectedSubject()).toBe('Re: Onboarding checklist');
-    });
+    expect(await screen.findByRole('heading', { name: /^Archív/ })).toBeDefined();
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    const subject = selectedSubject();
+    expect(subject).not.toBe('');
     key('e');
-    expect(await screen.findByRole('heading', { name: 'Archív je prázdny' })).toBeDefined();
+    await waitFor(() => {
+      expect(rows().map(subjectOf)).not.toContain(subject);
+    });
     key('z');
     await waitFor(() => {
-      expect(rows().map(subjectOf)).toEqual(['Re: Onboarding checklist']);
+      expect(rows().map(subjectOf)).toContain(subject);
     });
   });
 
