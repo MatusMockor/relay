@@ -12,6 +12,7 @@ export const STROKE_ICONS = {
   arrowRight: '<path d="M3 8h9.5M8.7 4.2L12.5 8l-3.8 3.8"/>',
   down: '<path d="M4 6l4 4 4-4"/>',
   search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
+  mail: '<rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="M2.5 4.5L8 9l5.5-4.5"/>',
   inbox: '<path d="M2.5 9.5h3l1 2h3l1-2h3"/><path d="M2.5 9.5L4 3.5h8l1.5 6v3h-11z"/>',
   gear: '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>',
   send: '<path d="M2.5 8L13.5 2.5 10 13.5 7.5 9z"/>',

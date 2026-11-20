@@ -27,6 +27,7 @@ export const openThreadAt = (
       reply: null,
       searchOpen: false,
       query: '',
+      searchFilters: null,
     });
   }, tag);
   appHistory.visit(() => {

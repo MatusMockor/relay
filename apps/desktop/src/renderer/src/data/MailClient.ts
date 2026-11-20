@@ -32,6 +32,8 @@ import type {
   ScheduledSend,
   ScheduledSendId,
   SendBody,
+  ServerSearchRequest,
+  ServerSearchResponse,
   SendResponse,
   Split,
   SplitInput,
@@ -99,6 +101,10 @@ export interface ThreadReader {
   downloadAttachment(attachmentId: AttachmentId): Promise<AttachmentFile>;
 }
 
+export interface ServerSearcher {
+  searchServer(request: ServerSearchRequest): Promise<ServerSearchResponse>;
+}
+
 export interface AccountManager {
   listAccounts(): Promise<MailAccount[]>;
   createAccount(body: CreateAccountBody): Promise<MailAccount>;
@@ -156,6 +162,7 @@ export interface AiAssistant {
 
 export interface MailClient
   extends ThreadReader,
+    ServerSearcher,
     AccountManager,
     FolderManager,
     Composer,

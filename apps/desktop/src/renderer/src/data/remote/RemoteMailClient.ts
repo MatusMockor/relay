@@ -8,6 +8,7 @@ import {
 } from '@relay/shared';
 import { EventBus } from '../event-bus';
 import type { MailClient, MailEventListener } from '../MailClient';
+import { unsupportedServerSearch } from '../server-search';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
 import { RemoteAiRuns } from './RemoteAiRuns';
@@ -37,6 +38,7 @@ type RemoteMailMethods = Omit<
 const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   listThreads: (query) => http.call(api.threads.list, { query }),
   getThread: (id: ThreadId) => http.call(api.threads.get, { params: { id } }),
+  searchServer: (request) => Promise.resolve(unsupportedServerSearch(request)),
   prepareThreadAi: (id, timeZone) =>
     http.call(api.threads.prepareAi, { params: { id }, query: { timeZone } }),
   requestThreadSummary: (id, timeZone) =>

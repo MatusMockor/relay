@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { demoIds } from '../src/data/demo/seed/ids';
-import { openThread } from '../src/features/mail/navigation';
+import { openSearch, openThread } from '../src/features/mail/navigation';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setUi, useUiStore } from '../src/state/ui-store';
 import { demoClient, openThreadBySubject, press } from './features-support';
@@ -54,7 +54,9 @@ describe('history keyboard shortcuts', () => {
     act(() => {
       setUi({ folder: { kind: 'view', view: 'sent' } });
     });
-    press('/', {}, document.body);
+    act(() => {
+      openSearch();
+    });
     const field = await screen.findByLabelText('Hľadať v zozname');
 
     expect(back(field)).toBe(true);

@@ -13,7 +13,8 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Otvoriť konverzáciu', ['↵']],
       ['Ďalší split', ['Tab']],
       ['Predchádzajúci split', ['⇧', 'Tab']],
-      ['Hľadať v zozname', ['/']],
+      ['Hľadať v pošte', [`${MOD}F`, '/']],
+      ['Všetky výsledky v zozname', [`${MOD}↵`]],
     ],
   ],
   [

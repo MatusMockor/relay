@@ -5,9 +5,10 @@ import {
   NO_PAGING,
   useThreadListPaging,
 } from '../../data/hooks/use-thread-list-paging';
-import { listParamsOf, usesThreadList } from '../../state/folders';
+import { usesThreadList } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { draftItems, type ListItem, scheduledItems, threadItem } from './list-items';
+import { useListParams } from './use-list-params';
 
 export interface FolderItems {
   readonly items: readonly ListItem[];
@@ -19,10 +20,9 @@ export interface FolderItems {
 export const useFolderItems = (): FolderItems => {
   const folder = useUiStore((state) => state.folder);
   const scope = useUiStore((state) => state.scope);
-  const query = useUiStore((state) => state.query);
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
-  const params = listParamsOf(folder, scope, query);
+  const params = useListParams();
   const threads = useThreadList(params, usesThreadList(folder));
   const threadPaging = useThreadListPaging(
     params,
