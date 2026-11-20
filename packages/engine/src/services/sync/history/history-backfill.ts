@@ -61,7 +61,7 @@ export class HistoryBackfill {
   ): Promise<HistoryMailboxReport[]> {
     const reports: HistoryMailboxReport[] = [];
     for (const target of targets) {
-      if (budget.exhausted()) {
+      if (!budget.canSearch()) {
         return reports;
       }
       reports.push(await this.deps.mailbox.run(context, target, budget));

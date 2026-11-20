@@ -1,12 +1,14 @@
 import type { Clock } from '../../../ports/clock';
 import type { HistoryOptions } from '../sync-options';
+import type { HistorySearchGate } from './history-window';
 
 export interface HistoryControl {
   shouldYield(): boolean;
 }
 
-export class SliceBudget {
+export class SliceBudget implements HistorySearchGate {
   private remaining: number;
+  private searches: number;
   private readonly deadline: number;
 
   constructor(
@@ -15,6 +17,7 @@ export class SliceBudget {
     private readonly control: HistoryControl,
   ) {
     this.remaining = options.sliceMessages;
+    this.searches = options.sliceSearches;
     this.deadline = clock.now().getTime() + options.sliceMs;
   }
 
@@ -24,6 +27,14 @@ export class SliceBudget {
       this.clock.now().getTime() >= this.deadline ||
       this.control.shouldYield()
     );
+  }
+
+  canSearch(): boolean {
+    return this.searches > 0 && !this.exhausted();
+  }
+
+  searched(): void {
+    this.searches -= 1;
   }
 
   take(batch: number): number {

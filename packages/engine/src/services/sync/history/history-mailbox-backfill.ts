@@ -20,6 +20,8 @@ export interface HistoryMailboxBackfillDeps {
   readonly options: HistoryOptions;
 }
 
+type FoundWindow = Extract<HistoryWindow, { kind: 'found' }>;
+
 interface Drained {
   readonly cursor: HistoryCursor;
   readonly processed: number;
@@ -60,18 +62,24 @@ export class HistoryMailboxBackfill {
     if (progress.cursor.doneAt !== null) {
       return { mailboxId, processed: progress.processed, done: true };
     }
-    if (!progress.complete || budget.exhausted()) {
+    if (!progress.complete || !budget.canSearch()) {
       return { mailboxId, processed: progress.processed, done: false };
     }
     const window = await nextHistoryWindow(
       { missing: (range) => this.missing(context, target, range) },
+      budget,
       progress.cursor.belowUid,
     );
-    if (window.uids.length === 0) {
+    if (window.kind === 'exhausted') {
       await this.deps.cursors.finish(progress.cursor);
       return { mailboxId, processed: progress.processed, done: true };
     }
-    const drained = await this.drain(context, target, budget, progress.cursor, window);
+    if (window.kind === 'paused') {
+      await this.deps.cursors.lower(progress.cursor, window.belowUid);
+      return { mailboxId, processed: progress.processed, done: false };
+    }
+    const start = await this.deps.cursors.lower(progress.cursor, window.range.to + 1);
+    const drained = await this.drain(context, target, budget, start, window);
     return this.windows(context, target, budget, {
       ...drained,
       processed: progress.processed + drained.processed,
@@ -83,7 +91,7 @@ export class HistoryMailboxBackfill {
     target: HistoryTarget,
     budget: SliceBudget,
     start: HistoryCursor,
-    window: HistoryWindow,
+    window: FoundWindow,
   ): Promise<Drained> {
     let cursor = start;
     let processed = 0;
@@ -104,10 +112,11 @@ export class HistoryMailboxBackfill {
       processed += batch.length;
       offset += batch.length;
     }
+    const floor = window.range.from;
     const next =
-      window.floor <= 1
+      floor <= 1
         ? await this.deps.cursors.finish(cursor)
-        : await this.deps.cursors.advance(cursor, window.floor);
+        : await this.deps.cursors.advance(cursor, floor);
     return { cursor: next, processed, complete: true };
   }
 

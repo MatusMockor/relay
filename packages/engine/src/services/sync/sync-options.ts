@@ -4,6 +4,7 @@ export interface HistoryOptions {
   readonly sliceMessages: number;
   readonly sliceMs: number;
   readonly batch: number;
+  readonly sliceSearches: number;
 }
 
 export interface SyncOptions {
@@ -14,13 +15,13 @@ export interface SyncOptions {
   readonly syncUnsubscribedFolders: boolean;
   readonly batchSize: number;
   readonly history: HistoryOptions;
-  readonly bulkEventThreshold: number;
 }
 
 export const DEFAULT_HISTORY_OPTIONS: HistoryOptions = {
   sliceMessages: 500,
   sliceMs: 15_000,
   batch: 100,
+  sliceSearches: 64,
 };
 
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
@@ -31,5 +32,4 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   syncUnsubscribedFolders: false,
   batchSize: 50,
   history: DEFAULT_HISTORY_OPTIONS,
-  bulkEventThreshold: 25,
 };

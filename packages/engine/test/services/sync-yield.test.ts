@@ -4,7 +4,7 @@ import { deliverMail, messageHeader, present, seedAccount } from '../support/fix
 import { seedHistory, storedMessages } from '../support/history';
 import { createTestEngine, TEST_NOW, USER_ID } from '../support/test-engine';
 
-const HISTORY = { sliceMessages: 500, sliceMs: 15_000, batch: 100 };
+const HISTORY = { sliceMessages: 500, sliceMs: 15_000, batch: 100, sliceSearches: 64 };
 
 const syncedArchive = async () => {
   const engine = createTestEngine({ sync: { history: HISTORY } });

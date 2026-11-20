@@ -73,7 +73,7 @@ describe('history backfill side effects', () => {
 
   it('collapses a flush of many refreshed threads into one threads.changed event', async () => {
     const engine = createTestEngine({
-      sync: { history: { sliceMessages: 300, sliceMs: 15_000, batch: 300 } },
+      sync: { history: { sliceMessages: 300, sliceMs: 15_000, batch: 300, sliceSearches: 64 } },
     });
     const { account, server } = await seedAccount(engine);
     seedHistory(server, 'Archive', 340);
@@ -86,6 +86,22 @@ describe('history backfill side effects', () => {
     expect(engine.events.ofType('thread.upserted')).toEqual([]);
     expect(engine.events.ofType('threads.changed').map((event) => event.data)).toEqual([
       { accountId: account.id, count: 300 },
+    ]);
+  });
+
+  it('announces even a small history flush only as threads.changed', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    seedHistory(server, 'INBOX', 3);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    engine.events.clear();
+
+    const report = await engine.services.sync.backfillHistory(USER_ID, account.id);
+
+    expect(report).toMatchObject({ skipped: false, processed: 3 });
+    expect(engine.events.ofType('thread.upserted')).toEqual([]);
+    expect(engine.events.ofType('threads.changed').map((event) => event.data)).toEqual([
+      { accountId: account.id, count: 3 },
     ]);
   });
 

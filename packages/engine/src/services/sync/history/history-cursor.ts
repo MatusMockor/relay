@@ -28,6 +28,13 @@ export class HistoryCursors {
     return this.write({ ...cursor, belowUid, updatedAt: this.now() });
   }
 
+  async lower(cursor: HistoryCursor, belowUid: number): Promise<HistoryCursor> {
+    if (belowUid >= cursor.belowUid) {
+      return cursor;
+    }
+    return this.advance(cursor, belowUid);
+  }
+
   finish(cursor: HistoryCursor): Promise<HistoryCursor> {
     const now = this.now();
     return this.write({ ...cursor, belowUid: 1, doneAt: now, updatedAt: now });

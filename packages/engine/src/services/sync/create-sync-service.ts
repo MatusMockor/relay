@@ -54,7 +54,6 @@ export const createSyncComponents = (
     tasks: shared.tasks,
     calendarParts: shared.calendarParts,
     logger,
-    bulkEventThreshold: options.bulkEventThreshold,
   });
   const ingestor = new MessageIngestor({
     messages: repositories.messages,

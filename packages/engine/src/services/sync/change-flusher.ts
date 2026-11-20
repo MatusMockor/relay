@@ -26,7 +26,6 @@ export interface ChangeFlusherDeps {
   readonly tasks: JiraTaskSink;
   readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
-  readonly bulkEventThreshold: number;
 }
 
 export class ChangeFlusher {
@@ -43,8 +42,7 @@ export class ChangeFlusher {
 
   async flushQuietly(context: SyncContext): Promise<void> {
     const outcomes = await this.refreshThreads(context);
-    if (outcomes.length <= this.deps.bulkEventThreshold) {
-      await publishThreadOutcomes(this.deps.events, context.userId, outcomes);
+    if (outcomes.length === 0) {
       return;
     }
     await this.deps.events.emit(context.userId, 'threads.changed', {

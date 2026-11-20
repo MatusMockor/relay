@@ -13,7 +13,7 @@ import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engi
 
 const ARCHIVE_SIZE = 1500;
 const RESET_SIZE = 700;
-const TIGHT = { sliceMessages: 500, sliceMs: 15_000, batch: 100 };
+const TIGHT = { sliceMessages: 500, sliceMs: 15_000, batch: 100, sliceSearches: 64 };
 
 interface Setup {
   readonly engine: TestEngine;
