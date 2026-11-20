@@ -52,12 +52,11 @@ describe('local mode with an INBOX-only IMAP account (SQLite + GreenMail)', () =
   it('creates Archive and Sent on first use and keeps Jira subjects out of task titles', async () => {
     const { bridge } = harness;
     const rules = supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
-    supportedAutomations(
-      expectOk(
-        await bridge.invoke('local.automations.replace', {
-          automations: rules.map((rule) => ({ ...rule, enabled: true })),
-        }),
-      ),
+
+    expectOk(
+      await bridge.invoke('local.automations.replace', {
+        automations: rules.map((rule) => ({ ...rule, enabled: true })),
+      }),
     );
     const account = expectOk(
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),

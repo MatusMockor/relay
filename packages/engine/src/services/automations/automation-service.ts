@@ -104,10 +104,11 @@ export class AutomationService {
     if (hasJiraTasksPreset(stored)) {
       return this.entries(userId, stored);
     }
-    if (stored.length >= MAX_AUTOMATIONS) {
+    const total = stored.length + (await this.deps.automations.listUnsupported(userId)).length;
+    if (total >= MAX_AUTOMATIONS) {
       throw new ValidationError(`At most ${String(MAX_AUTOMATIONS)} automations are allowed`);
     }
-    await this.deps.automations.restorePreset(await this.presetFor(userId, stored.length));
+    await this.deps.automations.restorePreset(await this.presetFor(userId, total));
     return this.published(userId);
   }
 

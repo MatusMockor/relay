@@ -1,12 +1,10 @@
-import {
-  type AutomationAction,
-  type AutomationActivityAction,
-  type AutomationActivityReminder,
-  type Message,
-  type MessageId,
-  ReminderIdSchema,
-  type ThreadAction,
-  type ThreadSummary,
+import type {
+  AutomationAction,
+  AutomationActivityAction,
+  Message,
+  MessageId,
+  ThreadAction,
+  ThreadSummary,
 } from '@relay/shared';
 import type { DemoMoves } from './demo-moves';
 import type { DemoThreadRecord } from './demo-state';
@@ -58,16 +56,6 @@ const changedOf = (action: AutomationAction, before: Snapshot, after: Snapshot):
   return [];
 };
 
-const reminderOf = (
-  threadAction: ThreadAction,
-  thread: ThreadSummary,
-): AutomationActivityReminder | null => {
-  if (threadAction.type !== 'remind' || thread.remindAt !== threadAction.at) {
-    return null;
-  }
-  return { id: ReminderIdSchema.parse(`reminder-${thread.id}`), remindAt: threadAction.at };
-};
-
 export const trackDemoAction = (
   record: DemoThreadRecord,
   moves: DemoMoves,
@@ -85,7 +73,7 @@ export const trackDemoAction = (
       previousState: before.summary.state,
       origins: [],
       labelled: [],
-      reminder: reminderOf(threadAction, thread),
+      reminder: threadAction.type === 'remind' ? moves.reminders.current(thread) : null,
       undo: null,
       reason: null,
     },

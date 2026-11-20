@@ -21,11 +21,10 @@ const APPLY = 'Použiť na maily, ktoré už mám';
 
 const withTibor = async (client: MailClient, update: Partial<AutomationInput>) => {
   const rules = supportedAutomations(await client.listAutomations());
-  supportedAutomations(
-    await client.replaceAutomations(
-      rules.map((rule) =>
-        rule.name === 'Tibor' ? { ...toAutomationInput(rule), ...update } : toAutomationInput(rule),
-      ),
+
+  await client.replaceAutomations(
+    rules.map((rule) =>
+      rule.name === 'Tibor' ? { ...toAutomationInput(rule), ...update } : toAutomationInput(rule),
     ),
   );
 };

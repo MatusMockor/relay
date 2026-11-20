@@ -6,6 +6,11 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 
+export interface KeptAutomation {
+  readonly id: AutomationId;
+  readonly order: number;
+}
+
 export type PresetAutomation = Automation & { readonly preset: AutomationPreset };
 
 export interface AutomationRepository {
@@ -14,7 +19,7 @@ export interface AutomationRepository {
   replaceAll(
     userId: UserId,
     automations: readonly Automation[],
-    keep?: readonly AutomationId[],
+    keep?: readonly KeptAutomation[],
   ): Promise<Automation[]>;
   createPresetIfAbsent(automation: Automation): Promise<void>;
   isPresetRemoved(userId: UserId, preset: AutomationPreset): Promise<boolean>;

@@ -12,6 +12,7 @@ import type {
 import { MailClientError } from '../errors';
 import { projectThreadAction } from '../thread-projection';
 import { applyReadFlags } from './demo-read-flags';
+import { DemoReminders } from './demo-reminders';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 interface DemoMoveOrigin {
@@ -46,6 +47,7 @@ export class DemoMoves {
   private readonly origins = new Map<ThreadId, DemoMoveOrigin>();
   private readonly claims = new Map<string, number>();
   private sequence = 0;
+  readonly reminders = new DemoReminders();
 
   constructor(private readonly state: DemoState) {}
 
@@ -62,6 +64,12 @@ export class DemoMoves {
   }
 
   apply(record: DemoThreadRecord, action: ThreadAction): ThreadSummary {
+    const thread = this.applyAction(record, action);
+    this.reminders.track(action, thread);
+    return thread;
+  }
+
+  private applyAction(record: DemoThreadRecord, action: ThreadAction): ThreadSummary {
     if (action.type === 'move') {
       return this.move(record, action.mailboxId);
     }

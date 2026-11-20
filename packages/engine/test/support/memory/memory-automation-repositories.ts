@@ -10,6 +10,7 @@ import type {
   AutomationRepository,
   AutomationRun,
   AutomationRunRepository,
+  KeptAutomation,
   PresetAutomation,
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
@@ -31,13 +32,16 @@ export class MemoryAutomationRepository implements AutomationRepository {
   replaceAll(
     userId: UserId,
     automations: readonly Automation[],
-    keep: readonly AutomationId[] = [],
+    keep: readonly KeptAutomation[] = [],
   ): Promise<Automation[]> {
     this.db.tables.automations.set(userId, [...automations]);
     const unsupported = this.db.tables.unsupportedAutomations.get(userId) ?? [];
     this.db.tables.unsupportedAutomations.set(
       userId,
-      unsupported.filter((entry) => keep.includes(entry.id)),
+      unsupported.flatMap((entry) => {
+        const kept = keep.find(({ id }) => id === entry.id);
+        return kept === undefined ? [] : [{ ...entry, order: kept.order }];
+      }),
     );
     return this.listByUser(userId);
   }

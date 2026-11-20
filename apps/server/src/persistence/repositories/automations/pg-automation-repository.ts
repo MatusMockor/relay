@@ -2,12 +2,12 @@ import {
   type AutomationRepository,
   ConflictError,
   ForbiddenError,
+  type KeptAutomation,
   type PresetAutomation,
 } from '@relay/engine';
 import {
   type Automation,
   type AutomationEntry,
-  type AutomationId,
   type AutomationPreset,
   isUnsupportedAutomation,
   supportedAutomations,
@@ -37,7 +37,7 @@ export class PgAutomationRepository implements AutomationRepository {
   async replaceAll(
     userId: UserId,
     items: readonly Automation[],
-    keep: readonly AutomationId[] = [],
+    keep: readonly KeptAutomation[] = [],
   ): Promise<Automation[]> {
     if (items.some((automation) => automation.userId !== userId)) {
       throw new ForbiddenError('Automations must belong to the user');
@@ -48,7 +48,7 @@ export class PgAutomationRepository implements AutomationRepository {
         await assertOwned(tx, 'Account', userId, accountId);
       }
       const written = items.map((automation) => automation.id);
-      const keepIds = [...written, ...keep];
+      const keepIds = [...written, ...keep.map(({ id }) => id)];
       await tx
         .delete(automations)
         .where(
@@ -81,6 +81,12 @@ export class PgAutomationRepository implements AutomationRepository {
         if (stored.length < new Set(written).size) {
           throw new ConflictError('An automation id is already in use');
         }
+      }
+      for (const { id, order } of keep) {
+        await tx
+          .update(automations)
+          .set({ position: order })
+          .where(and(eq(automations.userId, userId), eq(automations.id, id)));
       }
       return new PgAutomationRepository(tx).listByUser(userId);
     });

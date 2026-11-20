@@ -127,16 +127,15 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
   it('warns about a folder that no longer exists', async () => {
     const client = demoClient();
     const rules = supportedAutomations(await client.listAutomations());
-    supportedAutomations(
-      await client.replaceAutomations(
-        rules.map((rule) =>
-          rule.name === 'GitLab do Projektov'
-            ? {
-                ...toAutomationInput(rule),
-                actions: [{ type: 'moveTo', mailboxId: MailboxIdSchema.parse('mbx-efa-zmazany') }],
-              }
-            : toAutomationInput(rule),
-        ),
+
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'GitLab do Projektov'
+          ? {
+              ...toAutomationInput(rule),
+              actions: [{ type: 'moveTo', mailboxId: MailboxIdSchema.parse('mbx-efa-zmazany') }],
+            }
+          : toAutomationInput(rule),
       ),
     );
     const sheet = await openAutomations(client);
@@ -185,13 +184,12 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
   it('swaps archiving and moving in one change', async () => {
     const client = demoClient();
     const rules = supportedAutomations(await client.listAutomations());
-    supportedAutomations(
-      await client.replaceAutomations(
-        rules.map((rule) =>
-          rule.name === 'GitLab do Projektov'
-            ? { ...toAutomationInput(rule), actions: [{ type: 'archive' }] }
-            : toAutomationInput(rule),
-        ),
+
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'GitLab do Projektov'
+          ? { ...toAutomationInput(rule), actions: [{ type: 'archive' }] }
+          : toAutomationInput(rule),
       ),
     );
     const sheet = await openAutomations(client);

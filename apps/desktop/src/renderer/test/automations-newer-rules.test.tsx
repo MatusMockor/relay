@@ -5,12 +5,15 @@ import {
   AutomationIdSchema,
   type AutomationReplaceItem,
   isKeepAutomationInput,
+  supportedAutomations,
   type UnsupportedAutomation,
 } from '@relay/shared';
 import { within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
+import { toAutomationInput, withKeptUnsupported } from '../src/data/hooks/use-replace-automations';
 import { demoClient, settle } from './features-support';
+import { present } from './support/present';
 import { click, openAutomations, row, ruleNames } from './support/automations';
 import { resetStores } from './support/render-app';
 
@@ -77,6 +80,20 @@ describe('Nastavenia > Automatizácie > pravidlá z novšej verzie', () => {
     ]);
 
     expect(parsed).toEqual([NEWER]);
+  });
+
+  it('keeps a newer rule at its place and numbers every rule after it', async () => {
+    const demo = demoClient();
+    const [first, second] = supportedAutomations(await demo.listAutomations());
+    const inputs = [first, second].map((rule) => toAutomationInput(present(rule)));
+    const entries: AutomationEntry[] = [present(first), { ...NEWER, order: 1 }, present(second)];
+
+    const items = withKeptUnsupported(inputs, entries);
+
+    expect(
+      items.map((item) => (isKeepAutomationInput(item) ? `keep ${item.id}` : item.order)),
+    ).toEqual([0, `keep ${NEWER.id}`, 2]);
+    expect(withKeptUnsupported(inputs.slice(0, 1), entries).length).toBe(2);
   });
 
   it('shows a newer rule read-only and keeps it when another rule changes', async () => {

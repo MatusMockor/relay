@@ -29,13 +29,12 @@ describe('Nastavenia > Automatizácie > limity a živý náhľad', () => {
   it('stops adding conditions at the limit of 20', async () => {
     const client = demoClient();
     const rules = supportedAutomations(await client.listAutomations());
-    supportedAutomations(
-      await client.replaceAutomations(
-        rules.map((rule) =>
-          rule.name === 'Tibor'
-            ? { ...toAutomationInput(rule), match: 'any', conditions: domains(20) }
-            : toAutomationInput(rule),
-        ),
+
+    await client.replaceAutomations(
+      rules.map((rule) =>
+        rule.name === 'Tibor'
+          ? { ...toAutomationInput(rule), match: 'any', conditions: domains(20) }
+          : toAutomationInput(rule),
       ),
     );
     const sheet = await openAutomations(client);

@@ -67,12 +67,11 @@ describe('accounts with only an INBOX on the IMAP server', () => {
     const session = await registerUser(app.api, `inbox-only-${owner.email}`);
     const token = session.accessToken;
     const rules = supportedAutomations(await app.api.ok(api.automations.list, {}, token));
-    supportedAutomations(
-      await app.api.ok(
-        api.automations.replace,
-        { body: { automations: rules.map((rule) => ({ ...rule, enabled: true })) } },
-        token,
-      ),
+
+    await app.api.ok(
+      api.automations.replace,
+      { body: { automations: rules.map((rule) => ({ ...rule, enabled: true })) } },
+      token,
     );
     const account = await addImapAccount(app.api, token, owner);
     const threads = await waitForInbox(app.api, token, (items) => items.length === 4);

@@ -1,8 +1,7 @@
-import type { AutomationRepository, PresetAutomation } from '@relay/engine';
+import type { AutomationRepository, KeptAutomation, PresetAutomation } from '@relay/engine';
 import {
   type Automation,
   type AutomationEntry,
-  type AutomationId,
   type AutomationPreset,
   isUnsupportedAutomation,
   supportedAutomations,
@@ -34,14 +33,17 @@ export class SqliteAutomationRepository implements AutomationRepository {
   replaceAll(
     userId: UserId,
     items: readonly Automation[],
-    keep: readonly AutomationId[] = [],
+    keep: readonly KeptAutomation[] = [],
   ): Promise<Automation[]> {
     return this.executor.execute((db) => {
       db.delete(automations)
         .where(
           and(
             eq(automations.userId, userId),
-            notInArray(automations.id, [...items.map((automation) => automation.id), ...keep]),
+            notInArray(automations.id, [
+              ...items.map((automation) => automation.id),
+              ...keep.map(({ id }) => id),
+            ]),
           ),
         )
         .run();
@@ -55,6 +57,12 @@ export class SqliteAutomationRepository implements AutomationRepository {
             set: changes,
             setWhere: eq(automations.userId, userId),
           })
+          .run();
+      });
+      keep.forEach(({ id, order }) => {
+        db.update(automations)
+          .set({ position: order })
+          .where(and(eq(automations.userId, userId), eq(automations.id, id)))
           .run();
       });
       return supportedAutomations(this.listOwned(db, userId));

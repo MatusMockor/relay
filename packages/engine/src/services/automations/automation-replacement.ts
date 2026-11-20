@@ -11,11 +11,12 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import { ValidationError } from '../../errors';
+import type { KeptAutomation } from '../../ports/automation-repository';
 import { storedAutomationOf } from './automation-input';
 
 export interface AutomationReplacement {
   readonly automations: Automation[];
-  readonly keep: AutomationId[];
+  readonly keep: KeptAutomation[];
 }
 
 export interface ReplacementContext {
@@ -39,23 +40,23 @@ export const resolveReplacement = (
 ): AutomationReplacement => {
   const unsupported = new Set(context.unsupported.map((entry) => entry.id));
   const automations: Automation[] = [];
-  const keep: AutomationId[] = [];
-  items.forEach((item) => {
+  const keep: KeptAutomation[] = [];
+  items.forEach((item, order) => {
     if (!isKeepAutomationInput(item)) {
       automations.push(inputOf(item, context));
       return;
     }
     const stored = context.known.get(item.id);
     if (stored !== undefined) {
-      automations.push(stored);
+      automations.push({ ...stored, order });
       return;
     }
     if (!unsupported.has(item.id)) {
       throw new ValidationError(`Unknown automation id ${item.id}`);
     }
-    keep.push(item.id);
+    keep.push({ id: item.id, order });
   });
-  const ids = [...automations.map((automation) => automation.id), ...keep];
+  const ids = [...automations.map((automation) => automation.id), ...keep.map(({ id }) => id)];
   if (new Set(ids).size !== ids.length) {
     throw new ValidationError('Automation ids must be unique');
   }

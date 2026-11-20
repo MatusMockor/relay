@@ -93,7 +93,7 @@ describe('automation data hooks on the demo client', () => {
     const kept = supportedAutomations(await client.listAutomations()).filter(
       (item) => item.preset === null,
     );
-    supportedAutomations(await client.replaceAutomations(kept.map(toAutomationInput)));
+    await client.replaceAutomations(kept.map(toAutomationInput));
 
     const restored = supportedAutomations(await client.restoreDefaultAutomation());
 

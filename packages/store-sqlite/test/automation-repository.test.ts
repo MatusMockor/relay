@@ -122,9 +122,15 @@ describe('SqliteAutomationRepository', () => {
 
     expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([rule]);
     expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([newer]);
-    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [], [newer.id]);
+    await store.repositories.automations.replaceAll(
+      LOCAL_USER_ID,
+      [],
+      [{ id: newer.id, order: 0 }],
+    );
     expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([]);
-    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([newer]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
     await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
     expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([]);
   });

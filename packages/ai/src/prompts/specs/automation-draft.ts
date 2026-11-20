@@ -8,7 +8,7 @@ import { threadSection } from '../thread-section';
 type AutomationDraftInput = Extract<AiJobInput, { kind: 'automationDraft' }>;
 
 const AutomationDraftResponseSchema = z.strictObject({
-  body: z.string().min(1).max(4_000),
+  body: z.string().trim().min(1).max(4_000),
 });
 type AutomationDraftResponse = z.infer<typeof AutomationDraftResponseSchema>;
 

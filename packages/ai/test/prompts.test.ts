@@ -204,6 +204,7 @@ describe('task prompts', () => {
       },
     });
     expect(prompt.parse('{"body":""}')).toMatchObject({ ok: false });
+    expect(prompt.parse('{"body":"  \\n  "}')).toMatchObject({ ok: false });
   });
 
   it('builds an automationTask prompt with the rule instructions and maps the verdict', () => {

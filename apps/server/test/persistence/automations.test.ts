@@ -1,6 +1,9 @@
 import { ForbiddenError } from '@relay/engine';
 import type { Automation, MessageId, UserId } from '@relay/shared/domain';
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { toAutomationInsert } from '../../src/persistence/repositories/automations/automation.mapper';
+import { automations } from '../../src/persistence/schema';
 import { at, buildMessage, buildUser, newId, seedAccount, seedThread } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
 
@@ -79,6 +82,39 @@ describe('PgAutomationRepository', () => {
 
     await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
       rule,
+    ]);
+  });
+
+  it('lists a rule from a newer version apart and keeps it at a new position', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const known = buildAutomation(seeded.user.id, { order: 0 });
+    await context.repositories.automations.replaceAll(seeded.user.id, [known]);
+    const newer = buildAutomation(seeded.user.id, { name: 'Preložiť', order: 1 });
+    await context.db
+      .insert(automations)
+      .values({ ...toAutomationInsert(newer), actions: sql`'[{"type":"translate"}]'::jsonb` });
+
+    expect(await context.repositories.automations.listByUser(seeded.user.id)).toEqual([known]);
+    await context.repositories.automations.replaceAll(
+      seeded.user.id,
+      [{ ...known, order: 1 }],
+      [{ id: newer.id, order: 0 }],
+    );
+
+    await expect(context.repositories.automations.listUnsupported(seeded.user.id)).resolves.toEqual(
+      [
+        {
+          kind: 'unsupported',
+          id: newer.id,
+          name: 'Preložiť',
+          enabled: true,
+          order: 0,
+          accountId: null,
+        },
+      ],
+    );
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
+      { ...known, order: 1 },
     ]);
   });
 

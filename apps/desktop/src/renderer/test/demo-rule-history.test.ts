@@ -51,21 +51,20 @@ describe('demo rule history', () => {
   it('snoozes existing mail on apply, never forwards it and cancels the reminder on undo', async () => {
     const demo = client();
     const rules = supportedAutomations(await demo.listAutomations());
-    supportedAutomations(
-      await demo.replaceAutomations(
-        rules.map((rule) =>
-          rule.id === GITLAB
-            ? {
-                ...rule,
-                actions: [
-                  { type: 'forward', to: 'uctovnicka@firma.sk' },
-                  { type: 'draftReply' },
-                  { type: 'remind', afterDays: 2 },
-                  { type: 'markRead' },
-                ],
-              }
-            : rule,
-        ),
+
+    await demo.replaceAutomations(
+      rules.map((rule) =>
+        rule.id === GITLAB
+          ? {
+              ...rule,
+              actions: [
+                { type: 'forward', to: 'uctovnicka@firma.sk' },
+                { type: 'draftReply' },
+                { type: 'remind', afterDays: 2 },
+                { type: 'markRead' },
+              ],
+            }
+          : rule,
       ),
     );
 
@@ -93,6 +92,32 @@ describe('demo rule history', () => {
       state: 'inbox',
       remindAt: null,
     });
+  });
+
+  it('leaves a reminder set again for the same time alone on undo', async () => {
+    const demo = client();
+    const rules = supportedAutomations(await demo.listAutomations());
+    await demo.replaceAutomations(
+      rules.map((rule) =>
+        rule.id === GITLAB ? { ...rule, actions: [{ type: 'remind', afterDays: 2 }] } : rule,
+      ),
+    );
+    await demo.applyAutomation(GITLAB);
+    const threadId = demoIds.thread('o-pipeline');
+    const { remindAt } = (await demo.getThread(threadId)).thread;
+    const applied = (await demo.automationHistory(GITLAB)).entries.find(
+      (entry) => entry.source === 'apply' && entry.undoneAt === null,
+    );
+    await demo.applyThreadAction(threadId, { type: 'cancelReminder' });
+    await demo.applyThreadAction(threadId, { type: 'remind', at: remindAt ?? NOW.toISOString() });
+
+    const undone = await demo.undoAutomationActivity(
+      GITLAB,
+      applied?.id ?? AutomationActivityIdSchema.parse('missing'),
+    );
+
+    expect(undone.results.map(({ outcome }) => outcome)).toEqual(['skipped']);
+    expect((await demo.getThread(threadId)).thread).toMatchObject({ state: 'reminder', remindAt });
   });
 
   it('refuses a forward on a rule for all accounts or to its own address', async () => {

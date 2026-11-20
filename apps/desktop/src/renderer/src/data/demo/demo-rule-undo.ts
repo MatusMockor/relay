@@ -45,8 +45,12 @@ export class DemoRuleUndo {
     record: DemoThreadRecord,
     { reminder }: AutomationActivityAction,
   ): AutomationUndoOutcome {
-    const { state, remindAt } = record.summary;
-    if (reminder === null || state !== 'reminder' || remindAt !== reminder.remindAt) {
+    const current = this.moves.reminders.current(record.summary);
+    if (
+      reminder === null ||
+      current?.id !== reminder.id ||
+      current.remindAt !== reminder.remindAt
+    ) {
       return 'skipped';
     }
     this.moves.apply(record, { type: 'cancelReminder' });

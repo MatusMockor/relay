@@ -152,7 +152,7 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
 
   it('removes the default Jira rule for good and restores it on request', async () => {
     const { bridge } = harness;
-    supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
+    expectOk(await bridge.invoke('local.automations.list'));
 
     expect(
       supportedAutomations(
