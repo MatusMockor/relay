@@ -16,9 +16,11 @@ export interface SummaryHarness {
   readonly dispose: () => Promise<void>;
 }
 
-export const createSummaryHarness = async (): Promise<SummaryHarness> => {
+export const createSummaryHarness = async (
+  prepare: (client: ImapFlow) => void = () => undefined,
+): Promise<SummaryHarness> => {
   const user = await createGreenMailUser();
-  const factory = new RecordingClientFactory(user);
+  const factory = new RecordingClientFactory(user, [], prepare);
   const provider = new ImapMailProvider(factory);
   const admin = new ImapFlow({
     ...greenmailImap,

@@ -7,10 +7,12 @@ import type { ImapConnection } from './imap-connection';
 import { toKeywords, toMessageFlags } from './message-flags';
 import { toIsoDate } from './raw-message';
 import { PREVIEW_BYTES, previewSnippet } from './summary-preview';
-import { summaryStructure, type PreviewPart, type SummaryStructure } from './summary-structure';
+import type { PreviewPart } from './preview-part';
+import { summaryStructure, type SummaryStructure } from './summary-structure';
 import { chunk, sortedUids } from './uid-batches';
 
 export const SUMMARY_BATCH_SIZE = 100;
+export const PREVIEW_FETCH_GROUP_SIZE = 10;
 
 const SUMMARY_QUERY: FetchQueryObject = {
   uid: true,
@@ -49,24 +51,33 @@ const groupByPreviewPart = (fetched: readonly Fetched[]): Map<string, PreviewReq
   return groups;
 };
 
+const fetchPreviewGroup = async (
+  client: ImapFlow,
+  part: string,
+  requests: readonly PreviewRequest[],
+  snippets: Map<number, string>,
+): Promise<void> => {
+  const uids = requests.map((request) => request.uid);
+  const query = { uid: true, bodyParts: [{ key: part, start: 0, maxLength: PREVIEW_BYTES }] };
+  const parts = await client.fetchAll(uids, query, { uid: true });
+  const raws = new Map(parts.map((entry) => [entry.uid, entry.bodyParts?.get(part.toLowerCase())]));
+  requests.forEach(({ uid, preview }) => {
+    const raw = raws.get(uid);
+    if (raw !== undefined) {
+      snippets.set(uid, previewSnippet(raw, preview));
+    }
+  });
+};
+
 const fetchPreviews = async (
   client: ImapFlow,
   fetched: readonly Fetched[],
 ): Promise<Map<number, string>> => {
   const snippets = new Map<number, string>();
   for (const [part, requests] of groupByPreviewPart(fetched)) {
-    const uids = requests.map((request) => request.uid);
-    const query = { uid: true, bodyParts: [{ key: part, start: 0, maxLength: PREVIEW_BYTES }] };
-    const parts = await client.fetchAll(uids, query, { uid: true });
-    const raws = new Map(
-      parts.map((entry) => [entry.uid, entry.bodyParts?.get(part.toLowerCase())]),
-    );
-    requests.forEach(({ uid, preview }) => {
-      const raw = raws.get(uid);
-      if (raw !== undefined) {
-        snippets.set(uid, previewSnippet(raw, preview));
-      }
-    });
+    for (const group of chunk(requests, PREVIEW_FETCH_GROUP_SIZE)) {
+      await fetchPreviewGroup(client, part, group, snippets);
+    }
   }
   return snippets;
 };

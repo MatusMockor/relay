@@ -1,14 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { stripTraceHeaders } from '../../src/parser/trace-headers';
 import { PREVIEW_BYTES, previewSnippet } from '../../src/imap/summary-preview';
-import type { PreviewPart } from '../../src/imap/summary-structure';
+import type { PreviewPart } from '../../src/imap/preview-part';
 
-const part = (encoding: string, charset = 'utf-8'): PreviewPart => ({
+const part = (
+  encoding: string,
+  charset = 'utf-8',
+  extra: Partial<PreviewPart> = {},
+): PreviewPart => ({
   part: '1',
   type: 'text/plain',
   encoding,
   charset,
+  size: 0,
+  flowed: false,
+  delSp: false,
+  ...extra,
 });
+
+const truncatedAt = (tail: string): Buffer => {
+  const head = 'Ahoj ';
+  return Buffer.from(
+    `${head}${' '.repeat(PREVIEW_BYTES - head.length - tail.length)}${tail}`,
+    'latin1',
+  );
+};
 
 const truncatedQuotedPrintable = (): Buffer => {
   const head = '=C4=8Eakujem ';
@@ -23,6 +39,31 @@ describe('summary preview decoding', () => {
     expect(
       previewSnippet(Buffer.from('Pros=C3=ADm=\r\n o podpis=C'), part('quoted-printable')),
     ).toBe('Prosím o podpis=C');
+  });
+
+  it('drops a soft line break or an escape cut at the preview boundary', () => {
+    const qp = part('quoted-printable');
+
+    expect(previewSnippet(truncatedAt('koniec=\r'), qp)).toBe('Ahoj koniec');
+    expect(previewSnippet(truncatedAt('koniec='), qp)).toBe('Ahoj koniec');
+    expect(previewSnippet(truncatedAt('koniec=E'), qp)).toBe('Ahoj koniec');
+  });
+
+  it('decodes charset aliases, UTF-7 and flowed text like mailparser', () => {
+    expect(
+      previewSnippet(Buffer.from('=8Eaneta =EFakuje'), part('quoted-printable', 'win-1250')),
+    ).toBe('Žaneta ďakuje');
+    expect(previewSnippet(Buffer.from('+AQ8-akujem'), part('7bit', 'utf-7'))).toBe('ďakujem');
+    expect(previewSnippet(Buffer.from([0x61, 0x62, 0xff]), part('7bit', 'x-unknown'))).toBe('ab�');
+    expect(
+      previewSnippet(
+        Buffer.from('Spojené slo \r\nvo'),
+        part('8bit', 'utf-8', { flowed: true, delSp: true }),
+      ),
+    ).toBe('Spojené slovo');
+    expect(
+      previewSnippet(Buffer.from('Spojené \r\nslovo'), part('8bit', 'utf-8', { flowed: true })),
+    ).toBe('Spojené slovo');
   });
 
   it('decodes a truncated base64 part without a partial character', () => {

@@ -1,6 +1,8 @@
 import { buildSnippet } from '../parser/snippet';
-import { decodeCharset, decodeTransfer } from './section-decoding';
-import type { PreviewPart } from './summary-structure';
+import { decodeBodyCharset } from './charset-decoding';
+import { decodeFlowed } from './flowed-text';
+import type { PreviewPart } from './preview-part';
+import { decodeTransfer } from './section-decoding';
 
 export const PREVIEW_BYTES = 4096;
 
@@ -10,7 +12,7 @@ const completeBase64 = (raw: Buffer): Buffer => {
 };
 
 const completeQuotedPrintable = (raw: Buffer): Buffer =>
-  Buffer.from(raw.toString('latin1').replace(/=[0-9A-Fa-f]?$/, ''), 'latin1');
+  Buffer.from(raw.toString('latin1').replace(/=(?:\r|[0-9A-Fa-f])?$/, ''), 'latin1');
 
 const completeEncoding = (raw: Buffer, encoding: string): Buffer => {
   if (encoding === 'base64') {
@@ -22,9 +24,17 @@ const completeEncoding = (raw: Buffer, encoding: string): Buffer => {
   return raw;
 };
 
+const unflowed = (bytes: Buffer, preview: PreviewPart): Buffer => {
+  if (!preview.flowed) {
+    return bytes;
+  }
+  return Buffer.from(decodeFlowed(bytes.toString('latin1'), preview.delSp), 'latin1');
+};
+
 const decodedText = (raw: Buffer, preview: PreviewPart, truncated: boolean): string => {
   const encoded = truncated ? completeEncoding(raw, preview.encoding) : raw;
-  const text = decodeCharset(decodeTransfer(encoded, preview.encoding), preview.charset);
+  const bytes = unflowed(decodeTransfer(encoded, preview.encoding), preview);
+  const text = decodeBodyCharset(bytes, preview.charset);
   return truncated ? text.replace(/�+$/, '') : text;
 };
 

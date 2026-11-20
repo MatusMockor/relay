@@ -1,13 +1,7 @@
 import type { RemoteAttachmentMeta } from '@relay/engine';
 import type { MessageStructureObject } from 'imapflow';
 import { detectMimeType } from 'nodemailer/lib/mime-funcs/mime-types';
-
-export interface PreviewPart {
-  readonly part: string;
-  readonly type: 'text/plain' | 'text/html';
-  readonly encoding: string;
-  readonly charset: string;
-}
+import { choosePreview, toPreviewPart, type PreviewPart } from './preview-part';
 
 export interface SummaryStructure {
   readonly preview: PreviewPart | null;
@@ -73,13 +67,6 @@ const toAttachment = (node: MessageStructureObject, related: boolean): RemoteAtt
   };
 };
 
-const toPreview = (node: MessageStructureObject, type: PreviewPart['type']): PreviewPart => ({
-  part: node.part ?? 'TEXT',
-  type,
-  encoding: (node.encoding ?? '7bit').toLowerCase(),
-  charset: node.parameters?.charset ?? 'utf-8',
-});
-
 const visitLeaf = (
   node: MessageStructureObject,
   state: WalkState,
@@ -94,10 +81,10 @@ const visitLeaf = (
     return;
   }
   if (node.type === 'text/plain') {
-    state.plain.push(toPreview(node, 'text/plain'));
+    state.plain.push(toPreviewPart(node, 'text/plain'));
   }
   if (node.type === 'text/html') {
-    state.html.push(toPreview(node, 'text/html'));
+    state.html.push(toPreviewPart(node, 'text/html'));
   }
 };
 
@@ -127,5 +114,5 @@ const walk = (
 export const summaryStructure = (structure: MessageStructureObject): SummaryStructure => {
   const state: WalkState = { plain: [], html: [], attachments: [] };
   walk(structure, state, false, false);
-  return { preview: state.plain[0] ?? state.html[0] ?? null, attachments: state.attachments };
+  return { preview: choosePreview(state.plain, state.html), attachments: state.attachments };
 };

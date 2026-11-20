@@ -86,9 +86,7 @@ export const textFixtures = (): SummaryFixture[] => [
         encoding: 'base64',
       },
       [
-        base64Lines(
-          Buffer.from(SLOVAK.repeat(Math.ceil((2 * 1024 * 1024) / SLOVAK.length)), 'utf8'),
-        ),
+        base64Lines(Buffer.from(SLOVAK.repeat(Math.ceil((600 * 1024) / SLOVAK.length)), 'utf8')),
         '',
       ],
     ),
