@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { act, fireEvent, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoClient, settle } from './features-support';
@@ -45,7 +46,7 @@ describe('Nastavenia > Automatizácie > šablóny', () => {
     backToList(sheet);
 
     expect(ruleNames(sheet)).toHaveLength(4);
-    expect(await client.listAutomations()).toHaveLength(4);
+    expect(supportedAutomations(await client.listAutomations())).toHaveLength(4);
   });
 
   it('creates a Jira rule from the template', async () => {

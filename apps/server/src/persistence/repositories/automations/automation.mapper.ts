@@ -1,10 +1,10 @@
-import type { Automation } from '@relay/shared/domain';
+import { type Automation, type AutomationEntry, automationEntryOf } from '@relay/shared/domain';
 import type { automations } from '../../schema';
 
 type AutomationRow = typeof automations.$inferSelect;
 type AutomationInsert = typeof automations.$inferInsert;
 
-export const toAutomation = (row: AutomationRow): Automation => ({
+const rawOf = (row: AutomationRow) => ({
   id: row.id,
   userId: row.userId,
   accountId: row.accountId,
@@ -18,6 +18,14 @@ export const toAutomation = (row: AutomationRow): Automation => ({
   ai: row.ai,
   actions: row.actions,
 });
+
+export const toAutomationEntry = (row: AutomationRow): AutomationEntry => {
+  const entry = automationEntryOf(rawOf(row));
+  if (entry === null) {
+    throw new Error(`Automation ${row.id} is not readable`);
+  }
+  return entry;
+};
 
 export const toAutomationInsert = (automation: Automation): AutomationInsert => ({
   id: automation.id,

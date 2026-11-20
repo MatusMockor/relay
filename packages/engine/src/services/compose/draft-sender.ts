@@ -1,5 +1,6 @@
 import type { DraftId, UserId } from '@relay/shared/domain';
 import { ConflictError } from '../../errors';
+import type { OutgoingHeaders } from '../../model/outgoing-message';
 import type { Clock } from '../../ports/clock';
 import type { DraftSendClaims } from './draft-send-claims';
 import type { DraftService } from './draft-service';
@@ -21,7 +22,11 @@ export interface DraftSenderDeps {
 export class DraftSender {
   constructor(private readonly deps: DraftSenderDeps) {}
 
-  async send(userId: UserId, draftId: DraftId): Promise<SentOutcome> {
+  async send(
+    userId: UserId,
+    draftId: DraftId,
+    headers: OutgoingHeaders = {},
+  ): Promise<SentOutcome> {
     const claimedAt = this.deps.clock.now().toISOString();
     await this.deps.claims.claim(userId, draftId, claimedAt);
     try {
@@ -30,7 +35,7 @@ export class DraftSender {
       }
       const draft = await this.deps.drafts.require(userId, draftId);
       return await this.deps.leases.holdDraft(userId, draftId, claimedAt, async (lease) => {
-        const outcome = await this.deps.sending.sendNow(userId, draft, lease);
+        const outcome = await this.deps.sending.sendNow(userId, draft, lease, headers);
         await this.deps.cleanup.remove({ userId, draftId, updatedAt: draft.updatedAt, claimedAt });
         return outcome;
       });

@@ -95,3 +95,26 @@
   color: var(--warn);
   font-size: var(--fs-xs);
 }
+.au-days {
+  appearance: none;
+  cursor: pointer;
+}
+.au-fwd {
+  display: grid;
+  gap: 8px;
+  padding: 4px 6px 6px;
+}
+.au-fwd .fld input {
+  width: 100%;
+}
+.au-fwd .au-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.au-fwd .au-hint.bad {
+  color: var(--bad);
+}
+.au-fwd .btn {
+  justify-self: end;
+}

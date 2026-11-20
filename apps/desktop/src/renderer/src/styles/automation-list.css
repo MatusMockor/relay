@@ -137,3 +137,12 @@ button.au-grip:focus-visible {
   color: var(--bad);
   box-shadow: inset 0 0 0 1px var(--bad-tint-35);
 }
+.au-unsupported {
+  cursor: default;
+}
+.au-unsupported .au-open::after {
+  content: none;
+}
+.au-unsupported .au-sum {
+  color: var(--warn);
+}

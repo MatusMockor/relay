@@ -1,4 +1,4 @@
-import type { Automation, AutomationInput } from '@relay/shared';
+import { type Automation, type AutomationInput, supportedAutomations } from '@relay/shared';
 import { describeError } from '../../../data/errors';
 import { useReplaceAutomations } from '../../../data/hooks/use-replace-automations';
 import { showToast } from '../../../state/toast-store';
@@ -16,9 +16,14 @@ export const usePersistAutomations = (): PersistAutomations => {
   return {
     saving: replace.isPending,
     persist: (inputs, onSaved) => {
-      void replace.mutateAsync(inputs).then(onSaved, (error: unknown) => {
-        showToast(describeError(error));
-      });
+      void replace.mutateAsync(inputs).then(
+        (stored) => {
+          onSaved(supportedAutomations(stored));
+        },
+        (error: unknown) => {
+          showToast(describeError(error));
+        },
+      );
     },
   };
 };

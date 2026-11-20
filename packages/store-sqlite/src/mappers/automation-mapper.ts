@@ -1,8 +1,8 @@
-import { type Automation, AutomationSchema } from '@relay/shared/domain';
+import { type Automation, type AutomationEntry, automationEntryOf } from '@relay/shared/domain';
 import type { AutomationRow, automations } from '../schema';
 
-export const toAutomation = (row: AutomationRow): Automation =>
-  AutomationSchema.parse({
+export const toAutomationEntry = (row: AutomationRow): AutomationEntry => {
+  const entry = automationEntryOf({
     id: row.id,
     userId: row.userId,
     accountId: row.accountId,
@@ -16,6 +16,11 @@ export const toAutomation = (row: AutomationRow): Automation =>
     ai: row.ai,
     actions: row.actions,
   });
+  if (entry === null) {
+    throw new Error(`Automation ${row.id} is not readable`);
+  }
+  return entry;
+};
 
 export const toAutomationRow = (automation: Automation): typeof automations.$inferInsert => ({
   id: automation.id,

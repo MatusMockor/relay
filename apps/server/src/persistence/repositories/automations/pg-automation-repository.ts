@@ -2,14 +2,23 @@ import {
   type AutomationRepository,
   ConflictError,
   ForbiddenError,
+  type KeptAutomation,
   type PresetAutomation,
 } from '@relay/engine';
-import type { Automation, AutomationPreset, UserId } from '@relay/shared/domain';
+import {
+  type Automation,
+  type AutomationEntry,
+  type AutomationPreset,
+  isUnsupportedAutomation,
+  supportedAutomations,
+  type UnsupportedAutomation,
+  type UserId,
+} from '@relay/shared/domain';
 import { and, asc, eq, notInArray, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { automations, removedAutomationPresets } from '../../schema';
 import { assertOwned, lockUser } from '../../support/ownership';
-import { toAutomation, toAutomationInsert } from './automation.mapper';
+import { toAutomationEntry, toAutomationInsert } from './automation.mapper';
 
 const removedPresetOf = (userId: UserId, preset: AutomationPreset) =>
   and(eq(removedAutomationPresets.userId, userId), eq(removedAutomationPresets.preset, preset));
@@ -18,15 +27,18 @@ export class PgAutomationRepository implements AutomationRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async listByUser(userId: UserId): Promise<Automation[]> {
-    const rows = await this.db
-      .select()
-      .from(automations)
-      .where(eq(automations.userId, userId))
-      .orderBy(asc(automations.position), asc(automations.id));
-    return rows.map(toAutomation);
+    return supportedAutomations(await this.entries(userId));
   }
 
-  async replaceAll(userId: UserId, items: readonly Automation[]): Promise<Automation[]> {
+  async listUnsupported(userId: UserId): Promise<UnsupportedAutomation[]> {
+    return (await this.entries(userId)).filter(isUnsupportedAutomation);
+  }
+
+  async replaceAll(
+    userId: UserId,
+    items: readonly Automation[],
+    keep: readonly KeptAutomation[] = [],
+  ): Promise<Automation[]> {
     if (items.some((automation) => automation.userId !== userId)) {
       throw new ForbiddenError('Automations must belong to the user');
     }
@@ -35,7 +47,8 @@ export class PgAutomationRepository implements AutomationRepository {
       for (const accountId of new Set(items.map((automation) => automation.accountId))) {
         await assertOwned(tx, 'Account', userId, accountId);
       }
-      const keepIds = items.map((automation) => automation.id);
+      const written = items.map((automation) => automation.id);
+      const keepIds = [...written, ...keep.map(({ id }) => id)];
       await tx
         .delete(automations)
         .where(
@@ -45,7 +58,7 @@ export class PgAutomationRepository implements AutomationRepository {
           ),
         );
       if (items.length > 0) {
-        const written = await tx
+        const stored = await tx
           .insert(automations)
           .values(items.map(toAutomationInsert))
           .onConflictDoUpdate({
@@ -65,9 +78,15 @@ export class PgAutomationRepository implements AutomationRepository {
             setWhere: eq(automations.userId, userId),
           })
           .returning({ id: automations.id });
-        if (written.length < new Set(keepIds).size) {
+        if (stored.length < new Set(written).size) {
           throw new ConflictError('An automation id is already in use');
         }
+      }
+      for (const { id, order } of keep) {
+        await tx
+          .update(automations)
+          .set({ position: order })
+          .where(and(eq(automations.userId, userId), eq(automations.id, id)));
       }
       return new PgAutomationRepository(tx).listByUser(userId);
     });
@@ -96,5 +115,14 @@ export class PgAutomationRepository implements AutomationRepository {
         .where(removedPresetOf(automation.userId, automation.preset));
       await tx.insert(automations).values(toAutomationInsert(automation)).onConflictDoNothing();
     });
+  }
+
+  private async entries(userId: UserId): Promise<AutomationEntry[]> {
+    const rows = await this.db
+      .select()
+      .from(automations)
+      .where(eq(automations.userId, userId))
+      .orderBy(asc(automations.position), asc(automations.id));
+    return rows.map(toAutomationEntry);
   }
 }

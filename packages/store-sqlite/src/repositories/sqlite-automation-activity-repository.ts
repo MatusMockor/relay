@@ -4,12 +4,16 @@ import type {
   AutomationActivityRetention,
   AutomationActivityStats,
 } from '@relay/engine';
-import type {
-  AutomationActivity,
-  AutomationActivityAction,
-  AutomationActivityId,
-  AutomationId,
-  UserId,
+import {
+  type AccountId,
+  type AutomationActionType,
+  type AutomationActivity,
+  type AutomationActivityAction,
+  type AutomationActivityId,
+  AutomationActivityActionSchema,
+  type AutomationId,
+  countOkActions,
+  type UserId,
 } from '@relay/shared/domain';
 import { and, count, desc, eq, gte, isNull, lt, notInArray, sum } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
@@ -99,6 +103,32 @@ export class SqliteAutomationActivityRepository implements AutomationActivityRep
         .get();
       return { runs: row?.runs ?? 0, failedActions: row?.failedActions ?? 0 };
     });
+  }
+
+  countOkActionsSince(
+    userId: UserId,
+    accountId: AccountId,
+    type: AutomationActionType,
+    since: string,
+  ): Promise<number> {
+    return this.executor.execute((db) =>
+      db
+        .select({ actions: activity.actions })
+        .from(activity)
+        .where(
+          and(
+            eq(activity.userId, userId),
+            eq(activity.accountId, accountId),
+            gte(activity.createdTs, toTimestamp(since)),
+          ),
+        )
+        .all()
+        .reduce(
+          (sum, row) =>
+            sum + countOkActions(AutomationActivityActionSchema.array().parse(row.actions), type),
+          0,
+        ),
+    );
   }
 
   findById(userId: UserId, id: AutomationActivityId): Promise<AutomationActivity | null> {

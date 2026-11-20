@@ -4,12 +4,15 @@ import type {
   AutomationActivityRetention,
   AutomationActivityStats,
 } from '@relay/engine';
-import type {
-  AutomationActivity,
-  AutomationActivityAction,
-  AutomationActivityId,
-  AutomationId,
-  UserId,
+import {
+  type AccountId,
+  type AutomationActionType,
+  type AutomationActivity,
+  type AutomationActivityAction,
+  type AutomationActivityId,
+  type AutomationId,
+  countOkActions,
+  type UserId,
 } from '@relay/shared/domain';
 import { and, count, desc, eq, gte, isNull, lt, notInArray, sum } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
@@ -95,6 +98,25 @@ export class PgAutomationActivityRepository implements AutomationActivityReposit
         ),
       );
     return { runs: row?.runs ?? 0, failedActions: row?.failedActions ?? 0 };
+  }
+
+  async countOkActionsSince(
+    userId: UserId,
+    accountId: AccountId,
+    type: AutomationActionType,
+    since: string,
+  ): Promise<number> {
+    const rows = await this.db
+      .select({ actions: activity.actions })
+      .from(activity)
+      .where(
+        and(
+          eq(activity.userId, userId),
+          eq(activity.accountId, accountId),
+          gte(activity.createdAt, toDate(since)),
+        ),
+      );
+    return rows.reduce((total, row) => total + countOkActions(row.actions, type), 0);
   }
 
   async findById(userId: UserId, id: AutomationActivityId): Promise<AutomationActivity | null> {

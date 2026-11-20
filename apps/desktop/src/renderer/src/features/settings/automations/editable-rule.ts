@@ -9,6 +9,7 @@ import {
   type AutomationMatchMode,
   type AutomationPreset,
   isParameterizedAction,
+  needsAccountScope,
 } from '@relay/shared';
 import type { RuleTemplate } from './rule-templates';
 
@@ -81,6 +82,8 @@ export const scopeChange = (
   if (from === to) {
     return { accountId: to };
   }
-  const kept = actions.filter((action) => !isParameterizedAction(action));
+  const kept = actions.filter((action) =>
+    to === null ? !needsAccountScope(action) : !isParameterizedAction(action),
+  );
   return { accountId: to, actions: kept.length === 0 ? DEFAULT_ACTIONS : kept };
 };

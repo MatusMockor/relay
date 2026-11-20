@@ -10,6 +10,7 @@ import { isNewsletterHeader } from './newsletter-condition';
 export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>> = {
   summary: 'AI zhrnutie',
   task: 'Vytvoriť úlohu',
+  draftReply: 'Pripraviť odpoveď cez AI',
   notify: 'Notifikácia',
   markRead: 'Označiť ako prečítané',
   pin: 'Pripnúť',
@@ -19,13 +20,14 @@ export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>>
 export const SIMPLE_ACTIONS: readonly SimpleAutomationActionType[] = [
   'summary',
   'task',
+  'draftReply',
   'notify',
   'markRead',
   'pin',
   'archive',
 ];
 
-export const AI_ACTIONS: readonly SimpleAutomationActionType[] = ['summary', 'task'];
+export const AI_ACTIONS: readonly SimpleAutomationActionType[] = ['summary', 'task', 'draftReply'];
 
 export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
   mention: 'Spomenutie',

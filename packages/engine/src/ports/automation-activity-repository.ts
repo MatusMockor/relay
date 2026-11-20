@@ -1,4 +1,6 @@
 import type {
+  AccountId,
+  AutomationActionType,
   AutomationActivity,
   AutomationActivityAction,
   AutomationActivityId,
@@ -37,6 +39,12 @@ export interface AutomationActivityRepository {
     automationId: AutomationId,
     since: string,
   ): Promise<AutomationActivityStats>;
+  countOkActionsSince(
+    userId: UserId,
+    accountId: AccountId,
+    type: AutomationActionType,
+    since: string,
+  ): Promise<number>;
   findById(userId: UserId, id: AutomationActivityId): Promise<AutomationActivity | null>;
   recordUndo(
     userId: UserId,

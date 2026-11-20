@@ -26,6 +26,8 @@ import { createAiComponents } from './services/ai/create-ai-service';
 import type { AutomationService } from './services/automations/automation-service';
 import type { AutomationHistoryService } from './services/automations/history/automation-history-service';
 import { createAutomationComponents } from './services/automations/create-automation-components';
+import { ComposeMailForwarder } from './services/automations/forward/compose-mail-forwarder';
+import { DeferredMailForwarder } from './services/automations/forward/mail-forwarder';
 import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
 import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
 import type { ComposeService } from './services/compose/compose-service';
@@ -160,12 +162,14 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     readMarker: actions,
   });
   const ai = createAiComponents(deps, { events, threads, settings: userSettings });
+  const forwarder = new DeferredMailForwarder();
   const automations = createAutomationComponents(deps, {
     events,
     settings: userSettings,
     actions,
     factory: ai.factory,
     tasks,
+    forwarder,
   });
   const invites = createInviteComponents(deps, events);
   const sync = createSyncComponents(deps, {
@@ -195,6 +199,16 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   );
   const attachments = createAttachmentContentService(deps, sessions);
   const attachmentSweeper = createAttachmentSweeper(deps);
+  const compose = createComposeService(deps, {
+    events,
+    sessions,
+    ingestor: sync.ingestor,
+    roleMailboxes,
+    attachmentContent: attachments,
+    attachmentSweeper,
+  });
+  const bodies = createMessageBodyService(deps, readSessions);
+  forwarder.bind(new ComposeMailForwarder(compose, bodies, deps.logger));
   return {
     accounts: createAccountService(deps, { events, attachmentSweeper, readSessions }),
     settings: new SettingsService({
@@ -230,16 +244,9 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     reminders,
     tasks,
     sync: sync.service,
-    compose: createComposeService(deps, {
-      events,
-      sessions,
-      ingestor: sync.ingestor,
-      roleMailboxes,
-      attachmentContent: attachments,
-      attachmentSweeper,
-    }),
+    compose,
     attachments,
-    bodies: createMessageBodyService(deps, readSessions),
+    bodies,
     readSessions,
     search: createServerSearchService(deps, readSessions, sync),
     attachmentSweeper,

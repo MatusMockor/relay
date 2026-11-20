@@ -72,6 +72,9 @@ const textOf = (output: AiOutput): string => {
   if (output.kind === 'createTask' || output.kind === 'automationTask') {
     return output.title;
   }
+  if (output.kind === 'automationDraft') {
+    return output.body;
+  }
   return output.text;
 };
 

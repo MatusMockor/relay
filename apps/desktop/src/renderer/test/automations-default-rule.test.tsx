@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
@@ -9,7 +10,9 @@ import { resetStores } from './support/render-app';
 const RESTORE = 'Obnoviť predvolené Jira pravidlo';
 
 const presetsOf = async (client: MailClient) =>
-  (await client.listAutomations()).filter((item) => item.preset === 'jiraTasks');
+  supportedAutomations(await client.listAutomations()).filter(
+    (item) => item.preset === 'jiraTasks',
+  );
 
 describe('Nastavenia > Automatizácie > predvolené Jira pravidlo', () => {
   beforeEach(() => {

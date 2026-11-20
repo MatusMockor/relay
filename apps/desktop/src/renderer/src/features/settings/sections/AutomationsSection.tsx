@@ -75,6 +75,7 @@ export function AutomationsSection() {
       </div>
       <AutomationList
         rules={editor.rules}
+        unsupported={editor.unsupported}
         accounts={accounts}
         disabled={locked}
         onOpen={(key) => {

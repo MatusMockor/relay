@@ -1,5 +1,11 @@
-import type { AutomationInput } from '@relay/shared/api';
-import type { AiJob, Automation, ThreadId } from '@relay/shared/domain';
+import type { AutomationInput, ReplaceAutomationsBody } from '@relay/shared/api';
+import {
+  type AiJob,
+  type Automation,
+  supportedAutomations,
+  type ThreadId,
+  type UserId,
+} from '@relay/shared/domain';
 import { expect } from 'vitest';
 import { StubAiRunner } from './fakes/stub-ai-runner';
 import { seedAccount, type SeededAccount } from './fixtures';
@@ -35,12 +41,25 @@ export const syncedSetup = async (): Promise<AutomationSetup> => {
   return { engine, codex, ...seeded };
 };
 
+export const listRules = async (engine: TestEngine, userId: UserId): Promise<Automation[]> =>
+  supportedAutomations(await engine.services.automations.list(userId));
+
+export const replaceRules = async (
+  engine: TestEngine,
+  userId: UserId,
+  body: ReplaceAutomationsBody,
+): Promise<Automation[]> =>
+  supportedAutomations(await engine.services.automations.replace(userId, body));
+
+export const restoreRules = async (engine: TestEngine, userId: UserId): Promise<Automation[]> =>
+  supportedAutomations(await engine.services.automations.restoreDefault(userId));
+
 export const addAutomations = async (
   engine: TestEngine,
   inputs: readonly AutomationInput[],
 ): Promise<Automation[]> => {
-  const current = await engine.services.automations.list(USER_ID);
-  return engine.services.automations.replace(USER_ID, {
+  const current = await listRules(engine, USER_ID);
+  return replaceRules(engine, USER_ID, {
     automations: [...current, ...inputs],
   });
 };
@@ -63,8 +82,8 @@ export const notifiedSubjects = (engine: TestEngine): string[] =>
   engine.events.ofType('automation.notified').map((event) => event.data.body);
 
 export const enableJiraTasks = async (engine: TestEngine): Promise<Automation[]> => {
-  const current = await engine.services.automations.list(USER_ID);
-  return engine.services.automations.replace(USER_ID, {
+  const current = await listRules(engine, USER_ID);
+  return replaceRules(engine, USER_ID, {
     automations: current.map((automation) =>
       automation.preset === 'jiraTasks' ? { ...automation, enabled: true } : automation,
     ),

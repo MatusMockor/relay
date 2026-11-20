@@ -73,7 +73,9 @@ export const trackDemoAction = (
       previousState: before.summary.state,
       origins: [],
       labelled: [],
+      reminder: threadAction.type === 'remind' ? moves.reminders.current(thread) : null,
       undo: null,
+      reason: null,
     },
   };
 };

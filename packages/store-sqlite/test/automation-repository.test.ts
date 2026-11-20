@@ -95,6 +95,62 @@ describe('SqliteAutomationRepository', () => {
     ]);
   });
 
+  it('keeps a rule from a newer version out of the rules it runs and preserves it on replace', async () => {
+    const rule = buildAutomation({ id: automationId('automation-known') });
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+    store.database.sqlite
+      .prepare(
+        `insert into automations (id, user_id, account_id, name, enabled, position, preset, match, conditions, exceptions, ai, actions)
+         values (?, ?, null, ?, 1, 4, null, 'all', ?, '[]', ?, ?)`,
+      )
+      .run(
+        'automation-newer',
+        LOCAL_USER_ID,
+        'Preložiť',
+        JSON.stringify([{ type: 'fromDomain', domain: 'firma.de' }]),
+        JSON.stringify(rule.ai),
+        JSON.stringify([{ type: 'translate', language: 'de' }]),
+      );
+    const newer = {
+      kind: 'unsupported',
+      id: automationId('automation-newer'),
+      name: 'Preložiť',
+      enabled: true,
+      order: 4,
+      accountId: null,
+    };
+
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([rule]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([newer]);
+    await store.repositories.automations.replaceAll(
+      LOCAL_USER_ID,
+      [],
+      [{ id: newer.id, order: 0 }],
+    );
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([]);
+  });
+
+  it('stores reminder, forward and AI reply draft actions', async () => {
+    const actions: Automation['actions'] = [
+      { type: 'draftReply' },
+      { type: 'forward', to: 'uctovnicka@firma.sk' },
+      { type: 'remind', afterDays: 7 },
+    ];
+
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [
+      buildAutomation({ accountId: work.account.id, actions }),
+    ]);
+
+    expect((await store.repositories.automations.listByUser(LOCAL_USER_ID))[0]?.actions).toEqual(
+      actions,
+    );
+  });
+
   it('stores the match mode, exceptions and subject contains conditions', async () => {
     const rule = buildAutomation({
       accountId: work.account.id,

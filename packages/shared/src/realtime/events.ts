@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AccountStatusSchema, MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { AutomationSchema } from '../domain/automation';
+import { AutomationEntriesSchema } from '../domain/automation-entry';
 import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
 import { HistoryProgressSchema } from '../domain/history-progress';
@@ -106,7 +106,7 @@ export const SplitsUpdatedEventSchema = event(
 
 export const AutomationsUpdatedEventSchema = event(
   'automations.updated',
-  z.object({ automations: z.array(AutomationSchema) }),
+  z.object({ automations: AutomationEntriesSchema }),
 );
 
 export const AutomationNotifiedEventSchema = event(

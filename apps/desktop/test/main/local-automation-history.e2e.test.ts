@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGreenMailAccount, deliverMail, type GreenMailAccount } from './support/greenmail';
 import { type LocalRuntimeHarness, startLocalRuntime } from './support/local-runtime-harness';
@@ -37,22 +38,24 @@ describe('local automation history through IPC (SQLite + GreenMail)', () => {
       await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),
     );
     expectOk(await bridge.invoke('local.sync.now', { accountId: account.id }));
-    const current = expectOk(await bridge.invoke('local.automations.list'));
-    const saved = expectOk(
-      await bridge.invoke('local.automations.replace', {
-        automations: [
-          ...current,
-          {
-            accountId: account.id,
-            name: 'Faktúry',
-            enabled: true,
-            order: current.length,
-            conditions: [{ type: 'fromDomain', domain: 'dodavatel.test' }],
-            ai: { runner: 'claude', model: null, effort: null, instructions: null },
-            actions: [{ type: 'archive' }, { type: 'markRead' }],
-          },
-        ],
-      }),
+    const current = supportedAutomations(expectOk(await bridge.invoke('local.automations.list')));
+    const saved = supportedAutomations(
+      expectOk(
+        await bridge.invoke('local.automations.replace', {
+          automations: [
+            ...current,
+            {
+              accountId: account.id,
+              name: 'Faktúry',
+              enabled: true,
+              order: current.length,
+              conditions: [{ type: 'fromDomain', domain: 'dodavatel.test' }],
+              ai: { runner: 'claude', model: null, effort: null, instructions: null },
+              actions: [{ type: 'archive' }, { type: 'markRead' }],
+            },
+          ],
+        }),
+      ),
     );
     const { id: automationId } = required(saved.find((rule) => rule.name === 'Faktúry'));
     await deliverMail(mailbox, {

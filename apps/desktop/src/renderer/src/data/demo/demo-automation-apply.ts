@@ -13,8 +13,12 @@ import type { DemoMoves } from './demo-moves';
 import type { DemoState } from './demo-state';
 
 const LIMIT = 500;
+const DAY_MS = 24 * 60 * 60_000;
 
-const threadActionOf = (action: AutomationAction): ThreadAction | null => {
+const threadActionOf = (action: AutomationAction, at: Date): ThreadAction | null => {
+  if (action.type === 'remind') {
+    return { type: 'remind', at: new Date(at.getTime() + action.afterDays * DAY_MS).toISOString() };
+  }
   if (action.type === 'markRead') {
     return { type: 'markRead' };
   }
@@ -30,7 +34,13 @@ const threadActionOf = (action: AutomationAction): ThreadAction | null => {
   return null;
 };
 
-const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'archive'];
+const ORDER: readonly ThreadAction['type'][] = [
+  'markRead',
+  'addLabel',
+  'remind',
+  'move',
+  'archive',
+];
 
 interface PlannedAction {
   readonly action: AutomationAction;
@@ -39,10 +49,10 @@ interface PlannedAction {
 
 const rank = ({ threadAction }: PlannedAction): number => ORDER.indexOf(threadAction.type);
 
-const planOf = (actions: readonly AutomationAction[]): PlannedAction[] =>
+const planOf = (actions: readonly AutomationAction[], at: Date): PlannedAction[] =>
   actions
     .flatMap((action) => {
-      const threadAction = threadActionOf(action);
+      const threadAction = threadActionOf(action, at);
       return threadAction === null ? [] : [{ action, threadAction }];
     })
     .sort((left, right) => rank(left) - rank(right));
@@ -59,7 +69,8 @@ export const createDemoAutomationApply = (
     if (automation === undefined) {
       throw new MailClientError({ code: 'not_found', message: 'Pravidlo neexistuje' });
     }
-    const actions = planOf(automation.actions);
+    const at = now();
+    const actions = planOf(automation.actions, at);
     if (actions.length === 0) {
       throw new MailClientError({
         code: 'validation_failed',
@@ -88,7 +99,7 @@ export const createDemoAutomationApply = (
         automation.id,
         record,
         recorded,
-        now(),
+        at,
         state.ruleHistory.length,
       );
       moves.claimOrigin(activity.id, record.summary.id);

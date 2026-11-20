@@ -1,4 +1,11 @@
-import type { AiRunnerKind, Automation, AutomationInput } from '@relay/shared';
+import {
+  type AiRunnerKind,
+  type Automation,
+  type AutomationInput,
+  supportedAutomations,
+  type UnsupportedAutomation,
+  isUnsupportedAutomation,
+} from '@relay/shared';
 import { useEffect, useState } from 'react';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
 import {
@@ -16,6 +23,7 @@ import { usePersistAutomations } from './use-persist-automations';
 
 export interface AutomationEditor {
   readonly rules: readonly EditableRule[];
+  readonly unsupported: readonly UnsupportedAutomation[];
   readonly loading: boolean;
   readonly saving: boolean;
   change(key: string, change: RuleChange): void;
@@ -39,7 +47,7 @@ export const useAutomationEditor = (
   useEffect(() => {
     clearSeededRule();
   }, []);
-  const saved = (automations.data ?? []).map(editableOf);
+  const saved = supportedAutomations(automations.data ?? []).map(editableOf);
   const drafts = [...local.values()].filter((rule) => !rule.saved);
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];
   const savedInputs = saved.map((rule) => rule.input);
@@ -108,6 +116,7 @@ export const useAutomationEditor = (
 
   return {
     rules,
+    unsupported: (automations.data ?? []).filter(isUnsupportedAutomation),
     loading: automations.data === undefined,
     saving,
     change,

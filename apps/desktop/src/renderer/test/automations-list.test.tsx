@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { act, fireEvent, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoClient, settle } from './features-support';
@@ -66,7 +67,9 @@ describe('Nastavenia > Automatizácie > zoznam', () => {
     });
     await settle();
 
-    expect((await client.listAutomations()).map((rule) => [rule.name, rule.order])).toEqual([
+    expect(
+      supportedAutomations(await client.listAutomations()).map((rule) => [rule.name, rule.order]),
+    ).toEqual([
       ['Tibor', 0],
       ['Jira spomenutia', 1],
       ['GitLab do Projektov', 2],
@@ -89,7 +92,7 @@ describe('Nastavenia > Automatizácie > zoznam', () => {
     });
     await settle();
 
-    expect((await client.listAutomations()).map((rule) => rule.name)).toEqual([
+    expect(supportedAutomations(await client.listAutomations()).map((rule) => rule.name)).toEqual([
       'Jira spomenutia',
       'Tibor',
       'GitLab do Projektov',
@@ -116,7 +119,9 @@ describe('Nastavenia > Automatizácie > zoznam', () => {
     });
     await settle();
 
-    expect((await client.listAutomations()).map((rule) => [rule.name, rule.order])).toEqual([
+    expect(
+      supportedAutomations(await client.listAutomations()).map((rule) => [rule.name, rule.order]),
+    ).toEqual([
       ['Tibor', 0],
       ['GitLab do Projektov', 1],
       ['Jira spomenutia', 2],

@@ -1,6 +1,7 @@
 import type { AccountId, AutomationAction, MailAccount } from '@relay/shared';
 import { useState } from 'react';
-import { conflictOf } from '../settings/automations/action-choices';
+import { replaceNoteOf } from '../settings/automations/action-choices';
+import { DEFAULT_REMIND_DAYS, remindLabel } from '../settings/automations/action-params';
 import {
   type ActionTargets,
   describeAction,
@@ -13,7 +14,13 @@ import {
 import type { TargetKind } from '../settings/automations/ActionTargetMenu';
 import { ACTION_LABELS } from '../settings/automations/automation-labels';
 import { ActionChip } from './ActionChip';
-import { type QuickSimpleAction, toggleQuick, withoutType, withTarget } from './quick-actions';
+import {
+  type QuickSimpleAction,
+  toggleQuick,
+  toggleRemind,
+  withoutType,
+  withTarget,
+} from './quick-actions';
 
 export interface QuickActionChipsProps {
   readonly actions: readonly AutomationAction[];
@@ -26,11 +33,6 @@ export interface QuickActionChipsProps {
 
 const LEADING: readonly QuickSimpleAction[] = ['markRead', 'archive', 'pin'];
 
-const CONFLICT_NOTES: Readonly<Partial<Record<AutomationAction['type'], string>>> = {
-  archive: 'Nahradí presun',
-  moveTo: 'Nahradí archiváciu',
-};
-
 export function QuickActionChips({
   actions,
   accountId,
@@ -40,8 +42,9 @@ export function QuickActionChips({
   onChange,
 }: QuickActionChipsProps) {
   const [picking, setPicking] = useState<TargetPicking | null>(null);
+  const remind = actions.find((action) => action.type === 'remind');
   const note = (type: AutomationAction['type']): string | undefined =>
-    conflictOf(actions, type) === null ? undefined : CONFLICT_NOTES[type];
+    replaceNoteOf(actions, type) ?? undefined;
   const simple = (type: QuickSimpleAction) => (
     <ActionChip
       key={type}
@@ -78,6 +81,15 @@ export function QuickActionChips({
       {LEADING.map(simple)}
       {target('addLabel', 'Pridať štítok')}
       {target('moveTo', moveChoiceLabel(targets.gmail))}
+      <ActionChip
+        label={remindLabel(remind?.afterDays ?? DEFAULT_REMIND_DAYS)}
+        on={remind !== undefined}
+        note={remind === undefined ? note('remind') : undefined}
+        disabled={disabled}
+        onClick={() => {
+          onChange(toggleRemind(actions));
+        }}
+      />
       {simple('notify')}
       {picking === null ? null : (
         <ActionTargetPopover

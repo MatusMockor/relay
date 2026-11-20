@@ -19,7 +19,11 @@ import {
   NEWSLETTER_CONDITION,
 } from '../src/features/rule-from-mail/mail-rule-options';
 import { isNewsletterSource } from '../src/features/rule-from-mail/newsletter-source';
-import { toggleQuick, withTarget } from '../src/features/rule-from-mail/quick-actions';
+import {
+  toggleQuick,
+  toggleRemind,
+  withTarget,
+} from '../src/features/rule-from-mail/quick-actions';
 import { subjectCore } from '../src/features/rule-from-mail/subject-core';
 import { serverDetail, serverThread } from './support/thread-fixtures';
 
@@ -178,6 +182,21 @@ describe('quick actions', () => {
     expect(withTarget([{ type: 'archive' }, { type: 'pin' }], move)).toEqual([
       move,
       { type: 'pin' },
+    ]);
+  });
+
+  it('toggles a reminder in place of archiving or a move', () => {
+    const move = { type: 'moveTo', mailboxId: MailboxIdSchema.parse('mbx-1') } as const;
+    expect(toggleRemind([{ type: 'markRead' }, { type: 'archive' }])).toEqual([
+      { type: 'markRead' },
+      { type: 'remind', afterDays: 3 },
+    ]);
+    expect(toggleRemind([move])).toEqual([{ type: 'remind', afterDays: 3 }]);
+    expect(toggleRemind([{ type: 'remind', afterDays: 3 }, { type: 'pin' }])).toEqual([
+      { type: 'pin' },
+    ]);
+    expect(toggleQuick([{ type: 'remind', afterDays: 3 }], 'archive')).toEqual([
+      { type: 'archive' },
     ]);
   });
 });

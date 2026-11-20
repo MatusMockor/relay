@@ -31,6 +31,7 @@ export const toMailOptions = (message: OutgoingMessage): Mail.Options => ({
     message.calendar === undefined
       ? undefined
       : { method: message.calendar.method, content: message.calendar.content },
+  headers: message.headers === undefined ? undefined : { ...message.headers },
 });
 
 export const composeMime = async (message: OutgoingMessage): Promise<ComposedMime> => {

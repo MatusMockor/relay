@@ -10,6 +10,7 @@ import {
   AutomationActivityIdSchema,
   AutomationIdSchema,
   MessageIdSchema,
+  ReminderIdSchema,
   ThreadIdSchema,
 } from './ids';
 import { IsoDateTimeSchema } from './primitives';
@@ -30,6 +31,12 @@ export const MoveOriginRefSchema = z.object({
 });
 export type MoveOriginRef = z.infer<typeof MoveOriginRefSchema>;
 
+export const AutomationActivityReminderSchema = z.object({
+  id: ReminderIdSchema,
+  remindAt: IsoDateTimeSchema,
+});
+export type AutomationActivityReminder = z.infer<typeof AutomationActivityReminderSchema>;
+
 export const AutomationActivityActionSchema = z.object({
   action: AutomationActionSchema,
   outcome: AutomationActionOutcomeSchema,
@@ -37,7 +44,9 @@ export const AutomationActivityActionSchema = z.object({
   previousState: ThreadStateSchema.nullable().default(null),
   origins: z.array(MoveOriginRefSchema).default([]),
   labelled: z.array(MessageIdSchema).default([]),
+  reminder: AutomationActivityReminderSchema.nullable().default(null),
   undo: AutomationUndoOutcomeSchema.nullable().default(null),
+  reason: z.string().min(1).max(300).nullable().default(null),
 });
 export type AutomationActivityAction = z.infer<typeof AutomationActivityActionSchema>;
 
@@ -59,11 +68,20 @@ export type AutomationActivity = z.infer<typeof AutomationActivitySchema>;
 export const isReversibleAction = (action: AutomationAction): boolean =>
   MAIL_AUTOMATION_ACTION_TYPES.includes(action.type);
 
+export const hasRecordedChange = (entry: AutomationActivityAction): boolean =>
+  entry.changed.length > 0 || entry.reminder !== null;
+
 export const isPendingReversal = (entry: AutomationActivityAction): boolean =>
   entry.outcome === 'ok' &&
-  entry.changed.length > 0 &&
+  hasRecordedChange(entry) &&
   isReversibleAction(entry.action) &&
   (entry.undo === null || entry.undo === 'failed');
 
 export const isUndoableActivity = (activity: AutomationActivity): boolean =>
   activity.undoneAt === null && activity.actions.some(isPendingReversal);
+
+export const countOkActions = (
+  actions: readonly AutomationActivityAction[],
+  type: AutomationAction['type'],
+): number =>
+  actions.filter(({ action, outcome }) => outcome === 'ok' && action.type === type).length;

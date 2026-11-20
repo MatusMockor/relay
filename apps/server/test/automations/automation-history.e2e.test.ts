@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared/domain';
 import type { GreenMailUser } from '@relay/config/test-infra';
 import { api } from '@relay/shared/api';
 import type { ImapFlow } from 'imapflow';
@@ -43,26 +44,28 @@ describe('automation history over the server', () => {
     const token = session.accessToken;
     const account = await addImapAccount(app.api, token, owner);
     await waitForInbox(app.api, token, (items) => items.length === 2);
-    const current = await app.api.ok(api.automations.list, {}, token);
-    const saved = await app.api.ok(
-      api.automations.replace,
-      {
-        body: {
-          automations: [
-            ...current,
-            {
-              accountId: account.id,
-              name: 'Faktúry',
-              enabled: true,
-              order: current.length,
-              conditions: [{ type: 'fromDomain', domain: 'faktury.test' }],
-              ai: { runner: 'claude', model: null, effort: null, instructions: null },
-              actions: [{ type: 'archive' }, { type: 'markRead' }, { type: 'notify' }],
-            },
-          ],
+    const current = supportedAutomations(await app.api.ok(api.automations.list, {}, token));
+    const saved = supportedAutomations(
+      await app.api.ok(
+        api.automations.replace,
+        {
+          body: {
+            automations: [
+              ...current,
+              {
+                accountId: account.id,
+                name: 'Faktúry',
+                enabled: true,
+                order: current.length,
+                conditions: [{ type: 'fromDomain', domain: 'faktury.test' }],
+                ai: { runner: 'claude', model: null, effort: null, instructions: null },
+                actions: [{ type: 'archive' }, { type: 'markRead' }, { type: 'notify' }],
+              },
+            ],
+          },
         },
-      },
-      token,
+        token,
+      ),
     );
     const { id } = required(saved.find((automation) => automation.name === 'Faktúry'));
     await app.api.ok(api.automations.apply, { params: { id } }, token);

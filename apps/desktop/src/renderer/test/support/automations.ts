@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import type { Automation } from '@relay/shared';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import type { MailClient } from '../../src/data/MailClient';
@@ -41,7 +42,7 @@ export const backToList = (sheet: HTMLElement): void => {
 export const popover = (name: string): HTMLElement => screen.getByRole('dialog', { name });
 
 export const stored = async (client: MailClient, name: string): Promise<Automation | undefined> =>
-  (await client.listAutomations()).find((item) => item.name === name);
+  supportedAutomations(await client.listAutomations()).find((item) => item.name === name);
 
 export const change = (element: HTMLElement, value: string): void => {
   act(() => {

@@ -14,6 +14,8 @@ const UNDONE_ACTIONS: AutomationActivityRecord['actions'] = [
     previousState: 'inbox',
     origins: [],
     labelled: [],
+    reminder: null,
+    reason: null,
     undo: 'undone',
   },
 ];
@@ -56,6 +58,8 @@ const recordOf = (
       previousState: 'inbox',
       origins: [],
       labelled: [labelled],
+      reminder: null,
+      reason: null,
       undo: null,
     },
     {
@@ -65,6 +69,8 @@ const recordOf = (
       previousState: null,
       origins: [],
       labelled: [],
+      reminder: null,
+      reason: null,
       undo: null,
     },
   ],

@@ -1,6 +1,7 @@
 import type { AutomationAction, AutomationActivityAction } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import { refusalReasonOf } from './automation-action-refusal';
 import {
   type AutomationActionContext,
   type AutomationActionHandlers,
@@ -31,7 +32,7 @@ export class AutomationActionExecutor {
   ): Promise<AutomationActivityAction> {
     try {
       const effect = await runAction(this.handlers, context, action);
-      return { action, outcome: 'ok', ...effect, undo: null };
+      return { action, outcome: 'ok', ...effect, undo: null, reason: null };
     } catch (error: unknown) {
       this.logger.warn('An automation action failed', {
         automationId: context.automation.id,
@@ -46,7 +47,9 @@ export class AutomationActionExecutor {
         previousState: null,
         origins: [],
         labelled: [],
+        reminder: null,
         undo: null,
+        reason: refusalReasonOf(error) ?? null,
       };
     }
   }

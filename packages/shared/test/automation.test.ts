@@ -61,7 +61,9 @@ describe('automation schemas', () => {
   it('reads legacy string actions as objects', () => {
     const parsed = ReplaceAutomationsBodySchema.parse(rule({}, ['summary', 'archive']));
 
-    expect(parsed.automations[0]?.actions).toEqual([{ type: 'summary' }, { type: 'archive' }]);
+    expect(parsed.automations[0]).toMatchObject({
+      actions: [{ type: 'summary' }, { type: 'archive' }],
+    });
   });
 
   it('accepts parameterized move and label actions', () => {

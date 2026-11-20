@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import type { AutomationCondition } from '@relay/shared';
 import { waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -27,7 +28,8 @@ describe('Nastavenia > Automatizácie > limity a živý náhľad', () => {
 
   it('stops adding conditions at the limit of 20', async () => {
     const client = demoClient();
-    const rules = await client.listAutomations();
+    const rules = supportedAutomations(await client.listAutomations());
+
     await client.replaceAutomations(
       rules.map((rule) =>
         rule.name === 'Tibor'

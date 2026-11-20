@@ -110,6 +110,11 @@
   background: var(--bad-tint-8);
   box-shadow: inset 0 0 0 1px var(--bad-tint-35);
 }
+.au-hist-chips li.fixed {
+  box-shadow: none;
+  outline: 1px dashed var(--line);
+  outline-offset: -1px;
+}
 .au-hist-chips li.src {
   color: var(--muted);
   background: transparent;

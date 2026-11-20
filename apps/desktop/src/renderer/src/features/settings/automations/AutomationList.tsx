@@ -1,10 +1,12 @@
-import type { MailAccount } from '@relay/shared';
+import type { MailAccount, UnsupportedAutomation } from '@relay/shared';
 import { AutomationRow } from './AutomationRow';
+import { UnsupportedRuleRow } from './UnsupportedRuleRow';
 import type { EditableRule } from './editable-rule';
 import { useRowDrag } from './use-row-drag';
 
 export interface AutomationListProps {
   readonly rules: readonly EditableRule[];
+  readonly unsupported: readonly UnsupportedAutomation[];
   readonly accounts: readonly MailAccount[];
   readonly disabled: boolean;
   readonly onOpen: (key: string) => void;
@@ -14,6 +16,7 @@ export interface AutomationListProps {
 
 export function AutomationList({
   rules,
+  unsupported,
   accounts,
   disabled,
   onOpen,
@@ -45,6 +48,9 @@ export function AutomationList({
             onToggle(rule.key, enabled);
           }}
         />
+      ))}
+      {unsupported.map((rule) => (
+        <UnsupportedRuleRow key={rule.id} rule={rule} accounts={accounts} />
       ))}
     </ul>
   );

@@ -40,7 +40,7 @@ import {
 } from '../api/endpoints/threads';
 import { MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { AutomationSchema } from '../domain/automation';
+import { AutomationEntriesSchema } from '../domain/automation-entry';
 import { DraftSchema } from '../domain/draft';
 import { HistoryProgressSchema } from '../domain/history-progress';
 import { OfflineStatsSchema } from '../domain/offline-window';
@@ -158,12 +158,9 @@ export const localInvokeChannels = {
   ),
   'local.splits.list': invokeChannel(z.undefined(), z.array(SplitSchema)),
   'local.splits.replace': invokeChannel(ReplaceSplitsBodySchema, z.array(SplitSchema)),
-  'local.automations.list': invokeChannel(z.undefined(), z.array(AutomationSchema)),
-  'local.automations.replace': invokeChannel(
-    ReplaceAutomationsBodySchema,
-    z.array(AutomationSchema),
-  ),
-  'local.automations.restoreDefault': invokeChannel(z.undefined(), z.array(AutomationSchema)),
+  'local.automations.list': invokeChannel(z.undefined(), AutomationEntriesSchema),
+  'local.automations.replace': invokeChannel(ReplaceAutomationsBodySchema, AutomationEntriesSchema),
+  'local.automations.restoreDefault': invokeChannel(z.undefined(), AutomationEntriesSchema),
   'local.automations.preview': invokeChannel(
     AutomationPreviewBodySchema,
     AutomationPreviewResponseSchema,

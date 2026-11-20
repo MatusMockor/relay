@@ -1,8 +1,9 @@
-import type {
-  AutomationActivity,
-  AutomationActivityAction,
-  AutomationUndoOutcome,
-  UserId,
+import {
+  type AutomationActivity,
+  type AutomationActivityAction,
+  type AutomationUndoOutcome,
+  hasRecordedChange,
+  type UserId,
 } from '@relay/shared/domain';
 import type { Logger } from '../../../ports/logger';
 import type { ThreadRepository } from '../../../ports/thread-repository';
@@ -49,7 +50,7 @@ export class AutomationActivityUndo {
     if (!isRecordedReversible(entry)) {
       return 'notUndoable';
     }
-    if (entry.outcome === 'failed' || entry.changed.length === 0) {
+    if (entry.outcome === 'failed' || !hasRecordedChange(entry)) {
       return 'skipped';
     }
     return this.reverse(userId, activity, entry).catch((error: unknown) => {

@@ -3,7 +3,7 @@ import type { TrackedChange } from '../actions/message-changes';
 
 export type ActionEffect = Pick<
   AutomationActivityAction,
-  'changed' | 'previousState' | 'origins' | 'labelled'
+  'changed' | 'previousState' | 'origins' | 'labelled' | 'reminder'
 >;
 
 export const NO_EFFECT: ActionEffect = {
@@ -11,6 +11,7 @@ export const NO_EFFECT: ActionEffect = {
   previousState: null,
   origins: [],
   labelled: [],
+  reminder: null,
 };
 
 export const trackedEffect = ({
@@ -23,4 +24,5 @@ export const trackedEffect = ({
   previousState,
   origins: [...origins],
   labelled: [...labelled],
+  reminder: null,
 });

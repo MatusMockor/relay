@@ -5,7 +5,7 @@ import {
   type ApplyAutomationResponse,
   type AutomationPreviewResponse,
 } from '@relay/shared/api';
-import type { Automation } from '@relay/shared/domain';
+import type { AutomationEntry } from '@relay/shared/domain';
 import { CurrentPrincipal } from '../auth/decorators/current-principal.decorator';
 import type { Principal } from '../auth/principal';
 import { ApiRequest, type RequestOf } from '../http/api-request.decorator';
@@ -16,7 +16,7 @@ export class AutomationsController {
   constructor(private readonly automations: AutomationService) {}
 
   @ApiRoute(api.automations.list)
-  list(@CurrentPrincipal() principal: Principal): Promise<Automation[]> {
+  list(@CurrentPrincipal() principal: Principal): Promise<AutomationEntry[]> {
     return this.automations.list(principal.userId);
   }
 
@@ -24,12 +24,12 @@ export class AutomationsController {
   replace(
     @CurrentPrincipal() principal: Principal,
     @ApiRequest(api.automations.replace) request: RequestOf<typeof api.automations.replace>,
-  ): Promise<Automation[]> {
+  ): Promise<AutomationEntry[]> {
     return this.automations.replace(principal.userId, request.body);
   }
 
   @ApiRoute(api.automations.restoreDefault)
-  restoreDefault(@CurrentPrincipal() principal: Principal): Promise<Automation[]> {
+  restoreDefault(@CurrentPrincipal() principal: Principal): Promise<AutomationEntry[]> {
     return this.automations.restoreDefault(principal.userId);
   }
 

@@ -2,7 +2,7 @@ import { type AttachmentId, type Automation, JiraKeySchema } from '@relay/shared
 import { describe, expect, it } from 'vitest';
 import { JiraTaskAutomation } from '../../src/services/automations/jira-task-automation';
 import { threadBySubject } from '../support/automation-filters';
-import { JIRA, sync, syncedSetup } from '../support/automations';
+import { JIRA, sync, syncedSetup, listRules, replaceRules } from '../support/automations';
 import { deliverMail, present } from '../support/fixtures';
 import { RuleAutomationMatcher } from '../support/mail/rule-split-matcher';
 import { USER_ID } from '../support/test-engine';
@@ -36,8 +36,8 @@ const setupJiraMail = async () => {
     tasks: setup.engine.services.tasks,
   });
   const configure = async (change: Partial<Automation>, attached: boolean) => {
-    const current = await setup.engine.services.automations.list(USER_ID);
-    await setup.engine.services.automations.replace(USER_ID, {
+    const current = await listRules(setup.engine, USER_ID);
+    await replaceRules(setup.engine, USER_ID, {
       automations: current.map((rule) =>
         rule.preset === 'jiraTasks' ? { ...rule, enabled: true, ...change } : rule,
       ),

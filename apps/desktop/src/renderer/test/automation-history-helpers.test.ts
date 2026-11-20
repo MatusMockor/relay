@@ -34,6 +34,8 @@ const ran = (
   previousState: 'inbox',
   origins: [],
   labelled: [],
+  reminder: null,
+  reason: null,
   undo: null,
 });
 
@@ -77,6 +79,44 @@ describe('rule history helpers', () => {
       ['štítok už neexistuje', false],
       ['priečinok už neexistuje', false],
     ]);
+  });
+
+  it('labels the reminder, forward and AI draft chips and marks what cannot be undone', () => {
+    const chips = historyChipsOf(
+      [
+        ran({ type: 'draftReply' }, 'ok'),
+        ran({ type: 'forward', to: 'uctovnicka@firma.sk' }, 'ok'),
+        ran({ type: 'remind', afterDays: 1 }, 'ok'),
+        ran({ type: 'remind', afterDays: 3 }, 'ok'),
+        ran({ type: 'remind', afterDays: 12 }, 'failed'),
+      ],
+      targets(true),
+    );
+
+    expect(chips.map(({ label, failed, reversible }) => [label, failed, reversible])).toEqual([
+      ['AI koncept odpovede', false, false],
+      ['preposlané na uctovnicka@firma.sk', false, false],
+      ['pripomenutie o 1 deň', false, true],
+      ['pripomenutie o 3 dni', false, true],
+      ['pripomenutie o 12 dní', true, true],
+    ]);
+  });
+
+  it('keeps the reason of a refused action on its chip', () => {
+    const [chip] = historyChipsOf(
+      [
+        {
+          ...ran({ type: 'forward', to: 'uctovnicka@firma.sk' }, 'failed'),
+          reason: 'Automatická odpoveď sa automaticky nepreposiela',
+        },
+      ],
+      targets(true),
+    );
+
+    expect(chip).toMatchObject({
+      failed: true,
+      reason: 'Automatická odpoveď sa automaticky nepreposiela',
+    });
   });
 
   it('keeps neutral target chips while the targets load', () => {
