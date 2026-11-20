@@ -1,5 +1,5 @@
 import type { AiRunnerKind, Automation, AutomationInput } from '@relay/shared';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
 import {
   editableOf,
@@ -8,8 +8,10 @@ import {
   newRule,
   type RuleChange,
 } from './editable-rule';
+import { nextDraftKey } from './draft-key';
 import { canMove, moveRule } from './rule-order';
 import type { RuleTemplate } from './rule-templates';
+import { clearSeededRule, seededDrafts } from './seeded-rule';
 import { usePersistAutomations } from './use-persist-automations';
 
 export interface AutomationEditor {
@@ -22,13 +24,6 @@ export interface AutomationEditor {
   addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
 }
 
-let draftCount = 0;
-
-const nextDraftKey = (): string => {
-  draftCount += 1;
-  return `draft-${String(draftCount)}`;
-};
-
 const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
   const next = new Map(map);
   next.delete(key);
@@ -40,7 +35,10 @@ export const useAutomationEditor = (
 ): AutomationEditor => {
   const automations = useAutomations();
   const { saving, persist } = usePersistAutomations();
-  const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(new Map());
+  const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(seededDrafts);
+  useEffect(() => {
+    clearSeededRule();
+  }, []);
   const saved = (automations.data ?? []).map(editableOf);
   const drafts = [...local.values()].filter((rule) => !rule.saved);
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];

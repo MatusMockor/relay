@@ -14,9 +14,12 @@ const DEMO_UNSUBSCRIBE: Readonly<Record<string, UnsubscribeOptions>> = {
   },
 };
 
+export const demoUnsubscribeFor = (email: string): UnsubscribeOptions | undefined =>
+  DEMO_UNSUBSCRIBE[email.toLowerCase()];
+
 export const demoUnsubscribeOptions = (thread: ThreadSummary): UnsubscribeOptions =>
   thread.participants
-    .map((address) => DEMO_UNSUBSCRIBE[address.email.toLowerCase()])
+    .map((address) => demoUnsubscribeFor(address.email))
     .find((options) => options !== undefined) ?? NO_UNSUBSCRIBE;
 
 export const demoUnsubscribe = (thread: ThreadSummary, confirmed: string): void => {
