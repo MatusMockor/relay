@@ -18,6 +18,7 @@ import { CreateEditor, RenameEditor } from './FolderEditors';
 export const useFolderLeaves = (account: MailAccount, mailboxes: readonly Mailbox[]) => {
   const folder = useUiStore((state) => state.folder);
   const edit = useFolderEdit((state) => state.edit);
+  const editSeq = useFolderEdit((state) => state.seq);
   const colorOf = useLabelColor();
   const showMenu = useFolderMenu();
   const menuOf = (entry: Folder, target: FolderTarget | null): Pick<TreeLeaf, 'onMenu'> => ({
@@ -27,12 +28,13 @@ export const useFolderLeaves = (account: MailAccount, mailboxes: readonly Mailbo
   });
   const editors = (target: FolderTarget): Partial<TreeLeaf> => ({
     ...(isRenaming(edit, target.mailbox)
-      ? { editor: (depth: number) => <RenameEditor target={target} depth={depth} /> }
+      ? { editor: (depth: number) => <RenameEditor key={editSeq} target={target} depth={depth} /> }
       : {}),
     ...(isCreatingUnder(edit, target.mailbox)
       ? {
           childEditor: (depth: number) => (
             <CreateEditor
+              key={editSeq}
               accountId={account.id}
               parent={target.mailbox}
               kind={target.kind}
@@ -80,5 +82,11 @@ export const useFolderLeaves = (account: MailAccount, mailboxes: readonly Mailbo
   };
   const creatingTop =
     edit?.kind === 'create' && edit.accountId === account.id && isCreatingUnder(edit, null);
-  return { mailboxLeaf, labelLeaf, creatingTop, creatingLabel: isCreatingLabel(edit, account.id) };
+  return {
+    mailboxLeaf,
+    labelLeaf,
+    creatingTop,
+    creatingLabel: isCreatingLabel(edit, account.id),
+    editSeq,
+  };
 };

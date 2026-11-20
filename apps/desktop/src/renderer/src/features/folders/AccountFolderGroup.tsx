@@ -89,7 +89,13 @@ export function AccountFolderGroup({
               })}
             >
               {leaves.creatingTop ? (
-                <CreateEditor accountId={account.id} parent={null} kind="folder" depth={0} />
+                <CreateEditor
+                  key={leaves.editSeq}
+                  accountId={account.id}
+                  parent={null}
+                  kind="folder"
+                  depth={0}
+                />
               ) : null}
               <FolderTreeRows
                 nodes={folders}
@@ -107,7 +113,9 @@ export function AccountFolderGroup({
                 setFolderEdit({ kind: 'create-label', accountId: account.id });
               })}
             >
-              {leaves.creatingLabel ? <LabelCreateEditor accountId={account.id} depth={0} /> : null}
+              {leaves.creatingLabel ? (
+                <LabelCreateEditor key={leaves.editSeq} accountId={account.id} depth={0} />
+              ) : null}
               <FolderTreeRows
                 nodes={labelTree}
                 scope={`lbl:${account.id}`}

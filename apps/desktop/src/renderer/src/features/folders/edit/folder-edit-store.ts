@@ -1,7 +1,6 @@
 import type { AccountId, LabelId, Mailbox } from '@relay/shared';
 import type { AnchorRect } from '@relay/ui';
 import { create } from 'zustand';
-import { sameEdit } from './edit-identity';
 
 export type FolderKind = 'folder' | 'label';
 
@@ -25,19 +24,20 @@ export type FolderEdit =
 
 interface FolderEditState {
   readonly edit: FolderEdit | null;
+  readonly seq: number;
 }
 
-export const useFolderEdit = create<FolderEditState>(() => ({ edit: null }));
+export const useFolderEdit = create<FolderEditState>(() => ({ edit: null, seq: 0 }));
 
 export const setFolderEdit = (edit: FolderEdit | null): void => {
-  useFolderEdit.setState({ edit });
+  useFolderEdit.setState((state) => ({ edit, seq: state.seq + 1 }));
 };
 
-export const closeFolderEdit = (edit: FolderEdit | null): void => {
-  if (!sameEdit(useFolderEdit.getState().edit, edit)) {
+export const closeFolderEdit = (seq: number): void => {
+  if (useFolderEdit.getState().seq !== seq) {
     return;
   }
-  useFolderEdit.setState({ edit: null });
+  setFolderEdit(null);
 };
 
 export const isRenaming = (edit: FolderEdit | null, mailbox: Mailbox): boolean =>

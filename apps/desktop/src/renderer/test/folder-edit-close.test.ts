@@ -12,20 +12,23 @@ const labelEdit = (key: 'efa' | 'os'): FolderEdit => ({
   accountId: demoIds.account(key),
 });
 
+const open = (edit: FolderEdit): number => {
+  setFolderEdit(edit);
+  return useFolderEdit.getState().seq;
+};
+
 describe('closing a folder edit', () => {
   it('closes the edit it was opened for', () => {
-    const own = labelEdit('efa');
-    setFolderEdit(own);
+    const own = open(labelEdit('efa'));
 
     closeFolderEdit(own);
 
     expect(useFolderEdit.getState().edit).toBeNull();
   });
 
-  it('keeps a newer edit opened while the old one was finishing', () => {
-    const own = labelEdit('efa');
+  it('keeps an edit for another account opened while the old one was finishing', () => {
+    const own = open(labelEdit('efa'));
     const newer = labelEdit('os');
-    setFolderEdit(own);
     setFolderEdit(newer);
 
     closeFolderEdit(own);
@@ -33,13 +36,15 @@ describe('closing a folder edit', () => {
     expect(useFolderEdit.getState().edit).toBe(newer);
   });
 
-  it('closes the same edit when it was opened again while the old one was finishing', () => {
-    const own = labelEdit('efa');
-    setFolderEdit(own);
-    setFolderEdit(labelEdit('efa'));
+  it('keeps the same edit opened again while the old one was finishing', () => {
+    const own = open(labelEdit('efa'));
+    const reopened = labelEdit('efa');
+    const seq = open(reopened);
 
     closeFolderEdit(own);
 
+    expect(useFolderEdit.getState().edit).toBe(reopened);
+    closeFolderEdit(seq);
     expect(useFolderEdit.getState().edit).toBeNull();
   });
 });
