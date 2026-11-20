@@ -10,6 +10,16 @@ export interface RuleTemplate {
   readonly needs: AutomationConditionType | null;
 }
 
+export const BLANK_TEMPLATE: RuleTemplate = {
+  id: 'blank',
+  title: 'Prázdne pravidlo',
+  description: 'Podmienky aj akcie si nastavíš sám.',
+  name: 'Nové pravidlo',
+  conditions: [],
+  actions: [{ type: 'task' }],
+  needs: null,
+};
+
 export const RULE_TEMPLATES: readonly RuleTemplate[] = [
   {
     id: 'jira',
@@ -50,13 +60,5 @@ export const RULE_TEMPLATES: readonly RuleTemplate[] = [
     actions: [{ type: 'pin' }],
     needs: null,
   },
-  {
-    id: 'blank',
-    title: 'Prázdne pravidlo',
-    description: 'Podmienky aj akcie si nastavíš sám.',
-    name: 'Nové pravidlo',
-    conditions: [],
-    actions: [{ type: 'task' }],
-    needs: null,
-  },
+  BLANK_TEMPLATE,
 ];

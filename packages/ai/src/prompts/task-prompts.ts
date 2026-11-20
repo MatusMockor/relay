@@ -9,6 +9,7 @@ import { createTaskPrompt } from './specs/create-task';
 import { oneLinerPrompt } from './specs/one-liner';
 import { replySuggestionsPrompt } from './specs/reply-suggestions';
 import { rewritePrompt } from './specs/rewrite';
+import { ruleSuggestPrompt } from './specs/rule-suggest';
 import { summaryPrompt } from './specs/summary';
 
 export function prepareTaskPrompt(
@@ -32,5 +33,7 @@ export function prepareTaskPrompt(
       return preparePrompt(automationTaskPrompt, input, context);
     case 'automationDraft':
       return preparePrompt(automationDraftPrompt, input, context);
+    case 'ruleSuggest':
+      return preparePrompt(ruleSuggestPrompt, input, context);
   }
 }

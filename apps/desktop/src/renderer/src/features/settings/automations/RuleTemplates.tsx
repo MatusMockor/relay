@@ -1,5 +1,7 @@
+import type { MailAccount, RuleSuggestion } from '@relay/shared';
 import { Icon, type StrokeIconName } from '@relay/ui';
 import { SectionHeader } from '../SectionHeader';
+import { RuleAiBar } from './rule-ai/RuleAiBar';
 import { RULE_TEMPLATES, type RuleTemplate } from './rule-templates';
 
 const TEMPLATE_ICONS: Readonly<Record<RuleTemplate['id'], StrokeIconName>> = {
@@ -11,20 +13,35 @@ const TEMPLATE_ICONS: Readonly<Record<RuleTemplate['id'], StrokeIconName>> = {
 };
 
 export interface RuleTemplatesProps {
+  readonly accounts: readonly MailAccount[];
   readonly disabled: boolean;
   readonly onBack: () => void;
   readonly onPick: (template: RuleTemplate) => void;
+  readonly onSuggest: (suggestion: RuleSuggestion, sentence: string) => void;
 }
 
-export function RuleTemplates({ disabled, onBack, onPick }: RuleTemplatesProps) {
+export function RuleTemplates({
+  accounts,
+  disabled,
+  onBack,
+  onPick,
+  onSuggest,
+}: RuleTemplatesProps) {
   return (
     <>
       <SectionHeader
         title="Nové pravidlo"
         back={{ label: 'Automatizácie', ariaLabel: 'Späť na automatizácie', onBack }}
       >
-        Začni šablónou. Podmienky aj akcie potom upravíš.
+        Opíš pravidlo vlastnými slovami alebo začni šablónou. Podmienky aj akcie potom upravíš.
       </SectionHeader>
+      <RuleAiBar
+        accountId={null}
+        accounts={accounts}
+        disabled={disabled}
+        note={null}
+        onSuggest={onSuggest}
+      />
       <div className="au-tpls">
         {RULE_TEMPLATES.map((template) => (
           <button

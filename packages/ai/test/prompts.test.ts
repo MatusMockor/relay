@@ -1,5 +1,8 @@
 import {
+  AccountIdSchema,
   AutomationIdSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
   MessageIdSchema,
   ThreadIdSchema,
   type AiJobInput,
@@ -25,6 +28,19 @@ const automationDraft = {
   automationId: AutomationIdSchema.parse('automation_1'),
   instructions: 'Tykaj a buď stručný.',
 };
+const ruleSuggest = {
+  kind: 'ruleSuggest' as const,
+  sentence: 'faktúry s prílohou daj do štítku Faktúry a archivuj',
+  accountId: AccountIdSchema.parse('acc_work'),
+  accounts: [
+    {
+      id: AccountIdSchema.parse('acc_work'),
+      name: 'Práca',
+      labels: [{ id: LabelIdSchema.parse('lbl_secret_id'), name: 'Faktúry' }],
+      folders: [{ id: MailboxIdSchema.parse('mbx_secret_id'), name: 'Projekty / Alfa' }],
+    },
+  ],
+};
 const context: PromptContext = { language: 'sk', nonce: 'abc123', thread: threadFixture() };
 
 const inputs: AiJobInput[] = [
@@ -36,6 +52,7 @@ const inputs: AiJobInput[] = [
   { kind: 'createTask', threadId, hint: null },
   automationTask,
   automationDraft,
+  ruleSuggest,
 ];
 
 describe('task prompts', () => {

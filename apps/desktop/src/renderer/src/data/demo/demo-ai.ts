@@ -1,8 +1,9 @@
-import type { AiEvent, AiJobInput, AiOutput } from '@relay/shared';
+import { type AiEvent, type AiJobInput, type AiOutput, resolveRuleProposal } from '@relay/shared';
 import type { AiEventListener, Unsubscribe } from '../MailClient';
 import type { DemoState } from './demo-state';
 import { truncate } from '../../lib/text';
 import { demoRewrite } from './demo-rewrite';
+import { parseRuleSentence } from './demo-rule-parser';
 
 const TASK_TITLE_MAX = 500;
 
@@ -29,6 +30,12 @@ const answerChat = (state: DemoState, question: string, threadId: string | null)
 const outputFor = (state: DemoState, input: AiJobInput): AiOutput => {
   if (input.kind === 'rewrite') {
     return { kind: 'rewrite', text: demoRewrite(input.text, input.instruction) };
+  }
+  if (input.kind === 'ruleSuggest') {
+    return {
+      kind: 'ruleSuggest',
+      suggestion: resolveRuleProposal(parseRuleSentence(input.sentence), input),
+    };
   }
   if (input.kind === 'chatAnswer') {
     return {
@@ -74,6 +81,9 @@ const textOf = (output: AiOutput): string => {
   }
   if (output.kind === 'automationDraft') {
     return output.body;
+  }
+  if (output.kind === 'ruleSuggest') {
+    return output.suggestion.understood;
   }
   return output.text;
 };

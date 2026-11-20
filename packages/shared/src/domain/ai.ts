@@ -10,6 +10,7 @@ import {
 } from './ids';
 import { AiEffortSchema, AiModelIdSchema } from './ai-model-catalog';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
+import { RuleSuggestionSchema, RuleSuggestRequestSchema } from './rule-suggestion';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
 import { TimeZoneSchema } from './time-zone';
 
@@ -28,6 +29,7 @@ export const AiTaskKindSchema = z.enum([
   'createTask',
   'automationTask',
   'automationDraft',
+  'ruleSuggest',
 ]);
 export type AiTaskKind = z.infer<typeof AiTaskKindSchema>;
 
@@ -95,6 +97,7 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     instructions: z.string().min(1).max(2_000).nullable(),
     timeZone: JobTimeZoneSchema,
   }),
+  RuleSuggestRequestSchema.extend({ kind: z.literal('ruleSuggest') }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;
 
@@ -131,6 +134,7 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     messageId: MessageIdSchema,
     body: z.string().min(1).max(10_000),
   }),
+  z.object({ kind: z.literal('ruleSuggest'), suggestion: RuleSuggestionSchema }),
 ]);
 export type AiOutput = z.infer<typeof AiOutputSchema>;
 export type AiOutputOf<K extends AiTaskKind> = Extract<AiOutput, { kind: K }>;

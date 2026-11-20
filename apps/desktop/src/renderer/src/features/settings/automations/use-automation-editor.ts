@@ -16,12 +16,13 @@ import {
   type RuleChange,
 } from './editable-rule';
 import { nextDraftKey } from './draft-key';
+import { type RuleProposals, ruleProposals, withoutKey } from './rule-ai/rule-proposals';
 import { canMove, moveRule } from './rule-order';
 import type { RuleTemplate } from './rule-templates';
 import { clearSeededRule, seededDrafts } from './seeded-rule';
 import { usePersistAutomations } from './use-persist-automations';
 
-export interface AutomationEditor {
+export interface AutomationEditor extends RuleProposals {
   readonly rules: readonly EditableRule[];
   readonly unsupported: readonly UnsupportedAutomation[];
   readonly loading: boolean;
@@ -31,12 +32,6 @@ export interface AutomationEditor {
   reorder(from: number, to: number): void;
   addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
 }
-
-const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
-  const next = new Map(map);
-  next.delete(key);
-  return next;
-};
 
 export const useAutomationEditor = (
   onCreated: (draftKey: string, id: string) => void,
@@ -115,6 +110,7 @@ export const useAutomationEditor = (
   };
 
   return {
+    ...ruleProposals(rules, setLocal),
     rules,
     unsupported: (automations.data ?? []).filter(isUnsupportedAutomation),
     loading: automations.data === undefined,

@@ -1,13 +1,14 @@
-import type { MailAccount } from '@relay/shared';
-import { Button, Segmented } from '@relay/ui';
+import type { MailAccount, RuleSuggestion } from '@relay/shared';
+import { Segmented } from '@relay/ui';
 import { useState } from 'react';
 import { describeAction } from './action-targets';
 import { ActionChecklist } from './ActionChecklist';
 import { AdvancedSection } from './AdvancedSection';
 import { AiSection } from './AiSection';
-import { ApplyToExisting } from './ApplyToExisting';
 import { NEW_CONDITION_TYPE } from './condition-fields';
 import { type EditableRule, isComplete, type RuleChange } from './editable-rule';
+import { RuleAiBar } from './rule-ai/RuleAiBar';
+import { RuleDetailFooter } from './RuleDetailFooter';
 import { ExceptionsSection } from './ExceptionsSection';
 import { RuleDetailHeader } from './RuleDetailHeader';
 import { RuleHistory } from './history/RuleHistory';
@@ -33,6 +34,8 @@ export interface AutomationDetailProps {
   readonly disabled: boolean;
   readonly onBack: () => void;
   readonly onChange: (change: RuleChange) => void;
+  readonly onPropose: (suggestion: RuleSuggestion, sentence: string) => void;
+  readonly onDiscard: () => void;
   readonly onRemove: () => void;
 }
 
@@ -42,6 +45,8 @@ export function AutomationDetail({
   disabled,
   onBack,
   onChange,
+  onPropose,
+  onDiscard,
   onRemove,
 }: AutomationDetailProps) {
   const { input } = rule;
@@ -70,6 +75,13 @@ export function AutomationDetail({
         <RuleHistory automationId={rule.saved ? (input.id ?? null) : null} targets={targets} />
       ) : null}
       <div className="au-view" hidden={view === 'history'}>
+        <RuleAiBar
+          accountId={input.accountId}
+          accounts={accounts}
+          disabled={disabled}
+          note={rule.suggestion ?? null}
+          onSuggest={onPropose}
+        />
         <RuleSummaryCard input={input} accounts={accounts} targets={targets} />
         <RulePreview input={previewInput} />
         <WhenSection
@@ -113,30 +125,14 @@ export function AutomationDetail({
             Pridaj aspoň jednu podmienku, potom sa pravidlo uloží.
           </p>
         )}
-        <footer className="au-foot">
-          {!rule.saved && isComplete(rule) ? (
-            <Button
-              variant="primary"
-              disabled={disabled}
-              onClick={() => {
-                onChange({});
-              }}
-            >
-              Uložiť pravidlo
-            </Button>
-          ) : null}
-          {rule.saved && input.id !== undefined ? (
-            <ApplyToExisting
-              automationId={input.id}
-              actions={input.actions}
-              disabled={disabled}
-              blocked={conditions.dirty}
-            />
-          ) : null}
-          <Button variant="danger" disabled={disabled} onClick={onRemove}>
-            Odstrániť pravidlo
-          </Button>
-        </footer>
+        <RuleDetailFooter
+          rule={rule}
+          disabled={disabled}
+          dirty={conditions.dirty}
+          onChange={onChange}
+          onDiscard={onDiscard}
+          onRemove={onRemove}
+        />
       </div>
     </section>
   );

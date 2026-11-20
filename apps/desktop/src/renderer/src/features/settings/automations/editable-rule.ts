@@ -11,6 +11,7 @@ import {
   isParameterizedAction,
   needsAccountScope,
 } from '@relay/shared';
+import type { SuggestionNote } from './rule-ai/suggestion-note';
 import type { RuleTemplate } from './rule-templates';
 
 export type RuleInput = AutomationInput & {
@@ -24,6 +25,7 @@ export interface EditableRule {
   readonly saved: boolean;
   readonly pending: AutomationConditionType | null;
   readonly input: RuleInput;
+  readonly suggestion?: SuggestionNote;
 }
 
 export type RuleChange = Partial<RuleInput>;
@@ -71,6 +73,9 @@ export const newRule = (
 });
 
 export const isComplete = (rule: EditableRule): boolean => rule.input.conditions.length > 0;
+
+export const isStaged = (rule: EditableRule): boolean =>
+  rule.saved && rule.suggestion !== undefined;
 
 const DEFAULT_ACTIONS: AutomationAction[] = [{ type: 'task' }];
 

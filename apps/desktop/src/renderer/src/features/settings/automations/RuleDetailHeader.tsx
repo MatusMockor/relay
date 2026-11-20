@@ -1,6 +1,6 @@
 import { Switch } from '@relay/ui';
 import { SectionBackButton } from '../SectionHeader';
-import type { EditableRule, RuleChange } from './editable-rule';
+import { type EditableRule, isStaged, type RuleChange } from './editable-rule';
 import { RuleName } from './RuleName';
 
 export interface RuleDetailHeaderProps {
@@ -26,7 +26,7 @@ export function RuleDetailHeader({ rule, disabled, onBack, onChange }: RuleDetai
           />
         </h2>
         {rule.preset === null ? null : <span className="scope">Predvolené</span>}
-        {rule.saved ? null : <span className="scope warn">Neuložené</span>}
+        {rule.saved && !isStaged(rule) ? null : <span className="scope warn">Neuložené</span>}
         <Switch
           checked={input.enabled}
           label={`Pravidlo ${input.name} zapnuté`}
