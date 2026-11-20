@@ -74,7 +74,7 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       return;
     }
     if (thread.state === 'done') {
-      const undo = thread.markedDone || view === 'done' ? 'done' : 'archive';
+      const undo = thread.markedDone === true ? 'done' : 'archive';
       apply(thread, { type: 'undone' }, restoreMessage(thread), { type: undo });
       return;
     }

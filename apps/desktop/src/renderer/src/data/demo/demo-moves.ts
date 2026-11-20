@@ -88,7 +88,7 @@ export class DemoMoves {
     record.summary = {
       ...record.summary,
       state: origin.state,
-      markedDone: origin.markedDone || record.summary.markedDone,
+      markedDone: origin.state === 'inbox' ? false : origin.markedDone || record.summary.markedDone,
       remindAt: origin.remindAt,
       labelIds: origin.labelIds,
     };

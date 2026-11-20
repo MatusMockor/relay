@@ -28,7 +28,7 @@ const threadActionOf = (action: AutomationAction): ThreadAction | null => {
   return null;
 };
 
-const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'done'];
+const ORDER: readonly ThreadAction['type'][] = ['markRead', 'addLabel', 'move', 'archive'];
 
 const rank = (action: ThreadAction): number => ORDER.indexOf(action.type);
 
