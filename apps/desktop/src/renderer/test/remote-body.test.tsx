@@ -107,6 +107,34 @@ describe('remote message bodies', () => {
     expect(within(threadPane()).queryByRole('status')).toBeNull();
   });
 
+  it('shows the offline notice while the browser reports no network', async () => {
+    const fixture = remoteFixture();
+    fixture.offline = true;
+    render(fixture);
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    act(() => {
+      onlineManager.setOnline(false);
+    });
+    await openThreadBySubject(SUBJECT);
+
+    const notice = await within(threadPane()).findByRole('status');
+    expect(notice.textContent).toBe(OFFLINE_NOTICE);
+  });
+
+  it('shows the body of a stored copy while the browser reports no network', async () => {
+    const fixture = remoteFixture();
+    render(fixture);
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+    act(() => {
+      onlineManager.setOnline(false);
+    });
+    await openThreadBySubject(SUBJECT);
+
+    await waitFor(() => {
+      expect(threadPane().textContent).toContain('Celé telo prišlo zo servera.');
+    });
+  });
+
   it('tells the user when the server no longer has the message', async () => {
     const fixture = remoteFixture();
     fixture.bodies.clear();

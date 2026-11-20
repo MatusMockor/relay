@@ -24,6 +24,7 @@ export const createMessageBodyService = (
     fetcher: new RemoteBodyFetcher({
       sessions,
       mailboxes: repositories.mailboxes,
+      syncStates: repositories.syncStates,
       parser: deps.messageParser,
       logger: deps.logger.child({ component: 'remote-bodies' }),
     }),

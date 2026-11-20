@@ -13,6 +13,7 @@ export const messageBodyQuery = (client: MailClient, messageId: MessageId) =>
     staleTime: (query) => (query.state.data?.status === 'offline' ? 0 : Infinity),
     gcTime: BODY_GC_MS,
     retry: false,
+    networkMode: 'always',
     refetchOnReconnect: true,
   });
 

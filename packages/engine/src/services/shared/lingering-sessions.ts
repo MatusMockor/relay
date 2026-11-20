@@ -1,4 +1,5 @@
 import type { AccountId, MailAccount } from '@relay/shared/domain';
+import { ProviderError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { IntervalTimer } from '../../ports/interval-timer';
 import type { MailProvider } from '../../ports/mail-provider';
@@ -17,10 +18,14 @@ interface Lingering {
   usedAt: number;
 }
 
+const closedError = (): ProviderError => new ProviderError('Mail read sessions are shut down');
+
 export class LingeringSessions {
   private readonly open = new Map<AccountId, Lingering>();
   private readonly serializer = new KeyedSerializer();
+  private readonly acquiring = new Set<Promise<unknown>>();
   private stopSweep: (() => void) | null = null;
+  private closed = false;
 
   constructor(private readonly deps: LingeringSessionsDeps) {}
 
@@ -28,6 +33,9 @@ export class LingeringSessions {
     account: MailAccount,
     work: (provider: MailProvider) => Promise<Result>,
   ): Promise<Result> {
+    if (this.closed) {
+      return Promise.reject(closedError());
+    }
     return this.serializer.run(account.id, async () => {
       const lingering = await this.acquire(account);
       try {
@@ -50,15 +58,30 @@ export class LingeringSessions {
   }
 
   async closeAll(): Promise<void> {
+    this.closed = true;
+    await Promise.allSettled([...this.acquiring]);
     await Promise.all([...this.open.keys()].map((accountId) => this.closeAccount(accountId)));
   }
 
   private async acquire(account: MailAccount): Promise<Lingering> {
+    if (this.closed) {
+      throw closedError();
+    }
     const existing = this.open.get(account.id);
     if (existing !== undefined) {
       return existing;
     }
+    const establishing = this.establish(account);
+    this.acquiring.add(establishing);
+    return establishing.finally(() => this.acquiring.delete(establishing));
+  }
+
+  private async establish(account: MailAccount): Promise<Lingering> {
     const provider = await this.deps.sessions.open(account);
+    if (this.closed) {
+      await provider.close().catch(() => undefined);
+      throw closedError();
+    }
     const lingering = { provider, usedAt: this.now() };
     this.open.set(account.id, lingering);
     this.ensureSweep();

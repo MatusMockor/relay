@@ -5,6 +5,7 @@ import {
   AppContextProvider,
   ServicesProvider,
 } from './data/hooks/services-context';
+import { withLocalNetworkMode } from './data/local-network-mode';
 import { resetContextMenu } from './features/context-menu/context-menu-store';
 import { sendQueue } from './features/mail/send-queue';
 import { AppShell } from './features/shell/AppShell';
@@ -40,7 +41,7 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   const created = useRef(0);
   const owner = services ?? slots;
   const slot = slots.current.get(owner) ?? {
-    client: createQueryClient(),
+    client: withLocalNetworkMode(createQueryClient(), services),
     key: (created.current += 1),
   };
   slots.current.set(owner, slot);
