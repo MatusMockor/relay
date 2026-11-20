@@ -14,6 +14,7 @@ import {
   waitForRows,
 } from './support/list-scroll';
 import { setListViewport } from './support/list-geometry';
+import { expectWithinPerfBudget } from './support/perf-budget';
 import { renderApp, resetStores } from './support/render-app';
 
 const NOW = new Date(2026, 10, 19, 12, 0);
@@ -49,7 +50,7 @@ describe('virtualized thread list', () => {
     const elapsed = performance.now() - started;
 
     expect(renderedRows()).toBeLessThan(MAX_ROWS);
-    expect(elapsed).toBeLessThan(INITIAL_RENDER_BUDGET_MS);
+    expectWithinPerfBudget(elapsed, INITIAL_RENDER_BUDGET_MS);
     expect(optionPositions(listbox).slice(0, 3)).toEqual([1, 2, 3]);
     expect(within(listbox).getAllByRole('option')[0]?.getAttribute('aria-setsize')).toBe('-1');
   });
@@ -92,7 +93,7 @@ describe('virtualized thread list', () => {
       });
       expect(scrollElementOf(listbox).scrollTop).toBeGreaterThan(KEY_PRESSES * 40 - VIEWPORT);
       expect(renderedRows()).toBeLessThan(MAX_ROWS);
-      expect(elapsed).toBeLessThan(KEYBOARD_BUDGET_MS);
+      expectWithinPerfBudget(elapsed, KEYBOARD_BUDGET_MS);
     },
     KEYBOARD_TEST_TIMEOUT_MS,
   );
