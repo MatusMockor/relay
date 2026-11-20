@@ -4,6 +4,7 @@ export * from './endpoint';
 export * from './endpoints/accounts';
 export * from './endpoints/ai';
 export * from './endpoints/attachments';
+export * from './endpoints/automation-preview';
 export * from './endpoints/automations';
 export * from './endpoints/auth';
 export * from './endpoints/calendar';

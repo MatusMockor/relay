@@ -32,6 +32,7 @@
 @import './automation-conditions.css';
 @import './automation-actions.css';
 @import './automation-templates.css';
+@import './automation-preview.css';
 @import './model-picker.css';
 @import './onboarding.css';
 @import './updates.css';

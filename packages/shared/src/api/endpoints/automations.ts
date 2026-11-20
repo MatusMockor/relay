@@ -1,9 +1,16 @@
 import { z } from 'zod';
-import { AutomationAiInputSchema, AutomationSchema } from '../../domain/automation';
+import {
+  AutomationAiInputSchema,
+  AutomationConditionSchema,
+  AutomationMatchModeSchema,
+  AutomationSchema,
+  MAX_AUTOMATION_CONDITIONS,
+} from '../../domain/automation';
 import { AutomationActionsInputSchema } from '../../domain/automation-action';
 import { AutomationIdSchema } from '../../domain/ids';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
+import { AutomationPreviewBodySchema, AutomationPreviewResponseSchema } from './automation-preview';
 
 export const AutomationInputSchema = AutomationSchema.omit({
   id: true,
@@ -11,6 +18,8 @@ export const AutomationInputSchema = AutomationSchema.omit({
   preset: true,
 }).extend({
   id: AutomationIdSchema.optional(),
+  match: AutomationMatchModeSchema.optional(),
+  exceptions: z.array(AutomationConditionSchema).max(MAX_AUTOMATION_CONDITIONS).optional(),
   ai: AutomationAiInputSchema,
   actions: AutomationActionsInputSchema,
 });
@@ -49,6 +58,13 @@ export const automationsEndpoints = {
     path: '/automations/restore-default',
     auth: 'user',
     response: z.array(AutomationSchema),
+  }),
+  preview: defineEndpoint({
+    method: 'POST',
+    path: '/automations/preview',
+    auth: 'user',
+    body: AutomationPreviewBodySchema,
+    response: AutomationPreviewResponseSchema,
   }),
   apply: defineEndpoint({
     method: 'POST',

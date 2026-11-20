@@ -46,7 +46,7 @@ export class AutomationRunner implements SyncArrivalListener {
     const matches = await this.deps.matcher.matches({
       message: matchSubjectOf(message, arrival.headers),
       jira: arrival.jira,
-      conditions: automation.conditions,
+      criteria: automation,
     });
     if (!matches) {
       return;

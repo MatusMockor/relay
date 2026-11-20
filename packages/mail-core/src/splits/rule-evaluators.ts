@@ -1,5 +1,10 @@
 import type { JiraClassification, SplitMatchSubject } from '@relay/engine';
-import type { Address, AutomationCondition, AutomationConditionType } from '@relay/shared/domain';
+import {
+  type Address,
+  type AutomationCondition,
+  type AutomationConditionType,
+  subjectContains,
+} from '@relay/shared/domain';
 import type { RegexCache } from './regex-cache';
 import { MAX_MATCH_INPUT_LENGTH } from './regex-safety';
 
@@ -59,6 +64,9 @@ const matchesSubjectRegex: RuleEvaluator<'subjectRegex'> = (rule, context) =>
     .get(rule.pattern, rule.caseSensitive ? 'u' : 'iu')
     ?.test(capped(context.message.subject)) ?? false;
 
+const matchesSubjectContains: RuleEvaluator<'subjectContains'> = (rule, context) =>
+  subjectContains(capped(context.message.subject), rule.value);
+
 const matchesHeader: RuleEvaluator<'header'> = (rule, context) => {
   const regex = context.regex.get(rule.pattern, 'iu');
   const values = context.message.headers.get(rule.name.trim().toLowerCase()) ?? [];
@@ -88,6 +96,7 @@ const EVALUATORS: { readonly [Type in AutomationConditionType]: RuleEvaluator<Ty
   jiraEvent: matchesJiraEvent,
   recipient: matchesRecipient,
   hasAttachment: matchesHasAttachment,
+  subjectContains: matchesSubjectContains,
 };
 
 export const evaluateRule = (rule: AutomationCondition, context: RuleContext): boolean => {

@@ -8,6 +8,8 @@ import type {
   Automation,
   AutomationId,
   AutomationInput,
+  AutomationPreviewBody,
+  AutomationPreviewResponse,
   ChecklistResponse,
   CreateFolderBody,
   AiRunnerInfo,
@@ -150,6 +152,7 @@ export interface Organizer {
   replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
   restoreDefaultAutomation(): Promise<Automation[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
+  previewAutomation(body: AutomationPreviewBody): Promise<AutomationPreviewResponse>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;
   updateChecklistItem(

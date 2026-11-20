@@ -37,7 +37,7 @@ export function AutomationRow({
   const targets = useActionTargets(input.accountId, accounts);
   const broken = input.actions.some((action) => describeAction(action, targets).broken);
   const account = accounts.find((item) => item.id === input.accountId);
-  const conditions = summarizeConditions(input.conditions);
+  const conditions = summarizeConditions(input);
   useEffect(() => {
     if (focusHandle) {
       grip.current?.focus();

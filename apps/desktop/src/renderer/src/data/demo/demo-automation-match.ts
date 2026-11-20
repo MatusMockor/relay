@@ -1,4 +1,11 @@
-import type { Address, AutomationCondition, Message } from '@relay/shared';
+import {
+  type Address,
+  type AutomationCondition,
+  type AutomationCriteria,
+  matchesCriteria,
+  type Message,
+  subjectContains,
+} from '@relay/shared';
 import type { DemoThreadRecord } from './demo-state';
 
 const inDomain = (email: string, domain: string): boolean => {
@@ -42,15 +49,15 @@ const matchesCondition = (condition: AutomationCondition, message: Message): boo
       );
     case 'hasAttachment':
       return message.attachments.some((attachment) => !attachment.inline);
+    case 'subjectContains':
+      return subjectContains(message.subject, condition.value);
     default:
       return false;
   }
 };
 
-export const demoRuleMatches = (
-  conditions: readonly AutomationCondition[],
-  record: DemoThreadRecord,
-): boolean =>
-  record.messages.some((message) =>
-    conditions.every((condition) => matchesCondition(condition, message)),
-  );
+export const demoMessageMatches = (criteria: AutomationCriteria, message: Message): boolean =>
+  matchesCriteria(criteria, (condition) => matchesCondition(condition, message));
+
+export const demoRuleMatches = (criteria: AutomationCriteria, record: DemoThreadRecord): boolean =>
+  record.messages.some((message) => demoMessageMatches(criteria, message));

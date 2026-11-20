@@ -19,7 +19,11 @@ export const automations = sqliteTable(
     enabled: integer('enabled', { mode: 'boolean' }).notNull(),
     position: integer('position').notNull(),
     preset: text('preset'),
+    match: text('match').notNull().default('all'),
     conditions: text('conditions', { mode: 'json' }).notNull(),
+    exceptions: text('exceptions', { mode: 'json' })
+      .notNull()
+      .default(sql`'[]'`),
     ai: text('ai', { mode: 'json' }).notNull(),
     actions: text('actions', { mode: 'json' }).notNull(),
   },

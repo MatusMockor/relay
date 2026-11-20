@@ -11,7 +11,7 @@ import {
   RECIPIENT_FIELD_LABELS,
 } from './automation-labels';
 import {
-  CONDITION_TYPES,
+  conditionTypesFor,
   freshDraft,
   JIRA_EVENT_KINDS,
   RECIPIENT_FIELDS,
@@ -24,6 +24,7 @@ import { useConditionDraft } from './use-condition-draft';
 export interface ConditionRowProps {
   readonly id: string;
   readonly index: number;
+  readonly groupLabel: string;
   readonly condition: AutomationCondition | null;
   readonly freshType: AutomationConditionType;
   readonly removeLabel: string;
@@ -36,6 +37,7 @@ export interface ConditionRowProps {
 export function ConditionRow({
   id,
   index,
+  groupLabel,
   condition: saved,
   freshType,
   removeLabel,
@@ -54,11 +56,11 @@ export function ConditionRow({
   const valueField = VALUE_FIELDS[draft.type];
   return (
     <div className="au-cond-w">
-      <div className="au-cond" role="group" aria-label={`Podmienka ${String(index + 1)}`}>
+      <div className="au-cond" role="group" aria-label={`${groupLabel} ${String(index + 1)}`}>
         <ConditionSelect<AutomationConditionType>
           label="Typ podmienky"
           value={draft.type}
-          options={CONDITION_TYPES}
+          options={conditionTypesFor(draft.type)}
           labels={CONDITION_TYPE_LABELS}
           disabled={disabled}
           onChange={(next) => {

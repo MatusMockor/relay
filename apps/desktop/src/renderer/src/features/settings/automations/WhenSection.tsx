@@ -1,16 +1,26 @@
-import type { AutomationConditionType, AutomationInput, MailAccount } from '@relay/shared';
-import { Button } from '@relay/ui';
-import { Fragment, useState } from 'react';
-import { describeCondition } from './automation-labels';
-import { NEW_CONDITION_TYPE } from './condition-fields';
-import { alignRows, initialRows, rowId } from './condition-rows';
-import { ConditionRow } from './ConditionRow';
-import { type RuleChange, scopeChange } from './editable-rule';
+import type { AutomationMatchMode, MailAccount } from '@relay/shared';
+import { Segmented } from '@relay/ui';
+import { ConditionList } from './ConditionList';
+import { type RuleChange, scopeChange, type RuleInput } from './editable-rule';
+import { MATCH_JOINERS } from './rule-summary';
+import type { ConditionRowsState } from './use-condition-rows';
+
+const MATCH_OPTIONS: readonly { value: AutomationMatchMode; label: string }[] = [
+  { value: 'all', label: 'všetky' },
+  { value: 'any', label: 'ktorúkoľvek' },
+];
+
+const COPY = {
+  group: 'Podmienka',
+  add: '+ Pridať podmienku',
+  remove: 'Odstrániť podmienku',
+  cancel: 'Zrušiť novú podmienku',
+};
 
 export interface WhenSectionProps {
-  readonly input: AutomationInput;
+  readonly input: RuleInput;
   readonly accounts: readonly MailAccount[];
-  readonly pending: AutomationConditionType | null;
+  readonly rows: ConditionRowsState;
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
   readonly onDirty: (id: string, dirty: boolean) => void;
@@ -19,30 +29,14 @@ export interface WhenSectionProps {
 export function WhenSection({
   input,
   accounts,
-  pending,
+  rows,
   disabled,
   onChange,
   onDirty,
 }: WhenSectionProps) {
-  const { conditions } = input;
-  const [stored, setRows] = useState(() =>
-    initialRows(conditions, pending ?? (conditions.length === 0 ? NEW_CONDITION_TYPE : null)),
-  );
-  const rows = alignRows(stored, conditions);
-  if (rows !== stored) {
-    setRows(rows);
-  }
-  const entries = [
-    ...rows.ids.map((id, index) => ({
-      id,
-      condition: conditions[index] ?? null,
-      type: NEW_CONDITION_TYPE,
-    })),
-    ...(rows.pending === null ? [] : [{ ...rows.pending, condition: null }]),
-  ];
   return (
     <section className="au-sec" aria-labelledby="au-when">
-      <h3 id="au-when">Kedy</h3>
+      <h3 id="au-when">Keď</h3>
       <label className="fld au-scope">
         <span>Účet</span>
         <select
@@ -61,51 +55,30 @@ export function WhenSection({
           ))}
         </select>
       </label>
-      <div className="au-conds">
-        {entries.map((entry, index) => (
-          <Fragment key={entry.id}>
-            {index > 0 ? <span className="au-and">a zároveň</span> : null}
-            <ConditionRow
-              id={entry.id}
-              index={index}
-              condition={entry.condition}
-              freshType={entry.type}
-              removeLabel={
-                entry.condition === null
-                  ? 'Zrušiť novú podmienku'
-                  : `Odstrániť podmienku ${describeCondition(entry.condition)}`
-              }
-              disabled={disabled}
-              onSave={(next) => {
-                onChange({
-                  conditions:
-                    entry.condition === null
-                      ? [...conditions, next]
-                      : conditions.map((item, position) => (position === index ? next : item)),
-                });
-              }}
-              onRemove={() => {
-                if (entry.condition === null) {
-                  setRows({ ...rows, pending: null });
-                  return;
-                }
-                onChange({ conditions: conditions.filter((_, position) => position !== index) });
-              }}
-              onDirty={onDirty}
-            />
-          </Fragment>
-        ))}
+      <div className="au-match">
+        <span>Mail spĺňa</span>
+        <Segmented<AutomationMatchMode>
+          label="Koľko podmienok musí mail splniť"
+          options={MATCH_OPTIONS}
+          value={input.match}
+          disabled={disabled}
+          onChange={(match) => {
+            onChange({ match });
+          }}
+        />
+        <span>z podmienok</span>
       </div>
-      <Button
-        variant="ghost"
-        className="au-add"
-        disabled={disabled || rows.pending !== null}
-        onClick={() => {
-          setRows({ ...rows, pending: { id: rowId(), type: NEW_CONDITION_TYPE } });
+      <ConditionList
+        conditions={input.conditions}
+        state={rows}
+        joiner={MATCH_JOINERS[input.match]}
+        copy={COPY}
+        disabled={disabled}
+        onChange={(conditions) => {
+          onChange({ conditions });
         }}
-      >
-        + Pridať podmienku
-      </Button>
+        onDirty={onDirty}
+      />
     </section>
   );
 }

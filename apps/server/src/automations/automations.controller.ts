@@ -1,6 +1,10 @@
 import { Controller } from '@nestjs/common';
 import { AutomationService } from '@relay/engine';
-import { api, type ApplyAutomationResponse } from '@relay/shared/api';
+import {
+  api,
+  type ApplyAutomationResponse,
+  type AutomationPreviewResponse,
+} from '@relay/shared/api';
 import type { Automation } from '@relay/shared/domain';
 import { CurrentPrincipal } from '../auth/decorators/current-principal.decorator';
 import type { Principal } from '../auth/principal';
@@ -27,6 +31,14 @@ export class AutomationsController {
   @ApiRoute(api.automations.restoreDefault)
   restoreDefault(@CurrentPrincipal() principal: Principal): Promise<Automation[]> {
     return this.automations.restoreDefault(principal.userId);
+  }
+
+  @ApiRoute(api.automations.preview)
+  preview(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.automations.preview) request: RequestOf<typeof api.automations.preview>,
+  ): Promise<AutomationPreviewResponse> {
+    return this.automations.preview(principal.userId, request.body);
   }
 
   @ApiRoute(api.automations.apply)

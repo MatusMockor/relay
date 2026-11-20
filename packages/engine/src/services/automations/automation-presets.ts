@@ -16,7 +16,9 @@ export const jiraTasksPreset = (
   enabled: false,
   order,
   preset: 'jiraTasks',
+  match: 'all',
   conditions: [{ type: 'jira', projectKeys: [] }],
+  exceptions: [],
   ai: { runner, model: null, effort: null, instructions: null },
   actions: [{ type: 'task' }],
 });

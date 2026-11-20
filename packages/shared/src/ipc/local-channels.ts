@@ -22,6 +22,10 @@ import {
   ApplyAutomationResponseSchema,
   ReplaceAutomationsBodySchema,
 } from '../api/endpoints/automations';
+import {
+  AutomationPreviewBodySchema,
+  AutomationPreviewResponseSchema,
+} from '../api/endpoints/automation-preview';
 import { ServerSearchRequestSchema, ServerSearchResponseSchema } from '../api/endpoints/search';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
@@ -160,6 +164,10 @@ export const localInvokeChannels = {
     z.array(AutomationSchema),
   ),
   'local.automations.restoreDefault': invokeChannel(z.undefined(), z.array(AutomationSchema)),
+  'local.automations.preview': invokeChannel(
+    AutomationPreviewBodySchema,
+    AutomationPreviewResponseSchema,
+  ),
   'local.automations.apply': invokeChannel(
     z.object({ automationId: AutomationIdSchema }),
     ApplyAutomationResponseSchema,

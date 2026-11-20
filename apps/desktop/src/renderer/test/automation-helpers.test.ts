@@ -1,8 +1,17 @@
-import { AutomationActionsSchema, AutomationConditionSchema } from '@relay/shared';
+import {
+  AccountIdSchema,
+  AutomationActionsSchema,
+  type AutomationCondition,
+  AutomationConditionSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
+} from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import type { ActionTargets } from '../src/features/settings/automations/action-targets';
+import type { RuleInput } from '../src/features/settings/automations/editable-rule';
 import { moveRule } from '../src/features/settings/automations/rule-order';
 import {
+  describeRule,
   summarizeActions,
   summarizeConditions,
   firstAiAction,
@@ -11,15 +20,94 @@ import { RULE_TEMPLATES } from '../src/features/settings/automations/rule-templa
 
 const targets: ActionTargets = { mailboxes: [], labels: [], loaded: false, gmail: false };
 
+const all = (conditions: AutomationCondition[]) => ({
+  match: 'all' as const,
+  conditions,
+  exceptions: [],
+});
+
+const draft = (overrides: Partial<RuleInput>): RuleInput => ({
+  accountId: null,
+  name: 'Faktúry',
+  enabled: true,
+  order: 0,
+  match: 'all',
+  conditions: [],
+  exceptions: [],
+  ai: { runner: 'claude', model: null, effort: null, instructions: null },
+  actions: [{ type: 'archive' }],
+  ...overrides,
+});
+
 describe('automation helpers', () => {
   it('summarizes conditions as one sentence', () => {
     expect(
-      summarizeConditions([
-        { type: 'jira', projectKeys: [] },
-        { type: 'jiraEvent', kind: 'assigned' },
-      ]),
+      summarizeConditions(
+        all([
+          { type: 'jira', projectKeys: [] },
+          { type: 'jiraEvent', kind: 'assigned' },
+        ]),
+      ),
     ).toBe('Z Jiry a Jira udalosť je Priradenie');
-    expect(summarizeConditions([])).toBe('');
+    expect(summarizeConditions(all([]))).toBe('');
+    expect(
+      summarizeConditions({
+        match: 'any',
+        conditions: [
+          { type: 'fromDomain', domain: 'dodavatel.sk' },
+          { type: 'subjectContains', value: 'faktúra' },
+        ],
+        exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }],
+      }),
+    ).toBe('Z domény dodavatel.sk alebo predmet obsahuje faktúra, okrem: od noreply@firma.sk');
+  });
+
+  it('describes a whole rule as one sentence', () => {
+    const labelId = LabelIdSchema.parse('lbl-faktury');
+    const known: ActionTargets = {
+      ...targets,
+      loaded: true,
+      labels: [
+        {
+          id: labelId,
+          accountId: AccountIdSchema.parse('acc-1'),
+          name: 'Faktúry',
+          color: null,
+          kind: 'keyword',
+          remoteName: 'Faktury',
+        },
+      ],
+    };
+
+    expect(
+      describeRule(
+        draft({
+          match: 'any',
+          conditions: [
+            { type: 'fromDomain', domain: 'dodavatel.sk' },
+            { type: 'fromDomain', domain: 'firma.sk' },
+            { type: 'subjectContains', value: 'faktúra' },
+          ],
+          exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }],
+          actions: [{ type: 'addLabel', labelId }, { type: 'archive' }],
+        }),
+        known,
+        null,
+      ),
+    ).toBe(
+      'Keď príde mail z domény dodavatel.sk, z domény firma.sk alebo so slovom „faktúra“ v predmete, okrem mailov od noreply@firma.sk, pridá štítok Faktúry a archivuje ho.',
+    );
+    expect(
+      describeRule(
+        draft({
+          conditions: [{ type: 'hasAttachment' }],
+          actions: [{ type: 'moveTo', mailboxId: MailboxIdSchema.parse('mbx-x') }, { type: 'pin' }],
+        }),
+        targets,
+        'Práca',
+      ),
+    ).toBe('Keď príde mail do účtu Práca s prílohou, presunie ho a pripne ho.');
+    expect(describeRule(draft({}), targets, null)).toBe('Pravidlo zatiaľ nemá žiadnu podmienku.');
   });
 
   it('summarizes actions as a list', () => {

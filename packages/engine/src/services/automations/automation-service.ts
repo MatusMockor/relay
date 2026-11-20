@@ -1,6 +1,8 @@
 import {
   type ApplyAutomationResponse,
   type AutomationInput,
+  type AutomationPreviewBody,
+  type AutomationPreviewResponse,
   MAX_AUTOMATIONS,
   type ReplaceAutomationsBody,
 } from '@relay/shared/api';
@@ -15,6 +17,8 @@ import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { assertRulePatterns } from '../splits/split-rule-validator';
 import type { AutomationBacklog } from './automation-backlog';
+import { inputRules, storedAutomationOf } from './automation-input';
+import type { AutomationPreview } from './automation-preview';
 import { hasJiraTasksPreset, jiraTasksPreset } from './automation-presets';
 import type { AutomationTargetValidator } from './automation-target-validator';
 
@@ -27,6 +31,7 @@ export interface AutomationServiceDeps {
   readonly patterns: SplitPatternPolicy;
   readonly targets: AutomationTargetValidator;
   readonly backlog: AutomationBacklog;
+  readonly preview: AutomationPreview;
 }
 
 export class AutomationService {
@@ -47,6 +52,10 @@ export class AutomationService {
     return this.serializer.run(userId, () => this.restoreNow(userId));
   }
 
+  preview(userId: UserId, body: AutomationPreviewBody): Promise<AutomationPreviewResponse> {
+    return this.deps.preview.preview(userId, body);
+  }
+
   applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
     return this.applies.run(`${userId}:${id}`, () => this.applyNow(userId, id));
   }
@@ -62,10 +71,7 @@ export class AutomationService {
 
   private async replaceNow(userId: UserId, body: ReplaceAutomationsBody): Promise<Automation[]> {
     body.automations.forEach((input) => {
-      assertRulePatterns(
-        { kind: 'Automation', name: input.name, rules: input.conditions },
-        this.deps.patterns,
-      );
+      assertRulePatterns(inputRules(input), this.deps.patterns);
     });
     await this.assertAccounts(userId, body.automations);
     const current = await this.seeded(userId);
@@ -75,8 +81,13 @@ export class AutomationService {
       if (input.id !== undefined && !known.has(input.id)) {
         throw new ValidationError(`Unknown automation id ${input.id}`);
       }
-      const preset = input.id === undefined ? null : (known.get(input.id)?.preset ?? null);
-      return { ...input, id: input.id ?? this.deps.ids.generate('automation'), userId, preset };
+      const existing = input.id === undefined ? undefined : known.get(input.id);
+      return storedAutomationOf(
+        input,
+        input.id ?? this.deps.ids.generate('automation'),
+        userId,
+        existing,
+      );
     });
     if (new Set(automations.map((automation) => automation.id)).size !== automations.length) {
       throw new ValidationError('Automation ids must be unique');

@@ -3,22 +3,29 @@ import {
   type AiRunnerKind,
   type Automation,
   type AutomationAction,
+  type AutomationCondition,
   type AutomationConditionType,
   type AutomationInput,
+  type AutomationMatchMode,
   type AutomationPreset,
   isParameterizedAction,
 } from '@relay/shared';
 import type { RuleTemplate } from './rule-templates';
+
+export type RuleInput = AutomationInput & {
+  readonly match: AutomationMatchMode;
+  readonly exceptions: AutomationCondition[];
+};
 
 export interface EditableRule {
   readonly key: string;
   readonly preset: AutomationPreset | null;
   readonly saved: boolean;
   readonly pending: AutomationConditionType | null;
-  readonly input: AutomationInput;
+  readonly input: RuleInput;
 }
 
-export type RuleChange = Partial<AutomationInput>;
+export type RuleChange = Partial<RuleInput>;
 
 export const editableOf = (automation: Automation): EditableRule => ({
   key: automation.id,
@@ -31,7 +38,9 @@ export const editableOf = (automation: Automation): EditableRule => ({
     name: automation.name,
     enabled: automation.enabled,
     order: automation.order,
+    match: automation.match,
     conditions: automation.conditions,
+    exceptions: automation.exceptions,
     ai: automation.ai,
     actions: automation.actions,
   },
@@ -52,7 +61,9 @@ export const newRule = (
     name: template.name,
     enabled: true,
     order,
+    match: 'all',
     conditions: [...template.conditions],
+    exceptions: [],
     ai: { runner, model: null, effort: null, instructions: null },
     actions: [...template.actions],
   },

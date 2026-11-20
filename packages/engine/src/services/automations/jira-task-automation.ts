@@ -48,7 +48,7 @@ export class JiraTaskAutomation implements JiraTaskSink {
         headers: new Map(event.headers ?? []),
       },
       jira: event.classification,
-      conditions: preset.conditions,
+      criteria: preset,
     });
   }
 }

@@ -3,87 +3,33 @@ import {
   type Automation,
   type AutomationId,
   type AutomationInput,
-  AutomationIdSchema,
   isParameterizedAction,
   ReplaceAutomationsBodySchema,
 } from '@relay/shared';
 import type { Organizer } from '../MailClient';
+import { createDemoAutomationPreview } from './demo-automation-preview';
 import type { DemoState } from './demo-state';
+import { automationId, jiraTasksPreset } from './seed/automations';
 import { demoIds } from './seed/ids';
 
 type DemoAutomationMethods = Pick<
   Organizer,
-  'listAutomations' | 'replaceAutomations' | 'restoreDefaultAutomation' | 'applyAutomation'
+  | 'listAutomations'
+  | 'replaceAutomations'
+  | 'restoreDefaultAutomation'
+  | 'applyAutomation'
+  | 'previewAutomation'
 >;
 
+const settled = <Result>(work: () => Result): Promise<Result> => {
+  try {
+    return Promise.resolve(work());
+  } catch (error) {
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+  }
+};
+
 const ALL_ACCOUNTS_MESSAGE = 'Pravidlo pre všetky účty nemôže presúvať ani štítkovať, vyber účet';
-
-const automationId = (key: string) => AutomationIdSchema.parse(`automation-${key}`);
-
-const jiraTasksPreset = (id: AutomationId, order: number): Automation => ({
-  id,
-  userId: demoIds.user,
-  accountId: null,
-  name: 'Jira tasky',
-  enabled: false,
-  order,
-  preset: 'jiraTasks',
-  conditions: [{ type: 'jira', projectKeys: [] }],
-  ai: { runner: 'claude', model: null, effort: null, instructions: null },
-  actions: [{ type: 'task' }],
-});
-
-export const buildDemoAutomations = (): Automation[] => [
-  {
-    id: automationId('mentions'),
-    userId: demoIds.user,
-    accountId: demoIds.account('efa'),
-    name: 'Jira spomenutia',
-    enabled: true,
-    order: 0,
-    preset: null,
-    conditions: [
-      { type: 'jiraEvent', kind: 'mention' },
-      { type: 'jira', projectKeys: ['ECOM'] },
-    ],
-    ai: {
-      runner: 'codex',
-      model: 'gpt-6.1-sol',
-      effort: 'high',
-      instructions:
-        'Úlohu vytvor, len ak odo mňa niekto niečo chce. Presun do sprintu a zmeny priority ignoruj.',
-    },
-    actions: [{ type: 'summary' }, { type: 'task' }],
-  },
-  {
-    id: automationId('tibor'),
-    userId: demoIds.user,
-    accountId: null,
-    name: 'Tibor',
-    enabled: true,
-    order: 1,
-    preset: null,
-    conditions: [{ type: 'fromAddress', address: 'tibor@codevo.app' }],
-    ai: { runner: 'claude', model: 'claude-opus-5-5', effort: null, instructions: null },
-    actions: [{ type: 'task' }, { type: 'notify' }],
-  },
-  {
-    id: automationId('gitlab'),
-    userId: demoIds.user,
-    accountId: demoIds.account('efa'),
-    name: 'GitLab do Projektov',
-    enabled: true,
-    order: 2,
-    preset: null,
-    conditions: [{ type: 'fromAddress', address: 'gitlab@firma.sk' }],
-    ai: { runner: 'claude', model: null, effort: null, instructions: null },
-    actions: [
-      { type: 'addLabel', labelId: demoIds.label('efa') },
-      { type: 'moveTo', mailboxId: demoIds.folder('efa', 'projekty') },
-    ],
-  },
-  jiraTasksPreset(automationId('jira'), 3),
-];
 
 const toAutomation = (
   state: DemoState,
@@ -97,6 +43,8 @@ const toAutomation = (
     id: input.id ?? automationId(`n${String(order)}-${String(now().getTime())}`),
     userId: demoIds.user,
     preset: existing?.preset ?? null,
+    match: input.match ?? existing?.match ?? 'all',
+    exceptions: input.exceptions ?? existing?.exceptions ?? [],
   };
 };
 
@@ -104,39 +52,37 @@ export const createDemoAutomations = (
   state: DemoState,
   now: () => Date,
   apply: (automationId: AutomationId) => ApplyAutomationResponse,
-): DemoAutomationMethods => ({
-  listAutomations: () => Promise.resolve([...state.automations]),
-  applyAutomation: (automationId) => {
-    try {
-      return Promise.resolve(apply(automationId));
-    } catch (error) {
-      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
-    }
-  },
-  replaceAutomations: (automations) => {
-    const parsed = ReplaceAutomationsBodySchema.safeParse({ automations });
-    if (!parsed.success) {
-      return Promise.reject(new Error('Automatizácia nie je platná'));
-    }
-    if (
-      parsed.data.automations.some(
-        (input) => input.accountId === null && input.actions.some(isParameterizedAction),
-      )
-    ) {
-      return Promise.reject(new Error(ALL_ACCOUNTS_MESSAGE));
-    }
-    const next = parsed.data.automations.map((input, order) =>
-      toAutomation(state, input, order, now),
-    );
-    state.automations = next;
-    return Promise.resolve([...state.automations]);
-  },
-  restoreDefaultAutomation: () => {
-    if (state.automations.some((item) => item.preset === 'jiraTasks')) {
+): DemoAutomationMethods => {
+  const preview = createDemoAutomationPreview(state, now);
+  return {
+    listAutomations: () => Promise.resolve([...state.automations]),
+    applyAutomation: (id) => settled(() => apply(id)),
+    previewAutomation: (body) => settled(() => preview(body)),
+    replaceAutomations: (automations) => {
+      const parsed = ReplaceAutomationsBodySchema.safeParse({ automations });
+      if (!parsed.success) {
+        return Promise.reject(new Error('Automatizácia nie je platná'));
+      }
+      if (
+        parsed.data.automations.some(
+          (input) => input.accountId === null && input.actions.some(isParameterizedAction),
+        )
+      ) {
+        return Promise.reject(new Error(ALL_ACCOUNTS_MESSAGE));
+      }
+      const next = parsed.data.automations.map((input, order) =>
+        toAutomation(state, input, order, now),
+      );
+      state.automations = next;
       return Promise.resolve([...state.automations]);
-    }
-    const id = automationId(`jira-${String(now().getTime())}`);
-    state.automations = [...state.automations, jiraTasksPreset(id, state.automations.length)];
-    return Promise.resolve([...state.automations]);
-  },
-});
+    },
+    restoreDefaultAutomation: () => {
+      if (state.automations.some((item) => item.preset === 'jiraTasks')) {
+        return Promise.resolve([...state.automations]);
+      }
+      const id = automationId(`jira-${String(now().getTime())}`);
+      state.automations = [...state.automations, jiraTasksPreset(id, state.automations.length)];
+      return Promise.resolve([...state.automations]);
+    },
+  };
+};
