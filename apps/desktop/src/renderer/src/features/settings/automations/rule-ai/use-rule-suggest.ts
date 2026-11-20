@@ -7,6 +7,7 @@ import { runRuleSuggest } from './run-rule-suggest';
 import { suggestCatalog } from './suggest-catalog';
 
 export interface RuleSuggestState {
+  readonly ready: boolean;
   readonly busy: boolean;
   readonly error: string | null;
   readonly suggest: (sentence: string, onDone: (suggestion: RuleSuggestion) => void) => void;
@@ -22,6 +23,7 @@ export const useRuleSuggest = (
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const running = useRef<Unsubscribe | null>(null);
+  const ready = !labels.isPending && mailboxes.every((query) => !query.isPending);
   useEffect(
     () => () => {
       running.current?.();
@@ -30,7 +32,7 @@ export const useRuleSuggest = (
   );
   const suggest = (sentence: string, onDone: (suggestion: RuleSuggestion) => void) => {
     const text = sentence.trim();
-    if (busy || text === '') {
+    if (!ready || busy || text === '') {
       return;
     }
     const byAccount = new Map<AccountId, readonly Mailbox[]>(
@@ -59,5 +61,5 @@ export const useRuleSuggest = (
       },
     );
   };
-  return { busy, error, suggest };
+  return { ready, busy, error, suggest };
 };

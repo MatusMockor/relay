@@ -291,6 +291,10 @@ describe('Nastavenia > Automatizácie > opis pravidla vlastnými slovami', () =>
     click(within(draft).getByRole('checkbox', { name: 'Pripnúť' }));
     await settle();
 
+    expect(await stored(client, 'gitlab@firma.sk')).toBeUndefined();
+    click(within(draft).getByRole('button', { name: 'Uložiť pravidlo' }));
+    await settle();
+
     expect(await stored(client, 'gitlab@firma.sk')).toMatchObject({ actions: [{ type: 'pin' }] });
   });
 });

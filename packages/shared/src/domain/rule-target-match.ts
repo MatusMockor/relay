@@ -88,13 +88,25 @@ export const findTarget = <Target extends NamedTarget>(
   return decided(targets.filter((target) => sameStem(leafOf(target.name), leaf))) ?? NONE;
 };
 
-export const mentionsName = (sentence: string, name: string): boolean => {
-  const words = foldName(sentence).split(WORD_BREAK);
-  const wanted = leafOf(name)
-    .split(WORD_BREAK)
-    .filter((word) => word !== '');
+const wordsOf = (sentence: string): string[] => foldName(sentence).split(WORD_BREAK);
+
+const mentions = (said: readonly string[], segment: string): boolean => {
+  const wanted = segment.split(WORD_BREAK).filter((word) => word !== '');
   return (
     wanted.length > 0 &&
-    wanted.every((word) => words.some((said) => said === word || sameStem(said, word)))
+    wanted.every((word) => said.some((spoken) => spoken === word || sameStem(spoken, word)))
   );
+};
+
+export const mentionsName = (sentence: string, name: string): boolean =>
+  mentions(wordsOf(sentence), leafOf(name));
+
+export const spokenTarget = (sentence: string, name: string): string | null => {
+  const said = wordsOf(sentence);
+  const segments = segmentsOf(name);
+  const leaf = segments.at(-1) ?? '';
+  if (!mentions(said, leaf)) {
+    return null;
+  }
+  return segments.every((segment) => mentions(said, segment)) ? name : leaf;
 };

@@ -60,6 +60,9 @@ export function AutomationsSection() {
         onChange={(change) => {
           editor.change(opened.key, change);
         }}
+        onSave={() => {
+          editor.save(opened.key);
+        }}
         onPropose={(suggestion, sentence) => {
           editor.propose(opened.key, suggestion, sentence);
         }}

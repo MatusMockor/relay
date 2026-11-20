@@ -23,6 +23,12 @@ const clipped = <Id extends string>(targets: readonly Named<Id>[]): Named<Id>[] 
     .slice(0, RULE_SUGGEST_MAX_TARGETS)
     .map((target) => ({ id: target.id, name: target.name.slice(0, TARGET_NAME_MAX) }));
 
+const accountName = (account: MailAccount): string =>
+  (account.displayName.trim() === '' ? account.email : account.displayName.trim()).slice(
+    0,
+    ACCOUNT_NAME_MAX,
+  );
+
 export const suggestCatalog = (
   accounts: readonly MailAccount[],
   labels: readonly Label[],
@@ -30,7 +36,7 @@ export const suggestCatalog = (
 ): RuleSuggestAccount[] =>
   accounts.slice(0, RULE_SUGGEST_MAX_ACCOUNTS).map((account) => ({
     id: account.id,
-    name: account.displayName.slice(0, ACCOUNT_NAME_MAX),
+    name: accountName(account),
     labels: clipped(labels.filter((label) => label.accountId === account.id)),
     folders: clipped(
       moveTargetsOf(mailboxes.get(account.id) ?? []).map((target) => ({

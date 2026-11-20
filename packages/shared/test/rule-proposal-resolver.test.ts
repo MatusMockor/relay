@@ -120,6 +120,80 @@ describe('resolveRuleProposal', () => {
     expect(draft('dopyty s podpisom pripni')).toEqual([]);
   });
 
+  it('does not draft a reply for a summary draft', () => {
+    const suggestion = resolveRuleProposal(
+      proposal({ actions: [{ type: 'task' }, { type: 'draftReply' }, { type: 'summary' }] }),
+      suggestRequest('Create a task and draft a summary'),
+    );
+
+    expect(suggestion.actions).toEqual([{ type: 'task' }, { type: 'summary' }]);
+    expect(suggestion.unmapped).toEqual(['návrh odpovede (veta to nežiada)']);
+  });
+
+  it('never forwards to a bracketed sender or under a long negation', () => {
+    const forward = (sentence: string, to: string) =>
+      resolveRuleProposal(
+        proposal({ actions: [{ type: 'forward', to }, { type: 'archive' }] }),
+        suggestRequest(sentence, { accountId: WORK }),
+      ).actions;
+
+    expect(
+      forward(
+        'forward mail from <sender@example.com> to recipient@example.com',
+        'sender@example.com',
+      ),
+    ).toEqual([]);
+    expect(
+      forward(
+        'forward mail from <sender@example.com> to recipient@example.com',
+        'recipient@example.com',
+      ),
+    ).toEqual([{ type: 'forward', to: 'recipient@example.com' }]);
+    expect(
+      forward(
+        'do not under any circumstances forward to other@example.com, archive it',
+        'other@example.com',
+      ),
+    ).toEqual([{ type: 'archive' }]);
+  });
+
+  it('does not archive when Archive is only the name of the label', () => {
+    const suggestion = resolveRuleProposal(
+      proposal({ actions: [{ type: 'addLabel', label: 'Archive' }, { type: 'archive' }] }),
+      suggestRequest('add label Archive', {
+        accounts: [
+          { ...workAccount, labels: [{ id: LabelIdSchema.parse('lbl_archive'), name: 'Archive' }] },
+        ],
+      }),
+    );
+
+    expect(suggestion.actions).toEqual([{ type: 'addLabel', labelId: 'lbl_archive' }]);
+    expect(suggestion.unmapped).toEqual(['archivovanie (veta to nežiada)']);
+  });
+
+  it('never resolves a folder of another parent than the sentence names', () => {
+    const account = {
+      ...workAccount,
+      folders: [
+        { id: MailboxIdSchema.parse('mbx_work_invoices'), name: 'Work/Invoices' },
+        { id: MailboxIdSchema.parse('mbx_private_invoices'), name: 'Private/Invoices' },
+      ],
+    };
+    const move = (folder: string) =>
+      resolveRuleProposal(
+        proposal({ actions: [{ type: 'moveTo', folder }] }),
+        suggestRequest('move to Work/Invoices', { accountId: WORK, accounts: [account] }),
+      );
+
+    expect(move('Private/Invoices').actions).toEqual([]);
+    expect(move('Private/Invoices').unmapped).toEqual([
+      'priečinok „Private/Invoices“ (nejednoznačný názov)',
+    ]);
+    expect(move('Work/Invoices').actions).toEqual([
+      { type: 'moveTo', mailboxId: 'mbx_work_invoices' },
+    ]);
+  });
+
   it('keeps a single placement action and the first of duplicates', () => {
     const suggestion = resolveRuleProposal(
       proposal({

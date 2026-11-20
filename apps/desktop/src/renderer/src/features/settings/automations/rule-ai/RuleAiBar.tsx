@@ -5,7 +5,7 @@ import {
   type RuleSuggestion,
 } from '@relay/shared';
 import { Button, Spark } from '@relay/ui';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SuggestionExplanation } from './SuggestionExplanation';
 import type { SuggestionNote } from './suggestion-note';
 import { useRuleSuggest } from './use-rule-suggest';
@@ -33,10 +33,10 @@ export function RuleAiBar({
 }: RuleAiBarProps) {
   const [sentence, setSentence] = useState(note?.sentence ?? '');
   const [stale, setStale] = useState(false);
-  const { busy, error, suggest } = useRuleSuggest(accountId, accounts);
+  const { ready, busy, error, suggest } = useRuleSuggest(accountId, accounts);
   const field = useRef<HTMLInputElement>(null);
   const latest = useRef({ basis, onSuggest });
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = { basis, onSuggest };
   });
   useEffect(() => {
@@ -79,7 +79,7 @@ export function RuleAiBar({
         <Button
           type="submit"
           variant="primary"
-          disabled={disabled || busy || sentence.trim() === ''}
+          disabled={disabled || !ready || busy || sentence.trim() === ''}
         >
           {busy ? 'Navrhujem…' : 'Navrhnúť pravidlo'}
         </Button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findTarget, foldName, mentionsName } from '../src/domain';
+import { findTarget, foldName, mentionsName, spokenTarget } from '../src/domain';
 
 const targets = [
   { id: 'a', name: 'Faktúry' },
@@ -66,5 +66,14 @@ describe('rule target names', () => {
     expect(mentionsName('presuň do Taliansko 2026', 'Cestovanie/Taliansko 2026')).toBe(true);
     expect(mentionsName('daj do štítku Faktúry', 'Zmluvy')).toBe(false);
     expect(mentionsName('daj do štítku', '„“')).toBe(false);
+  });
+
+  it('keeps a proposed path only when the sentence names its qualifier', () => {
+    expect(spokenTarget('presuň do Projekty/Alfa', 'Projekty / Alfa')).toBe('Projekty / Alfa');
+    expect(spokenTarget('move to Work/Invoices', 'Private/Invoices')).toBe('invoices');
+    expect(spokenTarget('presuň do Taliansko 2026', 'Cestovanie/Taliansko 2026')).toBe(
+      'taliansko 2026',
+    );
+    expect(spokenTarget('presuň do Zmluvy', 'Faktúry')).toBeNull();
   });
 });

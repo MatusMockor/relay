@@ -28,6 +28,7 @@ export interface AutomationEditor extends RuleProposals {
   readonly loading: boolean;
   readonly saving: boolean;
   change(key: string, change: RuleChange): void;
+  save(key: string): void;
   remove(key: string): void;
   reorder(from: number, to: number): void;
   addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
@@ -47,7 +48,7 @@ export const useAutomationEditor = (
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];
   const savedInputs = saved.map((rule) => rule.input);
 
-  const save = (inputs: AutomationInput[], settled: string) => {
+  const store = (inputs: AutomationInput[], settled: string) => {
     const known = new Set(saved.map((rule) => rule.key));
     persist(inputs, (stored: readonly Automation[]) => {
       setLocal((current) => withoutKey(current, settled));
@@ -61,7 +62,7 @@ export const useAutomationEditor = (
 
   const commit = (next: EditableRule) => {
     const inputs = saved.map((item) => (item.key === next.key ? next.input : item.input));
-    save(next.saved ? inputs : [...inputs, next.input], next.key);
+    store(next.saved ? inputs : [...inputs, next.input], next.key);
   };
 
   const change = (key: string, update: RuleChange) => {
@@ -70,11 +71,19 @@ export const useAutomationEditor = (
       return;
     }
     const next: EditableRule = { ...rule, input: { ...rule.input, ...update } };
-    if (!isComplete(next)) {
+    if (next.suggestion !== undefined || !isComplete(next)) {
       setLocal((current) => new Map(current).set(key, next));
       return;
     }
     commit(next);
+  };
+
+  const save = (key: string) => {
+    const rule = rules.find((item) => item.key === key);
+    if (rule === undefined || saving || !isComplete(rule)) {
+      return;
+    }
+    commit(rule);
   };
 
   const remove = (key: string) => {
@@ -86,7 +95,7 @@ export const useAutomationEditor = (
       setLocal((current) => withoutKey(current, key));
       return;
     }
-    save(
+    store(
       saved.filter((item) => item.key !== key).map((item) => item.input),
       key,
     );
@@ -116,6 +125,7 @@ export const useAutomationEditor = (
     loading: automations.data === undefined,
     saving,
     change,
+    save,
     remove,
     reorder,
     addFrom,

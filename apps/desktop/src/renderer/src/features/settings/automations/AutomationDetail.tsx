@@ -35,6 +35,7 @@ export interface AutomationDetailProps {
   readonly disabled: boolean;
   readonly onBack: () => void;
   readonly onChange: (change: RuleChange) => void;
+  readonly onSave: () => void;
   readonly onPropose: (suggestion: RuleSuggestion, sentence: string) => void;
   readonly onDiscard: () => void;
   readonly onRemove: () => void;
@@ -46,6 +47,7 @@ export function AutomationDetail({
   disabled,
   onBack,
   onChange,
+  onSave,
   onPropose,
   onDiscard,
   onRemove,
@@ -82,7 +84,7 @@ export function AutomationDetail({
           accounts={accounts}
           disabled={disabled}
           note={rule.suggestion ?? null}
-          basis={suggestionBasis(input)}
+          basis={suggestionBasis(previewInput)}
           onSuggest={onPropose}
         />
         <RuleSummaryCard input={input} accounts={accounts} targets={targets} />
@@ -132,7 +134,7 @@ export function AutomationDetail({
           rule={rule}
           disabled={disabled}
           dirty={conditions.dirty}
-          onChange={onChange}
+          onSave={onSave}
           onDiscard={onDiscard}
           onRemove={onRemove}
         />

@@ -1,18 +1,13 @@
 import type { AutomationActionType } from './automation-action';
-import {
-  ACTION_WORDS,
-  CONDITION_PHRASES,
-  NEGATION_WINDOW,
-  NEGATIONS,
-  SENDER_WORDS,
-  UNCERTAIN,
-} from './rule-intent-words';
+import { requestedTokens } from './rule-intent-tokens';
+import { ACTION_WORDS, CONDITION_PHRASES, SENDER_WORDS, UNCERTAIN } from './rule-intent-words';
 
 export interface RuleIntent {
   readonly actions: ReadonlySet<AutomationActionType>;
   readonly forwardTo: ReadonlySet<string>;
 }
 
+const BRACKETED = /<\s*([^\s<>]+@[^\s<>]+?)\s*>/gu;
 const ADDRESS = /[^\s<>()[\],;:"'„“”]+@[^\s<>()[\],;:"'„“”]+/gu;
 const QUOTED = /„[^“”"]*[“”"]|"[^"]*"|“[^”]*”/gu;
 const PLACEHOLDER = /^§(\d+)§$/u;
@@ -23,6 +18,7 @@ const fold = (value: string): string =>
 
 const masked = (sentence: string, addresses: string[]): string =>
   sentence
+    .replace(BRACKETED, ' $1 ')
     .replace(ADDRESS, (match) => {
       const address = match.replace(/[.!?]+$/u, '');
       addresses.push(address.toLowerCase());
@@ -48,13 +44,10 @@ const tokensOf = (clause: string): string[] =>
 const isUncertain = (clause: string, tokens: readonly string[]): boolean =>
   clause.trim().endsWith('?') || tokens.some((token) => UNCERTAIN.has(token));
 
-const isNegated = (tokens: readonly string[], index: number): boolean =>
-  tokens.slice(Math.max(0, index - NEGATION_WINDOW), index).some((token) => NEGATIONS.has(token));
-
 const wantedIn = (tokens: readonly string[]): AutomationActionType[] =>
-  ACTION_WORDS.filter(([, words]) =>
-    tokens.some((token, index) => words.test(token) && !isNegated(tokens, index)),
-  ).map(([type]) => type);
+  ACTION_WORDS.filter(([, words]) => tokens.some((token) => words.test(token))).map(
+    ([type]) => type,
+  );
 
 export const ruleIntent = (sentence: string): RuleIntent => {
   const addresses: string[] = [];
@@ -67,12 +60,13 @@ export const ruleIntent = (sentence: string): RuleIntent => {
     if (isUncertain(clause, tokens)) {
       continue;
     }
-    const wanted = wantedIn(tokens);
+    const requested = requestedTokens(tokens);
+    const wanted = wantedIn(requested);
     wanted.forEach((type) => actions.add(type));
     if (!wanted.includes('forward')) {
       continue;
     }
-    tokens
+    requested
       .filter((token) => PLACEHOLDER.test(token) && !senders.has(token))
       .forEach((token) => {
         const address = addresses[Number(PLACEHOLDER.exec(token)?.[1])];

@@ -61,6 +61,43 @@ describe('demo rule parser', () => {
     expect(proposal.name).toBe('Nové pravidlo');
   });
 
+  it('keeps the actions written after the exception', () => {
+    const proposal = parseRuleSentence('z domény firma.sk okrem od sef@firma.sk archivuj');
+
+    expect(proposal.conditions).toEqual([{ type: 'fromDomain', domain: 'firma.sk' }]);
+    expect(proposal.exceptions).toEqual([{ type: 'fromAddress', address: 'sef@firma.sk' }]);
+    expect(proposal.actions).toEqual([{ type: 'archive' }]);
+  });
+
+  it('ignores okrem and príloha inside a quoted subject', () => {
+    const except = parseRuleSentence('predmet obsahuje „okrem teba“ archivuj');
+    const attachment = parseRuleSentence('predmet obsahuje „príloha“ archivuj');
+
+    expect(except.conditions).toEqual([{ type: 'subjectContains', value: 'okrem teba' }]);
+    expect(except.exceptions).toEqual([]);
+    expect(except.actions).toEqual([{ type: 'archive' }]);
+    expect(attachment.conditions).toEqual([{ type: 'subjectContains', value: 'príloha' }]);
+  });
+
+  it('reports a missing attachment instead of requiring one', () => {
+    const proposal = parseRuleSentence('od jana@firma.sk bez prílohy archivuj');
+
+    expect(proposal.conditions).toEqual([{ type: 'fromAddress', address: 'jana@firma.sk' }]);
+    expect(proposal.unmapped).toEqual(['bez prílohy']);
+    expect(parseRuleSentence('od jana@firma.sk s prílohou archivuj').conditions).toContainEqual({
+      type: 'hasAttachment',
+    });
+  });
+
+  it('reports a subject longer than a condition allows', () => {
+    const subject = 'a'.repeat(201);
+    const proposal = parseRuleSentence(`predmet obsahuje „${subject}“ archivuj`);
+
+    expect(proposal.conditions).toEqual([]);
+    expect(proposal.unmapped).toEqual([`predmet obsahuje „${'a'.repeat(60)}…“ (príliš dlhý)`]);
+    expect(RuleProposalSchema.safeParse(proposal).success).toBe(true);
+  });
+
   it('reports a reminder outside the allowed range', () => {
     const proposal = parseRuleSentence('od jana@firma.sk pripomeň o 45 dní');
 

@@ -3,6 +3,7 @@ import { parseActions } from './demo-rule-actions';
 import { parseConditions } from './demo-rule-conditions';
 
 const EXCEPT = /(?:^|[\s,])okrem\s/iu;
+const QUOTED = /„[^“”"]*[“”"]|"[^"]*"/gu;
 
 interface SentenceParts {
   readonly main: string;
@@ -10,7 +11,7 @@ interface SentenceParts {
 }
 
 const splitExcept = (sentence: string): SentenceParts => {
-  const match = EXCEPT.exec(sentence);
+  const match = EXCEPT.exec(sentence.replace(QUOTED, (quoted) => '_'.repeat(quoted.length)));
   if (match === null) {
     return { main: sentence, except: '' };
   }
@@ -43,7 +44,7 @@ export const parseRuleSentence = (sentence: string): RuleProposal => {
   const parts = splitExcept(sentence);
   const when = parseConditions(parts.main);
   const except = parseConditions(parts.except);
-  const actions = parseActions(parts.main);
+  const actions = parseActions(`${parts.main} ${parts.except}`);
   return {
     name: nameOf(when.conditions),
     accountId: null,

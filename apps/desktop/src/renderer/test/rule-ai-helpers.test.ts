@@ -1,4 +1,4 @@
-import type { AiEvent, RuleSuggestion } from '@relay/shared';
+import { type AiEvent, type RuleSuggestion, RuleSuggestRequestSchema } from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
 import type { MailClient } from '../src/data/MailClient';
@@ -74,6 +74,25 @@ describe('rule AI helpers', () => {
       'INBOX / Zákazky / Ateliér Brezina',
       'INBOX / Zákazky / Čajovňa',
     ]);
+  });
+
+  it('names an account without a display name by its address', async () => {
+    const client = createDemoMailClient({ aiStepMs: 0 });
+    const accounts = (await client.listAccounts()).map((account, index) =>
+      index === 0 ? { ...account, displayName: '  ' } : account,
+    );
+
+    const catalog = suggestCatalog(accounts, [], new Map());
+
+    expect(catalog).toHaveLength(accounts.length);
+    expect(catalog[0]?.name).toBe(accounts[0]?.email);
+    expect(
+      RuleSuggestRequestSchema.safeParse({
+        sentence: 'archivuj',
+        accountId: null,
+        accounts: catalog,
+      }).success,
+    ).toBe(true);
   });
 
   it('replaces the criteria and actions and keeps the rule settings', () => {

@@ -13,6 +13,17 @@ describe('rule intent', () => {
     ['archive it, pin it and mark as read', ['archive', 'markRead', 'pin']],
     ['label it Invoices and remind me in 3 days', ['addLabel', 'remind']],
     ['priprav návrh odpovede', ['draftReply']],
+    ['draft a reply and pin it', ['draftReply', 'pin']],
+    ['create a task and draft a summary', ['summary', 'task']],
+    ['ulož koncept a pripni', ['pin']],
+    ['add label Archive', ['addLabel']],
+    ['add label Archive and archive it', ['addLabel', 'archive']],
+    ['presuň do priečinka Archív', ['moveTo']],
+    ['subject contains weekly summary, archive it', ['archive']],
+    ['predmet obsahuje týždenné zhrnutie a archivuj', ['archive']],
+    ['predmet faktúra archivuj.', ['archive']],
+    ['maily bez prílohy archivuj', ['archive']],
+    ['archivuj bez upozornenia', ['archive']],
   ])('reads the actions of "%s"', (sentence, expected) => {
     expect(actions(sentence)).toEqual(expected);
   });
@@ -39,6 +50,8 @@ describe('rule intent', () => {
     "don't forward it to jano@firma.sk, archive it",
     'nie preposlať na jano@firma.sk, archivuj',
     'nikdy neodpovedaj, archivuj',
+    'do not under any circumstances forward to other@example.com, archive it',
+    'never ever under any circumstance forward it to other@example.com and archive it',
   ])('honors negation: %s', (sentence) => {
     expect(actions(sentence)).toEqual(['archive']);
     expect(targets(sentence)).toEqual([]);
@@ -57,5 +70,19 @@ describe('rule intent', () => {
       'uctovnik@firma.sk',
     ]);
     expect(targets('maily od sef@firma.sk archivuj, prepošli z sef@firma.sk')).toEqual([]);
+  });
+
+  it('skips a sender written in angle brackets', () => {
+    expect(targets('forward mail from <sender@example.com> to recipient@example.com')).toEqual([
+      'recipient@example.com',
+    ]);
+    expect(targets('maily od < sef@firma.sk > prepošli na uctovnik@firma.sk')).toEqual([
+      'uctovnik@firma.sk',
+    ]);
+  });
+
+  it('keeps forwarding asked for in a separate affirmative clause', () => {
+    expect(targets("don't archive it, forward it to jano@firma.sk")).toEqual(['jano@firma.sk']);
+    expect(actions("don't archive it, forward it to jano@firma.sk")).toEqual(['forward']);
   });
 });

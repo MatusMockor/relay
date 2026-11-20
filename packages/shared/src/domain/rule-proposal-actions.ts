@@ -7,7 +7,7 @@ import { EmailAddressSchema } from './primitives';
 import type { ProposedAction } from './rule-proposal';
 import type { RuleIntent } from './rule-intent';
 import type { RuleSuggestAccount } from './rule-suggestion';
-import { findTarget, mentionsName, type NamedTarget } from './rule-target-match';
+import { findTarget, type NamedTarget, spokenTarget } from './rule-target-match';
 
 export interface ResolvedActions {
   readonly actions: AutomationAction[];
@@ -77,8 +77,11 @@ const stepOf = (proposed: ProposedAction, context: ActionContext): Step => {
   }
   const { account } = context;
   if (proposed.type === 'addLabel' || proposed.type === 'moveTo') {
-    const name = proposed.type === 'addLabel' ? proposed.label : proposed.folder;
-    if (!mentionsName(context.sentence, name)) {
+    const name = spokenTarget(
+      context.sentence,
+      proposed.type === 'addLabel' ? proposed.label : proposed.folder,
+    );
+    if (name === null) {
       return { note: `${noun} (veta ho nemenuje)` };
     }
     return proposed.type === 'addLabel'

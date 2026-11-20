@@ -1,12 +1,12 @@
 import { Button } from '@relay/ui';
 import { ApplyToExisting } from './ApplyToExisting';
-import { type EditableRule, isComplete, isStaged, type RuleChange } from './editable-rule';
+import { type EditableRule, isComplete, isStaged } from './editable-rule';
 
 export interface RuleDetailFooterProps {
   readonly rule: EditableRule;
   readonly disabled: boolean;
   readonly dirty: boolean;
-  readonly onChange: (change: RuleChange) => void;
+  readonly onSave: () => void;
   readonly onDiscard: () => void;
   readonly onRemove: () => void;
 }
@@ -15,7 +15,7 @@ export function RuleDetailFooter({
   rule,
   disabled,
   dirty,
-  onChange,
+  onSave,
   onDiscard,
   onRemove,
 }: RuleDetailFooterProps) {
@@ -24,13 +24,7 @@ export function RuleDetailFooter({
   return (
     <footer className="au-foot">
       {(!rule.saved || staged) && isComplete(rule) ? (
-        <Button
-          variant="primary"
-          disabled={disabled}
-          onClick={() => {
-            onChange({});
-          }}
-        >
+        <Button variant="primary" disabled={disabled} onClick={onSave}>
           Uložiť pravidlo
         </Button>
       ) : null}
