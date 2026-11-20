@@ -383,6 +383,9 @@ importers:
       html-to-text:
         specifier: 9.0.5
         version: 9.0.5
+      iconv-lite:
+        specifier: 0.7.0
+        version: 0.7.0
       imapflow:
         specifier: 1.7.8
         version: 1.7.8
@@ -8182,7 +8185,7 @@ snapshots:
     dependencies:
       bytes: 3.1.2
       http-errors: 2.0.1
-      iconv-lite: 0.7.3
+      iconv-lite: 0.7.0
       unpipe: 1.0.0
 
   react-dom@19.2.9(react@19.2.9):

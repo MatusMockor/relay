@@ -10,6 +10,7 @@ import type {
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
+  RemoteMessageSummary,
   RemoteSyncCursor,
   RemoteThreadHeaders,
   UidListOptions,
@@ -17,6 +18,7 @@ import type {
 import type { MessageFlags } from '@relay/shared/domain';
 import { fetchFlagChanges } from './fetch-flag-changes';
 import { fetchSince } from './fetch-since';
+import { fetchSummaries } from './fetch-summaries';
 import { fetchThreadHeaders } from './fetch-thread-headers';
 import { fetchUids } from './fetch-uids';
 import { DEFAULT_IDLE_OPTIONS, IdleWatcher, type IdleWatcherOptions } from './idle-watcher';
@@ -99,6 +101,14 @@ export class ImapMailProvider implements MailProvider {
     uids: readonly number[],
   ): Promise<RemoteThreadHeaders[]> {
     return fetchThreadHeaders(this.connection, mailboxPath, uidValidity, uids, this.fetchBatchSize);
+  }
+
+  fetchSummaries(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteMessageSummary[]> {
+    return fetchSummaries(this.connection, mailboxPath, uidValidity, uids);
   }
 
   async *fetchFlagChanges(

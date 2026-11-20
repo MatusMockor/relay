@@ -10,25 +10,41 @@ import {
   type RemoteFlagChange,
   type RemoteMailbox,
   type RemoteMailboxStatus,
+  type RemoteMessageSummary,
   type RemoteSyncCursor,
   type RemoteThreadHeaders,
   type UidListOptions,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
+import { connectionFailure } from './fake-connection';
 import {
   createFakeMailbox,
   deleteFakeMailbox,
   purgeFakeKeyword,
   renameFakeMailbox,
 } from './fake-mailbox-admin';
-import { calendarHeaders, flagChangesOf, missing, statusOf, toRaw, toRemote } from './fake-records';
+import {
+  calendarHeaders,
+  missing,
+  scanFlagChanges,
+  statusOf,
+  toRaw,
+  toRemote,
+} from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
+import { summaryOf, uidsInRange } from './fake-summaries';
 import { threadHeadersOf } from './fake-thread-headers';
 import { uidValidityMismatch } from './fake-uid-validity';
 import { type ChangeListener, watchFakeMailbox } from './fake-idle';
-import { applyKeywords, type KeywordMutation, moveRecords, writeLabels } from './fake-writes';
+import {
+  applyKeywords,
+  type KeywordMutation,
+  moveRecords,
+  writeFlags,
+  writeLabels,
+} from './fake-writes';
 
 interface OpenedMailbox {
   readonly mailbox: FakeMailbox;
@@ -52,14 +68,9 @@ export class FakeMailProvider implements MailProvider {
       return Promise.resolve();
     }
     this.server.connections += 1;
-    if (this.server.failConnect !== null) {
-      return Promise.reject(new Error(this.server.failConnect));
-    }
-    if (
-      this.credentials.kind === 'password' &&
-      this.credentials.password !== this.server.password
-    ) {
-      return Promise.reject(new Error('Authentication failed'));
+    const failure = connectionFailure(this.server, this.credentials);
+    if (failure !== null) {
+      return Promise.reject(failure);
     }
     this.connected = true;
     this.server.openConnections += 1;
@@ -107,44 +118,28 @@ export class FakeMailProvider implements MailProvider {
     return streamRecords(opened.server, mailboxPath, recordsSince(opened.mailbox, cursor));
   }
 
-  fetchUids(
-    mailboxPath: string,
-    uidValidity: number,
-    uids: readonly number[],
-  ): AsyncIterable<RawMessage> {
-    const opened = this.openStream(mailboxPath, uidValidity);
+  fetchUids(path: string, uidValidity: number, uids: readonly number[]) {
+    const opened = this.openStream(path, uidValidity);
     if (opened instanceof Error) {
-      return failingItems(opened);
+      return failingItems<RawMessage>(opened);
     }
-    return streamRecords(opened.server, mailboxPath, recordsOf(opened.mailbox, uids));
+    return streamRecords(opened.server, path, recordsOf(opened.mailbox, uids));
   }
 
-  fetchThreadHeaders(
-    mailboxPath: string,
-    uidValidity: number,
-    uids: readonly number[],
-  ): Promise<RemoteThreadHeaders[]> {
-    const opened = this.openStream(mailboxPath, uidValidity);
-    if (opened instanceof Error) {
-      return Promise.reject(opened);
-    }
-    return Promise.resolve(recordsOf(opened.mailbox, uids).map(threadHeadersOf));
+  fetchThreadHeaders(path: string, uidValidity: number, uids: readonly number[]) {
+    return this.readRecords<RemoteThreadHeaders>(path, uidValidity, uids, threadHeadersOf);
   }
 
-  fetchFlagChanges(
-    mailboxPath: string,
-    sinceModseq: string,
-    uids?: readonly number[],
-  ): AsyncIterable<RemoteFlagChange> {
-    const opened = this.streamMailbox(mailboxPath, `Cannot fetch flags of ${mailboxPath}`);
+  fetchSummaries(path: string, uidValidity: number, uids: readonly number[]) {
+    return this.readRecords<RemoteMessageSummary>(path, uidValidity, uids, summaryOf);
+  }
+
+  fetchFlagChanges(path: string, sinceModseq: string, uids?: readonly number[]) {
+    const opened = this.streamMailbox(path, `Cannot fetch flags of ${path}`);
     if (opened instanceof Error) {
-      return failingItems(opened);
+      return failingItems<RemoteFlagChange>(opened);
     }
-    opened.server.flagScans.push({
-      path: mailboxPath,
-      uids: uids === undefined ? null : [...uids],
-    });
-    return asyncItems(flagChangesOf(opened.mailbox, BigInt(sinceModseq), uids));
+    return asyncItems(scanFlagChanges(opened, path, sinceModseq, uids));
   }
 
   searchRelated(path: string, uidValidity: number, ids: readonly string[]): Promise<number[]> {
@@ -157,7 +152,7 @@ export class FakeMailProvider implements MailProvider {
   listUids(mailboxPath: string, options: UidListOptions = {}): Promise<number[]> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
       server.uidListings.push(options.fresh === true ? `fresh:${mailboxPath}` : mailboxPath);
-      return Promise.resolve([...mailbox.messages.keys()].sort((a, b) => a - b));
+      return Promise.resolve(uidsInRange(mailbox.messages.keys(), options));
     });
   }
 
@@ -187,16 +182,9 @@ export class FakeMailProvider implements MailProvider {
   }
 
   setFlags(mailboxPath: string, uids: readonly number[], mutation: FlagMutation): Promise<void> {
-    return this.withMailbox(mailboxPath, (_mailbox, server) => {
-      if (server.failFlagWrites !== null) {
-        return Promise.reject(new Error(server.failFlagWrites));
-      }
-      const flags: Partial<MessageFlags> = {};
-      mutation.add.forEach((flag) => (flags[flag] = true));
-      mutation.remove.forEach((flag) => (flags[flag] = false));
-      uids.forEach((uid) => server.updateFlags(mailboxPath, uid, flags));
-      return Promise.resolve();
-    });
+    return this.withMailbox(mailboxPath, (_mailbox, server) =>
+      writeFlags(server, mailboxPath, uids, mutation),
+    );
   }
 
   setKeywords(path: string, uids: readonly number[], mutation: KeywordMutation): Promise<void> {
@@ -247,6 +235,19 @@ export class FakeMailProvider implements MailProvider {
     }
     this.connected = false;
     return Promise.resolve();
+  }
+
+  private readRecords<Item>(
+    path: string,
+    uidValidity: number,
+    uids: readonly number[],
+    read: (record: RemoteMessageRecord) => Item,
+  ): Promise<Item[]> {
+    const opened = this.openStream(path, uidValidity);
+    if (opened instanceof Error) {
+      return Promise.reject(opened);
+    }
+    return Promise.resolve(recordsOf(opened.mailbox, uids).map(read));
   }
 
   private openStream(path: string, uidValidity: number | null): OpenedMailbox | Error {

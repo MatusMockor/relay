@@ -36,6 +36,28 @@ export interface RawMessage {
   readonly source: Uint8Array;
 }
 
+export interface RemoteAttachmentMeta {
+  readonly filename: string | null;
+  readonly contentType: string;
+  readonly size: number;
+  readonly contentId: string | null;
+  readonly inline: boolean;
+}
+
+export interface RemoteMessageSummary {
+  readonly uid: number;
+  readonly flags: MessageFlags;
+  readonly keywords: readonly string[];
+  readonly labels: readonly string[] | null;
+  readonly emailId: string | null;
+  readonly internalDate: string;
+  readonly size: number;
+  readonly modseq: string | null;
+  readonly header: Uint8Array;
+  readonly snippet: string;
+  readonly attachments: readonly RemoteAttachmentMeta[];
+}
+
 export interface RemoteThreadHeaders {
   readonly uid: number;
   readonly internalDate: string;

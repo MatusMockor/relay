@@ -44,17 +44,32 @@ export const searchResponse = (mailbox: StubMailbox, args: readonly string[]): s
 
 const labelToken = (label: string): string => (label.startsWith('\\') ? label : quote(label));
 
-const sourceOf = (message: StubMessage): string =>
+const headerOf = (message: StubMessage): string =>
   [
+    'Received: from mx.gmail.test by gmail.test',
     'From: Sender <sender@relay.test>',
     'To: me@gmail.test',
     `Subject: ${message.subject}`,
     'Date: Sun, 15 Nov 2026 10:00:00 +0100',
     `Message-ID: <${message.msgId}@relay.test>`,
     '',
-    'Hello.',
     '',
   ].join('\r\n');
+
+const BODY = 'Hello.\r\n';
+
+const sourceOf = (message: StubMessage): string => `${headerOf(message)}${BODY}`;
+
+const literal = (name: string, value: string): string =>
+  `${name} {${String(Buffer.byteLength(value))}}\r\n${value}`;
+
+const BODYSTRUCTURE = `BODYSTRUCTURE ("TEXT" "PLAIN" ("CHARSET" "utf-8") NIL NIL "7BIT" ${String(BODY.length)} 1 NIL NIL NIL NIL)`;
+
+const partItems = (message: StubMessage, upper: string): string[] => [
+  ...(upper.includes('BODYSTRUCTURE') ? [BODYSTRUCTURE] : []),
+  ...(upper.includes('BODY.PEEK[HEADER]') ? [literal('BODY[HEADER]', headerOf(message))] : []),
+  ...(upper.includes('BODY.PEEK[TEXT]') ? [literal('BODY[TEXT]<0>', BODY)] : []),
+];
 
 const fetchItems = (message: StubMessage, line: string): string[] => {
   const upper = line.toUpperCase();
@@ -75,7 +90,7 @@ const fetchItems = (message: StubMessage, line: string): string[] => {
     const source = sourceOf(message);
     items.push(`BODY[] {${String(Buffer.byteLength(source))}}\r\n${source}`);
   }
-  return items;
+  return [...items, ...partItems(message, upper)];
 };
 
 export const fetchResponse = (mailbox: StubMailbox, line: string): string[] => {

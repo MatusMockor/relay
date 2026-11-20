@@ -69,6 +69,30 @@ describe('ImapMailProvider against a scripted Gmail IMAP server', () => {
     expect(fetch).toContain('X-GM-MSGID');
   });
 
+  it('reads X-GM-LABELS and X-GM-MSGID into message summaries', async () => {
+    const summaries = await provider.fetchSummaries('[Gmail]/All Mail', 11, [7, 5]);
+
+    expect(
+      summaries.map(({ uid, labels, emailId, snippet }) => ({ uid, labels, emailId, snippet })),
+    ).toEqual([
+      {
+        uid: 5,
+        labels: ['Projekty/Alfa', '\\Important', '\\Inbox'],
+        emailId: '1790000000000000001',
+        snippet: 'Hello.',
+      },
+      { uid: 7, labels: ['"VIP"', 'Archive'], emailId: '1790000000000000003', snippet: 'Hello.' },
+    ]);
+    const header = Buffer.from(summaries[0]?.header ?? []).toString('utf8');
+    expect(header).toContain('Subject: Alfa');
+    expect(header).not.toContain('Received:');
+    const fetches = stub.commands.filter((command) => command.includes('UID FETCH'));
+    expect(fetches[0]).toContain('X-GM-LABELS');
+    expect(fetches[0]).toContain('X-GM-MSGID');
+    expect(fetches[0]).toContain('BODYSTRUCTURE');
+    expect(fetches[1]).toContain('BODY.PEEK[TEXT]<0.4096>');
+  });
+
   it('reads label changes of the requested UIDs only', async () => {
     const changes = await collect(provider.fetchFlagChanges('[Gmail]/All Mail', '0', [5, 7]));
 

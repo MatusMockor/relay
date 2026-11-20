@@ -1,4 +1,10 @@
-import { NotImplementedError, PartialMoveError, type MoveResult } from '../../../src';
+import type { MessageFlags } from '@relay/shared/domain';
+import {
+  type FlagMutation,
+  NotImplementedError,
+  PartialMoveError,
+  type MoveResult,
+} from '../../../src';
 import { missing } from './fake-records';
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 
@@ -6,6 +12,22 @@ export interface KeywordMutation {
   readonly add: readonly string[];
   readonly remove: readonly string[];
 }
+
+export const writeFlags = (
+  server: FakeMailServer,
+  path: string,
+  uids: readonly number[],
+  mutation: FlagMutation,
+): Promise<void> => {
+  if (server.failFlagWrites !== null) {
+    return Promise.reject(new Error(server.failFlagWrites));
+  }
+  const flags: Partial<MessageFlags> = {};
+  mutation.add.forEach((flag) => (flags[flag] = true));
+  mutation.remove.forEach((flag) => (flags[flag] = false));
+  uids.forEach((uid) => server.updateFlags(path, uid, flags));
+  return Promise.resolve();
+};
 
 export const applyKeywords = (
   mailbox: FakeMailbox,
