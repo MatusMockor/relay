@@ -19,20 +19,32 @@ export type FolderEdit =
       readonly kind: 'create';
       readonly accountId: AccountId;
       readonly parent: FolderTarget | null;
-    };
+    }
+  | { readonly kind: 'create-label'; readonly accountId: AccountId };
 
 interface FolderEditState {
   readonly edit: FolderEdit | null;
+  readonly seq: number;
 }
 
-export const useFolderEdit = create<FolderEditState>(() => ({ edit: null }));
+export const useFolderEdit = create<FolderEditState>(() => ({ edit: null, seq: 0 }));
 
 export const setFolderEdit = (edit: FolderEdit | null): void => {
-  useFolderEdit.setState({ edit });
+  useFolderEdit.setState((state) => ({ edit, seq: state.seq + 1 }));
+};
+
+export const closeFolderEdit = (seq: number): void => {
+  if (useFolderEdit.getState().seq !== seq) {
+    return;
+  }
+  setFolderEdit(null);
 };
 
 export const isRenaming = (edit: FolderEdit | null, mailbox: Mailbox): boolean =>
   edit?.kind === 'rename' && edit.target.mailbox.id === mailbox.id;
+
+export const isCreatingLabel = (edit: FolderEdit | null, accountId: AccountId): boolean =>
+  edit?.kind === 'create-label' && edit.accountId === accountId;
 
 export const isCreatingUnder = (edit: FolderEdit | null, mailbox: Mailbox | null): boolean =>
   edit?.kind === 'create' && (edit.parent?.mailbox.id ?? null) === (mailbox?.id ?? null);

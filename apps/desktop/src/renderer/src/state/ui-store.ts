@@ -101,6 +101,13 @@ export const toggleCollapsed = (key: string): void => {
   });
 };
 
+export const expandCollapsed = (key: string): void => {
+  if (useUiStore.getState().collapsed[key] !== true) {
+    return;
+  }
+  toggleCollapsed(key);
+};
+
 export const setUi = (patch: Partial<UiState> | ((state: UiState) => Partial<UiState>)): void => {
   useUiStore.setState(patch);
 };

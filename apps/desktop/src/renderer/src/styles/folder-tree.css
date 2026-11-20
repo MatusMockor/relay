@@ -85,6 +85,33 @@ button.ft-tw:hover {
   flex: 1;
   min-width: 0;
 }
+.ft-sec {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  border-radius: 4px;
+}
+.ft-sec:hover {
+  color: var(--fg2);
+}
+.ft-sec svg {
+  flex: none;
+  opacity: 0;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
+}
+.ft-head:hover .ft-sec svg,
+.ft-sec:focus-visible svg,
+.ft-sec.shut svg {
+  opacity: 1;
+}
+.ft-sec.shut svg {
+  transform: rotate(-90deg);
+}
 .ft-add {
   flex: none;
   display: grid;

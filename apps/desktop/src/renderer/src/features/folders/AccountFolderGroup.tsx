@@ -1,19 +1,24 @@
 import type { Label, MailAccount, Mailbox } from '@relay/shared';
 import { Icon } from '@relay/ui';
-import { type ElementType, useMemo } from 'react';
+import { useMemo } from 'react';
 import { toggleCollapsed, useUiStore } from '../../state/ui-store';
 import { accountHue } from '../colors/name-colors';
 import { FOLDER_COPY } from './edit/folder-copy';
-import { setFolderEdit } from './edit/folder-edit-store';
+import { type FolderKind, setFolderEdit } from './edit/folder-edit-store';
 import { CreateEditor } from './edit/FolderEditors';
+import { LabelCreateEditor } from './edit/LabelCreateEditor';
 import { useFolderLeaves } from './edit/use-folder-leaves';
 import { labelEntries, mailboxEntries } from './folder-sections';
 import { buildFolderTree } from './folder-tree';
 import { FolderTreeRows } from './FolderTreeRows';
+import type { SectionAdd } from './SectionHeading';
+import { sectionKey, sidebarSections } from './sidebar-sections';
+import { SidebarSection } from './SidebarSection';
 
 interface AccountFolderGroupProps {
   readonly account: MailAccount;
   readonly mailboxes: readonly Mailbox[];
+  readonly mailboxesLoaded: boolean;
   readonly labels: readonly Label[];
   readonly grouped: boolean;
 }
@@ -41,40 +46,16 @@ function AccountHeader({
   );
 }
 
-function FoldersHeading({
-  Heading,
-  account,
-}: {
-  readonly Heading: ElementType;
-  readonly account: MailAccount;
-}) {
-  const label = `${FOLDER_COPY.folder.newTop} v ${account.displayName}`;
-  return (
-    <div className="ft-head">
-      <Heading>Priečinky</Heading>
-      <button
-        type="button"
-        className="ft-add"
-        title={FOLDER_COPY.folder.newTop}
-        aria-label={label}
-        onClick={() => {
-          setFolderEdit({ kind: 'create', accountId: account.id, parent: null });
-        }}
-      >
-        <Icon name="plus" size={12} />
-      </button>
-    </div>
-  );
-}
-
-const keepsFolders = (account: MailAccount, mailboxes: readonly Mailbox[]): boolean =>
-  mailboxes.length > 0 &&
-  account.provider !== 'gmail' &&
-  !mailboxes.some((mailbox) => mailbox.role === 'label');
+const addOf = (kind: FolderKind, account: MailAccount, onAdd: () => void): SectionAdd => ({
+  title: FOLDER_COPY[kind].newTop,
+  label: `${FOLDER_COPY[kind].newTop} v ${account.displayName}`,
+  onAdd,
+});
 
 export function AccountFolderGroup({
   account,
   mailboxes,
+  mailboxesLoaded,
   labels,
   grouped,
 }: AccountFolderGroupProps) {
@@ -83,8 +64,13 @@ export function AccountFolderGroup({
   const leaves = useFolderLeaves(account, mailboxes);
   const folders = useMemo(() => buildFolderTree(mailboxEntries(mailboxes)), [mailboxes]);
   const labelTree = useMemo(() => buildFolderTree(labelEntries(labels)), [labels]);
-  const withFolders = keepsFolders(account, mailboxes);
-  if (!withFolders && labelTree.length === 0) {
+  const sections = sidebarSections({
+    account,
+    mailboxes,
+    mailboxesLoaded,
+    labelCount: labels.length,
+  });
+  if (!sections.folders && !sections.labels) {
     return null;
   }
   const Heading = grouped ? 'h6' : 'h5';
@@ -93,13 +79,50 @@ export function AccountFolderGroup({
       {grouped ? <AccountHeader account={account} shut={shut} /> : null}
       {shut ? null : (
         <>
-          {withFolders ? <FoldersHeading Heading={Heading} account={account} /> : null}
-          {leaves.creatingTop ? (
-            <CreateEditor accountId={account.id} parent={null} kind="folder" depth={0} />
+          {sections.folders ? (
+            <SidebarSection
+              Heading={Heading}
+              title="Priečinky"
+              collapseKey={sectionKey('mbx', account.id)}
+              add={addOf('folder', account, () => {
+                setFolderEdit({ kind: 'create', accountId: account.id, parent: null });
+              })}
+            >
+              {leaves.creatingTop ? (
+                <CreateEditor
+                  key={leaves.editSeq}
+                  accountId={account.id}
+                  parent={null}
+                  kind="folder"
+                  depth={0}
+                />
+              ) : null}
+              <FolderTreeRows
+                nodes={folders}
+                scope={`mbx:${account.id}`}
+                leafOf={leaves.mailboxLeaf}
+              />
+            </SidebarSection>
           ) : null}
-          <FolderTreeRows nodes={folders} scope={`mbx:${account.id}`} leafOf={leaves.mailboxLeaf} />
-          {labelTree.length === 0 ? null : <Heading>Štítky</Heading>}
-          <FolderTreeRows nodes={labelTree} scope={`lbl:${account.id}`} leafOf={leaves.labelLeaf} />
+          {sections.labels ? (
+            <SidebarSection
+              Heading={Heading}
+              title="Štítky"
+              collapseKey={sectionKey('lbl', account.id)}
+              add={addOf('label', account, () => {
+                setFolderEdit({ kind: 'create-label', accountId: account.id });
+              })}
+            >
+              {leaves.creatingLabel ? (
+                <LabelCreateEditor key={leaves.editSeq} accountId={account.id} depth={0} />
+              ) : null}
+              <FolderTreeRows
+                nodes={labelTree}
+                scope={`lbl:${account.id}`}
+                leafOf={leaves.labelLeaf}
+              />
+            </SidebarSection>
+          ) : null}
         </>
       )}
     </section>
