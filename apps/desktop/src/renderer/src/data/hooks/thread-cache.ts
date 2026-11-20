@@ -1,8 +1,9 @@
 import type { FolderView, ThreadDetail, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ThreadListParams } from '../MailClient';
-import { staysInView } from '../thread-projection';
+import { leavesList } from '../list-membership';
 import { queryKeys } from './query-keys';
+import { recordThreadChange } from './thread-changes';
 
 type ListEntry = readonly [readonly unknown[], ThreadPage | undefined];
 
@@ -30,14 +31,15 @@ export const writeThreadToLists = (client: QueryClient, thread: ThreadSummary): 
     if (!present) {
       return;
     }
-    const items = staysInView(params.view, thread)
-      ? page.items.map((item) => (item.id === thread.id ? thread : item))
-      : page.items.filter((item) => item.id !== thread.id);
+    const items = leavesList(params, thread)
+      ? page.items.filter((item) => item.id !== thread.id)
+      : page.items.map((item) => (item.id === thread.id ? thread : item));
     client.setQueryData<ThreadPage>(key, { ...page, items });
   });
 };
 
 export const removeThreadFromLists = (client: QueryClient, threadId: ThreadId): void => {
+  recordThreadChange(client, threadId, null);
   snapshotThreadLists(client).forEach(([key, page]) => {
     if (page === undefined) {
       return;

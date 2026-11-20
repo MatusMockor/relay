@@ -1,6 +1,4 @@
 import {
-  type FolderView,
-  isHeldThreadState,
   type LabelId,
   type MailboxRole,
   type ThreadAction,
@@ -58,17 +56,4 @@ export const projectThreadAction = (
     return { ...thread, labelIds: [...new Set([...thread.labelIds, action.labelId])] };
   }
   return { ...thread, labelIds: thread.labelIds.filter((id) => id !== action.labelId) };
-};
-
-export const staysInView = (view: FolderView, thread: ThreadSummary): boolean => {
-  if (view === 'inbox' || view === 'tasks') {
-    return thread.state === 'inbox';
-  }
-  if (view === 'reminders') {
-    return thread.state === 'reminder';
-  }
-  if (view === 'done' || view === 'trash' || view === 'spam') {
-    return thread.state === view;
-  }
-  return !isHeldThreadState(thread.state);
 };

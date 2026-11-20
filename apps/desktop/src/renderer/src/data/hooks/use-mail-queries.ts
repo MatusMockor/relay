@@ -1,17 +1,36 @@
-import type { AccountId, ThreadId } from '@relay/shared';
-import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query';
+import type { AccountId, ThreadId, ThreadPage } from '@relay/shared';
+import { keepPreviousData, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 import { queryKeys } from './query-keys';
 import { useClient } from './services-context';
+import { reconcilePage, whileWatchingChanges } from './thread-changes';
+import { fetchThreadRange } from './thread-range';
 
 export const LIST_LIMIT = 200;
 
+export const threadListParams = (params: ThreadListParams): ThreadListParams => ({
+  limit: LIST_LIMIT,
+  ...params,
+});
+
 export const useThreadList = (params: ThreadListParams, enabled = true) => {
   const client = useClient();
-  const full = { limit: LIST_LIMIT, ...params };
+  const queryClient = useQueryClient();
+  const full = threadListParams(params);
+  const queryKey = queryKeys.threadList(full);
   return useQuery({
-    queryKey: queryKeys.threadList(full),
-    queryFn: () => client.listThreads(full),
+    queryKey,
+    queryFn: ({ signal }) =>
+      whileWatchingChanges(
+        queryClient,
+        () =>
+          fetchThreadRange(client, {
+            params: full,
+            cached: () => queryClient.getQueryData<ThreadPage>(queryKey),
+            signal,
+          }),
+        (range, changes) => reconcilePage(full, range, changes),
+      ),
     placeholderData: keepPreviousData,
     enabled,
   });

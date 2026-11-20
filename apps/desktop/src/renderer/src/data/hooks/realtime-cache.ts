@@ -5,6 +5,7 @@ import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
 import { queryKeys } from './query-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
+import { recordThreadChange } from './thread-changes';
 
 const invalidate = (client: QueryClient, key: readonly unknown[]) => {
   invalidateBatched(client, key);
@@ -23,6 +24,7 @@ const invalidateAccountThreads = (client: QueryClient, accountId: AccountId) => 
 
 export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): void => {
   if (event.type === 'thread.upserted') {
+    recordThreadChange(client, event.data.thread.id, event.data.thread);
     writeThreadToLists(client, event.data.thread);
     client.setQueryData<ThreadDetail>(queryKeys.thread(event.data.thread.id), (detail) =>
       detail === undefined ? detail : { ...detail, thread: event.data.thread },

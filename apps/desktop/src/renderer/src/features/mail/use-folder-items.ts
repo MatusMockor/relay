@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
 import { useDrafts, useScheduled, useThreadList } from '../../data/hooks/use-mail-queries';
+import {
+  type ListPaging,
+  NO_PAGING,
+  useThreadListPaging,
+} from '../../data/hooks/use-thread-list-paging';
 import { listParamsOf, usesThreadList } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { draftItems, type ListItem, scheduledItems, threadItem } from './list-items';
@@ -7,6 +12,8 @@ import { draftItems, type ListItem, scheduledItems, threadItem } from './list-it
 export interface FolderItems {
   readonly items: readonly ListItem[];
   readonly loading: boolean;
+  readonly paging: ListPaging;
+  readonly placeholder: boolean;
 }
 
 export const useFolderItems = (): FolderItems => {
@@ -15,10 +22,16 @@ export const useFolderItems = (): FolderItems => {
   const query = useUiStore((state) => state.query);
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
-  const threads = useThreadList(listParamsOf(folder, scope, query), usesThreadList(folder));
+  const params = listParamsOf(folder, scope, query);
+  const threads = useThreadList(params, usesThreadList(folder));
+  const threadPaging = useThreadListPaging(
+    params,
+    threads.isPlaceholderData ? undefined : threads.data,
+  );
+  const paging = usesThreadList(folder) ? threadPaging : NO_PAGING;
   const drafts = useDrafts();
   const scheduled = useScheduled();
-  return useMemo(() => {
+  const listed = useMemo(() => {
     const inScope = (item: ListItem) =>
       scope === 'all' ||
       (item.kind === 'thread'
@@ -50,4 +63,6 @@ export const useFolderItems = (): FolderItems => {
     threads.isPending,
     scope,
   ]);
+  const placeholder = usesThreadList(folder) && threads.isPlaceholderData;
+  return { ...listed, paging, placeholder };
 };

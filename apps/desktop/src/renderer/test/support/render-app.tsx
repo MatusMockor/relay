@@ -16,12 +16,14 @@ import {
   resetContextMenu,
 } from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
+import { forgetOffsets } from '../../src/features/list/scroll-memory';
 import { resetHistoryPresses } from '../../src/features/history/history-press-gate';
 import { resetTrackpadSwipe } from '../../src/features/shell/trackpad-swipe';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
 import { resetToasts } from '../../src/state/toast-store';
+import { DEFAULT_LIST_VIEWPORT, setListViewport } from './list-geometry';
 import type { ThemeController } from '../../src/theme/theme-controller';
 import { INITIAL_UI, useUiStore } from '../../src/state/ui-store';
 
@@ -52,6 +54,8 @@ export const resetMemoryStores = (): void => {
   resetToasts();
   setFolderEdit(null);
   resetContextMenu();
+  forgetOffsets();
+  setListViewport(DEFAULT_LIST_VIEWPORT);
 };
 
 export const resetStores = (): void => {

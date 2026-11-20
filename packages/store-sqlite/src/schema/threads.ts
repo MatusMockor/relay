@@ -37,6 +37,8 @@ export const threads = sqliteTable(
       table.lastMessageTs,
       table.id,
     ),
+    index('threads_user_order_idx').on(table.userId, table.lastMessageTs, table.id),
+    index('threads_account_order_idx').on(table.accountId, table.lastMessageTs, table.id),
   ],
 );
 
