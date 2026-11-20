@@ -16,8 +16,9 @@ import {
   type UidListOptions,
 } from '../../../src';
 import { asyncItems, failingItems } from './async-items';
-import { connectionFailure } from './fake-connection';
+import { connectionFailure, takeConnectGate } from './fake-connection';
 import {
+  appendFakeRecord,
   createFakeMailbox,
   deleteFakeMailbox,
   purgeFakeKeyword,
@@ -67,7 +68,10 @@ export class FakeMailProvider implements MailProvider {
     if (this.connected) {
       return Promise.resolve();
     }
-    this.server.connections += 1;
+    const gate = takeConnectGate(this.server);
+    if (gate !== null) {
+      return gate.then(() => this.connect());
+    }
     const failure = connectionFailure(this.server, this.credentials);
     if (failure !== null) {
       return Promise.reject(failure);
@@ -212,14 +216,9 @@ export class FakeMailProvider implements MailProvider {
     source: Uint8Array,
     flags: Partial<MessageFlags>,
   ): Promise<AppendResult> {
-    return this.withMailbox(mailboxPath, (mailbox, server) => {
-      const uid = server.tryDeliver(mailboxPath, source, { flags });
-      return Promise.resolve(
-        server.uidplus
-          ? { uid, uidValidity: mailbox.uidValidity }
-          : { uid: null, uidValidity: null },
-      );
-    });
+    return this.withMailbox(mailboxPath, (mailbox, server) =>
+      Promise.resolve(appendFakeRecord(server, mailbox, source, flags)),
+    );
   }
 
   idle(mailboxPath: string, onChange: (change: MailboxChange) => void): Promise<Disposer> {

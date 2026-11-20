@@ -1,4 +1,4 @@
-import type { AccountId, ThreadId } from '@relay/shared';
+import type { AccountId, MessageId, ThreadId } from '@relay/shared';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 
 export const queryKeys = {
@@ -13,6 +13,7 @@ export const queryKeys = {
   threadAiOf: (id: ThreadId) => ['mail', 'threads', 'ai', id] as const,
   threadAi: (id: ThreadId, lastMessageAt: string) =>
     ['mail', 'threads', 'ai', id, lastMessageAt] as const,
+  messageBody: (id: MessageId) => ['mail', 'messages', 'body', id] as const,
   unsubscribe: (id: ThreadId) => ['mail', 'senders', 'unsubscribe', id] as const,
   accounts: () => ['mail', 'accounts'] as const,
   labels: () => ['mail', 'labels'] as const,

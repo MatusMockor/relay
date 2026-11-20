@@ -45,12 +45,14 @@ import {
   DraftIdSchema,
   LabelIdSchema,
   MailboxIdSchema,
+  MessageIdSchema,
   ScheduledSendIdSchema,
   TaskIdSchema,
   ThreadIdSchema,
 } from '../domain/ids';
 import { LabelSchema } from '../domain/label';
 import { MailboxSchema } from '../domain/mailbox';
+import { MessageBodyResultSchema } from '../domain/message-body';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsPatchSchema, UserSettingsSchema } from '../domain/settings';
 import { SplitSchema } from '../domain/split';
@@ -96,6 +98,10 @@ export const localInvokeChannels = {
   'local.threads.unsubscribe': invokeChannel(
     UnsubscribeRequestSchema.extend({ threadId: ThreadIdSchema }),
     OkResponseSchema,
+  ),
+  'local.messages.body': invokeChannel(
+    z.object({ messageId: MessageIdSchema }),
+    MessageBodyResultSchema,
   ),
   'local.ai.getJob': invokeChannel(z.object({ jobId: AiJobIdSchema }), AiJobSchema),
   'local.labels.list': invokeChannel(LabelListQuerySchema, z.array(LabelSchema)),

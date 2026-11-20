@@ -27,6 +27,7 @@ import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
 import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentSweepOptions } from './services/attachments/attachment-sweep-options';
+import type { BodyOptions } from './services/bodies/body-options';
 import type { SyncOptions } from './services/sync/sync-options';
 
 export type AiMailToolsResolver = (
@@ -64,6 +65,7 @@ export interface EngineOptions {
   readonly calendar?: Partial<CalendarOptions>;
   readonly attachments?: Partial<AttachmentSweepOptions>;
   readonly actions?: Partial<ActionOptions>;
+  readonly bodies?: Partial<BodyOptions>;
 }
 
 export interface EngineDeps {

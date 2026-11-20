@@ -1,4 +1,5 @@
-import type { RemoteMailbox } from '../../../src';
+import type { MessageFlags } from '@relay/shared/domain';
+import type { AppendResult, RemoteMailbox } from '../../../src';
 import { CREATED_ROLES, missing, toRemote } from './fake-records';
 import type { FakeMailbox, FakeMailServer } from './fake-mail-server';
 
@@ -100,4 +101,16 @@ export const purgeFakeKeyword = (
       );
     });
   return Promise.resolve();
+};
+
+export const appendFakeRecord = (
+  server: FakeMailServer,
+  mailbox: FakeMailbox,
+  source: Uint8Array,
+  flags: Partial<MessageFlags>,
+): AppendResult => {
+  const uid = server.tryDeliver(mailbox.path, source, { flags });
+  return server.uidplus
+    ? { uid, uidValidity: mailbox.uidValidity }
+    : { uid: null, uidValidity: null };
 };

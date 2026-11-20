@@ -1,4 +1,10 @@
-import type { AttachmentId, UserId } from '@relay/shared/domain';
+import {
+  type AttachmentId,
+  type AttachmentMeta,
+  isBodyLocal,
+  type Message,
+  type UserId,
+} from '@relay/shared/domain';
 import type { AttachmentContent } from '../../model/attachment';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentExtractor } from '../../ports/attachment-extractor';
@@ -6,6 +12,7 @@ import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MessageAttachmentLookup } from '../../ports/message-attachment-lookup';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
+import { pickRemoteAttachment } from './remote-attachment-pick';
 
 export interface ReceivedAttachmentReaderDeps {
   readonly lookup: MessageAttachmentLookup;
@@ -33,7 +40,7 @@ export class ReceivedAttachmentReader {
     const raw = await this.deps.sessions.with(account, (provider) =>
       provider.fetchMessage(mailbox.path, message.uid),
     );
-    const extracted = raw === null ? null : await this.deps.extractor.extract(raw.source, index);
+    const extracted = raw === null ? null : await this.extract(message, raw.source, index, meta);
     if (extracted === null) {
       return null;
     }
@@ -42,5 +49,17 @@ export class ReceivedAttachmentReader {
       contentType: meta.contentType,
       content: extracted.content,
     };
+  }
+
+  private async extract(
+    message: Message,
+    source: Uint8Array,
+    index: number,
+    meta: AttachmentMeta,
+  ): Promise<AttachmentContent | null> {
+    if (isBodyLocal(message)) {
+      return this.deps.extractor.extract(source, index);
+    }
+    return pickRemoteAttachment(await this.deps.extractor.extractAll(source), index, meta);
   }
 }

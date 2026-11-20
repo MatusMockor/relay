@@ -51,6 +51,18 @@ describe('extractAttachment', () => {
     expect(new TextDecoder().decode(second?.content)).toBe('suma;splatnosť\n120;piatok\n');
   });
 
+  it('extracts every attachment in the parse order', async () => {
+    const { raw } = await composed();
+
+    const all = await new MailparserAttachmentExtractor().extractAll(new Uint8Array(raw));
+
+    expect(all.map(({ filename, contentType }) => ({ filename, contentType }))).toEqual([
+      { filename: 'faktúra.pdf', contentType: 'application/pdf' },
+      { filename: 'rozpis.csv', contentType: 'text/csv' },
+    ]);
+    expect(all[0]?.content).toEqual(pdfBytes);
+  });
+
   it('returns null for an index without an attachment', async () => {
     const { raw } = await composed();
     const source = new Uint8Array(raw);

@@ -10,6 +10,11 @@ import type { AttachmentContentService } from './services/attachments/attachment
 import type { AttachmentSweeper } from './services/attachments/attachment-sweeper';
 import { createAttachmentSweeper } from './services/attachments/create-attachment-sweeper';
 import { createAttachmentContentService } from './services/attachments/create-attachment-content-service';
+import {
+  bodyOptionsOf,
+  createMessageBodyService,
+} from './services/bodies/create-message-body-service';
+import type { MessageBodyService } from './services/bodies/message-body-service';
 import type { CalendarService } from './services/calendar/calendar-service';
 import { createCalendarComponents } from './services/calendar/create-calendar-service';
 import { createInviteComponents } from './services/calendar/create-invite-components';
@@ -31,8 +36,10 @@ import type { LabelService } from './services/labels/label-service';
 import { ReminderService } from './services/reminders/reminder-service';
 import { SettingsService } from './services/settings/settings-service';
 import { EngineEvents } from './services/shared/engine-events';
+import { LingeringSessions } from './services/shared/lingering-sessions';
 import { MailProviderSessions } from './services/shared/mail-provider-sessions';
 import { RoleMailboxEnsurer } from './services/shared/role-mailbox-ensurer';
+import { systemIntervalTimer } from './services/shared/system-interval-timer';
 import {
   DEFAULT_USER_SETTINGS_POLICY,
   UserSettingsReader,
@@ -69,6 +76,8 @@ export interface EngineServices {
   readonly sync: SyncService;
   readonly compose: ComposeService;
   readonly attachments: AttachmentContentService;
+  readonly bodies: MessageBodyService;
+  readonly readSessions: LingeringSessions;
   readonly attachmentSweeper: AttachmentSweeper;
   readonly splits: SplitService;
   readonly automations: AutomationService;
@@ -82,6 +91,12 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   const { repositories, unitOfWork, clock, idGenerator: ids } = deps;
   const events = new EngineEvents(deps.eventPublisher, clock);
   const sessions = new MailProviderSessions(deps.mailProviderFactory, deps.credentialVault);
+  const readSessions = new LingeringSessions({
+    sessions,
+    clock,
+    timer: deps.intervalTimer ?? systemIntervalTimer,
+    idleMs: bodyOptionsOf(deps).sessionIdleMs,
+  });
   const userSettings = new UserSettingsReader(repositories.settings, {
     defaults: deps.options.settings?.defaults ?? DEFAULT_USER_SETTINGS_POLICY.defaults,
     pinnedAiLocation: deps.options.settings?.pinnedAiLocation ?? null,
@@ -171,7 +186,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   const attachments = createAttachmentContentService(deps, sessions);
   const attachmentSweeper = createAttachmentSweeper(deps);
   return {
-    accounts: createAccountService(deps, { events, attachmentSweeper }),
+    accounts: createAccountService(deps, { events, attachmentSweeper, readSessions }),
     settings: new SettingsService({
       settings: repositories.settings,
       reader: userSettings,
@@ -214,6 +229,8 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
       attachmentSweeper,
     }),
     attachments,
+    bodies: createMessageBodyService(deps, readSessions),
+    readSessions,
     attachmentSweeper,
     splits: new SplitService({
       splits: repositories.splits,
