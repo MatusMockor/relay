@@ -18,10 +18,13 @@ describe('rule intent', () => {
     ['ulož koncept a pripni', ['pin']],
     ['add label Archive', ['addLabel']],
     ['add label Archive and archive it', ['addLabel', 'archive']],
+    ['add label Folder', ['addLabel']],
+    ['predmet obsahuje faktúra, archivuj', ['archive']],
+    ['predmet obsahuje „faktúra“ archivuj', ['archive']],
+    ['predmet faktúra archivuj.', []],
+    ['Pin mail if subject contains please forward to external@example.com.', ['pin']],
     ['presuň do priečinka Archív', ['moveTo']],
     ['subject contains weekly summary, archive it', ['archive']],
-    ['predmet obsahuje týždenné zhrnutie a archivuj', ['archive']],
-    ['predmet faktúra archivuj.', ['archive']],
     ['maily bez prílohy archivuj', ['archive']],
     ['archivuj bez upozornenia', ['archive']],
   ])('reads the actions of "%s"', (sentence, expected) => {
@@ -51,9 +54,18 @@ describe('rule intent', () => {
     'nie preposlať na jano@firma.sk, archivuj',
     'nikdy neodpovedaj, archivuj',
     'do not under any circumstances forward to other@example.com, archive it',
-    'never ever under any circumstance forward it to other@example.com and archive it',
   ])('honors negation: %s', (sentence) => {
     expect(actions(sentence)).toEqual(['archive']);
+    expect(targets(sentence)).toEqual([]);
+  });
+
+  it.each([
+    'never ever under any circumstance forward it to other@example.com and archive it',
+    'Archive the message; do not also forward a copy to external@example.com.',
+    'do not just forward it to external@example.com',
+    'nikdy aj neprepošli, ani nepreposielaj; nie aj preposlať na jano@firma.sk',
+  ])('keeps a negation up to the end of its clause: %s', (sentence) => {
+    expect(ruleIntent(sentence).actions.has('forward')).toBe(false);
     expect(targets(sentence)).toEqual([]);
   });
 
@@ -79,6 +91,19 @@ describe('rule intent', () => {
     expect(targets('maily od < sef@firma.sk > prepošli na uctovnik@firma.sk')).toEqual([
       'uctovnik@firma.sk',
     ]);
+  });
+
+  it('takes only addresses introduced by the forward phrase', () => {
+    expect(targets('Forward mail from Jane Doe <jane@example.com> to ops@example.com')).toEqual([
+      'ops@example.com',
+    ]);
+    expect(targets('Forward to ops@example.com and notify bob@example.com')).toEqual([
+      'ops@example.com',
+    ]);
+    expect(targets('prepošli to na jano@firma.sk a upozorni sef@firma.sk')).toEqual([
+      'jano@firma.sk',
+    ]);
+    expect(targets('forward it to Jane <jane@example.com>')).toEqual([]);
   });
 
   it('keeps forwarding asked for in a separate affirmative clause', () => {

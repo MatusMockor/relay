@@ -1,5 +1,5 @@
 import { Button } from '@relay/ui';
-import { ApplyToExisting } from './ApplyToExisting';
+import { ApplyToExisting, BLOCKED } from './ApplyToExisting';
 import { type EditableRule, isComplete, isStaged } from './editable-rule';
 
 export interface RuleDetailFooterProps {
@@ -24,9 +24,12 @@ export function RuleDetailFooter({
   return (
     <footer className="au-foot">
       {(!rule.saved || staged) && isComplete(rule) ? (
-        <Button variant="primary" disabled={disabled} onClick={onSave}>
-          Uložiť pravidlo
-        </Button>
+        <>
+          <Button variant="primary" disabled={disabled || dirty} onClick={onSave}>
+            Uložiť pravidlo
+          </Button>
+          {dirty ? <span className="au-note">{BLOCKED}</span> : null}
+        </>
       ) : null}
       {staged ? (
         <Button disabled={disabled} onClick={onDiscard}>

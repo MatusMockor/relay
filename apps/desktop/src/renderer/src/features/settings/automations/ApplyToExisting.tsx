@@ -9,7 +9,7 @@ import { useApplyAutomation } from '../../../data/hooks/use-apply-automation';
 import { showToast } from '../../../state/toast-store';
 import { applyResultMessage } from './apply-result';
 
-const BLOCKED = 'Najprv dokonči rozpísané podmienky.';
+export const BLOCKED = 'Najprv dokonči rozpísané podmienky.';
 
 export interface ApplyToExistingProps {
   readonly automationId: AutomationId;

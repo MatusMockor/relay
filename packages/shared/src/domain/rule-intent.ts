@@ -1,5 +1,6 @@
 import type { AutomationActionType } from './automation-action';
-import { requestedTokens } from './rule-intent-tokens';
+import { forwardSlots } from './rule-intent-forward';
+import { intentWords } from './rule-intent-tokens';
 import { ACTION_WORDS, CONDITION_PHRASES, SENDER_WORDS, UNCERTAIN } from './rule-intent-words';
 
 export interface RuleIntent {
@@ -44,8 +45,8 @@ const tokensOf = (clause: string): string[] =>
 const isUncertain = (clause: string, tokens: readonly string[]): boolean =>
   clause.trim().endsWith('?') || tokens.some((token) => UNCERTAIN.has(token));
 
-const wantedIn = (tokens: readonly string[]): AutomationActionType[] =>
-  ACTION_WORDS.filter(([, words]) => tokens.some((token) => words.test(token))).map(
+const wantedIn = (asked: readonly string[]): AutomationActionType[] =>
+  ACTION_WORDS.filter(([, words]) => asked.some((token) => words.test(token))).map(
     ([type]) => type,
   );
 
@@ -60,16 +61,14 @@ export const ruleIntent = (sentence: string): RuleIntent => {
     if (isUncertain(clause, tokens)) {
       continue;
     }
-    const requested = requestedTokens(tokens);
-    const wanted = wantedIn(requested);
-    wanted.forEach((type) => actions.add(type));
-    if (!wanted.includes('forward')) {
-      continue;
-    }
-    requested
-      .filter((token) => PLACEHOLDER.test(token) && !senders.has(token))
-      .forEach((token) => {
-        const address = addresses[Number(PLACEHOLDER.exec(token)?.[1])];
+    const words = intentWords(tokens);
+    wantedIn(words.filter((word) => word.asked).map((word) => word.text)).forEach((type) =>
+      actions.add(type),
+    );
+    forwardSlots(words, PLACEHOLDER)
+      .filter((slot) => !senders.has(slot))
+      .forEach((slot) => {
+        const address = addresses[Number(PLACEHOLDER.exec(slot)?.[1])];
         if (address !== undefined) {
           forwardTo.add(address);
         }

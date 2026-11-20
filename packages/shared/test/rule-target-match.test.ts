@@ -69,8 +69,10 @@ describe('rule target names', () => {
   });
 
   it('keeps a proposed path only when the sentence names its qualifier', () => {
-    expect(spokenTarget('presuň do Projekty/Alfa', 'Projekty / Alfa')).toBe('Projekty / Alfa');
-    expect(spokenTarget('move to Work/Invoices', 'Private/Invoices')).toBe('invoices');
+    expect(spokenTarget('presuň do Projekty/Alfa', 'Projekty / Alfa')).toBe('projekty/alfa');
+    expect(spokenTarget('move to Work/Invoices', 'Private/Invoices')).toBeNull();
+    expect(spokenTarget('move to Work/Invoices', 'Invoices')).toBe('work/invoices');
+    expect(spokenTarget('move to Invoices', 'Private/Invoices')).toBe('invoices');
     expect(spokenTarget('presuň do Taliansko 2026', 'Cestovanie/Taliansko 2026')).toBe(
       'taliansko 2026',
     );

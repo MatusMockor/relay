@@ -1,11 +1,16 @@
 import {
   ARTICLES,
   NAME_ENDS,
+  NEGATION_ENDS,
   NOUN_NEGATIONS,
-  SCOPE_ENDS,
   TARGET_WORDS,
   VERB_NEGATIONS,
 } from './rule-intent-words';
+
+export interface IntentWord {
+  readonly text: string;
+  readonly asked: boolean;
+}
 
 interface Scope {
   negated: boolean;
@@ -13,8 +18,8 @@ interface Scope {
   naming: boolean;
 }
 
-const opensScope = (scope: Scope, token: string): boolean => {
-  if (SCOPE_ENDS.has(token)) {
+const isMarker = (scope: Scope, token: string): boolean => {
+  if (NEGATION_ENDS.has(token)) {
     scope.negated = false;
     scope.denyNext = false;
   }
@@ -33,18 +38,17 @@ const opensScope = (scope: Scope, token: string): boolean => {
   return scope.denyNext && ARTICLES.has(token);
 };
 
-const isRequested = (scope: Scope, token: string): boolean => {
+const classified = (scope: Scope, token: string): IntentWord => {
   const denied = scope.negated || scope.denyNext;
+  const data = scope.naming;
   scope.denyNext = false;
-  const target = TARGET_WORDS.test(token);
-  if (scope.naming && !target) {
-    return false;
-  }
-  scope.naming = scope.naming || target;
-  return !denied;
+  scope.naming = data || TARGET_WORDS.test(token);
+  return { text: token, asked: !denied && !data };
 };
 
-export const requestedTokens = (tokens: readonly string[]): string[] => {
+export const intentWords = (tokens: readonly string[]): IntentWord[] => {
   const scope: Scope = { negated: false, denyNext: false, naming: false };
-  return tokens.filter((token) => !opensScope(scope, token) && isRequested(scope, token));
+  return tokens.map((token) =>
+    isMarker(scope, token) ? { text: token, asked: false } : classified(scope, token),
+  );
 };

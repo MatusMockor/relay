@@ -101,12 +101,30 @@ const mentions = (said: readonly string[], segment: string): boolean => {
 export const mentionsName = (sentence: string, name: string): boolean =>
   mentions(wordsOf(sentence), leafOf(name));
 
+const SPOKEN_PATH = /[\p{L}\p{N}_-]+(?:\s*\/\s*[\p{L}\p{N}_-]+)+/gu;
+
+const spokenPaths = (sentence: string, leaf: string): string[] =>
+  [...sentence.matchAll(SPOKEN_PATH)]
+    .map((match) => pathOf(match[0]))
+    .filter((path) => mentions(leafOf(path).split(WORD_BREAK), leaf));
+
+const agreeing = (proposed: string, spoken: string): string | null => {
+  if (endsWithPath(proposed, spoken)) {
+    return proposed;
+  }
+  return endsWithPath(spoken, proposed) ? spoken : null;
+};
+
 export const spokenTarget = (sentence: string, name: string): string | null => {
   const said = wordsOf(sentence);
   const segments = segmentsOf(name);
   const leaf = segments.at(-1) ?? '';
   if (!mentions(said, leaf)) {
     return null;
+  }
+  const qualified = spokenPaths(sentence, leaf);
+  if (qualified.length > 0) {
+    return qualified.map((spoken) => agreeing(pathOf(name), spoken)).find(Boolean) ?? null;
   }
   return segments.every((segment) => mentions(said, segment)) ? name : leaf;
 };
