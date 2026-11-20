@@ -11,8 +11,18 @@ const firstSurvivor = (
   present: ReadonlySet<string>,
 ): string | null => candidates.find((item) => present.has(item.key))?.key ?? null;
 
-const beyondLoadedRange = (removed: ListItem, current: ListState): boolean => {
+const threadCount = (items: readonly ListItem[]): number =>
+  items.filter((item) => item.kind === 'thread').length;
+
+const beyondLoadedRange = (
+  removed: ListItem,
+  previous: readonly ListItem[],
+  current: ListState,
+): boolean => {
   if (!current.hasMore || removed.kind !== 'thread') {
+    return false;
+  }
+  if (threadCount(current.items) < threadCount(previous)) {
     return false;
   }
   const last = current.items.findLast((item) => item.kind === 'thread');
@@ -26,7 +36,7 @@ export const replacementKeyOf = (
 ): string | null => {
   const index = previous.findIndex((item) => item.key === removedKey);
   const removed = previous[index];
-  if (removed === undefined || beyondLoadedRange(removed, current)) {
+  if (removed === undefined || beyondLoadedRange(removed, previous, current)) {
     return null;
   }
   const present = new Set(current.items.map((item) => item.key));

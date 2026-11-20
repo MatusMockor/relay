@@ -30,6 +30,10 @@ describe('replacementKeyOf', () => {
     expect(replacementKeyOf(keyOf(3), items(0, 1, 2, 3), partial(-1, 0, 1, 2))).toBeNull();
   });
 
+  it('selects the previous thread when the last loaded one is deleted from a partial list', () => {
+    expect(replacementKeyOf(keyOf(2), items(0, 1, 2), partial(0, 1))).toBe(keyOf(1));
+  });
+
   it('does not guess for a thread the list never showed', () => {
     expect(replacementKeyOf(keyOf(9), items(0, 1, 2), complete(0, 1))).toBeNull();
     expect(replacementKeyOf(keyOf(0), items(0), complete())).toBeNull();
