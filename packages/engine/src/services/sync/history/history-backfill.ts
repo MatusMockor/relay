@@ -3,6 +3,7 @@ import type { Clock } from '../../../ports/clock';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
 import type { SplitRepository } from '../../../ports/split-repository';
 import type { SyncStateRepository } from '../../../ports/sync-state-repository';
+import type { BodyHydrator, HydrationReport } from '../../bodies/body-hydrator';
 import type { SyncContext } from '../sync-context';
 import type { SyncOptions } from '../sync-options';
 import type { HistoryMailboxBackfill } from './history-mailbox-backfill';
@@ -17,6 +18,7 @@ export interface HistoryBackfillDeps {
   readonly syncStates: SyncStateRepository;
   readonly splits: SplitRepository;
   readonly mailbox: HistoryMailboxBackfill;
+  readonly hydrator: BodyHydrator | null;
   readonly clock: Clock;
   readonly options: SyncOptions;
 }
@@ -33,12 +35,28 @@ export class HistoryBackfill {
     const targets = historyMailboxes(mailboxes, states, this.deps.options);
     const budget = new SliceBudget(this.deps.options.history, this.deps.clock, control);
     const perMailbox = await this.mailboxes(context, targets, budget);
+    const hydration = await this.hydrate(context, targets, budget);
+    const headersPending =
+      perMailbox.length < targets.length || perMailbox.some((report) => !report.done);
     return {
       skipped: false,
       processed: perMailbox.reduce((total, report) => total + report.processed, 0),
-      more: perMailbox.length < targets.length || perMailbox.some((report) => !report.done),
+      hydrated: hydration.hydrated,
+      more: headersPending || hydration.more,
       perMailbox,
     };
+  }
+
+  private hydrate(
+    context: SyncContext,
+    targets: readonly HistoryTarget[],
+    budget: SliceBudget,
+  ): Promise<HydrationReport> {
+    const { hydrator } = this.deps;
+    if (hydrator === null) {
+      return Promise.resolve({ hydrated: 0, more: false });
+    }
+    return hydrator.run(context, targets, budget);
   }
 
   private async mailboxes(

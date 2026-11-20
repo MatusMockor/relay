@@ -12,6 +12,7 @@ import {
   createSqliteAttachmentReferences,
   createSqliteHistoryBackfills,
   createSqliteMessageAttachmentLookup,
+  createSqliteMessageBodies,
   createSqliteMessageBodyRepairs,
   createSqliteMessageUids,
   createSqliteRepositories,
@@ -27,6 +28,7 @@ import {
   MailparserAttachmentExtractor,
 } from '@relay/mail-core';
 import type { GoogleClientConfigSource } from '../oauth/google-client-config-source';
+import { DeviceOfflineWindow } from '../settings/device-offline-window';
 import { FileAttachmentBlobCatalog } from '../storage/file-attachment-blob-catalog';
 import { FileAttachmentStore } from '../storage/file-attachment-store';
 import { createCalendarAdapters } from './calendar-adapters';
@@ -75,6 +77,8 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     messageBodyRepairs: createSqliteMessageBodyRepairs(database),
     historyBackfills: createSqliteHistoryBackfills(database),
     messageUids: createSqliteMessageUids(database),
+    messageBodies: createSqliteMessageBodies(database),
+    offlineWindow: new DeviceOfflineWindow(infrastructure.deviceSettings, infrastructure.clock),
     attachmentExtractor: new MailparserAttachmentExtractor(),
     unsubscribeSender: new HttpsUnsubscribeSender(),
     credentialVault: infrastructure.vault,

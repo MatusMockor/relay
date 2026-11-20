@@ -1,6 +1,5 @@
-import type { HistorySliceReport } from '@relay/engine';
+import { type HistorySliceReport, isThrottlingError } from '@relay/engine';
 import { type BackoffPolicy, backoffDelayMs } from '../backoff';
-import { isThrottlingError } from './throttling-error';
 
 export type HistoryLoopState = 'running' | 'idle' | 'paused' | 'error';
 

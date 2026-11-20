@@ -1,5 +1,5 @@
 import { ProviderError } from '@relay/engine';
-import type { AccountId, HistoryProgress } from '@relay/shared/domain';
+import type { AccountId, HistoryProgress, OfflineStats } from '@relay/shared/domain';
 import type { IpcInvokeHandlers } from '../../ipc/invoke-router';
 
 export interface SyncTrigger {
@@ -8,6 +8,10 @@ export interface SyncTrigger {
 
 export interface HistoryProgressList {
   list(): Promise<HistoryProgress[]>;
+}
+
+export interface OfflineStatsSource {
+  stats(): Promise<OfflineStats>;
 }
 
 export interface SyncOutcome {
@@ -26,10 +30,12 @@ export const assertSynced = (reports: readonly SyncOutcome[]): void => {
 export const createSyncHandlers = (
   trigger: SyncTrigger,
   history: HistoryProgressList,
+  offline: OfflineStatsSource,
 ): IpcInvokeHandlers => ({
   'local.sync.now': async ({ accountId }) => {
     await trigger.syncNow(accountId);
     return { ok: true };
   },
   'local.sync.history': () => history.list(),
+  'local.sync.offline': () => offline.stats(),
 });

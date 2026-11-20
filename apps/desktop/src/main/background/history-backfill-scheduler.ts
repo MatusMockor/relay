@@ -56,6 +56,12 @@ export class HistoryBackfillScheduler implements BackgroundWorker {
     return next;
   }
 
+  kick(): void {
+    this.loops.forEach((loop) => {
+      loop.kick();
+    });
+  }
+
   stateOf(accountId: AccountId): HistoryLoopState | null {
     return this.loops.get(accountId)?.state ?? null;
   }

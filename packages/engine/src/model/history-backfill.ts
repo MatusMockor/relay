@@ -27,6 +27,7 @@ export type HistorySliceReport =
   | {
       readonly skipped: false;
       readonly processed: number;
+      readonly hydrated: number;
       readonly more: boolean;
       readonly perMailbox: readonly HistoryMailboxReport[];
     };

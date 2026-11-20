@@ -63,6 +63,7 @@ export class FakeMailServer {
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
+  readonly uidFetches: { path: string; uids: number[] }[] = [];
   readonly flagScans: { path: string; uids: number[] | null }[] = [];
   readonly labelWrites: LabelWrite[] = [];
   readonly statusCalls: string[] = [];
@@ -71,6 +72,7 @@ export class FakeMailServer {
   onUidSearch: ((range: UidRange) => void) | null = null;
   failFetchUid: number | null = null;
   interruptStreamAfter: number | null = null;
+  interruptStreamError: Error | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();
   connections = 0;

@@ -3,7 +3,7 @@ import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
-import { DemoHistory } from './demo-history';
+import { DEMO_OFFLINE_STATS, DemoHistory } from './demo-history';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
@@ -168,6 +168,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
     syncNow: () => Promise.resolve(),
     historyProgress: () => run(() => history.progress(state.accounts)),
+    offlineStats: () => Promise.resolve(DEMO_OFFLINE_STATS),
     listDrafts: () => Promise.resolve([...state.drafts]),
     createDraft: (content) =>
       run(() => {

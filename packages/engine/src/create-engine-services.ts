@@ -15,6 +15,9 @@ import {
   createMessageBodyService,
 } from './services/bodies/create-message-body-service';
 import type { MessageBodyService } from './services/bodies/message-body-service';
+import type { BodyRetention } from './services/bodies/body-retention';
+import { createBodyRetention, createOfflineStats } from './services/bodies/create-offline-bodies';
+import type { OfflineStatsReader } from './services/bodies/offline-stats-reader';
 import type { CalendarService } from './services/calendar/calendar-service';
 import { createCalendarComponents } from './services/calendar/create-calendar-service';
 import { createInviteComponents } from './services/calendar/create-invite-components';
@@ -82,6 +85,8 @@ export interface EngineServices {
   readonly readSessions: LingeringSessions;
   readonly search: ServerSearchService;
   readonly attachmentSweeper: AttachmentSweeper;
+  readonly bodyRetention: BodyRetention;
+  readonly offlineStats: OfflineStatsReader;
   readonly splits: SplitService;
   readonly automations: AutomationService;
   readonly ai: AiService;
@@ -236,6 +241,8 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     readSessions,
     search: createServerSearchService(deps, readSessions, sync),
     attachmentSweeper,
+    bodyRetention: createBodyRetention(deps, events),
+    offlineStats: createOfflineStats(deps),
     splits: new SplitService({
       splits: repositories.splits,
       accounts: repositories.accounts,

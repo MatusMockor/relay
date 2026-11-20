@@ -25,6 +25,7 @@ export * from './label-name-keys';
 export * from './mailbox';
 export * from './message';
 export * from './message-body';
+export * from './offline-window';
 export * from './primitives';
 export * from './reminder';
 export * from './scheduled-send';

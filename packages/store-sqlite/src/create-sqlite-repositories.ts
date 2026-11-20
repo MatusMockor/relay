@@ -4,6 +4,7 @@ import type {
   MessageUidLookup,
   MessageAttachmentLookup,
   MessageBodyRepairRepository,
+  MessageBodyStore,
   Repositories,
 } from '@relay/engine';
 import type { SqliteDatabase } from './database/sqlite-database';
@@ -20,6 +21,7 @@ import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-cale
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
 import { SqliteHistoryBackfillRepository } from './repositories/sqlite-history-backfill-repository';
 import { SqliteMessageUidLookup } from './repositories/sqlite-message-uid-lookup';
+import { SqliteMessageBodyStore } from './repositories/sqlite-message-body-store';
 import { SqliteGoogleCalendarRepository } from './repositories/sqlite-google-calendar-repository';
 import { SqliteGoogleConnectionRepository } from './repositories/sqlite-google-connection-repository';
 import { SqliteGoogleEventRepository } from './repositories/sqlite-google-event-repository';
@@ -80,6 +82,9 @@ export const createSqliteMessageBodyRepairs = (
 
 export const createSqliteHistoryBackfills = (database: SqliteDatabase): HistoryBackfillRepository =>
   new SqliteHistoryBackfillRepository(new QueuedExecutor(database));
+
+export const createSqliteMessageBodies = (database: SqliteDatabase): MessageBodyStore =>
+  new SqliteMessageBodyStore(new QueuedExecutor(database));
 
 export const createSqliteAttachmentReferences = (
   database: SqliteDatabase,

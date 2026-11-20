@@ -1,4 +1,5 @@
 import type { RemoteTextSearch, RemoteTextSearchField } from '../../model/remote-mail';
+import type { RemoteBodyBound } from './remote-bodies';
 import type { SearchTarget } from './search-mailboxes';
 
 export type AccountSearchPlan =
@@ -14,20 +15,20 @@ export interface SearchPlanInput {
   readonly field: RemoteTextSearchField;
   readonly targets: readonly SearchTarget[];
   readonly historyComplete: boolean;
-  readonly cutoff: Date | null | undefined;
+  readonly remoteBodies: RemoteBodyBound;
   readonly limit: number;
 }
 
 const SKIP: AccountSearchPlan = { kind: 'skip' };
 
 const coveredLocally = (input: SearchPlanInput): boolean =>
-  input.historyComplete && (input.field !== 'all' || input.cutoff === null);
+  input.historyComplete && (input.field !== 'all' || input.remoteBodies === null);
 
 export const planAccountSearch = (input: SearchPlanInput): AccountSearchPlan => {
   if (input.terms.length === 0 || input.targets.length === 0 || coveredLocally(input)) {
     return SKIP;
   }
-  const before = input.historyComplete && input.cutoff instanceof Date ? input.cutoff : undefined;
+  const before = input.remoteBodies instanceof Date ? input.remoteBodies : undefined;
   return {
     kind: 'search',
     targets: input.targets,

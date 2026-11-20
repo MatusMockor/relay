@@ -17,6 +17,7 @@ const applyPatch = (current: DeviceSettings, patch: DeviceSettingsPatch): Device
   selectedAccountId:
     patch.selectedAccountId === undefined ? current.selectedAccountId : patch.selectedAccountId,
   theme: patch.theme ?? current.theme,
+  offlineWindow: patch.offlineWindow ?? current.offlineWindow,
 });
 
 export class DeviceSettingsStore {

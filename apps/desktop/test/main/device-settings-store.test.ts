@@ -122,7 +122,11 @@ describe('DeviceSettingsStore', () => {
     };
     await writeFile(path, JSON.stringify(legacy));
 
-    expect(await new DeviceSettingsStore(path).get()).toEqual({ ...legacy, theme: 'dark' });
+    expect(await new DeviceSettingsStore(path).get()).toEqual({
+      ...legacy,
+      theme: 'dark',
+      offlineWindow: '6m',
+    });
   });
 
   it('persists the chosen theme and keeps it across other updates', async () => {

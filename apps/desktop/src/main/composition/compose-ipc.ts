@@ -108,7 +108,9 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createLabelHandlers(local.services, local.userId),
     createAiJobHandlers(local.services, local.userId),
     createTaskHandlers(local.services, local.userId),
-    createSyncHandlers(local.sync, local.history),
+    createSyncHandlers(local.sync, local.history, {
+      stats: () => local.services.offlineStats.forUser(local.userId),
+    }),
     createComposeHandlers(local.services, local.userId),
     createAttachmentHandlers(local.services, local.userId),
     createDraftAttachmentHandlers(local.services, local.userId),

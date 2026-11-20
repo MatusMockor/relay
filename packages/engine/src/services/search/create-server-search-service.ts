@@ -7,6 +7,7 @@ import { AccountSearchPlanner } from './account-search-planner';
 import { AccountTextSearch } from './account-text-search';
 import { HistoryCompletion } from './history-completion';
 import { MailboxTextSearch } from './mailbox-text-search';
+import { RemoteBodies } from './remote-bodies';
 import { SearchHitIngest } from './search-hit-ingest';
 import { SearchHitResolver } from './search-hit-resolver';
 import { DEFAULT_SEARCH_OPTIONS } from './search-options';
@@ -28,7 +29,7 @@ export const createServerSearchService = (
       syncStates: repositories.syncStates,
       splits: repositories.splits,
       completion: new HistoryCompletion(deps.historyBackfills, sync.options),
-      offlineWindow: deps.offlineWindow,
+      remoteBodies: new RemoteBodies(deps.messageBodies),
       sync: sync.options,
       options,
     }),

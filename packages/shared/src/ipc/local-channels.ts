@@ -39,6 +39,7 @@ import { AiJobSchema } from '../domain/ai';
 import { AutomationSchema } from '../domain/automation';
 import { DraftSchema } from '../domain/draft';
 import { HistoryProgressSchema } from '../domain/history-progress';
+import { OfflineStatsSchema } from '../domain/offline-window';
 import {
   AccountIdSchema,
   AiJobIdSchema,
@@ -143,6 +144,7 @@ export const localInvokeChannels = {
     OkResponseSchema,
   ),
   'local.sync.history': invokeChannel(z.undefined(), z.array(HistoryProgressSchema)),
+  'local.sync.offline': invokeChannel(z.undefined(), OfflineStatsSchema),
   'local.settings.get': invokeChannel(z.undefined(), UserSettingsSchema),
   'local.settings.update': invokeChannel(UserSettingsPatchSchema, UserSettingsSchema),
   'local.tasks.list': invokeChannel(TaskListQuerySchema, TaskPageSchema),

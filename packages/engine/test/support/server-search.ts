@@ -2,6 +2,8 @@ import type { ServerSearchRequest, ServerSearchResponse } from '@relay/shared/ap
 import type { OfflineWindowPolicy, SearchOptions } from '../../src';
 import { deliverMail, type SeededAccount, seedAccount } from './fixtures';
 import { historyDate } from './history';
+import type { MemoryDatabase } from './memory/memory-database';
+import { MemoryMessageBodies } from './memory/memory-message-bodies';
 import { createTestEngine, type TestEngine, USER_ID } from './test-engine';
 
 export interface ServerSearchSetup {
@@ -12,6 +14,7 @@ export interface ServerSearchSetup {
 export interface ServerSearchSetupOptions {
   readonly search?: Partial<SearchOptions>;
   readonly offlineWindow?: OfflineWindowPolicy;
+  readonly offlineBodies?: boolean;
   readonly seed?: (seeded: SeededAccount) => void;
 }
 
@@ -21,6 +24,9 @@ export const setupServerSearch = async (
   const engine = createTestEngine({
     search: options.search,
     offlineWindow: options.offlineWindow,
+    ...(options.offlineBodies === true
+      ? { messageBodies: (db: MemoryDatabase) => new MemoryMessageBodies(db) }
+      : {}),
     receivedAttachments: true,
   });
   const seeded = await seedAccount(engine);

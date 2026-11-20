@@ -8,6 +8,8 @@ import {
   type EngineServices,
   type HistoryBackfillRepository,
   type MessageBodyRepairRepository,
+  type MessageBodyStore,
+  type OfflineBodyOptions,
   type OfflineWindowPolicy,
   type Repositories,
   type SearchOptions,
@@ -63,6 +65,8 @@ export interface TestEngineOptions {
   readonly splitMatcher?: SplitMatcher;
   readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
   readonly historyBackfills?: ((db: MemoryDatabase) => HistoryBackfillRepository) | null;
+  readonly messageBodies?: (db: MemoryDatabase) => MessageBodyStore;
+  readonly offlineBodies?: Partial<OfflineBodyOptions>;
 }
 
 export interface TestEngine {
@@ -124,6 +128,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     ...historyBackfillsOf(options, db),
     ...(options.offlineWindow === undefined ? {} : { offlineWindow: options.offlineWindow }),
     ...receivedAttachmentsOf(options, db),
+    ...(options.messageBodies === undefined ? {} : { messageBodies: options.messageBodies(db) }),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
@@ -145,6 +150,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
       actions: options.actions,
       bodies: options.bodies,
       search: options.search,
+      offlineBodies: options.offlineBodies,
     },
   });
   return {

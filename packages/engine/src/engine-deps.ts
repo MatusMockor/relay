@@ -19,6 +19,7 @@ import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
 import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
+import type { MessageBodyStore } from './ports/message-body-store';
 import type { MessageParser } from './ports/message-parser';
 import type { MessageUidLookup } from './ports/message-uid-lookup';
 import type { OfflineWindowPolicy } from './ports/offline-window-policy';
@@ -31,6 +32,7 @@ import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentSweepOptions } from './services/attachments/attachment-sweep-options';
 import type { BodyOptions } from './services/bodies/body-options';
 import type { SearchOptions } from './services/search/search-options';
+import type { OfflineBodyOptions } from './services/bodies/offline-body-options';
 import type { SyncOptions } from './services/sync/sync-options';
 
 export type AiMailToolsResolver = (
@@ -70,6 +72,7 @@ export interface EngineOptions {
   readonly actions?: Partial<ActionOptions>;
   readonly bodies?: Partial<BodyOptions>;
   readonly search?: Partial<SearchOptions>;
+  readonly offlineBodies?: Partial<OfflineBodyOptions>;
 }
 
 export interface EngineDeps {
@@ -85,6 +88,7 @@ export interface EngineDeps {
   readonly historyBackfills?: HistoryBackfillRepository;
   readonly messageUids?: MessageUidLookup;
   readonly offlineWindow?: OfflineWindowPolicy;
+  readonly messageBodies?: MessageBodyStore;
   readonly attachmentExtractor?: AttachmentExtractor;
   readonly unsubscribeSender?: UnsubscribeSender;
   readonly messageParser: MessageParser;

@@ -129,6 +129,7 @@ export class FakeMailProvider implements MailProvider {
     if (opened instanceof Error) {
       return failingItems<RawMessage>(opened);
     }
+    opened.server.uidFetches.push({ path, uids: [...uids] });
     return streamRecords(opened.server, path, recordsOf(opened.mailbox, uids));
   }
 
