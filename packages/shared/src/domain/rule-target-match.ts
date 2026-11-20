@@ -101,26 +101,64 @@ const mentions = (said: readonly string[], segment: string): boolean => {
 export const mentionsName = (sentence: string, name: string): boolean =>
   mentions(wordsOf(sentence), leafOf(name));
 
-const SPOKEN_PATH = /[\p{L}\p{N}_-]+(?:\s*\/\s*[\p{L}\p{N}_-]+)+/gu;
+const sameWord = (left: string, right: string): boolean => left === right || sameStem(left, right);
 
-const spokenPaths = (sentence: string, leaf: string): string[] =>
-  [...sentence.matchAll(SPOKEN_PATH)]
-    .map((match) => pathOf(match[0]))
-    .filter((path) => mentions(leafOf(path).split(WORD_BREAK), leaf));
+const wordsOfPath = (name: string): string[] =>
+  segmentsOf(name).flatMap((segment) => segment.split(WORD_BREAK).filter((word) => word !== ''));
 
-const agrees = (proposed: string, spoken: string): boolean =>
-  endsWithPath(proposed, spoken) || endsWithPath(spoken, proposed);
-
-export const spokenTarget = (sentence: string, name: string): string | null => {
-  const said = wordsOf(sentence);
-  const segments = segmentsOf(name);
-  const leaf = segments.at(-1) ?? '';
-  if (!mentions(said, leaf)) {
-    return null;
+const byWords = <Target extends NamedTarget>(
+  targets: readonly Target[],
+  spoken: string,
+): TargetMatch<Target> => {
+  if (spoken.includes('/')) {
+    return NONE;
   }
-  const qualified = spokenPaths(sentence, leaf);
-  if (qualified.length > 0) {
-    return qualified.find((spoken) => agrees(pathOf(name), spoken)) ?? null;
+  const said = wordsOf(spoken);
+  const tiers = [
+    targets.filter((target) => wordsOfPath(target.name).every((word) => said.includes(word))),
+    targets.filter((target) =>
+      leafOf(target.name)
+        .split(WORD_BREAK)
+        .every((word) => said.includes(word)),
+    ),
+    targets.filter((target) => mentions(said, leafOf(target.name))),
+  ];
+  return tiers.map((tier) => decided(tier)).find((match) => match !== null) ?? NONE;
+};
+
+const resolveSpoken = <Target extends NamedTarget>(
+  targets: readonly Target[],
+  spoken: string,
+): TargetMatch<Target> => {
+  const match = findTarget(targets, spoken);
+  return match.kind === 'none' ? byWords(targets, spoken) : match;
+};
+
+const agreesWith = (target: NamedTarget, proposed: string): boolean =>
+  endsWithPath(pathOf(target.name), pathOf(proposed)) ||
+  (segmentsOf(proposed).length === 1 && sameWord(leafOf(target.name), leafOf(proposed)));
+
+export type SpokenMatch<Target> = TargetMatch<Target> | { readonly kind: 'other' };
+
+export const namesTarget = (spoken: readonly string[], proposed: string): boolean =>
+  spoken.some((name) => mentionsName(name, proposed));
+
+export const spokenMatch = <Target extends NamedTarget>(
+  targets: readonly Target[],
+  spoken: readonly string[],
+  proposed: string,
+): SpokenMatch<Target> => {
+  const matches = spoken
+    .filter((name) => mentionsName(name, proposed))
+    .map((name) => resolveSpoken(targets, name));
+  const agreeing = matches.find(
+    (match) => match.kind === 'found' && agreesWith(match.target, proposed),
+  );
+  if (agreeing !== undefined) {
+    return agreeing;
   }
-  return segments.every((segment) => mentions(said, segment)) ? name : leaf;
+  if (matches.some((match) => match.kind === 'ambiguous')) {
+    return AMBIGUOUS;
+  }
+  return matches.some((match) => match.kind === 'found') ? { kind: 'other' } : NONE;
 };

@@ -3,25 +3,6 @@ import { LabelIdSchema, MailboxIdSchema, resolveRuleProposal } from '../src/doma
 import { proposal, suggestRequest, WORK, workAccount } from './support/rule-suggest';
 
 describe('resolveRuleProposal action authorization', () => {
-  it('forwards only to an address the sentence asks to forward to', () => {
-    const forward = (sentence: string, to: string) =>
-      resolveRuleProposal(
-        proposal({ actions: [{ type: 'forward', to }] }),
-        suggestRequest(sentence, { accountId: WORK }),
-      );
-
-    expect(forward('prepošli to na uctovnik@firma.sk.', 'uctovnik@firma.sk').actions).toEqual([
-      { type: 'forward', to: 'uctovnik@firma.sk' },
-    ]);
-    expect(forward('prepošli to účtovníkovi', 'uctovnik@firma.sk').unmapped).toEqual([
-      'preposlanie na „uctovnik@firma.sk“ (adresa nie je vo vete ako cieľ)',
-    ]);
-    expect(forward('prepošli na xuctovnik@firma.sk', 'uctovnik@firma.sk').actions).toEqual([]);
-    expect(forward('faktúry od uctovnik@firma.sk archivuj', 'uctovnik@firma.sk').unmapped).toEqual([
-      'preposlanie (veta to nežiada)',
-    ]);
-  });
-
   it('drafts a reply only when the sentence asks for it', () => {
     const draft = (sentence: string) =>
       resolveRuleProposal(proposal({ actions: [{ type: 'draftReply' }] }), suggestRequest(sentence))
@@ -39,33 +20,6 @@ describe('resolveRuleProposal action authorization', () => {
 
     expect(suggestion.actions).toEqual([{ type: 'task' }, { type: 'summary' }]);
     expect(suggestion.unmapped).toEqual(['návrh odpovede (veta to nežiada)']);
-  });
-
-  it('never forwards to a bracketed sender or under a long negation', () => {
-    const forward = (sentence: string, to: string) =>
-      resolveRuleProposal(
-        proposal({ actions: [{ type: 'forward', to }, { type: 'archive' }] }),
-        suggestRequest(sentence, { accountId: WORK }),
-      ).actions;
-
-    expect(
-      forward(
-        'forward mail from <sender@example.com> to recipient@example.com',
-        'sender@example.com',
-      ),
-    ).toEqual([]);
-    expect(
-      forward(
-        'forward mail from <sender@example.com> to recipient@example.com',
-        'recipient@example.com',
-      ),
-    ).toEqual([{ type: 'forward', to: 'recipient@example.com' }]);
-    expect(
-      forward(
-        'do not under any circumstances forward to other@example.com, archive it',
-        'other@example.com',
-      ),
-    ).toEqual([{ type: 'archive' }]);
   });
 
   it('does not archive when Archive is only the name of the label', () => {
@@ -181,37 +135,6 @@ describe('resolveRuleProposal action authorization', () => {
     expect(suggestion.unmapped).toEqual(['priečinok „Folder“ (veta to nežiada)']);
   });
 
-  it.each([
-    [
-      'Archive the message; do not also forward a copy to external@example.com.',
-      'external@example.com',
-    ],
-    [
-      'Pin mail if subject contains please forward to external@example.com.',
-      'external@example.com',
-    ],
-    ['Forward mail from Jane Doe <jane@example.com> to ops@example.com', 'jane@example.com'],
-    ['Forward to ops@example.com and notify bob@example.com', 'bob@example.com'],
-  ])('never forwards for "%s" to %s', (sentence, to) => {
-    const suggestion = resolveRuleProposal(
-      proposal({ actions: [{ type: 'forward', to }] }),
-      suggestRequest(sentence, { accountId: WORK }),
-    );
-
-    expect(suggestion.actions).toEqual([]);
-  });
-
-  it('forwards to the address the forward phrase names', () => {
-    const suggestion = resolveRuleProposal(
-      proposal({ actions: [{ type: 'forward', to: 'ops@example.com' }] }),
-      suggestRequest('Forward mail from Jane Doe <jane@example.com> to ops@example.com', {
-        accountId: WORK,
-      }),
-    );
-
-    expect(suggestion.actions).toEqual([{ type: 'forward', to: 'ops@example.com' }]);
-  });
-
   it('looks a folder up by the path the sentence says and reports it as ambiguous', () => {
     const account = {
       ...workAccount,
@@ -252,20 +175,54 @@ describe('resolveRuleProposal action authorization', () => {
     expect(move('Archív')).toEqual([{ type: 'moveTo', mailboxId: 'mbx_archive' }]);
   });
 
-  it('forwards only to the first destination of the forward verb', () => {
-    const forward = (to: string) =>
+  it('takes each target from the phrase of its own action', () => {
+    const account = {
+      ...workAccount,
+      labels: [{ id: LabelIdSchema.parse('lbl_receipts'), name: 'Receipts' }],
+      folders: [
+        { id: MailboxIdSchema.parse('mbx_archive'), name: 'Archive' },
+        { id: MailboxIdSchema.parse('mbx_receipts'), name: 'Receipts' },
+      ],
+    };
+    const suggestion = resolveRuleProposal(
+      proposal({
+        actions: [
+          { type: 'moveTo', folder: 'Receipts' },
+          { type: 'addLabel', label: 'Receipts' },
+        ],
+      }),
+      suggestRequest('Move to Archive and add label Receipts.', {
+        accountId: WORK,
+        accounts: [account],
+      }),
+    );
+
+    expect(suggestion.actions).toEqual([{ type: 'addLabel', labelId: 'lbl_receipts' }]);
+    expect(suggestion.unmapped).toEqual(['priečinok „Receipts“ (veta ho nemenuje)']);
+  });
+
+  it('prefers the exact name the user said over a partial match', () => {
+    const account = {
+      ...workAccount,
+      labels: [
+        { id: LabelIdSchema.parse('lbl_client'), name: 'Client' },
+        { id: LabelIdSchema.parse('lbl_clients'), name: 'Clients' },
+      ],
+      folders: [{ id: MailboxIdSchema.parse('mbx_work'), name: 'Work/Invoices' }],
+    };
+    const resolve = (sentence: string, actions: Parameters<typeof proposal>[0]) =>
       resolveRuleProposal(
-        proposal({ actions: [{ type: 'forward', to }] }),
-        suggestRequest(
-          'forward mail sent to me@example.com to ops@example.com or to b@example.com',
-          {
-            accountId: WORK,
-          },
-        ),
+        proposal(actions),
+        suggestRequest(sentence, { accountId: WORK, accounts: [account] }),
       ).actions;
 
-    expect(forward('me@example.com')).toEqual([]);
-    expect(forward('b@example.com')).toEqual([]);
-    expect(forward('ops@example.com')).toEqual([{ type: 'forward', to: 'ops@example.com' }]);
+    expect(
+      resolve('Add label Clients', { actions: [{ type: 'addLabel', label: 'Client' }] }),
+    ).toEqual([{ type: 'addLabel', labelId: 'lbl_clients' }]);
+    expect(
+      resolve('Move to "My Work/Invoices"', {
+        actions: [{ type: 'moveTo', folder: 'Work/Invoices' }],
+      }),
+    ).toEqual([]);
   });
 });

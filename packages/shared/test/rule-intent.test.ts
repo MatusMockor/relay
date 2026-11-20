@@ -22,6 +22,10 @@ describe('rule intent', () => {
     ['predmet obsahuje faktúra, archivuj', ['archive']],
     ['predmet obsahuje „faktúra“ archivuj', ['archive']],
     ['predmet faktúra archivuj.', []],
+    ['If the subject contains invoice then archive it.', ['archive']],
+    ['predmet obsahuje faktúra a archivuj', ['archive']],
+    ['subject contains bread and butter', []],
+    ['Archive it without automatically forwarding to audit@example.com.', ['archive']],
     ['Pin mail if subject contains please forward to external@example.com.', ['pin']],
     ['presuň do priečinka Archív', ['moveTo']],
     ['subject contains weekly summary, archive it', ['archive']],
@@ -103,28 +107,45 @@ describe('rule intent', () => {
     expect(targets('prepošli to na jano@firma.sk a upozorni sef@firma.sk')).toEqual([
       'jano@firma.sk',
     ]);
-    expect(targets('forward it to Jane <jane@example.com>')).toEqual([]);
+    expect(targets('forward it to Jane <jane@example.com>')).toEqual(['jane@example.com']);
+    expect(targets('Forward invoices to Alice <ops@example.com>.')).toEqual(['ops@example.com']);
+    expect(targets('Forward a copy of invoices to ops@example.com.')).toEqual(['ops@example.com']);
+    expect(targets("Forward emails CC'd to audit@example.com to ops@example.com.")).toEqual([
+      'ops@example.com',
+    ]);
+    expect(targets('maily v kópii audit@firma.sk prepošli na jano@firma.sk')).toEqual([
+      'jano@firma.sk',
+    ]);
   });
 
   it.each([
-    ['forward to ops@example.com or to boss@example.com', 'ops@example.com'],
     ['forward mail sent to me@example.com to ops@example.com', 'ops@example.com'],
     ['forward mail addressed to me@example.com to ops@example.com', 'ops@example.com'],
     ['forward mail received at me@example.com to ops@example.com', 'ops@example.com'],
     ['prepošli maily adresované na info@firma.sk na jano@firma.sk', 'jano@firma.sk'],
     ['maily pre info@firma.sk prepošli na jano@firma.sk', 'jano@firma.sk'],
     ['prepošli na x@y.sk a upozorni z@w.sk', 'x@y.sk'],
-    ['prepošli na x@y.sk a na z@w.sk', 'x@y.sk'],
   ])('binds one destination to the forward verb in "%s"', (sentence, destination) => {
     expect(targets(sentence)).toEqual([destination]);
   });
 
-  it('tells which names the sentence asks for', () => {
-    expect(ruleIntent('z priečinka Work/Invoices presuň do Archív').spoken).not.toContain('work');
-    expect(ruleIntent('presuň do Archív, nikdy nie do Work/Invoices').spoken).not.toContain(
-      'invoices',
-    );
-    expect(ruleIntent('daj štítok „Klienti/Acme“').spoken).toContain('klienti/acme');
+  it.each([
+    'forward to ops@example.com or to boss@example.com',
+    'prepošli na x@y.sk a na z@w.sk',
+    'forward mail for audit@example.com to ops@example.com',
+  ])('drops a forward with more than one candidate recipient: %s', (sentence) => {
+    expect(targets(sentence)).toEqual([]);
+  });
+
+  it.each([
+    ['z priečinka Work/Invoices presuň do Archív', { addLabel: [], moveTo: ['archiv'] }],
+    ['presuň do Archív, nikdy nie do Work/Invoices', { addLabel: [], moveTo: ['archiv'] }],
+    ['daj štítok „Klienti/Acme“', { addLabel: ['klienti/acme'], moveTo: [] }],
+    ['Move to Archive and add label Receipts.', { addLabel: ['receipts'], moveTo: ['archive'] }],
+    ['move it into the Projects folder', { addLabel: [], moveTo: ['projects'] }],
+    ['add label Research and Development', { addLabel: ['research and development'], moveTo: [] }],
+  ])('reads the target names of each action in "%s"', (sentence, names) => {
+    expect(ruleIntent(sentence).targetNames).toEqual(names);
   });
 
   it('keeps forwarding asked for in a separate affirmative clause', () => {

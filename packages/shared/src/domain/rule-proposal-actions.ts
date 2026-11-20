@@ -7,7 +7,7 @@ import { EmailAddressSchema } from './primitives';
 import type { ProposedAction } from './rule-proposal';
 import type { RuleIntent } from './rule-intent';
 import type { RuleSuggestAccount } from './rule-suggestion';
-import { findTarget, type NamedTarget, spokenTarget } from './rule-target-match';
+import { type NamedTarget, namesTarget, spokenMatch } from './rule-target-match';
 
 export interface ResolvedActions {
   readonly actions: AutomationAction[];
@@ -53,13 +53,20 @@ const nounOf = (proposed: ProposedAction): string => {
 const targetStep = <Target extends NamedTarget>(
   noun: string,
   name: string,
+  spoken: readonly string[],
   targets: readonly Target[] | null,
   build: (target: Target) => AutomationAction,
 ): Step => {
+  if (!namesTarget(spoken, name)) {
+    return { note: `${noun} (veta ho nemenuje)` };
+  }
   if (targets === null) {
     return { note: `${noun} (vyber účet)` };
   }
-  const match = findTarget(targets, name);
+  const match = spokenMatch(targets, spoken, name);
+  if (match.kind === 'other') {
+    return { note: `${noun} (veta ho nemenuje)` };
+  }
   if (match.kind === 'ambiguous') {
     return { note: `${noun} (nejednoznačný názov)` };
   }
@@ -75,23 +82,18 @@ const stepOf = (proposed: ProposedAction, context: ActionContext): Step => {
     return { note: `${noun} ${NOT_ASKED}` };
   }
   const { account } = context;
-  if (proposed.type === 'addLabel' || proposed.type === 'moveTo') {
-    const name = spokenTarget(
-      context.intent.spoken,
-      proposed.type === 'addLabel' ? proposed.label : proposed.folder,
-    );
-    if (name === null) {
-      return { note: `${noun} (veta ho nemenuje)` };
-    }
-    return proposed.type === 'addLabel'
-      ? targetStep(noun, name, account?.labels ?? null, (label) => ({
-          type: 'addLabel',
-          labelId: label.id,
-        }))
-      : targetStep(noun, name, account?.folders ?? null, (folder) => ({
-          type: 'moveTo',
-          mailboxId: folder.id,
-        }));
+  const spoken = context.intent.targetNames;
+  if (proposed.type === 'addLabel') {
+    return targetStep(noun, proposed.label, spoken.addLabel, account?.labels ?? null, (label) => ({
+      type: 'addLabel',
+      labelId: label.id,
+    }));
+  }
+  if (proposed.type === 'moveTo') {
+    return targetStep(noun, proposed.folder, spoken.moveTo, account?.folders ?? null, (folder) => ({
+      type: 'moveTo',
+      mailboxId: folder.id,
+    }));
   }
   if (proposed.type === 'forward') {
     const listed = context.intent.forwardTo.has(proposed.to.toLowerCase());

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findTarget, foldName, mentionsName, spokenTarget } from '../src/domain';
+import { findTarget, foldName, mentionsName, spokenMatch } from '../src/domain';
 
 const targets = [
   { id: 'a', name: 'Faktúry' },
@@ -68,14 +68,26 @@ describe('rule target names', () => {
     expect(mentionsName('daj do štítku', '„“')).toBe(false);
   });
 
-  it('keeps a proposed path only when the sentence names its qualifier', () => {
-    expect(spokenTarget('presuň do Projekty/Alfa', 'Projekty / Alfa')).toBe('projekty/alfa');
-    expect(spokenTarget('move to Work/Invoices', 'Private/Invoices')).toBeNull();
-    expect(spokenTarget('move to Work/Invoices', 'Invoices')).toBe('work/invoices');
-    expect(spokenTarget('move to Invoices', 'Private/Invoices')).toBe('invoices');
-    expect(spokenTarget('presuň do Taliansko 2026', 'Cestovanie/Taliansko 2026')).toBe(
-      'taliansko 2026',
-    );
-    expect(spokenTarget('presuň do Zmluvy', 'Faktúry')).toBeNull();
+  it('resolves what the user said and checks that the proposal agrees', () => {
+    const spoken = (said: string, proposed: string, list = targets): unknown => {
+      const match = spokenMatch(list, [said], proposed);
+      return match.kind === 'found' ? match.target.id : match.kind;
+    };
+    const clients = [
+      { id: 'one', name: 'Client' },
+      { id: 'many', name: 'Clients' },
+    ];
+    const work = [
+      { id: 'work', name: 'Work/Invoices' },
+      { id: 'private', name: 'Private/Invoices' },
+    ];
+
+    expect(spoken('projekty/alfa', 'Projekty / Alfa')).toBe('c');
+    expect(spoken('taliansko 2026', 'Cestovanie/Taliansko 2026')).toBe('e');
+    expect(spoken('clients', 'Client', clients)).toBe('many');
+    expect(spoken('my work/invoices', 'Work/Invoices', work)).toBe('none');
+    expect(spoken('work/invoices', 'Private/Invoices', work)).toBe('other');
+    expect(spoken('invoices', 'Private/Invoices', work)).toBe('ambiguous');
+    expect(spoken('projects right away', 'Projects', [{ id: 'p', name: 'Projects' }])).toBe('p');
   });
 });

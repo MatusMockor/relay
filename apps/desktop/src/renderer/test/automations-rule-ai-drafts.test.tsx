@@ -132,6 +132,43 @@ describe('Nastavenia > Automatizácie > neuložený návrh pravidla', () => {
     expect(within(current).queryByText('Neuložené')).toBeNull();
   });
 
+  it('refuses to save a proposal while a new exception is left blank', async () => {
+    const client = demoClient();
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
+
+    await describeRule(tibor, 'od gitlab@firma.sk pripni');
+    const draft = within(sheet).getByRole('region', { name: 'Pravidlo gitlab@firma.sk' });
+    click(within(draft).getByRole('button', { name: '+ Pridať výnimku' }));
+    const save = within(draft).getByRole('button', { name: 'Uložiť pravidlo' });
+    expect(save).toHaveProperty('disabled', true);
+    click(save);
+    await settle();
+    expect(await stored(client, 'gitlab@firma.sk')).toBeUndefined();
+
+    click(within(draft).getByRole('button', { name: 'Zrušiť novú výnimku' }));
+    click(within(draft).getByRole('button', { name: 'Uložiť pravidlo' }));
+    await settle();
+
+    expect(await stored(client, 'gitlab@firma.sk')).toMatchObject({ exceptions: [] });
+  });
+
+  it('ignores a late proposal while a condition edit is invalid', async () => {
+    const held = gate();
+    const client = heldAi(demoClient(), held, []);
+    const sheet = await openAutomations(client);
+    const tibor = openRule(sheet, 'Tibor');
+
+    await describeRule(tibor, 'od gitlab@firma.sk archivuj');
+    change(within(condition(tibor, 1)).getByLabelText('Adresa'), 'jana@');
+    held.open();
+    await settle(40);
+
+    const current = within(sheet).getByRole('region', { name: 'Pravidlo Tibor' });
+    expect(within(current).getByRole('alert').textContent).toBe(STALE);
+    expect(within(condition(current, 1)).getByLabelText('Adresa')).toHaveProperty('value', 'jana@');
+  });
+
   it('waits for the labels before it asks the AI', async () => {
     const held = gate();
     const sheet = await openAutomations(heldLabels(demoClient(), held));

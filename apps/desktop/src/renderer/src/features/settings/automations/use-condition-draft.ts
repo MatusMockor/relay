@@ -44,7 +44,8 @@ export const useConditionDraft = ({
   }
   const fresh = saved === null;
   const baseline = keyOf(saved === null ? null : conditionOf(draftOf(saved)));
-  const dirty = fresh ? !isBlank(draft) : keyOf(conditionOf(draft)) !== baseline;
+  const dirty = fresh || keyOf(conditionOf(draft)) !== baseline;
+  const raw = dirty ? JSON.stringify(draft) : null;
   const live = useMemo(
     () => (fresh && isBlank(draft) ? undefined : conditionOf(draft)),
     [draft, fresh],
@@ -59,11 +60,11 @@ export const useConditionDraft = ({
     [id, onLive],
   );
   useEffect(() => {
-    onDirty(id, dirty);
+    onDirty(id, raw);
     return () => {
-      onDirty(id, false);
+      onDirty(id, null);
     };
-  }, [id, dirty, onDirty]);
+  }, [id, raw, onDirty]);
   const attempt = (next: ConditionDraft, strict: boolean) => {
     const condition = conditionOf(next);
     setInvalid(condition === null && strict);

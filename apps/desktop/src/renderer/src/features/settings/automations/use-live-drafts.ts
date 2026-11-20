@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 export type LiveDraft = AutomationCondition | null;
 
 export interface RowTracker {
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly onDirty: (id: string, raw: string | null) => void;
   readonly onLive: (id: string, draft: LiveDraft | undefined) => void;
 }
 

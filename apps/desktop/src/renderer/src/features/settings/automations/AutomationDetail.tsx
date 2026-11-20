@@ -84,7 +84,7 @@ export function AutomationDetail({
           accounts={accounts}
           disabled={disabled}
           note={rule.suggestion ?? null}
-          basis={suggestionBasis(previewInput)}
+          basis={`${suggestionBasis(previewInput)}\n${conditions.signature}`}
           onSuggest={onPropose}
         />
         <RuleSummaryCard input={input} accounts={accounts} targets={targets} />
