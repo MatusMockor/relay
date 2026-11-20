@@ -27,6 +27,9 @@ export const AttachmentMetaSchema = z.object({
 });
 export type AttachmentMeta = z.infer<typeof AttachmentMetaSchema>;
 
+export const MessageBodyStateSchema = z.enum(['local', 'remote']);
+export type MessageBodyState = z.infer<typeof MessageBodyStateSchema>;
+
 export const MessageSchema = z.object({
   id: MessageIdSchema,
   threadId: ThreadIdSchema,
@@ -50,5 +53,9 @@ export const MessageSchema = z.object({
   flags: MessageFlagsSchema,
   labelIds: z.array(LabelIdSchema),
   attachments: z.array(AttachmentMetaSchema),
+  bodyState: MessageBodyStateSchema.optional(),
 });
 export type Message = z.infer<typeof MessageSchema>;
+
+export const isBodyLocal = (message: Pick<Message, 'bodyState'>): boolean =>
+  message.bodyState !== 'remote';

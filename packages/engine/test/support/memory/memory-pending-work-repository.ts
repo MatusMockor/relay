@@ -14,6 +14,7 @@ const keyOf = (key: PendingWorkKey): string => JSON.stringify([key.accountId, ke
 
 export class MemoryPendingWorkRepository implements PendingWorkRepository {
   failPut: string | null = null;
+  failPutAfter: number | null = null;
   failListByKind: string | null = null;
 
   constructor(private readonly db: MemoryDatabase) {}
@@ -21,6 +22,12 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
   put<Kind extends PendingWorkKind>(work: PendingWorkInput<Kind>): Promise<PendingWork<Kind>> {
     if (this.failPut !== null) {
       return Promise.reject(new Error(this.failPut));
+    }
+    if (this.failPutAfter === 0) {
+      return Promise.reject(new Error('database is locked'));
+    }
+    if (this.failPutAfter !== null) {
+      this.failPutAfter -= 1;
     }
     const key = keyOf(work);
     const stored: PendingWork<Kind> = { ...structuredClone(work), revision: randomUUID() };

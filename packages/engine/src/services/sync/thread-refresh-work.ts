@@ -4,13 +4,19 @@ import type { MailCopies } from '../shared/mail-copies';
 import type { ThreadRefreshHint } from '../shared/thread-refresh';
 import { type MessageRoleOf, syncedThreadState } from './synced-thread-state';
 
-export const emptyThreadWork = (threadId: ThreadId): ThreadRefreshWork => ({
+const quietFlag = (quiet: boolean): Pick<ThreadRefreshWork, 'quiet'> =>
+  quiet ? { quiet: true } : {};
+
+export const isQuietWork = (work: ThreadRefreshWork): boolean => work.quiet === true;
+
+export const emptyThreadWork = (threadId: ThreadId, quiet = false): ThreadRefreshWork => ({
   threadId,
   addSplitIds: [],
   arrivedIn: [],
   jiraKey: null,
   jiraActor: null,
   expungedFromInbox: false,
+  ...quietFlag(quiet),
 });
 
 export const mergeThreadWork = (
@@ -23,6 +29,7 @@ export const mergeThreadWork = (
   jiraKey: change.jiraKey ?? current.jiraKey,
   jiraActor: change.jiraActor ?? current.jiraActor,
   expungedFromInbox: current.expungedFromInbox || (change.expungedFromInbox ?? false),
+  ...quietFlag(isQuietWork(current) && change.quiet === true),
 });
 
 export const threadWorkHint = (

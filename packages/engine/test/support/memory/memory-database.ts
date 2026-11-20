@@ -33,6 +33,7 @@ import type {
   CalendarSubscriptionRecord,
   GoogleCalendarRecord,
   GoogleConnectionRecord,
+  HistoryCursor,
   MailboxSyncState,
   MessageHeaders,
   PendingWork,
@@ -69,6 +70,7 @@ export class MemoryTables {
   readonly aiJobLeases = new Map<AiJobId, { owner: string; leaseUntil: string }>();
   readonly unindexedAiJobs = new Set<AiJobId>();
   readonly syncStates = new Map<MailboxId, MailboxSyncState>();
+  readonly historyCursors = new Map<MailboxId, HistoryCursor>();
   readonly pendingWork = new Map<string, PendingWork>();
   readonly calendarEvents = new Map<CalendarEventId, StoredCalendarEvent>();
   readonly calendarSubscriptions = new Map<CalendarSubscriptionId, CalendarSubscriptionRecord>();

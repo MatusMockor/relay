@@ -5,6 +5,7 @@ import {
   type CalendarOptions,
   createEngineServices,
   type EngineServices,
+  type HistoryBackfillRepository,
   type MessageBodyRepairRepository,
   type Repositories,
   type SettingsOptions,
@@ -35,6 +36,7 @@ import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-match
 import { SimpleMessageParser } from './mail/simple-message-parser';
 import { SubjectJiraClassifier } from './mail/subject-jira-classifier';
 import { MemoryDatabase } from './memory/memory-database';
+import { MemoryHistoryBackfills } from './memory/memory-history-backfills';
 import { MemoryMessageBodyRepairs } from './memory/memory-message-body-repairs';
 import { createMemoryRepositories, MemoryUnitOfWork } from './memory/memory-repositories';
 
@@ -51,6 +53,7 @@ export interface TestEngineOptions {
   readonly actions?: Partial<ActionOptions>;
   readonly splitMatcher?: SplitMatcher;
   readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
+  readonly historyBackfills?: ((db: MemoryDatabase) => HistoryBackfillRepository) | null;
 }
 
 export interface TestEngine {
@@ -109,6 +112,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     attachmentBlobs,
     messageParser: new SimpleMessageParser(),
     messageBodyRepairs: options.messageBodyRepairs?.(db) ?? new MemoryMessageBodyRepairs(db),
+    ...historyBackfillsOf(options, db),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
@@ -151,4 +155,14 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     calendar,
     google,
   };
+};
+
+const historyBackfillsOf = (
+  options: TestEngineOptions,
+  db: MemoryDatabase,
+): { historyBackfills?: HistoryBackfillRepository } => {
+  if (options.historyBackfills === null) {
+    return {};
+  }
+  return { historyBackfills: options.historyBackfills?.(db) ?? new MemoryHistoryBackfills(db) };
 };

@@ -9,6 +9,7 @@ import {
   type SqliteDatabase,
 } from '../src';
 import { buildMessage, messageId, NO_HEADERS, threadId } from './support/fixtures';
+import { insertLegacyMessage } from './support/legacy-message';
 import { writeMigrationsBefore } from './support/partial-migrations';
 import { seedAccount } from './support/seed';
 import { createTempDirectory, createTestStore, type TempDirectory } from './support/test-database';
@@ -126,8 +127,14 @@ describe('message body repair storage', () => {
     });
     const repositories = createSqliteRepositories(database);
     const { account, inbox, sent } = await seedAccount(repositories);
-    await storeMessage(repositories, inbox, 'broken', 1, { textBody: CORRUPTED });
-    await storeMessage(repositories, sent, 'clean', 1, {});
+    insertLegacyMessage(database, {
+      id: 'broken',
+      userId: account.userId,
+      mailbox: inbox,
+      uid: 1,
+      textBody: CORRUPTED,
+    });
+    insertLegacyMessage(database, { id: 'clean', userId: account.userId, mailbox: sent, uid: 1 });
 
     migrate(database);
 

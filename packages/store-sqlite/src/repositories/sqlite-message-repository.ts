@@ -27,6 +27,7 @@ import { accountOwnerOf } from './account-owner';
 import { chunked } from './chunked';
 import { listMatchSubjects } from './match-subject-query';
 import { readMessageLabels } from './message-label-reader';
+import { findThreadIdByReplyTo } from './reply-thread-query';
 
 export class SqliteMessageRepository implements MessageRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -136,6 +137,13 @@ export class SqliteMessageRepository implements MessageRepository {
         .get();
       return row === undefined ? null : ThreadIdSchema.parse(row.threadId);
     });
+  }
+
+  findThreadIdByReplyTo(
+    accountId: AccountId,
+    messageIds: readonly string[],
+  ): Promise<ThreadId | null> {
+    return this.executor.execute((db) => findThreadIdByReplyTo(db, accountId, messageIds));
   }
 
   listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]> {

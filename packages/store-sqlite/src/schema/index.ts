@@ -7,6 +7,7 @@ export * from './calendar-subscriptions';
 export * from './draft-attachments';
 export * from './drafts';
 export * from './google-calendars';
+export * from './history-backfill';
 export * from './labels';
 export * from './mailboxes';
 export * from './message-labels';

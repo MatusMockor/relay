@@ -39,6 +39,10 @@ export interface MessageRepository {
     normalizedSubject: string,
     window: SubjectSearchWindow,
   ): Promise<ThreadId | null>;
+  findThreadIdByReplyTo(
+    accountId: AccountId,
+    messageIds: readonly string[],
+  ): Promise<ThreadId | null>;
   listUids(mailboxId: MailboxId): Promise<number[]>;
   listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]>;
   upsert(message: Message, headers: MessageHeaders): Promise<Message>;

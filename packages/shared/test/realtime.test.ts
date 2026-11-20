@@ -23,6 +23,7 @@ describe('realtime protocol', () => {
       'task.upserted',
       'thread.removed',
       'thread.upserted',
+      'threads.changed',
     ]);
   });
 

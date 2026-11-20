@@ -1,0 +1,1 @@
+CREATE INDEX "messages_account_reply_hash_idx" ON "messages" USING btree ("account_id",md5("in_reply_to"));

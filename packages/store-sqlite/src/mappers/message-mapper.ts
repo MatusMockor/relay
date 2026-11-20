@@ -33,6 +33,7 @@ export const toMessage = (row: MessageRow, labelIds: readonly string[]): Message
     flags: { seen: row.seen, flagged: row.flagged, answered: row.answered },
     labelIds,
     attachments: row.attachments,
+    ...(row.bodyState === 'remote' ? { bodyState: 'remote' } : {}),
   });
 
 export const toMessageRow = (
@@ -68,4 +69,5 @@ export const toMessageRow = (
   answered: message.flags.answered,
   attachments: message.attachments,
   headers: [...headers.entries()],
+  bodyState: message.bodyState ?? 'local',
 });

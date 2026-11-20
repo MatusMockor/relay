@@ -1,5 +1,12 @@
 import type { MailboxRole } from '@relay/shared/domain';
 
+export interface HistoryOptions {
+  readonly sliceMessages: number;
+  readonly sliceMs: number;
+  readonly batch: number;
+  readonly sliceSearches: number;
+}
+
 export interface SyncOptions {
   readonly initialWindowDays: number;
   readonly initialMessageLimit: number;
@@ -7,7 +14,15 @@ export interface SyncOptions {
   readonly mailboxRoles: readonly MailboxRole[];
   readonly syncUnsubscribedFolders: boolean;
   readonly batchSize: number;
+  readonly history: HistoryOptions;
 }
+
+export const DEFAULT_HISTORY_OPTIONS: HistoryOptions = {
+  sliceMessages: 500,
+  sliceMs: 15_000,
+  batch: 100,
+  sliceSearches: 64,
+};
 
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   initialWindowDays: 30,
@@ -16,4 +31,5 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   mailboxRoles: ['inbox', 'sent', 'archive', 'trash', 'spam', 'custom'],
   syncUnsubscribedFolders: false,
   batchSize: 50,
+  history: DEFAULT_HISTORY_OPTIONS,
 };

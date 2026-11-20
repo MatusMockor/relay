@@ -1,5 +1,6 @@
 import type {
   AttachmentReferenceRepository,
+  HistoryBackfillRepository,
   MessageAttachmentLookup,
   MessageBodyRepairRepository,
   Repositories,
@@ -16,6 +17,7 @@ import { SqliteAutomationRunRepository } from './repositories/sqlite-automation-
 import { SqliteCalendarEventRepository } from './repositories/sqlite-calendar-event-repository';
 import { SqliteCalendarSubscriptionRepository } from './repositories/sqlite-calendar-subscription-repository';
 import { SqliteDraftRepository } from './repositories/sqlite-draft-repository';
+import { SqliteHistoryBackfillRepository } from './repositories/sqlite-history-backfill-repository';
 import { SqliteGoogleCalendarRepository } from './repositories/sqlite-google-calendar-repository';
 import { SqliteGoogleConnectionRepository } from './repositories/sqlite-google-connection-repository';
 import { SqliteGoogleEventRepository } from './repositories/sqlite-google-event-repository';
@@ -73,6 +75,9 @@ export const createSqliteMessageBodyRepairs = (
   database: SqliteDatabase,
 ): MessageBodyRepairRepository =>
   new SqliteMessageBodyRepairRepository(new QueuedExecutor(database));
+
+export const createSqliteHistoryBackfills = (database: SqliteDatabase): HistoryBackfillRepository =>
+  new SqliteHistoryBackfillRepository(new QueuedExecutor(database));
 
 export const createSqliteAttachmentReferences = (
   database: SqliteDatabase,

@@ -38,6 +38,9 @@ export const messages = sqliteTable(
     answered: integer('answered', { mode: 'boolean' }).notNull(),
     attachments: text('attachments', { mode: 'json' }).notNull(),
     headers: text('headers', { mode: 'json' }).notNull(),
+    bodyState: text('body_state', { enum: ['local', 'remote'] })
+      .notNull()
+      .default('local'),
   },
   (table) => [
     uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
@@ -46,6 +49,8 @@ export const messages = sqliteTable(
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
     index('messages_account_email_idx').on(table.accountId, table.emailId),
     index('messages_user_idx').on(table.userId),
+    index('messages_account_reply_idx').on(table.accountId, table.inReplyTo),
+    index('messages_account_body_date_idx').on(table.accountId, table.bodyState, table.dateTs),
     index('messages_account_subject_idx').on(
       table.accountId,
       table.normalizedSubject,

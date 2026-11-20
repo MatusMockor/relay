@@ -39,6 +39,7 @@ export * from './sync/jira-task-sink';
 export * from './sync/sync-arrivals';
 export * from './sync/sync-options';
 export * from './sync/sync-service';
+export * from './sync/history/trace-headers';
 export * from './tasks/task-service';
 export * from './threads/checklist-item';
 export * from './threads/thread-ai-preparer';

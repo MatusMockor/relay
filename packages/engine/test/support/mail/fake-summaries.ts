@@ -1,5 +1,5 @@
 import type { RemoteAttachmentMeta, RemoteMessageSummary, UidListOptions } from '../../../src';
-import type { RemoteMessageRecord } from './fake-mail-server';
+import type { FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { calendarHeaders } from './fake-records';
 
 const SEPARATOR = new Uint8Array([13, 10, 13, 10]);
@@ -44,4 +44,13 @@ export const uidsInRange = (uids: Iterable<number>, options: UidListOptions): nu
   return [...uids]
     .filter((uid) => range === undefined || (uid >= range.from && uid <= range.to))
     .sort((left, right) => left - right);
+};
+
+export const recordUidSearch = (server: FakeMailServer, options: UidListOptions): void => {
+  const range = options.range;
+  if (range === undefined) {
+    return;
+  }
+  server.uidSearches.push(range);
+  server.onUidSearch?.(range);
 };

@@ -10,6 +10,7 @@ import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
 import type { SyncBackfill } from './sync-backfill';
 import { GmailLabelCatalog } from './gmail-label-catalog';
+import { createHistoryBackfill } from './history/create-history-backfill';
 import { LabelRescans } from './label-rescans';
 import { MailboxEvents } from './mailbox-events';
 import { MailboxForgetter } from './mailbox-forgetter';
@@ -136,6 +137,7 @@ export const createSyncComponents = (
     mailboxes: repositories.mailboxes,
     synchronizer,
     sessions: shared.sessions,
+    history: createHistoryBackfill(deps, { ingestor, flusher, options }),
     logger,
   });
   return { service, ingestor, flusher };

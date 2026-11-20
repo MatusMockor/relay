@@ -79,6 +79,7 @@ export const messages = pgTable(
       sql`md5(${table.normalizedSubject})`,
       table.date.desc(),
     ),
+    index('messages_account_reply_hash_idx').on(table.accountId, sql`md5(${table.inReplyTo})`),
     index('messages_attachments_idx').using('gin', table.attachments.op('jsonb_path_ops')),
   ],
 );

@@ -34,7 +34,7 @@ import {
 import type { FakeMailbox, FakeMailServer, RemoteMessageRecord } from './fake-mail-server';
 import { recordsOf, recordsSince, streamRecords } from './fake-message-streams';
 import { searchRelatedRecords } from './fake-related-search';
-import { summaryOf, uidsInRange } from './fake-summaries';
+import { recordUidSearch, summaryOf, uidsInRange } from './fake-summaries';
 import { threadHeadersOf } from './fake-thread-headers';
 import { uidValidityMismatch } from './fake-uid-validity';
 import { type ChangeListener, watchFakeMailbox } from './fake-idle';
@@ -152,6 +152,7 @@ export class FakeMailProvider implements MailProvider {
   listUids(mailboxPath: string, options: UidListOptions = {}): Promise<number[]> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
       server.uidListings.push(options.fresh === true ? `fresh:${mailboxPath}` : mailboxPath);
+      recordUidSearch(server, options);
       return Promise.resolve(uidsInRange(mailbox.messages.keys(), options));
     });
   }
