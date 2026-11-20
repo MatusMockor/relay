@@ -16,7 +16,7 @@ const decodeQuotedPrintable = (raw: Buffer): Buffer => {
   return Buffer.from(bytes);
 };
 
-const decodeTransfer = (raw: Buffer, encoding: string): Buffer => {
+export const decodeTransfer = (raw: Buffer, encoding: string): Buffer => {
   if (encoding === 'base64') {
     return Buffer.from(raw.toString('latin1'), 'base64');
   }
@@ -26,7 +26,7 @@ const decodeTransfer = (raw: Buffer, encoding: string): Buffer => {
   return raw;
 };
 
-const decodeCharset = (bytes: Buffer, charset: string): string => {
+export const decodeCharset = (bytes: Buffer, charset: string): string => {
   try {
     return new TextDecoder(charset).decode(bytes);
   } catch {

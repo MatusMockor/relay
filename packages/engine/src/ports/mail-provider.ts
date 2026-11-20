@@ -9,13 +9,20 @@ import type {
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
+  RemoteMessageSummary,
   RemoteSyncCursor,
   RemoteThreadHeaders,
 } from '../model/remote-mail';
 import type { MessageFlags } from '@relay/shared/domain';
 
+export interface UidRange {
+  readonly from: number;
+  readonly to: number;
+}
+
 export interface UidListOptions {
   readonly fresh?: boolean;
+  readonly range?: UidRange;
 }
 
 export interface MailProvider {
@@ -36,6 +43,11 @@ export interface MailProvider {
     uidValidity: number,
     uids: readonly number[],
   ): Promise<RemoteThreadHeaders[]>;
+  fetchSummaries(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteMessageSummary[]>;
   fetchFlagChanges(
     mailboxPath: string,
     sinceModseq: string,
