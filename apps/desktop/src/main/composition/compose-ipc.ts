@@ -25,7 +25,11 @@ import { createDraftAttachmentHandlers } from '../handlers/local/draft-attachmen
 import { createEventStreamHandlers } from '../handlers/local/event-stream-handlers';
 import { createLabelHandlers } from '../handlers/local/label-handlers';
 import { createSettingsHandlers } from '../handlers/local/settings-handlers';
-import { createSyncHandlers, type SyncTrigger } from '../handlers/local/sync-handlers';
+import {
+  createSyncHandlers,
+  type HistoryProgressList,
+  type SyncTrigger,
+} from '../handlers/local/sync-handlers';
 import { createTaskHandlers } from '../handlers/local/task-handlers';
 import { createMessageHandlers } from '../handlers/local/message-handlers';
 import { createSearchHandlers } from '../handlers/local/search-handlers';
@@ -69,6 +73,7 @@ export interface LocalIpcDeps {
   readonly userId: UserId;
   readonly services: EngineServices;
   readonly sync: SyncTrigger;
+  readonly history: HistoryProgressList;
   readonly hub: EventHub<RealtimeEvent>;
 }
 
@@ -103,7 +108,7 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createLabelHandlers(local.services, local.userId),
     createAiJobHandlers(local.services, local.userId),
     createTaskHandlers(local.services, local.userId),
-    createSyncHandlers(local.sync),
+    createSyncHandlers(local.sync, local.history),
     createComposeHandlers(local.services, local.userId),
     createAttachmentHandlers(local.services, local.userId),
     createDraftAttachmentHandlers(local.services, local.userId),

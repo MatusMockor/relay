@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { applyAiJobUpdate } from './ai-job-cache';
 import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
+import { throttleByKey } from './keyed-throttle';
 import { queryKeys } from './query-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
 import { recordThreadChange } from './thread-changes';
@@ -38,8 +39,15 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     return;
   }
   if (event.type === 'threads.changed') {
-    invalidate(client, queryKeys.threadLists());
-    invalidateAccountThreads(client, event.data.accountId);
+    const { accountId } = event.data;
+    throttleByKey(client, `threads.changed:${accountId}`, () => {
+      invalidate(client, queryKeys.threadLists());
+      invalidateAccountThreads(client, accountId);
+    });
+    return;
+  }
+  if (event.type === 'sync.history') {
+    invalidate(client, queryKeys.historyProgress());
     return;
   }
   if (event.type === 'message.upserted') {

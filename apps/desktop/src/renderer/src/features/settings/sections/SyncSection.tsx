@@ -8,6 +8,7 @@ import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
+import { HistoryRow } from './HistoryRow';
 
 export function SyncSection() {
   const accounts = useAccounts();
@@ -74,6 +75,7 @@ export function SyncSection() {
           {busy ? 'Kontrolujem…' : 'Skontrolovať teraz'}
         </Button>
       </SettingRow>
+      {client.kind === 'remote' ? null : <HistoryRow />}
     </>
   );
 }

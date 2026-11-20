@@ -7,6 +7,12 @@ export interface HistoryOptions {
   readonly sliceSearches: number;
 }
 
+export interface ReconcileOptions {
+  readonly newestFlagUids: number;
+  readonly rotatingFlagUids: number;
+  readonly fullExpungeDiffMs: number;
+}
+
 export interface SyncOptions {
   readonly initialWindowDays: number;
   readonly initialMessageLimit: number;
@@ -15,6 +21,7 @@ export interface SyncOptions {
   readonly syncUnsubscribedFolders: boolean;
   readonly batchSize: number;
   readonly history: HistoryOptions;
+  readonly reconcile: ReconcileOptions;
 }
 
 export const DEFAULT_HISTORY_OPTIONS: HistoryOptions = {
@@ -22,6 +29,12 @@ export const DEFAULT_HISTORY_OPTIONS: HistoryOptions = {
   sliceMs: 15_000,
   batch: 100,
   sliceSearches: 64,
+};
+
+export const DEFAULT_RECONCILE_OPTIONS: ReconcileOptions = {
+  newestFlagUids: 2_000,
+  rotatingFlagUids: 2_000,
+  fullExpungeDiffMs: 6 * 60 * 60_000,
 };
 
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
@@ -32,4 +45,5 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   syncUnsubscribedFolders: false,
   batchSize: 50,
   history: DEFAULT_HISTORY_OPTIONS,
+  reconcile: DEFAULT_RECONCILE_OPTIONS,
 };

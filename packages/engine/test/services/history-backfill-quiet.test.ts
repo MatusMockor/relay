@@ -54,7 +54,7 @@ describe('history backfill side effects', () => {
 
     expect(storedMessages(engine)).toHaveLength(200);
     expect(pendingKinds(engine)).toEqual([]);
-    expect(eventTypes(engine)).toEqual(['threads.changed']);
+    expect(eventTypes(engine)).toEqual(['threads.changed', 'sync.history']);
     expect(engine.db.tables.aiJobs.size).toBe(aiJobs);
     expect(engine.db.tables.tasks.size).toBe(tasks);
     expect(engine.db.tables.calendarEvents.size).toBe(calendarEvents);

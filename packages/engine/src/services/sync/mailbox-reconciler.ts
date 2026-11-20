@@ -8,6 +8,7 @@ import { PENDING_UID } from '../shared/pending-uid';
 import type { MailboxPass } from './mailbox-pass';
 import { flagsDiffer, sameMembers } from './message-diff';
 import type { MessageLabelsResolver } from './message-labels-resolver';
+import type { ReconcileScans } from './reconcile-scans';
 import type { SyncContext } from './sync-context';
 import { syncedFlags } from './synced-flags';
 
@@ -16,6 +17,7 @@ export interface MailboxReconcilerDeps {
   readonly syncStates: SyncStateRepository;
   readonly unitOfWork: UnitOfWork;
   readonly labelsResolver: MessageLabelsResolver;
+  readonly scans: ReconcileScans;
 }
 
 export class MailboxReconciler {
@@ -25,16 +27,27 @@ export class MailboxReconciler {
     const uids = await this.deps.messages.listUids(mailbox.id);
     await this.expunge(context, mailbox, role, uids);
     await this.deps.syncStates.delete(mailbox.id);
+    this.deps.scans.forget(mailbox.id);
   }
 
-  async expunges(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<void> {
+  async expunges(context: SyncContext, pass: MailboxPass): Promise<void> {
+    const { mailbox, role, status } = pass;
+    const local = await this.storedUids(mailbox);
+    if (await this.deps.scans.skipsExpungeDiff(mailbox, status, local.length)) {
+      return;
+    }
     const remote = new Set(await context.provider.listUids(mailbox.path));
-    const local = await this.deps.messages.listUids(mailbox.id);
-    const missing = local.filter((uid) => uid !== PENDING_UID && !remote.has(uid));
+    this.deps.scans.fullExpungeDiffDone(mailbox.id);
+    const missing = local.filter((uid) => !remote.has(uid));
     if (missing.length === 0) {
       return;
     }
     await this.expunge(context, mailbox, role, missing);
+  }
+
+  private async storedUids(mailbox: Mailbox): Promise<number[]> {
+    const uids = await this.deps.messages.listUids(mailbox.id);
+    return uids.filter((uid) => uid !== PENDING_UID);
   }
 
   private expunge(
@@ -57,13 +70,12 @@ export class MailboxReconciler {
   ): Promise<void> {
     const { mailbox } = pass;
     if (rescanLabels) {
-      const uids = await this.deps.messages.listUids(mailbox.id);
-      await this.apply(
-        context,
-        mailbox,
-        FULL_SCAN,
-        uids.filter((uid) => uid !== PENDING_UID),
-      );
+      await this.apply(context, mailbox, FULL_SCAN, await this.storedUids(mailbox));
+      return;
+    }
+    if (pass.status.highestModseq === null) {
+      const uids = await this.storedUids(mailbox);
+      await this.apply(context, mailbox, FULL_SCAN, this.deps.scans.flagScanUids(mailbox.id, uids));
       return;
     }
     const since = changedSince(state, pass.status);

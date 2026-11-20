@@ -1,4 +1,4 @@
-import type { AccountId, UserId } from '@relay/shared/domain';
+import type { AccountId, HistoryProgress, UserId } from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
 import type { HistorySliceReport } from '../../model/history-backfill';
 import type { Disposer } from '../../model/remote-mail';
@@ -6,10 +6,12 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { Logger } from '../../ports/logger';
 import type { MailProvider } from '../../ports/mail-provider';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
+import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { AccountSynchronizer, SyncReport } from './account-synchronizer';
 import type { AccountRunQueue } from './account-run-queue';
 import type { HistoryBackfill } from './history/history-backfill';
+import type { HistoryProgressReader } from './history/history-progress';
 
 export interface SyncServiceDeps {
   readonly accounts: AccountRepository;
@@ -18,6 +20,8 @@ export interface SyncServiceDeps {
   readonly sessions: MailProviderSessions;
   readonly history: HistoryBackfill | null;
   readonly runs: AccountRunQueue<SyncReport>;
+  readonly historyProgress: HistoryProgressReader | null;
+  readonly events: EngineEvents;
   readonly logger: Logger;
 }
 
@@ -52,7 +56,34 @@ export class SyncService {
         ),
       );
     });
-    return (await run) ?? { skipped: true, reason: 'busy' };
+    const report = (await run) ?? { skipped: true, reason: 'busy' };
+    if (!report.skipped) {
+      await this.publishHistoryProgress(userId, accountId);
+    }
+    return report;
+  }
+
+  historyProgress(userId: UserId): Promise<HistoryProgress[]> {
+    return this.deps.historyProgress?.forUser(userId) ?? Promise.resolve([]);
+  }
+
+  private async publishHistoryProgress(userId: UserId, accountId: AccountId): Promise<void> {
+    const reader = this.deps.historyProgress;
+    if (reader === null) {
+      return;
+    }
+    try {
+      await this.deps.events.emit(
+        userId,
+        'sync.history',
+        await reader.forAccount(userId, accountId),
+      );
+    } catch (error) {
+      this.deps.logger.warn('Failed to publish history progress', {
+        accountId,
+        error: errorMessage(error),
+      });
+    }
   }
 
   async syncUser(userId: UserId): Promise<SyncReport[]> {
