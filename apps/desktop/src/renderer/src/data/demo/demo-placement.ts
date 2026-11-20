@@ -1,5 +1,6 @@
 import type {
   AutomationActivityAction,
+  AutomationActivityId,
   AutomationUndoOutcome,
   Mailbox,
   Message,
@@ -17,7 +18,11 @@ export class DemoPlacement {
     private readonly moves: DemoMoves,
   ) {}
 
-  reverse(record: DemoThreadRecord, entry: AutomationActivityAction): Reversal {
+  reverse(
+    record: DemoThreadRecord,
+    entry: AutomationActivityAction,
+    activityId: AutomationActivityId,
+  ): Reversal {
     const { action } = entry;
     if (action.type === 'markRead') {
       return this.clearFlag(record, entry, 'seen');
@@ -29,7 +34,7 @@ export class DemoPlacement {
       return this.dropLabel(record, action.labelId);
     }
     if (action.type === 'moveTo') {
-      return this.undoMove(record, entry, action.mailboxId);
+      return this.undoMove(record, entry, action.mailboxId, activityId);
     }
     return this.undoArchive(record, entry);
   }
@@ -82,8 +87,12 @@ export class DemoPlacement {
     record: DemoThreadRecord,
     entry: AutomationActivityAction,
     mailboxId: Mailbox['id'],
+    activityId: AutomationActivityId,
   ): Reversal {
-    if (!this.stillMovedTo(record, entry, mailboxId) || !this.moves.hasOrigin(record.summary.id)) {
+    if (
+      !this.stillMovedTo(record, entry, mailboxId) ||
+      !this.moves.ownsOrigin(activityId, record.summary.id)
+    ) {
       return 'skipped';
     }
     this.moves.apply(record, { type: 'undoMove' });

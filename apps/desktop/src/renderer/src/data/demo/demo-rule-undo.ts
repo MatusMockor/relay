@@ -70,7 +70,7 @@ export class DemoRuleUndo {
     ) {
       return 'skipped';
     }
-    const result = this.placement.reverse(record, entry);
+    const result = this.placement.reverse(record, entry, activity.id);
     if (result === 'undone') {
       this.upserted(record.summary);
     }

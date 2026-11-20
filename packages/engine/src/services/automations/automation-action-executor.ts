@@ -1,7 +1,6 @@
 import type { AutomationAction, AutomationActivityAction } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import { errorMessage } from '../shared/mail-provider-sessions';
-import type { ActionEffectTracker } from './action-effect-tracker';
 import {
   type AutomationActionContext,
   type AutomationActionHandlers,
@@ -12,7 +11,6 @@ import {
 export class AutomationActionExecutor {
   constructor(
     private readonly handlers: AutomationActionHandlers,
-    private readonly effects: ActionEffectTracker,
     private readonly logger: Logger,
   ) {}
 
@@ -32,9 +30,7 @@ export class AutomationActionExecutor {
     action: AutomationAction,
   ): Promise<AutomationActivityAction> {
     try {
-      const effect = await this.effects.track(context, action, () =>
-        runAction(this.handlers, context, action),
-      );
+      const effect = await runAction(this.handlers, context, action);
       return { action, outcome: 'ok', ...effect, undo: null };
     } catch (error: unknown) {
       this.logger.warn('An automation action failed', {

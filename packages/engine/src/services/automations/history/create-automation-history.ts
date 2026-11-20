@@ -5,6 +5,7 @@ import { AutomationActivityUndo } from './automation-activity-undo';
 import { AutomationHistoryService } from './automation-history-service';
 import { addLabelReverser, markReadReverser, pinReverser } from './flag-reversers';
 import { ArchiveReverser, MoveToReverser } from './location-reversers';
+import { MoveOriginProbe } from './move-origin-probe';
 import { MoveTargetProbe } from './move-target-probe';
 
 export interface AutomationHistoryComponents {
@@ -27,7 +28,12 @@ export const createAutomationHistory = (
       markRead: markReadReverser(actions, repositories.messages),
       pin: pinReverser(actions, repositories.messages),
       addLabel: addLabelReverser(actions, repositories.messages),
-      moveTo: new MoveToReverser(actions, probe, repositories.messages),
+      moveTo: new MoveToReverser(
+        actions,
+        probe,
+        new MoveOriginProbe(repositories.pendingWork),
+        repositories.messages,
+      ),
       archive: new ArchiveReverser(actions, probe),
     },
     repositories.threads,

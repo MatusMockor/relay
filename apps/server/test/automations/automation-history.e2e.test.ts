@@ -72,6 +72,7 @@ describe('automation history over the server', () => {
     expect(history.stats).toMatchObject({ days: 30, runs: 2, failedActions: 0 });
     expect(history.entries.map((entry) => entry.source)).toEqual(['apply', 'apply']);
     const first = required(history.entries[0]);
+    expect(first.actions.map(({ action }) => action.type)).toEqual(['markRead', 'archive']);
 
     const undone = await app.api.ok(
       api.automationHistory.undoEntry,

@@ -1,4 +1,11 @@
-import type { LabelId, MailboxId, MailboxRole, ThreadSummary, UserId } from '@relay/shared/domain';
+import type {
+  LabelId,
+  MailboxId,
+  MailboxRole,
+  MessageId,
+  ThreadSummary,
+  UserId,
+} from '@relay/shared/domain';
 import type { LabelRepository } from '../../../ports/label-repository';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
 import type { MessageRepository } from '../../../ports/message-repository';
@@ -36,13 +43,20 @@ export class MoveTargetProbe {
       : null;
   }
 
-  async hasMailIn(userId: UserId, thread: ThreadSummary, role: MailboxRole): Promise<boolean> {
-    const messages = await this.messages.listByThread(userId, thread.id);
-    for (const mailboxId of new Set(messages.map((message) => message.mailboxId))) {
-      if ((await this.mailboxes.findById(mailboxId))?.role === role) {
-        return true;
+  async recordedIn(
+    userId: UserId,
+    thread: ThreadSummary,
+    recorded: readonly MessageId[],
+    roles: readonly MailboxRole[],
+  ): Promise<MessageId[]> {
+    const wanted = new Set<string>(recorded);
+    const found: MessageId[] = [];
+    for (const message of await this.messages.listByThread(userId, thread.id)) {
+      const role = (await this.mailboxes.findById(message.mailboxId))?.role;
+      if (wanted.has(message.id) && role !== undefined && roles.includes(role)) {
+        found.push(message.id);
       }
     }
-    return false;
+    return found;
   }
 }

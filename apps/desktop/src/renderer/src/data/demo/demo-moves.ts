@@ -14,6 +14,7 @@ import { applyReadFlags } from './demo-read-flags';
 import type { DemoState, DemoThreadRecord } from './demo-state';
 
 interface DemoMoveOrigin {
+  readonly sequence: number;
   readonly messages: readonly Message[];
   readonly state: ThreadState;
   readonly markedDone?: boolean;
@@ -34,11 +35,21 @@ const missingFolder = () =>
 
 export class DemoMoves {
   private readonly origins = new Map<ThreadId, DemoMoveOrigin>();
+  private readonly claims = new Map<string, number>();
+  private sequence = 0;
 
   constructor(private readonly state: DemoState) {}
 
-  hasOrigin(threadId: ThreadId): boolean {
-    return this.origins.has(threadId);
+  claimOrigin(claim: string, threadId: ThreadId): void {
+    const origin = this.origins.get(threadId);
+    if (origin !== undefined) {
+      this.claims.set(claim, origin.sequence);
+    }
+  }
+
+  ownsOrigin(claim: string, threadId: ThreadId): boolean {
+    const sequence = this.claims.get(claim);
+    return sequence !== undefined && this.origins.get(threadId)?.sequence === sequence;
   }
 
   apply(record: DemoThreadRecord, action: ThreadAction): ThreadSummary {
@@ -61,7 +72,9 @@ export class DemoMoves {
         ? this.mailboxOf(summary, (mailbox) => mailbox.role === 'archive')
         : target;
     const label = target.role === 'label' ? this.gmailLabel(summary, target.path) : undefined;
+    this.sequence += 1;
     this.origins.set(summary.id, {
+      sequence: this.sequence,
       messages: record.messages,
       state: summary.state,
       markedDone: summary.markedDone,

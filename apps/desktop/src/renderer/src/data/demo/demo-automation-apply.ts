@@ -84,10 +84,15 @@ export const createDemoAutomationApply = (
         upserted(tracked.thread);
         return tracked.recorded;
       });
-      state.ruleHistory = [
-        ...state.ruleHistory,
-        applyActivityOf(automation.id, record, recorded, now(), state.ruleHistory.length),
-      ];
+      const activity = applyActivityOf(
+        automation.id,
+        record,
+        recorded,
+        now(),
+        state.ruleHistory.length,
+      );
+      moves.claimOrigin(activity.id, record.summary.id);
+      state.ruleHistory = [...state.ruleHistory, activity];
       count += 1;
     });
     return { matched: Math.min(matches.length, LIMIT), applied: count, failed: 0 };

@@ -1,5 +1,4 @@
 import type {
-  LabelId,
   MessageId,
   ThreadAction,
   ThreadId,
@@ -18,12 +17,15 @@ import type { MoveHandler } from './handlers/move-handler';
 import type { PinHandler } from './handlers/pin-handler';
 import type { ReadStateHandler } from './handlers/read-state-handler';
 import type { StateMoveHandler } from './handlers/state-move-handler';
+import {
+  type MessageRevert,
+  type TrackedAction,
+  type TrackedChange,
+  writtenBy,
+} from './message-changes';
 import type { ThreadActionContext } from './thread-action-context';
 
-export type MessageRevert =
-  | { readonly type: 'markUnread' }
-  | { readonly type: 'unpin' }
-  | { readonly type: 'removeLabel'; readonly labelId: LabelId };
+export type { MessageRevert, TrackedAction, TrackedChange } from './message-changes';
 
 export interface MessageActionsServiceDeps {
   readonly threads: ThreadRepository;
@@ -49,6 +51,21 @@ export class MessageActionsService implements ThreadReadMarker {
     const thread = await this.deps.pins.pin(await this.context(userId, threadId));
     await this.deps.events.emit(userId, 'thread.upserted', { thread });
     return thread;
+  }
+
+  async applyTracked(
+    userId: UserId,
+    threadId: ThreadId,
+    action: TrackedAction,
+  ): Promise<TrackedChange> {
+    const context = await this.context(userId, threadId);
+    const written = writtenBy(action, context.messages);
+    const thread =
+      action.type === 'pin'
+        ? await this.deps.pins.pin(context)
+        : await this.dispatch(context, action);
+    await this.deps.events.emit(userId, 'thread.upserted', { thread });
+    return { thread, previousState: context.thread.state, before: context.messages, written };
   }
 
   async revert(
@@ -88,6 +105,8 @@ export class MessageActionsService implements ThreadReadMarker {
         return this.deps.pins.unpinAll(context);
       case 'removeLabel':
         return this.deps.labels.remove(context, revert.labelId);
+      case 'returnToInbox':
+        return this.deps.stateMoves.handle(context, 'undone');
     }
   }
 

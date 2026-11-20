@@ -6,7 +6,6 @@ import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { PERMISSIVE_PATTERN_POLICY } from '../splits/split-rule-validator';
 import type { JiraTaskSink } from '../sync/jira-task-sink';
 import type { TaskService } from '../tasks/task-service';
-import { ActionEffectTracker } from './action-effect-tracker';
 import { SummaryAutomationAction, TaskAutomationAction } from './ai-automation-actions';
 import { AutomationActionExecutor } from './automation-action-executor';
 import { AutomationBacklog } from './automation-backlog';
@@ -21,10 +20,10 @@ import { JiraTaskAutomation } from './jira-task-automation';
 import {
   AddLabelAutomationAction,
   ArchiveAutomationAction,
-  MarkReadAutomationAction,
+  FlagAutomationAction,
+  LocationTracker,
   MoveToAutomationAction,
   NotifyAutomationAction,
-  PinAutomationAction,
 } from './mail-automation-actions';
 
 export interface AutomationComponents {
@@ -45,18 +44,18 @@ export const createAutomationComponents = (
   },
 ): AutomationComponents => {
   const { repositories } = deps;
+  const locations = new LocationTracker(shared.actions, repositories.messages, deps.logger);
   const executor = new AutomationActionExecutor(
     {
       notify: new NotifyAutomationAction(shared.events),
       summary: new SummaryAutomationAction(shared.factory),
       task: new TaskAutomationAction(shared.factory),
-      markRead: new MarkReadAutomationAction(shared.actions),
-      pin: new PinAutomationAction(shared.actions),
+      markRead: new FlagAutomationAction(shared.actions, { type: 'markRead' }),
+      pin: new FlagAutomationAction(shared.actions, { type: 'pin' }),
       addLabel: new AddLabelAutomationAction(shared.actions),
-      moveTo: new MoveToAutomationAction(shared.actions),
-      archive: new ArchiveAutomationAction(shared.actions),
+      moveTo: new MoveToAutomationAction(locations),
+      archive: new ArchiveAutomationAction(locations),
     },
-    new ActionEffectTracker(repositories.messages, repositories.threads),
     deps.logger,
   );
   const history = createAutomationHistory(deps, shared.actions);

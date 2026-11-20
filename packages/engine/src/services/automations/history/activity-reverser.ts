@@ -20,6 +20,7 @@ export interface ActivityReverser<Type extends ReversibleActionType = Reversible
     userId: UserId,
     thread: ThreadSummary,
     recorded: RecordedAction<Type>,
+    recordedAt: string,
   ): Promise<ReverseOutcome>;
 }
 

@@ -7,10 +7,14 @@ import type {
 import type { MessageRepository } from '../../../ports/message-repository';
 import type { MessageActionsService } from '../../actions/message-actions-service';
 import type { ActivityReverser, RecordedAction, ReverseOutcome } from './activity-reverser';
+import type { MoveOriginProbe } from './move-origin-probe';
 import type { LocatedMoveTarget, MoveTargetProbe } from './move-target-probe';
 
 const isFiledAway = (thread: ThreadSummary): boolean =>
   thread.state === 'done' && thread.markedDone !== true;
+
+const cameFromInbox = (recorded: AutomationActivityAction): boolean =>
+  recorded.previousState === 'inbox';
 
 const placementOf = (messages: readonly Message[]): string =>
   messages
@@ -19,9 +23,6 @@ const placementOf = (messages: readonly Message[]): string =>
     )
     .sort()
     .join('|');
-
-const cameFromInbox = (recorded: AutomationActivityAction): boolean =>
-  recorded.previousState === 'inbox';
 
 export class ArchiveReverser implements ActivityReverser<'archive'> {
   constructor(
@@ -37,10 +38,11 @@ export class ArchiveReverser implements ActivityReverser<'archive'> {
     if (!cameFromInbox(recorded) || !isFiledAway(thread)) {
       return 'skipped';
     }
-    if (!(await this.probe.hasMailIn(userId, thread, 'archive'))) {
+    const archived = await this.probe.recordedIn(userId, thread, recorded.changed, ['archive']);
+    if (archived.length === 0) {
       return 'skipped';
     }
-    await this.actions.apply(userId, thread.id, { type: 'undone' });
+    await this.actions.revert(userId, thread.id, archived, { type: 'returnToInbox' });
     return 'undone';
   }
 }
@@ -49,6 +51,7 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
   constructor(
     private readonly actions: MessageActionsService,
     private readonly probe: MoveTargetProbe,
+    private readonly origins: MoveOriginProbe,
     private readonly messages: MessageRepository,
   ) {}
 
@@ -56,40 +59,67 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
     userId: UserId,
     thread: ThreadSummary,
     recorded: RecordedAction<'moveTo'>,
+    recordedAt: string,
   ): Promise<ReverseOutcome> {
     const target = await this.probe.locate(userId, thread, recorded.action.mailboxId);
     if (target === null) {
       return 'skipped';
     }
-    if (target.role === 'inbox') {
-      return this.undoMove(userId, thread);
-    }
-    if (thread.state === 'inbox') {
+    if (target.role !== 'inbox' && thread.state === 'inbox') {
       return this.dropLabel(userId, thread, target);
     }
-    if (!isFiledAway(thread)) {
+    if (target.role !== 'inbox' && !isFiledAway(thread)) {
       return 'skipped';
     }
-    if (!cameFromInbox(recorded)) {
-      return this.undoMove(userId, thread);
+    const messages = await this.messages.listByThread(userId, thread.id);
+    const replaced = await this.origins.replacedSince(
+      thread.accountId,
+      messages.map(({ id }) => id),
+      recordedAt,
+    );
+    if (!replaced && (target.role === 'inbox' || !cameFromInbox(recorded))) {
+      return this.undoMove(userId, thread, messages);
     }
-    await this.dropLabel(userId, await this.returnToInbox(userId, thread), target);
+    if (target.role === 'inbox' || !cameFromInbox(recorded)) {
+      return 'skipped';
+    }
+    const returned = replaced ? thread : await this.returnThroughOrigins(userId, thread);
+    const current =
+      returned.state === 'inbox' ? returned : await this.returnRecorded(userId, thread, recorded);
+    if (current === null) {
+      return 'skipped';
+    }
+    await this.dropLabel(userId, current, target);
     return 'undone';
   }
 
-  private async undoMove(userId: UserId, thread: ThreadSummary): Promise<ReverseOutcome> {
-    const before = placementOf(await this.messages.listByThread(userId, thread.id));
+  private async undoMove(
+    userId: UserId,
+    thread: ThreadSummary,
+    before: readonly Message[],
+  ): Promise<ReverseOutcome> {
     await this.actions.apply(userId, thread.id, { type: 'undoMove' });
-    const after = placementOf(await this.messages.listByThread(userId, thread.id));
-    return before === after ? 'skipped' : 'undone';
+    const after = await this.messages.listByThread(userId, thread.id);
+    return placementOf(before) === placementOf(after) ? 'skipped' : 'undone';
   }
 
-  private async returnToInbox(userId: UserId, thread: ThreadSummary): Promise<ThreadSummary> {
-    const returned = await this.actions.apply(userId, thread.id, { type: 'undoMove' });
-    if (returned.state === 'inbox') {
-      return returned;
+  private returnThroughOrigins(userId: UserId, thread: ThreadSummary): Promise<ThreadSummary> {
+    return this.actions.apply(userId, thread.id, { type: 'undoMove' });
+  }
+
+  private async returnRecorded(
+    userId: UserId,
+    thread: ThreadSummary,
+    recorded: RecordedAction<'moveTo'>,
+  ): Promise<ThreadSummary | null> {
+    const moved = await this.probe.recordedIn(userId, thread, recorded.changed, [
+      'archive',
+      'custom',
+    ]);
+    if (moved.length === 0) {
+      return null;
     }
-    return this.actions.apply(userId, thread.id, { type: 'undone' });
+    return this.actions.revert(userId, thread.id, moved, { type: 'returnToInbox' });
   }
 
   private async dropLabel(

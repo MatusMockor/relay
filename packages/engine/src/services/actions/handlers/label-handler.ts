@@ -6,6 +6,7 @@ import type { UnitOfWork } from '../../../ports/unit-of-work';
 import { refreshThread } from '../../shared/thread-refresh';
 import type { ProviderMirror } from '../provider-mirror';
 import type { ThreadActionContext } from '../thread-action-context';
+import { labelTargets } from './action-targets';
 import { gmailWrite, keywordWrite, type LabelWrite } from './label-writes';
 import type { MessageLocator } from './message-locator';
 import { requireUpserted } from './require-upserted';
@@ -53,9 +54,7 @@ export class LabelHandler {
   }
 
   private writeOf(context: ThreadActionContext, label: Label, add: boolean): Promise<LabelWrite> {
-    const targets = context.messages.filter(
-      (message) => message.labelIds.includes(label.id) !== add,
-    );
+    const targets = labelTargets(context.messages, label.id, add);
     if (label.kind === 'gmail') {
       return gmailWrite(this.deps.locator, context, label, add, targets);
     }

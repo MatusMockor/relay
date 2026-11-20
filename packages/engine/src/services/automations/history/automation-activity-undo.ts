@@ -11,6 +11,7 @@ import {
   type ActivityReverser,
   type ActivityReversers,
   isRecordedReversible,
+  type RecordedAction,
   reverseRank,
 } from './activity-reverser';
 
@@ -51,12 +52,7 @@ export class AutomationActivityUndo {
     if (entry.outcome === 'failed' || entry.changed.length === 0) {
       return 'skipped';
     }
-    const thread = await this.threads.findById(userId, activity.threadId);
-    if (thread === null || HELD_STATES.has(thread.state)) {
-      return 'skipped';
-    }
-    const reverser = this.reversers[entry.action.type] as ActivityReverser;
-    return reverser.reverse(userId, thread, entry).catch((error: unknown) => {
+    return this.reverse(userId, activity, entry).catch((error: unknown) => {
       this.logger.warn('Undoing an automation action failed', {
         automationId: activity.automationId,
         activityId: activity.id,
@@ -65,5 +61,18 @@ export class AutomationActivityUndo {
       });
       return 'failed' as const;
     });
+  }
+
+  private async reverse(
+    userId: UserId,
+    activity: AutomationActivity,
+    entry: RecordedAction,
+  ): Promise<AutomationUndoOutcome> {
+    const thread = await this.threads.findById(userId, activity.threadId);
+    if (thread === null || HELD_STATES.has(thread.state)) {
+      return 'skipped';
+    }
+    const reverser = this.reversers[entry.action.type] as ActivityReverser;
+    return reverser.reverse(userId, thread, entry, activity.createdAt);
   }
 }

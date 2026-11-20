@@ -143,6 +143,32 @@ describe('demo rule history', () => {
   });
 });
 
+describe('demo rule history move origins', () => {
+  it('skips a move whose origin a later move replaced', async () => {
+    const demo = client();
+    await demo.applyAutomation(GITLAB);
+    const thread = demoIds.thread('o-pipeline');
+    const projekty = demoIds.folder('efa', 'projekty');
+    await demo.applyThreadAction(thread, { type: 'move', mailboxId: demoIds.mailbox('efa') });
+    await demo.applyThreadAction(thread, { type: 'move', mailboxId: projekty });
+    const { entries } = await demo.automationHistory(GITLAB);
+    const applied = entries.find((entry) => entry.source === 'apply' && entry.undoneAt === null);
+
+    const result = await demo.undoAutomationActivity(
+      GITLAB,
+      applied?.id ?? AutomationActivityIdSchema.parse('missing'),
+    );
+
+    expect(result.results.map(({ action, outcome }) => [action.type, outcome])).toEqual([
+      ['addLabel', 'undone'],
+      ['moveTo', 'skipped'],
+    ]);
+    expect((await demo.getThread(thread)).messages.map(({ mailboxId }) => mailboxId)).toContain(
+      projekty,
+    );
+  });
+});
+
 async function mergedRun(demo: ReturnType<typeof client>) {
   const { entries } = await demo.automationHistory(GITLAB);
   const merged = entries.find((entry) => entry.threadId === demoIds.thread('o-mr-merged'));
