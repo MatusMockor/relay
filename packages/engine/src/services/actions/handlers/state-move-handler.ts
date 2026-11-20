@@ -39,11 +39,16 @@ const applyOrigins = async (
   pendingWork: PendingWorkRepository,
   accountId: AccountId,
   origins: readonly OriginChanges[],
+  markedDone: boolean,
   now: string,
 ): Promise<void> => {
   for (const origin of origins) {
     await forgetMoveOrigins(pendingWork, accountId, origin.kind, origin.forget);
-    await recordMoveOrigins(pendingWork, accountId, origin.kind, origin.remember, now);
+    const remember =
+      origin.kind === 'move-origin' && markedDone
+        ? origin.remember.map((placement) => ({ ...placement, markedDone }))
+        : origin.remember;
+    await recordMoveOrigins(pendingWork, accountId, origin.kind, remember, now);
   }
 };
 
@@ -65,6 +70,7 @@ export class StateMoveHandler {
     const { thread, ops } = await this.deps.unitOfWork.run(async (repositories) => {
       const updated = await repositories.threads.updateState(context.userId, context.thread.id, {
         state: plan.state,
+        markedDone: plan.state === 'inbox' ? false : plan.markedDone,
         remindAt: context.thread.remindAt,
       });
       if (updated === null) {
@@ -84,7 +90,13 @@ export class StateMoveHandler {
         plan.moves.map((move) => ({ messageId: move.messageId, change: moveChange(move) })),
         now,
       );
-      await applyOrigins(repositories.pendingWork, accountId, plan.origins, now);
+      await applyOrigins(
+        repositories.pendingWork,
+        accountId,
+        plan.origins,
+        context.thread.markedDone === true,
+        now,
+      );
       if (labels.length === 0) {
         return { thread: updated, ops: [...labelOps, ...moveOps] };
       }

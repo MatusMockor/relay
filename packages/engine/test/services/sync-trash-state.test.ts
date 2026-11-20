@@ -4,7 +4,7 @@ import { deliverMail, type MailSpec, ME, present, seedAccount } from '../support
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-type View = 'inbox' | 'done' | 'trash' | 'sent';
+type View = 'inbox' | 'done' | 'archive' | 'trash' | 'sent';
 
 const viewIds = async (engine: TestEngine, view: View) =>
   (await engine.services.inbox.list(USER_ID, { view, limit: 50 })).items.map((item) => item.id);
@@ -83,7 +83,7 @@ describe('SyncService trash state from the mail provider', () => {
     expect(upsertedStates(engine)).not.toContain('trash');
   });
 
-  it('moves a thread restored without the inbox label to done', async () => {
+  it('archives a thread restored without the inbox label', async () => {
     const engine = createTestEngine();
     const { account, server, uids, spec, thread } = await syncedGmailThread(engine);
     const trashUid = gmailDelete(server, uids, spec);
@@ -93,7 +93,8 @@ describe('SyncService trash state from the mail provider', () => {
     server.expunge('Trash', trashUid);
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect(await viewIds(engine, 'done')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'archive')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'done')).toEqual([]);
     expect(await viewIds(engine, 'trash')).toEqual([]);
   });
 
@@ -139,7 +140,7 @@ describe('SyncService trash state from the mail provider', () => {
 
     expect(await viewIds(engine, 'trash')).toEqual([]);
     expect(await viewIds(engine, 'sent')).toEqual([thread.id]);
-    expect(await viewIds(engine, 'done')).toEqual([thread.id]);
+    expect(await viewIds(engine, 'done')).toEqual([]);
   });
 
   it('takes a sent thread restored from the Gmail trash out of the trash view', async () => {

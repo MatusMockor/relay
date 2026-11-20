@@ -50,7 +50,7 @@ describe('relay mail MCP server', () => {
         htmlBody: '<p>Ahoj&nbsp;<b>Jana</b></p><script>x()</script>',
       }),
     ]);
-    mail.addThread(USER_A, thread('thr_2', { subject: 'Obed', state: 'done' }));
+    mail.addThread(USER_A, thread('thr_2', { subject: 'Obed', state: 'done', markedDone: true }));
     mail.addThread(USER_B, thread('thr_9', { subject: 'Faktúra cudzia' }));
     mail.tasks.push(
       task('tsk_a', USER_A),

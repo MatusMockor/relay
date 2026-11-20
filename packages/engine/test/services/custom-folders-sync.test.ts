@@ -33,7 +33,7 @@ const onlyThreadId = (engine: TestEngine): ThreadId => {
 };
 
 describe('SyncService with custom folders', () => {
-  it('shows mail of a subscribed folder in its folder view and as done', async () => {
+  it('shows mail of a subscribed folder in its folder view and archive', async () => {
     const engine = createTestEngine();
     const { account, server } = await folderSetup(engine);
     deliverMail(server, 'Projekty/Alfa', { id: 'f1', subject: 'Zmluva', date: DATE });
@@ -48,7 +48,8 @@ describe('SyncService with custom folders', () => {
       await viewIds(engine, 'mailbox', await mailboxAt(engine, account.id, 'Projekty')),
     ).toEqual([]);
     expect(await viewIds(engine, 'inbox')).toEqual([]);
-    expect(await viewIds(engine, 'done')).toEqual([threadId]);
+    expect(await viewIds(engine, 'archive')).toEqual([threadId]);
+    expect(await viewIds(engine, 'done')).toEqual([]);
   });
 
   it('skips unsubscribed folders unless the server reports no subscriptions at all', async () => {

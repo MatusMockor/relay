@@ -45,7 +45,7 @@ describe('full-text search in queryFolder', () => {
     await seedThread(
       context.repositories,
       seeded,
-      { subject: 'Release REL-42', lastMessageAt: at(3), state: 'done' },
+      { subject: 'Release REL-42', lastMessageAt: at(3), state: 'done', markedDone: true },
       {
         textBody: 'Nasadené na produkciu.',
         to: [{ name: 'Ján Kováč', email: 'jan.kovac@relay.test' }],

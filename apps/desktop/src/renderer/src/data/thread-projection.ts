@@ -13,6 +13,7 @@ export interface ProjectionHint {
 const projectMove = (thread: ThreadSummary, hint: ProjectionHint): ThreadSummary => ({
   ...thread,
   state: hint.targetRole === 'inbox' ? 'inbox' : 'done',
+  markedDone: hint.targetRole !== 'inbox' && thread.markedDone === true,
   remindAt: null,
   labelIds:
     hint.labelId === undefined ? thread.labelIds : [...new Set([...thread.labelIds, hint.labelId])],
@@ -29,8 +30,14 @@ export const projectThreadAction = (
   if (action.type === 'undoMove') {
     return thread;
   }
-  if (action.type === 'done') {
-    return { ...thread, state: 'done', unread: false, remindAt: null };
+  if (action.type === 'done' || action.type === 'archive') {
+    return {
+      ...thread,
+      state: 'done',
+      markedDone: action.type === 'done' || thread.markedDone === true,
+      unread: false,
+      remindAt: null,
+    };
   }
   if (
     action.type === 'undone' ||
@@ -38,7 +45,7 @@ export const projectThreadAction = (
     action.type === 'notSpam' ||
     action.type === 'cancelReminder'
   ) {
-    return { ...thread, state: 'inbox', remindAt: null };
+    return { ...thread, state: 'inbox', markedDone: false, remindAt: null };
   }
   if (action.type === 'trash') {
     return { ...thread, state: 'trash', unread: false };
@@ -50,7 +57,7 @@ export const projectThreadAction = (
     return { ...thread, unread: action.type === 'markUnread' };
   }
   if (action.type === 'remind') {
-    return { ...thread, state: 'reminder', remindAt: action.at, unread: false };
+    return { ...thread, state: 'reminder', markedDone: false, remindAt: action.at, unread: false };
   }
   if (action.type === 'addLabel') {
     return { ...thread, labelIds: [...new Set([...thread.labelIds, action.labelId])] };

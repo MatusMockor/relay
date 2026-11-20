@@ -48,6 +48,7 @@ export interface MoveOriginWork {
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
   readonly held?: readonly HeldOriginWork[];
+  readonly markedDone?: boolean;
 }
 
 export interface MessageEffectsWork {

@@ -94,7 +94,7 @@ export class PgThreadRepository implements ThreadRepository {
   ): Promise<ThreadSummary | null> {
     const rows = await this.db
       .update(threads)
-      .set({ state: change.state, remindAt: toDateOrNull(change.remindAt) })
+      .set({ ...change, remindAt: toDateOrNull(change.remindAt) })
       .where(and(eq(threads.userId, userId), eq(threads.id, threadId)))
       .returning({ id: threads.id });
     if (rows.length === 0) {

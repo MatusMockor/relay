@@ -57,7 +57,11 @@ describe('live list membership after a thread update', () => {
 
   it('follows the thread state in state based views', () => {
     leaves({ view: 'inbox' }, thread(), thread({ state: 'done' }));
-    leaves({ view: 'done' }, thread({ state: 'done' }), thread());
+    const completed = thread({ state: 'done', markedDone: true });
+    const archived = thread({ state: 'done', markedDone: false });
+    stays({ view: 'done' }, completed, { ...completed, unread: false });
+    leaves({ view: 'done' }, completed, archived);
+    leaves({ view: 'archive' }, archived, completed);
     leaves({ view: 'reminders' }, thread({ state: 'reminder' }), thread());
     leaves({ view: 'trash' }, thread({ state: 'trash' }), thread());
     stays({ view: 'inbox', q: 'správa' }, thread(), thread({ unread: false }));

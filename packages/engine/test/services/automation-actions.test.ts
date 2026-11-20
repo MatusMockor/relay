@@ -167,7 +167,7 @@ describe('automation actions', () => {
     ]);
     const threadId = await threadIdOf(setup.engine, 'Faktúra');
     const thread = setup.engine.db.tables.threads.get(threadId);
-    expect(thread).toMatchObject({ unread: false, state: 'done' });
+    expect(thread).toMatchObject({ unread: false, state: 'done', markedDone: false });
     const [message] = [...setup.engine.db.tables.messages.values()].filter(
       (item) => item.threadId === threadId,
     );

@@ -10,6 +10,7 @@ const EMPTY: Readonly<Partial<Record<FolderView, readonly [string, string]>>> = 
     'Konverzácie odložené cez [H] sa sem vrátia v nastavený čas.',
   ],
   done: ['Zatiaľ nič vybavené', 'Konverzácie, ktoré vybavíš cez [E], nájdeš tu.'],
+  archive: ['Archív je prázdny', 'Archivované konverzácie nájdeš tu.'],
   sent: ['Zatiaľ nič odoslané', 'Odpovede a nové správy, ktoré pošleš, nájdeš tu.'],
   drafts: ['Žiadne koncepty', 'Rozpísaná správa sa uloží, keď v nej stlačíš [Esc].'],
   scheduled: ['Nič naplánované', 'Pri písaní novej správy zvoľ Naplánovať odoslanie.'],

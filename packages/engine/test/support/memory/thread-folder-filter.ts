@@ -24,7 +24,8 @@ export class ThreadFolderFilter {
       inbox: (userId, thread, query) =>
         thread.state === 'inbox' &&
         (query.splitId !== null || hasSearchTerms(query) || !this.inExclusiveSplit(userId, thread)),
-      done: (_userId, thread) => thread.state === 'done',
+      done: (_userId, thread) => thread.state === 'done' && thread.markedDone === true,
+      archive: (_userId, thread) => thread.state === 'done' && thread.markedDone !== true,
       trash: (_userId, thread) => thread.state === 'trash',
       spam: (_userId, thread) => thread.state === 'spam',
       reminders: (_userId, thread) => thread.state === 'reminder',

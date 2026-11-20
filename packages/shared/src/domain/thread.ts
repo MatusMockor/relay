@@ -28,6 +28,7 @@ export const ThreadSummarySchema = z.object({
   splitIds: z.array(SplitIdSchema),
   labelIds: z.array(LabelIdSchema),
   state: ThreadStateSchema,
+  markedDone: z.boolean().optional(),
   remindAt: IsoDateTimeSchema.nullable(),
   hasDraft: z.boolean(),
 });

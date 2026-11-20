@@ -60,7 +60,8 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       return;
     }
     const { thread } = item;
-    if (viewOf(useUiStore.getState().folder) === 'tasks') {
+    const view = viewOf(useUiStore.getState().folder);
+    if (view === 'tasks') {
       completeTask(thread);
       return;
     }
@@ -68,13 +69,13 @@ export const useThreadCommands = (items: readonly ListItem[]) => {
       toggleSpam(item);
       return;
     }
-    if (thread.state === 'done' || thread.state === 'trash') {
-      apply(
-        thread,
-        { type: thread.state === 'done' ? 'undone' : 'restore' },
-        restoreMessage(thread),
-        { type: thread.state === 'done' ? 'done' : 'trash' },
-      );
+    if (thread.state === 'trash') {
+      apply(thread, { type: 'restore' }, restoreMessage(thread), { type: 'trash' });
+      return;
+    }
+    if (thread.state === 'done') {
+      const undo = thread.markedDone || view === 'done' ? 'done' : 'archive';
+      apply(thread, { type: 'undone' }, restoreMessage(thread), { type: undo });
       return;
     }
     apply(thread, { type: 'done' }, 'Hotovo', { type: 'undone' });

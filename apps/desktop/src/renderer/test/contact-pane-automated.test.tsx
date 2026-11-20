@@ -106,6 +106,12 @@ describe('contact pane for an automated sender', () => {
     expect(
       [original, second, third, old].map((id) => state.threads.get(id)?.summary.state),
     ).toEqual(['done', 'done', 'done', 'done']);
+    const archivedIds = (await client.listThreads({ view: 'archive' })).items.map(
+      (item) => item.id,
+    );
+    const doneIds = (await client.listThreads({ view: 'done' })).items.map((item) => item.id);
+    expect(archivedIds).toEqual(expect.arrayContaining([original, second, third, old]));
+    expect(doneIds.filter((id) => [original, second, third, old].includes(id))).toEqual([]);
     expect(state.threads.get(threadIdOf(state, 'Obed v piatok?'))?.summary.state).toBe('inbox');
   });
 

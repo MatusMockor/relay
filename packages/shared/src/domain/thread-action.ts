@@ -4,6 +4,7 @@ import { IsoDateTimeSchema } from './primitives';
 
 export const ThreadActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('done') }),
+  z.object({ type: z.literal('archive') }),
   z.object({ type: z.literal('undone') }),
   z.object({ type: z.literal('trash') }),
   z.object({ type: z.literal('restore') }),

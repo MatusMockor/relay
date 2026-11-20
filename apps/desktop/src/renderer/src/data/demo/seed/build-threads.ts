@@ -73,6 +73,7 @@ const buildSummary = (seed: DemoThread, messages: Message[], now: Date): ThreadS
     splitIds: seed.split === undefined ? [] : [demoIds.split(seed.split)],
     labelIds: (seed.labels ?? []).map(demoIds.label),
     state: seed.state ?? 'inbox',
+    markedDone: seed.markedDone ?? false,
     remindAt: seed.remindAt === undefined ? null : atTime(now, seed.remindAt),
     hasDraft: false,
   };

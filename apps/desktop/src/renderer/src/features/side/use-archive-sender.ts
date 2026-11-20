@@ -35,7 +35,7 @@ export const useArchiveSender = (matches: (thread: ThreadSummary) => boolean) =>
   const mutation = useThreadAction();
   const [pending, setPending] = useState<readonly ThreadSummary[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const apply = async (threads: readonly ThreadSummary[], type: 'done' | 'undone') => {
+  const apply = async (threads: readonly ThreadSummary[], type: 'archive' | 'undone') => {
     const archived: ThreadSummary[] = [];
     for (const chunk of chunksOf(threads)) {
       const results = await Promise.allSettled(
@@ -66,7 +66,7 @@ export const useArchiveSender = (matches: (thread: ThreadSummary) => boolean) =>
     if (threads.some((thread) => thread.id === open)) {
       backToList();
     }
-    const archived = await apply(threads, 'done');
+    const archived = await apply(threads, 'archive');
     setBusy(false);
     const failed = threads.length - archived.length;
     const suffix = failed === 0 ? '' : `, ${threadCount(failed)} zlyhalo`;

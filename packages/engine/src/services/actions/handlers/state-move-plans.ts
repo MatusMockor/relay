@@ -12,8 +12,15 @@ import {
 } from './state-move-plan';
 import { restore, trash } from './trash-plans';
 
+const archive: StateMovePlanner = (messages) =>
+  moveTo('done', inRoles(messages, ['inbox']), 'archive');
+
 const PLANNERS: Readonly<Record<StateMoveAction, StateMovePlanner>> = {
-  done: outsideHeld((messages) => moveTo('done', inRoles(messages, ['inbox']), 'archive')),
+  done: outsideHeld((messages, thread, copies) => ({
+    ...archive(messages, thread, copies),
+    markedDone: true,
+  })),
+  archive: outsideHeld(archive),
   undone: outsideHeld((messages) =>
     moveTo('inbox', inRoles(messages, ['archive', 'custom']), 'inbox'),
   ),

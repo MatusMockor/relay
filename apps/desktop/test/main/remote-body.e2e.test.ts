@@ -90,7 +90,7 @@ describe('on-demand bodies of remote messages', () => {
   });
 
   const remoteRows = async (): Promise<Message[]> => {
-    const page = await harness.bridge.invoke('local.threads.list', { view: 'done' });
+    const page = await harness.bridge.invoke('local.threads.list', { view: 'archive' });
     const inbox = await harness.bridge.invoke('local.threads.list', { view: 'inbox' });
     const threads = [...(page.ok ? page.data.items : []), ...(inbox.ok ? inbox.data.items : [])];
     const details = await Promise.all(

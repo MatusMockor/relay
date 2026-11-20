@@ -58,6 +58,7 @@ export class MessageActionsService implements ThreadReadMarker {
   ): Promise<ThreadSummary> {
     switch (action.type) {
       case 'done':
+      case 'archive':
       case 'undone':
       case 'trash':
       case 'restore':

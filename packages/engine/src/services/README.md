@@ -30,7 +30,7 @@ Ports: `ThreadRepository`, `MessageRepository`, `AiResultRepository`, `DraftRepo
 
 ### `MessageActionsService`
 
-`ThreadAction` commands: done (archive), undone, trash, restore, read/unread, add/remove label. Updates local state first, mirrors the change to the provider (move / flags / keywords), publishes `thread.upserted`.
+`ThreadAction` commands: done (mark complete and archive), archive, undone, trash, restore, read/unread, add/remove label. Updates local state first, mirrors the change to the provider (move / flags / keywords), publishes `thread.upserted`.
 
 Ports: `ThreadRepository`, `MessageRepository`, `MailboxRepository`, `LabelRepository`, `AccountRepository`, `UnitOfWork`, `MailProviderFactory`, `CredentialVault`, `EventPublisher`, `Clock`
 

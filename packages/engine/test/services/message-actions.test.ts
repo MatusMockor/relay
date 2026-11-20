@@ -29,7 +29,9 @@ describe('MessageActionsService', () => {
 
     const done = await engine.services.actions.apply(USER_ID, thread.id, { type: 'done' });
 
-    expect(done.state).toBe('done');
+    expect(done).toMatchObject({ state: 'done', markedDone: true });
+    const completed = await engine.services.inbox.list(USER_ID, { view: 'done', limit: 50 });
+    expect(completed.items.map((item) => item.id)).toEqual([thread.id]);
     expect(remoteUids(server, 'INBOX')).toEqual([]);
     expect(remoteUids(server, 'Archive')).toEqual([1, 2]);
     const archive = present(await engine.repositories.mailboxes.findByRole(account.id, 'archive'));
@@ -42,7 +44,7 @@ describe('MessageActionsService', () => {
 
     const undone = await engine.services.actions.apply(USER_ID, thread.id, { type: 'undone' });
 
-    expect(undone.state).toBe('inbox');
+    expect(undone).toMatchObject({ state: 'inbox', markedDone: false });
     expect(remoteUids(server, 'INBOX')).toEqual([3, 4]);
     expect(remoteUids(server, 'Archive')).toEqual([]);
     await engine.services.sync.syncAccount(USER_ID, account.id);

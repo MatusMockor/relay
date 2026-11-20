@@ -24,6 +24,7 @@ export const toThreadSummary = (row: ThreadRow): ThreadSummary => ({
   splitIds: row.splitIds,
   labelIds: row.labelIds,
   state: row.state,
+  markedDone: row.markedDone,
   remindAt: toIsoOrNull(row.remindAt),
   hasDraft: row.hasDraft,
 });
@@ -42,5 +43,6 @@ export const toThreadInsert = (userId: UserId, thread: ThreadSummary): ThreadIns
   jiraKey: thread.jiraKey,
   jiraActor: thread.jiraActor,
   state: thread.state,
+  markedDone: thread.markedDone ?? false,
   remindAt: toDateOrNull(thread.remindAt),
 });

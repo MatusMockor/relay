@@ -23,7 +23,7 @@ const threadActionOf = (action: AutomationAction): ThreadAction | null => {
     return { type: 'move', mailboxId: action.mailboxId };
   }
   if (action.type === 'archive') {
-    return { type: 'done' };
+    return { type: 'archive' };
   }
   return null;
 };

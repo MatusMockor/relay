@@ -4,6 +4,7 @@ import type { ThreadFolderQuery } from '../model/thread-query';
 
 export interface ThreadStateChange {
   readonly state: ThreadState;
+  readonly markedDone?: boolean;
   readonly remindAt: string | null;
 }
 

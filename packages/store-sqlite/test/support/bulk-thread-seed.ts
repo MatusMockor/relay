@@ -50,7 +50,7 @@ const mailboxOf = (index: number, state: ThreadState, input: BulkSeedInput): Mai
   return mailboxes.archive;
 };
 
-const THREAD_SQL = `insert into threads (id, user_id, account_id, subject, participants, last_message_at, last_message_ts, message_count, unread, snippet, ai_one_liner, jira_key, jira_actor, label_ids, state, remind_at, has_draft) values (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, null, null, null, ?, ?, null, 0)`;
+const THREAD_SQL = `insert into threads (id, user_id, account_id, subject, participants, last_message_at, last_message_ts, message_count, unread, snippet, ai_one_liner, jira_key, jira_actor, label_ids, state, marked_done, remind_at, has_draft) values (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, null, null, null, ?, ?, ?, null, 0)`;
 
 const MESSAGE_SQL = `insert into messages (id, user_id, thread_id, account_id, mailbox_id, uid, message_id_header, email_id, in_reply_to, "references", from_name, from_email, "to", cc, bcc, reply_to, subject, normalized_subject, date, date_ts, snippet, text_body, html_body, seen, flagged, answered, attachments, headers) values (?, ?, ?, ?, ?, ?, ?, null, null, '[]', 'Jana Nováková', 'jana@klient.sk', '[]', '[]', '[]', '[]', ?, ?, ?, ?, ?, null, null, ?, 0, 0, '[]', '{}')`;
 
@@ -87,6 +87,7 @@ export const bulkSeedThreads = (store: TestStore, input: BulkSeedInput): void =>
         'Krátky úryvok správy',
         index % 13 === 0 ? BULK_LABEL_IDS : '[]',
         state,
+        state === 'done' && index % 4 === 0 ? 1 : 0,
       );
       const mailbox = mailboxOf(index, state, input);
       insertMessage.run(

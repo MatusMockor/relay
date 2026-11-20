@@ -16,6 +16,7 @@ interface ActionSpec {
 }
 
 const DONE: ActionSpec = { id: 'done', icon: 'check', label: 'Hotovo', key: 'E' };
+const RETURN_TO_INBOX: ActionSpec = { ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' };
 const REMIND: ActionSpec = { id: 'remind', icon: 'clock', label: 'Pripomenúť', key: 'H' };
 const REPLY: ActionSpec = { id: 'reply', icon: 'reply', label: 'Odpovedať', key: 'R' };
 const MOVE: ActionSpec = { id: 'move', icon: 'folder', label: 'Presunúť do…', key: 'V' };
@@ -25,7 +26,8 @@ const SPAM: ActionSpec = { id: 'spam', icon: 'spam', label: 'Nahlásiť spam', k
 
 const specsFor = (view: string, inRow: boolean): ActionSpec[] => {
   const map: Record<string, ActionSpec[]> = {
-    done: [{ ...DONE, icon: 'inbox', label: 'Vrátiť do Doručenej pošty' }, REPLY, MOVE],
+    done: [RETURN_TO_INBOX, REPLY, MOVE],
+    archive: [RETURN_TO_INBOX, REPLY, MOVE],
     trash: [{ ...DONE, icon: 'inbox', label: 'Obnoviť' }],
     spam: [{ ...SPAM, icon: 'inbox', label: 'Nie je spam' }, TRASH],
     sent: [REPLY, TRASH],

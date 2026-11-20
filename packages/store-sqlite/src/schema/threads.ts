@@ -21,6 +21,7 @@ export const threads = sqliteTable(
     jiraActor: text('jira_actor'),
     labelIds: text('label_ids', { mode: 'json' }).notNull(),
     state: text('state').notNull(),
+    markedDone: integer('marked_done', { mode: 'boolean' }).notNull().default(false),
     remindAt: text('remind_at'),
     hasDraft: integer('has_draft', { mode: 'boolean' }).notNull(),
   },
