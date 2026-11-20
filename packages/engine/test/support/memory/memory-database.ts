@@ -71,6 +71,7 @@ export class MemoryTables {
   readonly unindexedAiJobs = new Set<AiJobId>();
   readonly syncStates = new Map<MailboxId, MailboxSyncState>();
   readonly historyCursors = new Map<MailboxId, HistoryCursor>();
+  readonly historyFlagOffsets = new Map<MailboxId, number>();
   readonly pendingWork = new Map<string, PendingWork>();
   readonly calendarEvents = new Map<CalendarEventId, StoredCalendarEvent>();
   readonly calendarSubscriptions = new Map<CalendarSubscriptionId, CalendarSubscriptionRecord>();

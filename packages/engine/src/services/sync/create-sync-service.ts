@@ -11,11 +11,12 @@ import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
 import type { SyncBackfill } from './sync-backfill';
 import { GmailLabelCatalog } from './gmail-label-catalog';
-import { createHistoryBackfill } from './history/create-history-backfill';
+import { createHistoryBackfill, createHistoryProgress } from './history/create-history-backfill';
 import { LabelRescans } from './label-rescans';
 import { MailboxEvents } from './mailbox-events';
 import { MailboxForgetter } from './mailbox-forgetter';
 import { MailboxReconciler } from './mailbox-reconciler';
+import { ReconcileScans } from './reconcile-scans';
 import { MailboxRefresher } from './mailbox-refresher';
 import { MailboxStatusProbe } from './mailbox-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
@@ -80,11 +81,17 @@ export const createSyncComponents = (
     logger,
     options,
   });
+  const scans = new ReconcileScans({
+    history: deps.historyBackfills ?? null,
+    clock,
+    options: options.reconcile,
+  });
   const reconciler = new MailboxReconciler({
     messages: repositories.messages,
     syncStates: repositories.syncStates,
     unitOfWork,
     labelsResolver,
+    scans,
   });
   const mailboxSync = new MailboxSynchronizer({
     mailboxes: repositories.mailboxes,
@@ -125,6 +132,7 @@ export const createSyncComponents = (
     rescans,
     mailboxEvents,
     mailboxSync,
+    scans,
     initialSync: fetchers.initialSync,
     flusher,
     backfill: shared.backfill,
@@ -143,6 +151,8 @@ export const createSyncComponents = (
     sessions: shared.sessions,
     history: createHistoryBackfill(deps, { ingestor, flusher, options }),
     runs,
+    historyProgress: createHistoryProgress(deps, options),
+    events: shared.events,
     logger,
   });
   return { service, ingestor, flusher, runs, options };

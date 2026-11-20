@@ -78,4 +78,28 @@ describe('history threading', () => {
     expect(chain.has(threadOf(engine, 'unrelated'))).toBe(false);
     expect(engine.db.tables.threads.size).toBe(2);
   });
+
+  it('keeps a reply chain together when a batch boundary falls between two replies', async () => {
+    const engine = createTestEngine({
+      sync: { history: { sliceMessages: 500, sliceMs: 15_000, batch: 2, sliceSearches: 64 } },
+    });
+    const { account, server } = await seedAccount(engine);
+    [
+      oldMail(1, { id: 'root', subject: 'Zmluva' }),
+      oldMail(2, { id: 'reply-1', subject: 'Re: Zmluva', inReplyTo: 'root', references: ['root'] }),
+      oldMail(3, {
+        id: 'reply-2',
+        subject: 'Re: Zmluva',
+        inReplyTo: 'reply-1',
+        references: ['root', 'reply-1'],
+      }),
+      oldMail(4, { id: 'other', subject: 'Iná vec' }),
+    ].forEach((spec) => deliverMail(server, 'Archive', spec));
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    await backfillUntilDone(engine, account.id);
+
+    expect(new Set(['root', 'reply-1', 'reply-2'].map((id) => threadOf(engine, id))).size).toBe(1);
+    expect(threadOf(engine, 'other')).not.toBe(threadOf(engine, 'root'));
+  });
 });

@@ -15,6 +15,7 @@ import { countsChanged, unchangedSince } from './mailbox-pass';
 import type { MailboxRefresher } from './mailbox-refresher';
 import { selectMailboxes } from './mailbox-selection';
 import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
+import type { ReconcileScans } from './reconcile-scans';
 import type { SyncBackfill } from './sync-backfill';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync-arrivals';
 import type { SyncContext, SyncStats } from './sync-context';
@@ -39,6 +40,7 @@ export interface AccountSynchronizerDeps {
   readonly rescans: LabelRescans;
   readonly mailboxEvents: MailboxEvents;
   readonly mailboxSync: MailboxSynchronizer;
+  readonly scans: ReconcileScans;
   readonly initialSync: InitialSync;
   readonly flusher: ChangeFlusher;
   readonly backfill: SyncBackfill;
@@ -144,7 +146,9 @@ export class AccountSynchronizer {
     const incremental = passes.filter(
       (pass) =>
         completedSyncState(pass.state) !== null &&
-        (rescans.has(pass.mailbox.id) || !unchangedSince(pass)),
+        (rescans.has(pass.mailbox.id) ||
+          !unchangedSince(pass) ||
+          this.deps.scans.fullExpungeDiffDue(pass.mailbox.id)),
     );
     const fetched = await this.fetchIncremental(context, incremental, {
       holdCalendar: await this.deps.initialSync.holdsCalendar(context, passes),

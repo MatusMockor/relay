@@ -38,6 +38,7 @@ import { MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
 import { AutomationSchema } from '../domain/automation';
 import { DraftSchema } from '../domain/draft';
+import { HistoryProgressSchema } from '../domain/history-progress';
 import {
   AccountIdSchema,
   AiJobIdSchema,
@@ -141,6 +142,7 @@ export const localInvokeChannels = {
     z.object({ accountId: AccountIdSchema.optional() }),
     OkResponseSchema,
   ),
+  'local.sync.history': invokeChannel(z.undefined(), z.array(HistoryProgressSchema)),
   'local.settings.get': invokeChannel(z.undefined(), UserSettingsSchema),
   'local.settings.update': invokeChannel(UserSettingsPatchSchema, UserSettingsSchema),
   'local.tasks.list': invokeChannel(TaskListQuerySchema, TaskPageSchema),

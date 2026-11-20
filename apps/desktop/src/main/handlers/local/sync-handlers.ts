@@ -1,9 +1,13 @@
 import { ProviderError } from '@relay/engine';
-import type { AccountId } from '@relay/shared/domain';
+import type { AccountId, HistoryProgress } from '@relay/shared/domain';
 import type { IpcInvokeHandlers } from '../../ipc/invoke-router';
 
 export interface SyncTrigger {
   syncNow(accountId?: AccountId): Promise<void>;
+}
+
+export interface HistoryProgressList {
+  list(): Promise<HistoryProgress[]>;
 }
 
 export interface SyncOutcome {
@@ -19,9 +23,13 @@ export const assertSynced = (reports: readonly SyncOutcome[]): void => {
   throw new ProviderError(failed.error ?? 'Synchronizácia zlyhala');
 };
 
-export const createSyncHandlers = (trigger: SyncTrigger): IpcInvokeHandlers => ({
+export const createSyncHandlers = (
+  trigger: SyncTrigger,
+  history: HistoryProgressList,
+): IpcInvokeHandlers => ({
   'local.sync.now': async ({ accountId }) => {
     await trigger.syncNow(accountId);
     return { ok: true };
   },
+  'local.sync.history': () => history.list(),
 });

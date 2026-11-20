@@ -19,6 +19,7 @@ import type {
   DraftAttachmentsForwarded,
   DraftContent,
   DraftId,
+  HistoryProgress,
   Label,
   LabelId,
   MailAccount,
@@ -115,6 +116,7 @@ export interface AccountManager {
   testConnection(body: TestConnectionBody): Promise<TestConnectionResponse>;
   listMailboxes(accountId: AccountId): Promise<Mailbox[]>;
   syncNow(accountId?: AccountId): Promise<void>;
+  historyProgress(): Promise<HistoryProgress[]>;
 }
 
 export interface FolderManager {

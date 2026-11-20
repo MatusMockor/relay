@@ -4,6 +4,7 @@ import { AiJobSchema } from '../domain/ai';
 import { AutomationSchema } from '../domain/automation';
 import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
+import { HistoryProgressSchema } from '../domain/history-progress';
 import { LabelSchema } from '../domain/label';
 import { MailboxSchema } from '../domain/mailbox';
 import {
@@ -77,6 +78,8 @@ export const SyncProgressEventSchema = event(
   }),
 );
 
+export const SyncHistoryEventSchema = event('sync.history', HistoryProgressSchema);
+
 export const AccountUpsertedEventSchema = event(
   'account.upserted',
   z.object({ account: MailAccountSchema }),
@@ -142,6 +145,7 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   AiJobUpdatedEventSchema,
   SettingsUpdatedEventSchema,
   SyncProgressEventSchema,
+  SyncHistoryEventSchema,
   AccountUpsertedEventSchema,
   AccountRemovedEventSchema,
   DraftUpsertedEventSchema,

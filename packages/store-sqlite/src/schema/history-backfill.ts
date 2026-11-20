@@ -15,8 +15,10 @@ export const historyBackfill = sqliteTable(
     belowUid: integer('below_uid').notNull(),
     doneAt: text('done_at'),
     updatedAt: text('updated_at').notNull(),
+    flagScanOffset: integer('flag_scan_offset').notNull().default(0),
   },
   (table) => [index('history_backfill_account_idx').on(table.accountId)],
 );
 
 export type HistoryBackfillRow = typeof historyBackfill.$inferSelect;
+export type HistoryBackfillInsert = typeof historyBackfill.$inferInsert;

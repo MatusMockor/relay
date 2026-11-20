@@ -211,6 +211,13 @@
       "when": 1795134576463,
       "tag": "0029_history_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1795140577152,
+      "tag": "0030_history_flag_scan_offset",
+      "breakpoints": true
     }
   ]
 }

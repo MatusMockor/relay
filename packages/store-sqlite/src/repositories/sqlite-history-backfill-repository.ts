@@ -59,4 +59,24 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
         .map((row) => ({ mailboxId: MailboxIdSchema.parse(row.mailboxId), stored: row.stored })),
     );
   }
+
+  flagScanOffset(mailboxId: MailboxId): Promise<number | null> {
+    return this.executor.execute((db) => {
+      const row = db
+        .select({ offset: historyBackfill.flagScanOffset })
+        .from(historyBackfill)
+        .where(eq(historyBackfill.mailboxId, mailboxId))
+        .get();
+      return row?.offset ?? null;
+    });
+  }
+
+  saveFlagScanOffset(mailboxId: MailboxId, offset: number): Promise<void> {
+    return this.executor.execute((db) => {
+      db.update(historyBackfill)
+        .set({ flagScanOffset: offset })
+        .where(eq(historyBackfill.mailboxId, mailboxId))
+        .run();
+    });
+  }
 }

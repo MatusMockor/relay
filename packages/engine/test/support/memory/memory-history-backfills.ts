@@ -34,4 +34,15 @@ export class MemoryHistoryBackfills implements HistoryBackfillRepository {
       });
     return Promise.resolve([...counts].map(([mailboxId, stored]) => ({ mailboxId, stored })));
   }
+
+  flagScanOffset(mailboxId: MailboxId): Promise<number | null> {
+    return Promise.resolve(this.db.tables.historyFlagOffsets.get(mailboxId) ?? null);
+  }
+
+  saveFlagScanOffset(mailboxId: MailboxId, offset: number): Promise<void> {
+    if (this.db.tables.historyCursors.has(mailboxId)) {
+      this.db.tables.historyFlagOffsets.set(mailboxId, offset);
+    }
+    return Promise.resolve();
+  }
 }

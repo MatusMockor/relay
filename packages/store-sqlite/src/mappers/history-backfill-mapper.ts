@@ -1,6 +1,6 @@
 import type { HistoryCursor } from '@relay/engine';
 import { AccountIdSchema, MailboxIdSchema } from '@relay/shared/domain';
-import type { HistoryBackfillRow } from '../schema';
+import type { HistoryBackfillInsert, HistoryBackfillRow } from '../schema';
 
 export const toHistoryCursor = (row: HistoryBackfillRow): HistoryCursor => ({
   mailboxId: MailboxIdSchema.parse(row.mailboxId),
@@ -11,7 +11,9 @@ export const toHistoryCursor = (row: HistoryBackfillRow): HistoryCursor => ({
   updatedAt: row.updatedAt,
 });
 
-export const toHistoryBackfillRow = (cursor: HistoryCursor): HistoryBackfillRow => ({
+export const toHistoryBackfillRow = (
+  cursor: HistoryCursor,
+): Required<Omit<HistoryBackfillInsert, 'flagScanOffset'>> => ({
   mailboxId: cursor.mailboxId,
   accountId: cursor.accountId,
   uidValidity: cursor.uidValidity,

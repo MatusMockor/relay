@@ -22,7 +22,8 @@ export class HistorySummaryIngest {
     if (summaries === null) {
       return false;
     }
-    for (const summary of summaries) {
+    const newestFirst = [...summaries].sort((left, right) => right.uid - left.uid);
+    for (const summary of newestFirst) {
       const outcome = await this.ingestor.ingestSummary(
         {
           userId: context.userId,

@@ -8,6 +8,7 @@ import {
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { INVALIDATION_WINDOW_MS } from '../src/data/hooks/invalidation-batch';
+import { THREADS_CHANGED_THROTTLE_MS } from '../src/data/hooks/keyed-throttle';
 import { queryKeys } from '../src/data/hooks/query-keys';
 import { applyRealtimeEvent } from '../src/data/hooks/realtime-cache';
 import { serverDetail, serverThread } from './support/thread-fixtures';
@@ -76,5 +77,31 @@ describe('threads.changed realtime event', () => {
     [list, ownDetail, foreignDetail].forEach((entry) => {
       entry.unsubscribe();
     });
+  });
+
+  it('refetches thread lists at most once per throttle window during a history backfill', async () => {
+    const fresh = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    const empty: ThreadPage = { items: [], nextCursor: null };
+    const list = counted(fresh, queryKeys.threadList({ view: 'done' }), empty);
+    await vi.waitFor(() => {
+      expect(list.counter.fetches).toBe(1);
+    });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const step = 400;
+
+    for (let index = 0; index < 10; index += 1) {
+      applyRealtimeEvent(fresh, threadsChanged);
+      await vi.advanceTimersByTimeAsync(step);
+    }
+    expect(list.counter.fetches).toBeLessThanOrEqual(3);
+    await vi.advanceTimersByTimeAsync(2 * THREADS_CHANGED_THROTTLE_MS);
+
+    expect(list.counter.fetches).toBe(4);
+    await vi.advanceTimersByTimeAsync(2 * THREADS_CHANGED_THROTTLE_MS);
+    expect(list.counter.fetches).toBe(4);
+    list.unsubscribe();
+    fresh.clear();
   });
 });

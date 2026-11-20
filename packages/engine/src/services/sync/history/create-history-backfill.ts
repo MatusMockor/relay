@@ -5,6 +5,7 @@ import type { SyncOptions } from '../sync-options';
 import { HistoryBackfill } from './history-backfill';
 import { HistoryCursors } from './history-cursor';
 import { HistoryMailboxBackfill } from './history-mailbox-backfill';
+import { HistoryProgressReader } from './history-progress';
 import { HistorySummaryIngest } from './history-summary-ingest';
 
 export const createHistoryBackfill = (
@@ -34,5 +35,23 @@ export const createHistoryBackfill = (
     }),
     clock,
     options: sync.options,
+  });
+};
+
+export const createHistoryProgress = (
+  deps: EngineDeps,
+  options: SyncOptions,
+): HistoryProgressReader | null => {
+  const store = deps.historyBackfills;
+  if (store === undefined) {
+    return null;
+  }
+  const { repositories } = deps;
+  return new HistoryProgressReader({
+    accounts: repositories.accounts,
+    mailboxes: repositories.mailboxes,
+    syncStates: repositories.syncStates,
+    store,
+    options,
   });
 };

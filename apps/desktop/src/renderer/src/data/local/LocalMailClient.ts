@@ -64,6 +64,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     removeAccount: (accountId) => ignore(bridge.invoke('local.accounts.delete', { accountId })),
     testConnection: (body) => unwrap(bridge.invoke('local.accounts.testConnection', body)),
     syncNow: (accountId) => ignore(bridge.invoke('local.sync.now', { accountId })),
+    historyProgress: () => unwrap(bridge.invoke('local.sync.history')),
     listDrafts: () => unwrap(bridge.invoke('local.drafts.list')),
     createDraft: (content) => unwrap(bridge.invoke('local.drafts.create', content)),
     updateDraft: (draftId, patch) =>
