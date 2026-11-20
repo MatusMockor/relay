@@ -5,7 +5,7 @@ import { PreviewSampleList } from './PreviewSampleList';
 import { useRulePreview } from './use-rule-preview';
 import type { RuleInput } from './editable-rule';
 
-const countLabel = ({ count, days, truncated }: AutomationPreviewResponse): string =>
+export const countLabel = ({ count, days, truncated }: AutomationPreviewResponse): string =>
   `Zachytí ${truncated ? 'aspoň ' : ''}${String(count)} ${plural(count, 'mail', 'maily', 'mailov')} za posledných ${String(days)} dní`;
 
 export const previewErrorLabel = (error: unknown): string =>

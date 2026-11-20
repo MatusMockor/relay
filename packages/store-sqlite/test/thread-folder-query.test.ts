@@ -222,6 +222,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 0,
         exclusive: true,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'jira', projectKeys: [] }],
       },
       {
@@ -232,6 +234,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 1,
         exclusive: false,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'fromDomain', domain: 'klient.sk' }],
       },
     ]);
@@ -255,6 +259,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 0,
         exclusive: true,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'jira', projectKeys: [] }],
       },
     ]);

@@ -48,6 +48,8 @@ describe('concurrent writes', () => {
       accountId: null,
       name,
       order: 0,
+      match: 'any',
+      exceptions: [],
       rules: [{ type: 'fromDomain', domain: `${name}.sk` }],
       exclusive: false,
       hideTasks: false,

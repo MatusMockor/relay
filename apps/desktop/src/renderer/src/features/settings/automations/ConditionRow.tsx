@@ -33,6 +33,7 @@ export interface ConditionRowProps {
   readonly onSave: (condition: AutomationCondition) => void;
   readonly onRemove: () => void;
   readonly tracker: RowTracker;
+  readonly types?: readonly AutomationConditionType[];
 }
 
 export function ConditionRow({
@@ -46,6 +47,7 @@ export function ConditionRow({
   onSave,
   onRemove,
   tracker,
+  types,
 }: ConditionRowProps) {
   const { draft, fresh, invalid, pick, edit, commit } = useConditionDraft({
     id,
@@ -61,7 +63,7 @@ export function ConditionRow({
         <ConditionSelect<AutomationConditionType>
           label="Typ podmienky"
           value={draft.type}
-          options={conditionTypesFor(draft.type)}
+          options={conditionTypesFor(draft.type, types)}
           labels={CONDITION_TYPE_LABELS}
           disabled={disabled}
           onChange={(next) => {

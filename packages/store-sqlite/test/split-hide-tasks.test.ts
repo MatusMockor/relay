@@ -17,6 +17,8 @@ const jiraSplit = (hideTasks: boolean): Split => ({
   order: 0,
   exclusive: true,
   hideTasks,
+  match: 'any',
+  exceptions: [],
   rules: [{ type: 'jira', projectKeys: [] }],
 });
 

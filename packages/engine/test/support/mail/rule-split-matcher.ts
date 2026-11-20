@@ -2,6 +2,7 @@ import {
   type AutomationCondition,
   matchesCriteria,
   type SplitId,
+  splitCriteria,
   subjectContains,
 } from '@relay/shared/domain';
 import type {
@@ -62,7 +63,9 @@ export class RuleSplitMatcher implements SplitMatcher {
     return Promise.resolve(
       input.splits
         .filter((split) =>
-          split.rules.some((rule) => matchesCondition(rule, input.message, input.jira)),
+          matchesCriteria(splitCriteria(split), (rule) =>
+            matchesCondition(rule, input.message, input.jira),
+          ),
         )
         .map((split) => split.id),
     );

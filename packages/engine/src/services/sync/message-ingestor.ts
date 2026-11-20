@@ -8,6 +8,7 @@ import type { MessageRepository } from '../../ports/message-repository';
 import type { SplitMatcher } from '../../ports/split-matcher';
 import type { ThreadResolver } from '../../ports/thread-resolver';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { hasFileAttachments } from '../../subjects/match-subject';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { CalendarPartsSink } from './calendar-parts-sink';
@@ -82,7 +83,14 @@ export class MessageIngestor {
     const resolution = await this.deps.threadResolver.resolve(target.account.id, parsed);
     const jira = await this.deps.jiraClassifier.classify(parsed);
     const splitIds = await this.deps.splitMatcher.match({
-      message: { from: parsed.from, subject: parsed.subject, headers: parsed.headers },
+      message: {
+        from: parsed.from,
+        subject: parsed.subject,
+        headers: parsed.headers,
+        to: parsed.to,
+        cc: parsed.cc,
+        hasAttachments: hasFileAttachments(parsed.attachments),
+      },
       jira,
       splits: target.splits,
     });

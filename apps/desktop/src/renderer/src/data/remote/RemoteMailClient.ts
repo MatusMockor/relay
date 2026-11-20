@@ -10,6 +10,7 @@ import { EventBus } from '../event-bus';
 import type { MailClient, MailEventListener } from '../MailClient';
 import { unsupportedServerSearch } from '../server-search';
 import { outdatedPreview, replaceAutomationsChecked } from './automation-compatibility';
+import { outdatedSplitPreview, replaceSplitsChecked } from './split-compatibility';
 import { createRemoteAutomationHistory } from './remote-automation-history';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
@@ -99,7 +100,11 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
     await http.call(api.compose.cancelScheduled, { params: { id } });
   },
   listSplits: () => http.call(api.splits.list, {}),
-  replaceSplits: (splits) => http.call(api.splits.replace, { body: { splits } }),
+  replaceSplits: (splits) => replaceSplitsChecked(http, splits),
+  previewSplit: (body) =>
+    http.call(api.splits.preview, { body }).catch((error: unknown) => {
+      throw outdatedSplitPreview(error);
+    }),
   listAutomations: () => http.call(api.automations.list, {}),
   replaceAutomations: (automations) => replaceAutomationsChecked(http, automations),
   restoreDefaultAutomation: () => http.call(api.automations.restoreDefault, {}),

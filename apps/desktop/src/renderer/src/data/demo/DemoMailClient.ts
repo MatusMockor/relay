@@ -9,6 +9,7 @@ import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
 import { createDemoAutomationHistory } from './demo-automation-history';
 import { createDemoAutomations } from './demo-automations';
+import { createDemoSplits } from './demo-splits';
 import { createDemoCalendarClient } from './demo-calendar';
 import { createDemoLabels } from './demo-labels';
 import { demoSend, newDraftKey } from './demo-compose';
@@ -213,16 +214,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
           item.id === scheduledSendId ? { ...item, status: 'cancelled' } : item,
         );
       }),
-    listSplits: () => Promise.resolve([...state.splits]),
-    replaceSplits: (splits) =>
-      run(() => {
-        state.splits = splits.map((split, order) => ({
-          ...split,
-          id: split.id ?? demoIds.split(`n${String(order)}-${String(now().getTime())}`),
-          userId: demoIds.user,
-        }));
-        return state.splits;
-      }),
+    ...createDemoSplits(state, now),
     ...createDemoTaskMethods(state, now),
     getSettings: () => Promise.resolve(state.settings),
     updateSettings: (patch) =>

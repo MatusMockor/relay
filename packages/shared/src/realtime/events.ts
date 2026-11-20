@@ -18,7 +18,7 @@ import { MessageSchema } from '../domain/message';
 import { IsoDateTimeSchema } from '../domain/primitives';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsSchema } from '../domain/settings';
-import { SplitSchema } from '../domain/split';
+import { SplitEntriesSchema } from '../domain/split-entry';
 import { TaskSchema } from '../domain/task';
 import { ThreadSummarySchema } from '../domain/thread';
 
@@ -101,7 +101,7 @@ export const ScheduledSendUpsertedEventSchema = event(
 
 export const SplitsUpdatedEventSchema = event(
   'splits.updated',
-  z.object({ splits: z.array(SplitSchema) }),
+  z.object({ splits: SplitEntriesSchema }),
 );
 
 export const AutomationsUpdatedEventSchema = event(

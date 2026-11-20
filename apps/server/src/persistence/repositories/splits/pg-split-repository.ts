@@ -1,10 +1,19 @@
-import { ConflictError, ForbiddenError, type SplitRepository } from '@relay/engine';
-import type { AccountId, Split, SplitId, UserId } from '@relay/shared/domain';
-import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from 'drizzle-orm';
+import { ConflictError, ForbiddenError, type KeptSplit, type SplitRepository } from '@relay/engine';
+import {
+  type AccountId,
+  isUnsupportedSplit,
+  type Split,
+  type SplitEntry,
+  type SplitId,
+  supportedSplits,
+  type UnsupportedSplit,
+  type UserId,
+} from '@relay/shared/domain';
+import { and, asc, eq, inArray, isNull, ne, notInArray, or, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { splits } from '../../schema';
 import { assertOwned, lockUser } from '../../support/ownership';
-import { toSplit, toSplitInsert } from './split.mapper';
+import { toSplitEntry, toSplitInsert } from './split.mapper';
 
 const assertIdsAvailable = async (
   db: DbExecutor,
@@ -28,29 +37,29 @@ export class PgSplitRepository implements SplitRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async listByUser(userId: UserId): Promise<Split[]> {
-    const rows = await this.db
-      .select()
-      .from(splits)
-      .where(eq(splits.userId, userId))
-      .orderBy(asc(splits.position), asc(splits.id));
-    return rows.map(toSplit);
+    return supportedSplits(await this.entries(eq(splits.userId, userId)));
+  }
+
+  async listUnsupported(userId: UserId): Promise<UnsupportedSplit[]> {
+    return (await this.entries(eq(splits.userId, userId))).filter(isUnsupportedSplit);
   }
 
   async listForAccount(userId: UserId, accountId: AccountId): Promise<Split[]> {
-    const rows = await this.db
-      .select()
-      .from(splits)
-      .where(
+    return supportedSplits(
+      await this.entries(
         and(
           eq(splits.userId, userId),
           or(isNull(splits.accountId), eq(splits.accountId, accountId)),
         ),
-      )
-      .orderBy(asc(splits.position), asc(splits.id));
-    return rows.map(toSplit);
+      ),
+    );
   }
 
-  async replaceAll(userId: UserId, items: readonly Split[]): Promise<Split[]> {
+  async replaceAll(
+    userId: UserId,
+    items: readonly Split[],
+    keep: readonly KeptSplit[] = [],
+  ): Promise<Split[]> {
     if (items.some((split) => split.userId !== userId)) {
       throw new ForbiddenError('Splits must belong to the user');
     }
@@ -59,8 +68,9 @@ export class PgSplitRepository implements SplitRepository {
       for (const accountId of new Set(items.map((split) => split.accountId))) {
         await assertOwned(tx, 'Account', userId, accountId);
       }
-      const keepIds = items.map((split) => split.id);
-      await assertIdsAvailable(tx, userId, keepIds);
+      const written = items.map((split) => split.id);
+      const keepIds = [...written, ...keep.map(({ id }) => id)];
+      await assertIdsAvailable(tx, userId, written);
       await tx
         .delete(splits)
         .where(
@@ -70,7 +80,7 @@ export class PgSplitRepository implements SplitRepository {
           ),
         );
       if (items.length > 0) {
-        const written = await tx
+        const stored = await tx
           .insert(splits)
           .values(items.map(toSplitInsert))
           .onConflictDoUpdate({
@@ -79,18 +89,35 @@ export class PgSplitRepository implements SplitRepository {
               accountId: sql`excluded.account_id`,
               name: sql`excluded.name`,
               position: sql`excluded.position`,
+              match: sql`excluded.match`,
               rules: sql`excluded.rules`,
+              exceptions: sql`excluded.exceptions`,
               exclusive: sql`excluded.exclusive`,
               hideTasks: sql`excluded.hide_tasks`,
             },
             setWhere: eq(splits.userId, userId),
           })
           .returning({ id: splits.id });
-        if (written.length < new Set(keepIds).size) {
+        if (stored.length < new Set(written).size) {
           throw new ConflictError('A split id is already in use');
         }
       }
+      for (const { id, order } of keep) {
+        await tx
+          .update(splits)
+          .set({ position: order })
+          .where(and(eq(splits.userId, userId), eq(splits.id, id)));
+      }
       return new PgSplitRepository(tx).listByUser(userId);
     });
+  }
+
+  private async entries(where: SQL | undefined): Promise<SplitEntry[]> {
+    const rows = await this.db
+      .select()
+      .from(splits)
+      .where(where)
+      .orderBy(asc(splits.position), asc(splits.id));
+    return rows.map(toSplitEntry);
   }
 }

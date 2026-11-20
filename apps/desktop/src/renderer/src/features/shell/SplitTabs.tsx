@@ -1,4 +1,4 @@
-import type { Split, SplitId } from '@relay/shared';
+import type { SplitEntry, SplitId } from '@relay/shared';
 import { useSplits, useThreadList } from '../../data/hooks/use-mail-queries';
 import { type Folder, MAIN_TAB_LABEL } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
@@ -38,7 +38,7 @@ function SplitTab({ label, folder, active, hint, splitId, view = 'inbox' }: TabP
   );
 }
 
-export const splitsInScope = (splits: readonly Split[], scope: string): Split[] =>
+export const splitsInScope = (splits: readonly SplitEntry[], scope: string): SplitEntry[] =>
   [...splits]
     .filter((split) => scope === 'all' || split.accountId === null || split.accountId === scope)
     .sort((a, b) => a.order - b.order);
@@ -53,10 +53,10 @@ const lettersOf = (value: string): string[] =>
       .toUpperCase(),
   );
 
-export const splitGKey = (split: Split): string | null =>
+export const splitGKey = (split: SplitEntry): string | null =>
   lettersOf(split.name).find((char) => /[A-Z]/.test(char) && !RESERVED_G.has(char)) ?? null;
 
-const splitHint = (split: Split): string => {
+const splitHint = (split: SplitEntry): string => {
   const key = splitGKey(split);
   return key === null ? `Prejsť na ${split.name}` : `Prejsť na ${split.name} (G ${key})`;
 };

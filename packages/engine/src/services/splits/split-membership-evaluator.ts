@@ -29,6 +29,9 @@ export class SplitMembershipEvaluator {
 
   async evaluate(userId: UserId, accountId: AccountId): Promise<ThreadSummary[]> {
     const splits = await this.deps.splits.listForAccount(userId, accountId);
+    const unsupported = new Set(
+      (await this.deps.splits.listUnsupported(userId)).map((split) => split.id),
+    );
     const threads = new Map<ThreadId, ThreadSummary | null>();
     const membership = new Map<ThreadId, Set<SplitId>>();
     let cursor: string | null = null;
@@ -44,7 +47,9 @@ export class SplitMembershipEvaluator {
           jira: jiraOf(thread),
           splits,
         });
-        const members = membership.get(item.threadId) ?? new Set<SplitId>();
+        const members =
+          membership.get(item.threadId) ??
+          new Set((thread?.splitIds ?? []).filter((splitId) => unsupported.has(splitId)));
         matched.forEach((splitId) => members.add(splitId));
         membership.set(item.threadId, members);
       }

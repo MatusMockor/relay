@@ -42,8 +42,10 @@ import type {
   ServerSearchRequest,
   ServerSearchResponse,
   SendResponse,
-  Split,
-  SplitInput,
+  SplitEntry,
+  SplitPreviewBody,
+  SplitPreviewResponse,
+  SplitReplaceItem,
   Task,
   TaskId,
   TaskListQuery,
@@ -147,8 +149,9 @@ export interface Composer {
 }
 
 export interface Organizer {
-  listSplits(): Promise<Split[]>;
-  replaceSplits(splits: SplitInput[]): Promise<Split[]>;
+  listSplits(): Promise<SplitEntry[]>;
+  replaceSplits(splits: SplitReplaceItem[]): Promise<SplitEntry[]>;
+  previewSplit(body: SplitPreviewBody): Promise<SplitPreviewResponse>;
   createLabel(body: CreateLabelBody): Promise<Label>;
   updateLabel(labelId: LabelId, patch: UpdateLabelBody): Promise<Label>;
   deleteLabel(labelId: LabelId): Promise<void>;

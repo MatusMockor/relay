@@ -1,4 +1,4 @@
-import type { AutomationCondition } from '@relay/shared';
+import type { AutomationCondition, AutomationConditionType } from '@relay/shared';
 import { ConditionList } from './ConditionList';
 import type { RuleChange } from './editable-rule';
 import type { ConditionRowsState } from './use-condition-rows';
@@ -18,6 +18,8 @@ export interface ExceptionsSectionProps {
   readonly disabled: boolean;
   readonly onChange: (change: RuleChange) => void;
   readonly tracker: RowTracker;
+  readonly types?: readonly AutomationConditionType[];
+  readonly lead?: string;
 }
 
 export function ExceptionsSection({
@@ -26,13 +28,13 @@ export function ExceptionsSection({
   disabled,
   onChange,
   tracker,
+  types,
+  lead = 'ak platí niektorá výnimka. Taký mail pravidlo preskočí, aj keď spĺňa podmienky.',
 }: ExceptionsSectionProps) {
   return (
     <section className="au-sec" aria-labelledby="au-except">
       <h3 id="au-except">Okrem</h3>
-      <p className="au-lead">
-        ak platí niektorá výnimka. Taký mail pravidlo preskočí, aj keď spĺňa podmienky.
-      </p>
+      <p className="au-lead">{lead}</p>
       <ConditionList
         conditions={exceptions}
         state={rows}
@@ -43,6 +45,7 @@ export function ExceptionsSection({
           onChange({ exceptions: next });
         }}
         tracker={tracker}
+        types={types}
       />
     </section>
   );

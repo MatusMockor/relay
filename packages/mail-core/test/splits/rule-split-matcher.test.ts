@@ -9,7 +9,9 @@ const split = (id: string, rules: SplitRule[], order = 0): Split => ({
   accountId: null,
   name: id,
   order,
+  match: 'any',
   rules,
+  exceptions: [],
   exclusive: false,
   hideTasks: false,
 });

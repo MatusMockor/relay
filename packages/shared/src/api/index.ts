@@ -18,6 +18,7 @@ export * from './endpoints/health';
 export * from './endpoints/labels';
 export * from './endpoints/search';
 export * from './endpoints/settings';
+export * from './endpoints/split-preview';
 export * from './endpoints/splits';
 export * from './endpoints/sync';
 export * from './endpoints/tasks';

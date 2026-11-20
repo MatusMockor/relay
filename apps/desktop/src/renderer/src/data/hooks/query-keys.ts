@@ -3,6 +3,7 @@ import type {
   AutomationId,
   AutomationPreviewBody,
   MessageId,
+  SplitPreviewBody,
   ThreadId,
 } from '@relay/shared';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
@@ -26,6 +27,7 @@ export const queryKeys = {
   allMailboxes: () => ['mail', 'mailboxes'] as const,
   mailboxes: (accountId: AccountId) => ['mail', 'mailboxes', accountId] as const,
   splits: () => ['mail', 'splits'] as const,
+  splitPreview: (body: SplitPreviewBody | null) => ['mail', 'split-preview', body] as const,
   automations: () => ['mail', 'automations'] as const,
   automationPreview: (body: AutomationPreviewBody | null) =>
     ['mail', 'automation-preview', body] as const,

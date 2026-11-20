@@ -15,8 +15,13 @@ const BASIC_CONDITION_TYPES = CONDITION_TYPES.filter(
   (type) => !ADVANCED_CONDITION_TYPES.includes(type),
 );
 
-export const conditionTypesFor = (type: AutomationConditionType): AutomationConditionType[] =>
-  ADVANCED_CONDITION_TYPES.includes(type) ? CONDITION_TYPES : BASIC_CONDITION_TYPES;
+export const conditionTypesFor = (
+  type: AutomationConditionType,
+  allowed: readonly AutomationConditionType[] = CONDITION_TYPES,
+): AutomationConditionType[] =>
+  (ADVANCED_CONDITION_TYPES.includes(type) ? CONDITION_TYPES : BASIC_CONDITION_TYPES).filter(
+    (option) => option === type || allowed.includes(option),
+  );
 export const JIRA_EVENT_KINDS = Object.keys(JIRA_EVENT_LABELS) as JiraEventKind[];
 export const RECIPIENT_FIELDS = Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[];
 
