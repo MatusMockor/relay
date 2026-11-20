@@ -5,24 +5,65 @@ import type { HistoryTarget } from '../sync/history/history-mailboxes';
 export interface HydrationBatch {
   readonly target: HistoryTarget | null;
   readonly candidates: readonly HydrationCandidate[];
+  readonly bytes: number;
 }
 
-export const hydrationBatches = (
+export interface HydrationPlan {
+  readonly batches: readonly HydrationBatch[];
+  readonly oversized: readonly HydrationCandidate[];
+}
+
+export interface HydrationLimits {
+  readonly batchSize: number;
+  readonly batchBytes: number;
+  readonly messageBytes: number;
+}
+
+const estimatedBytes = (candidate: HydrationCandidate): number =>
+  candidate.attachments.reduce((total, attachment) => total + attachment.size, 0);
+
+const packed = (
+  target: HistoryTarget | null,
+  group: readonly HydrationCandidate[],
+  limits: HydrationLimits,
+): HydrationBatch[] => {
+  const batches: HydrationBatch[] = [];
+  let current: HydrationCandidate[] = [];
+  let bytes = 0;
+  group.forEach((candidate) => {
+    const size = estimatedBytes(candidate);
+    const full = current.length >= limits.batchSize || bytes + size > limits.batchBytes;
+    if (current.length > 0 && full) {
+      batches.push({ target, candidates: current, bytes });
+      current = [];
+      bytes = 0;
+    }
+    current.push(candidate);
+    bytes += size;
+  });
+  if (current.length > 0) {
+    batches.push({ target, candidates: current, bytes });
+  }
+  return batches;
+};
+
+export const planHydration = (
   candidates: readonly HydrationCandidate[],
   targets: readonly HistoryTarget[],
-  size: number,
-): HydrationBatch[] => {
+  limits: HydrationLimits,
+): HydrationPlan => {
   const targetOf = new Map(targets.map((target) => [target.mailbox.id, target]));
   const byMailbox = new Map<MailboxId, HydrationCandidate[]>();
+  const oversized: HydrationCandidate[] = [];
   candidates.forEach((candidate) => {
+    if (estimatedBytes(candidate) > limits.messageBytes) {
+      oversized.push(candidate);
+      return;
+    }
     byMailbox.set(candidate.mailboxId, [...(byMailbox.get(candidate.mailboxId) ?? []), candidate]);
   });
-  return [...byMailbox].flatMap(([mailboxId, group]) => {
-    const target = targetOf.get(mailboxId) ?? null;
-    const batches: HydrationBatch[] = [];
-    for (let start = 0; start < group.length; start += size) {
-      batches.push({ target, candidates: group.slice(start, start + size) });
-    }
-    return batches;
-  });
+  const batches = [...byMailbox].flatMap(([mailboxId, group]) =>
+    packed(targetOf.get(mailboxId) ?? null, group, limits),
+  );
+  return { batches, oversized };
 };

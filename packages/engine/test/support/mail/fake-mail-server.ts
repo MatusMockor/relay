@@ -63,6 +63,7 @@ export class FakeMailServer {
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
+  readonly uidFetches: { path: string; uids: number[] }[] = [];
   readonly flagScans: { path: string; uids: number[] | null }[] = [];
   readonly labelWrites: LabelWrite[] = [];
   readonly statusCalls: string[] = [];

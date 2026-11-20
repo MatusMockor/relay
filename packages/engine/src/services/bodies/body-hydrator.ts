@@ -8,7 +8,7 @@ import { errorMessage } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from '../sync/change-flusher';
 import type { HistoryTarget } from '../sync/history/history-mailboxes';
 import type { SyncContext } from '../sync/sync-context';
-import { type HydrationBatch, hydrationBatches } from './hydration-batches';
+import { type HydrationBatch, planHydration } from './hydration-batches';
 import type { HydrationParse } from './hydration-parse';
 import type { HydrationSkips } from './hydration-skips';
 import type { OfflineBodyOptions } from './offline-body-options';
@@ -81,13 +81,25 @@ export class BodyHydrator {
       this.deps.skips.active(clock.now()),
     );
     progress.more = candidates.length >= options.hydrateMessages;
-    for (const batch of hydrationBatches(candidates, targets, options.hydrateFetchBatch)) {
-      if (gate.expired() || progress.bytes >= options.hydrateBytes) {
+    const plan = planHydration(candidates, targets, {
+      batchSize: options.hydrateFetchBatch,
+      batchBytes: options.hydrateBatchBytes,
+      messageBytes: options.hydrateMaxMessageBytes,
+    });
+    plan.oversized.forEach((candidate) => {
+      this.deps.skips.add(candidate.messageId, clock.now());
+    });
+    for (const batch of plan.batches) {
+      if (gate.expired() || this.overBudget(progress, batch)) {
         progress.more = true;
         return;
       }
       await this.batch(context, batch, progress);
     }
+  }
+
+  private overBudget(progress: Progress, batch: HydrationBatch): boolean {
+    return progress.bytes > 0 && progress.bytes + batch.bytes >= this.deps.options.hydrateBytes;
   }
 
   private async batch(context: SyncContext, batch: HydrationBatch, progress: Progress) {
@@ -118,19 +130,19 @@ export class BodyHydrator {
     if (candidate === undefined) {
       return;
     }
-    const parsed = await this.deps.parse.parse(raw.source, candidate);
     progress.bytes += raw.source.byteLength;
-    if (parsed === null) {
+    if (raw.source.byteLength > this.deps.options.hydrateMaxMessageBytes) {
+      return;
+    }
+    const body = await this.deps.parse.parse(raw.source, candidate);
+    if (body === null) {
       return;
     }
     pending.delete(raw.uid);
-    if (!(await this.deps.store.saveBody(candidate.messageId, parsed.body))) {
+    if (!(await this.deps.store.saveBody(candidate.messageId, body))) {
       return;
     }
     progress.hydrated += 1;
-    if (!parsed.changedThread) {
-      return;
-    }
     await this.deps.unitOfWork.run((repositories) =>
       context.journal.touched(repositories.pendingWork, candidate.threadId),
     );

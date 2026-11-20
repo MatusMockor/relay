@@ -12,13 +12,23 @@ const WINDOW_MONTHS: Readonly<Record<Exclude<OfflineWindow, 'all'>, number>> = {
   '5y': 60,
 };
 
+const daysInMonth = (year: number, month: number): number =>
+  new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+
+export const monthsBefore = (now: Date, months: number): Date => {
+  const cutoff = new Date(now.getTime());
+  const target = now.getUTCMonth() - months;
+  const year = now.getUTCFullYear() + Math.floor(target / 12);
+  const month = ((target % 12) + 12) % 12;
+  cutoff.setUTCFullYear(year, month, Math.min(now.getUTCDate(), daysInMonth(year, month)));
+  return cutoff;
+};
+
 export const offlineWindowCutoff = (window: OfflineWindow, now: Date): Date | null => {
   if (window === 'all') {
     return null;
   }
-  const cutoff = new Date(now.getTime());
-  cutoff.setUTCMonth(cutoff.getUTCMonth() - WINDOW_MONTHS[window]);
-  return cutoff;
+  return monthsBefore(now, WINDOW_MONTHS[window]);
 };
 
 export const OfflineStatsSchema = z.object({
