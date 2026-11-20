@@ -14,6 +14,21 @@ describe('raw IMAP text search', () => {
     expect(searchResultUids(null)).toEqual([]);
   });
 
+  it('caps the expanded UIDs across all ranges and keeps the newest ones', () => {
+    const ranges = Array.from(
+      { length: 50 },
+      (_, index) => `${String(index * 1_000_000 + 1)}:${String(index * 1_000_000 + 99_999)}`,
+    ).join(',');
+    const uids = searchResultUids(atoms('ALL', ranges));
+
+    expect(uids.length).toBe(100_000);
+    expect(uids.at(-1)).toBe(49 * 1_000_000 + 99_999);
+    expect(uids[0]).toBeGreaterThan(48 * 1_000_000);
+    expect(searchResultUids(atoms('ALL', '1:10,20:30'), 5)).toEqual([26, 27, 28, 29, 30]);
+    expect(searchResultUids(atoms('4', '9', '12'), 2)).toEqual([9, 12]);
+    expect(searchResultUids(atoms('4', '9'), 0)).toEqual([]);
+  });
+
   it('sends non-ASCII terms as UTF-8 literals under CHARSET UTF-8', () => {
     const attributes = imapSearchAttributes({
       terms: ['kôň', 'faktura'],

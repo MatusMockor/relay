@@ -1,6 +1,6 @@
 import type { ImapFlow } from 'imapflow';
 import type { SearchAttribute } from './imap-search-attributes';
-import { searchResultUids } from './search-response';
+import { MAX_EXPANDED_UIDS, searchResultUids } from './search-response';
 
 type UntaggedHandler = (untagged: unknown) => Promise<void>;
 
@@ -37,7 +37,7 @@ export const rawUidSearch = async (
 ): Promise<number[] | false> => {
   const found: number[] = [];
   const collect: UntaggedHandler = (untagged) => {
-    found.push(...searchResultUids(untagged));
+    found.push(...searchResultUids(untagged, MAX_EXPANDED_UIDS - found.length));
     return Promise.resolve();
   };
   try {
