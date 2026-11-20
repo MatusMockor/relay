@@ -1,10 +1,11 @@
 import { composeOverlay } from '../../state/compose-overlay';
 import { NO_UNSUBSCRIBE, type ThreadId, type UnsubscribeUrl } from '@relay/shared';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError, MailClientError } from '../../data/errors';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useAppContext, useClient } from '../../data/hooks/services-context';
+import { useUnsubscribeOptions } from '../../data/hooks/use-unsubscribe-options';
 import { showToast } from '../../state/toast-store';
 import { setUi } from '../../state/ui-store';
 import { planUnsubscribe, type UnsubscribePlan } from './unsubscribe-plan';
@@ -17,10 +18,7 @@ export const useUnsubscribe = (threadId: ThreadId, sender: string) => {
   const { platform } = useAppContext();
   const [pending, setPending] = useState<ConfirmablePlan | null>(null);
   const [busy, setBusy] = useState(false);
-  const options = useQuery({
-    queryKey: queryKeys.unsubscribe(threadId),
-    queryFn: () => client.getUnsubscribeOptions(threadId),
-  });
+  const options = useUnsubscribeOptions(threadId);
   const plan = planUnsubscribe(options.isError ? NO_UNSUBSCRIBE : options.data);
   const start = () => {
     if (plan.kind === 'oneClick' || plan.kind === 'link') {

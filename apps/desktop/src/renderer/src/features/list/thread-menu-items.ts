@@ -10,6 +10,7 @@ const entry = (id: string, label: string): ContextMenuItem => ({
 const SEPARATOR: ContextMenuItem = { type: 'separator' };
 const REMIND = entry('remind', 'Pripomenúť…');
 const TRASH = entry('trash', 'Presunúť do koša');
+const RULE = entry('rule', 'Vytvoriť pravidlo z mailu…');
 
 const DEFAULT_ITEMS: readonly ContextMenuItem[] = [
   entry('done', 'Hotovo'),
@@ -33,4 +34,6 @@ const readToggle = (thread: ThreadSummary): ContextMenuItem =>
 export const threadMenuItems = (view: string, thread: ThreadSummary): ContextMenuItem[] => [
   readToggle(thread),
   ...(VIEW_ITEMS[view] ?? DEFAULT_ITEMS),
+  SEPARATOR,
+  RULE,
 ];

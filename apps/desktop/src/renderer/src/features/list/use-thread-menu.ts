@@ -43,6 +43,9 @@ export const useThreadMenu = () => {
       remind: () => {
         setUi({ overlay: { kind: 'remind', threadId: item.thread.id, anchor } });
       },
+      rule: () => {
+        setUi({ overlay: { kind: 'ruleFromMail', threadId: item.thread.id } });
+      },
     };
     void showMenu(event, threadMenuItems(actionView(view, item), item.thread)).then((id) => {
       if (id === null) {

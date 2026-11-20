@@ -122,6 +122,17 @@ export function AutomationDetail({
         </p>
       )}
       <footer className="au-foot">
+        {!rule.saved && isComplete(rule) ? (
+          <Button
+            variant="primary"
+            disabled={disabled}
+            onClick={() => {
+              onChange({});
+            }}
+          >
+            Uložiť pravidlo
+          </Button>
+        ) : null}
         {rule.saved && input.id !== undefined ? (
           <ApplyToExisting
             automationId={input.id}

@@ -43,6 +43,7 @@ export type OverlayState =
   | { readonly kind: 'remind'; readonly threadId: ThreadId; readonly anchor: AnchorRect }
   | { readonly kind: 'move'; readonly threadId: ThreadId }
   | { readonly kind: 'labels'; readonly threadId: ThreadId }
+  | { readonly kind: 'ruleFromMail'; readonly threadId: ThreadId }
   | { readonly kind: 'accounts'; readonly anchor: AnchorRect };
 
 export interface ReplyState {

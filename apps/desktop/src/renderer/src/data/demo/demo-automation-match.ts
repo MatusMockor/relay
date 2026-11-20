@@ -7,6 +7,7 @@ import {
   type Message,
   subjectContains,
 } from '@relay/shared';
+import { demoHeaderValues } from './demo-message-headers';
 import type { DemoThreadRecord } from './demo-state';
 
 const inDomain = (email: string, domain: string): boolean => {
@@ -67,8 +68,11 @@ const matchesCondition = (
       return subjectContains(message.subject, condition.value);
     case 'jira':
       return matchesJira(condition.projectKeys, jiraKey);
-    case 'jiraEvent':
     case 'header':
+      return demoHeaderValues(message, condition.name).some((value) =>
+        safeTest(condition.pattern, value),
+      );
+    case 'jiraEvent':
       return false;
   }
 };
