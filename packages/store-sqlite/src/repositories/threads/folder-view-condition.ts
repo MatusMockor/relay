@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
+export const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
 const withoutExclusiveSplits = sql`not exists (select 1 from ${threadSplits} inner join ${splits} on ${splits.id} = ${threadSplits.splitId} where ${threadSplits.threadId} = ${threads.id} and ${splits.exclusive} = 1)`;
 

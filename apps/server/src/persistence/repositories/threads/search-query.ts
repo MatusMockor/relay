@@ -15,14 +15,19 @@ export const toSearchTerms = (search: string | null): string[] => {
     .slice(0, MAX_TERMS);
 };
 
-export const prefixTsQuery = (terms: readonly string[]): SQL => {
+export type SearchWeight = 'A' | 'B';
+
+export const prefixTsQuery = (
+  terms: readonly string[],
+  weight: SearchWeight | null = null,
+): SQL => {
   const values = sql.join(
     terms.map((term) => sql`${term}`),
     sql`, `,
   );
   return sql`to_tsquery('simple', (
     select string_agg(
-      '''' || replace(replace(relay_search_text(term), '\\', '\\\\'), '''', '''''') || ''':*',
+      '''' || replace(replace(relay_search_text(term), '\\', '\\\\'), '''', '''''') || ''':*' || ${weight ?? ''},
       ' & '
     )
     from unnest(array[${values}]::text[]) as term

@@ -8,6 +8,7 @@ import {
 } from '@relay/shared/domain';
 import type { ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { ThreadSearchMatch } from './thread-search-match';
 
 const unheld = (thread: ThreadSummary): boolean => !isHeldThreadState(thread.state);
 
@@ -18,8 +19,10 @@ type ViewPredicate = (userId: UserId, thread: ThreadSummary, query: ThreadFolder
 
 export class ThreadFolderFilter {
   private readonly views: Record<FolderView, ViewPredicate>;
+  private readonly search: ThreadSearchMatch;
 
   constructor(private readonly db: MemoryDatabase) {
+    this.search = new ThreadSearchMatch(db);
     this.views = {
       inbox: (userId, thread, query) =>
         thread.state === 'inbox' &&
@@ -44,6 +47,19 @@ export class ThreadFolderFilter {
     if (query.accountId !== null && thread.accountId !== query.accountId) {
       return false;
     }
+    if (query.unread === true && !thread.unread) {
+      return false;
+    }
+    if (!this.search.matches(thread, query)) {
+      return false;
+    }
+    if (query.everywhere === true) {
+      return unheld(thread);
+    }
+    return this.inScope(userId, thread, query);
+  }
+
+  private inScope(userId: UserId, thread: ThreadSummary, query: ThreadFolderQuery): boolean {
     if (query.splitId !== null && !this.visibleInSplit(userId, thread, query.splitId)) {
       return false;
     }
@@ -53,20 +69,7 @@ export class ThreadFolderFilter {
     if (query.mailboxId !== null && !this.hasMessageIn(thread, query.mailboxId)) {
       return false;
     }
-    if (query.search !== null && !this.matchesSearch(thread, query.search)) {
-      return false;
-    }
     return this.views[query.view](userId, thread, query);
-  }
-
-  private matchesSearch(thread: ThreadSummary, search: string): boolean {
-    const needle = search.toLowerCase();
-    const haystack = [
-      thread.subject,
-      thread.snippet,
-      ...thread.participants.flatMap((address) => [address.email, address.name ?? '']),
-    ];
-    return haystack.some((value) => value.toLowerCase().includes(needle));
   }
 
   private inExclusiveSplit(userId: UserId, thread: ThreadSummary): boolean {

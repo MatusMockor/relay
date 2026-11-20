@@ -15,11 +15,13 @@ import {
   ThreadSummarySchema,
 } from '../../domain/thread';
 import { ThreadActionSchema } from '../../domain/thread-action';
+import { ThreadSearchFieldSchema } from '../../domain/thread-search-field';
 import { TimeZoneSchema } from '../../domain/time-zone';
 import { UnsubscribeOptionsSchema, UnsubscribeRequestSchema } from '../../domain/unsubscribe';
 import { idParamsOf, OkResponseSchema } from '../common';
 import { defineEndpoint } from '../endpoint';
 import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
+import { QueryBooleanSchema } from '../query-boolean';
 
 const folderScopeShape = {
   view: FolderViewSchema,
@@ -46,6 +48,10 @@ const requireFolderTarget = (
 export const ThreadListQuerySchema = CursorPaginationQuerySchema.extend({
   ...folderScopeShape,
   q: z.string().trim().min(1).max(500).optional(),
+  searchField: ThreadSearchFieldSchema.optional(),
+  everywhere: QueryBooleanSchema.optional(),
+  hasAttachment: QueryBooleanSchema.optional(),
+  unread: QueryBooleanSchema.optional(),
 }).superRefine(requireFolderTarget);
 export type ThreadListQuery = z.infer<typeof ThreadListQuerySchema>;
 
