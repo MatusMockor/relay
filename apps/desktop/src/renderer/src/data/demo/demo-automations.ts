@@ -14,6 +14,7 @@ import { createDemoAutomationPreview } from './demo-automation-preview';
 import type { DemoState } from './demo-state';
 import { automationId, jiraTasksPreset } from './seed/automations';
 import { demoIds } from './seed/ids';
+import { settled } from './settled';
 
 type DemoAutomationMethods = Pick<
   Organizer,
@@ -23,14 +24,6 @@ type DemoAutomationMethods = Pick<
   | 'applyAutomation'
   | 'previewAutomation'
 >;
-
-const settled = <Result>(work: () => Result): Promise<Result> => {
-  try {
-    return Promise.resolve(work());
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
-  }
-};
 
 const UNSUPPORTED_EXCEPTION_MESSAGE =
   'Ukážka nevie vyhodnotiť výnimku na Jira udalosť ani na hlavičku mailu.';
