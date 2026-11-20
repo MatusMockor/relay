@@ -8,22 +8,22 @@ import {
 } from '@relay/shared/domain';
 import type { ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { hasSearchTerms, ThreadSearchMatch } from './thread-search-match';
 
 const unheld = (thread: ThreadSummary): boolean => !isHeldThreadState(thread.state);
-
-const searching = (query: ThreadFolderQuery): boolean =>
-  query.search !== null && query.search.trim() !== '';
 
 type ViewPredicate = (userId: UserId, thread: ThreadSummary, query: ThreadFolderQuery) => boolean;
 
 export class ThreadFolderFilter {
   private readonly views: Record<FolderView, ViewPredicate>;
+  private readonly search: ThreadSearchMatch;
 
   constructor(private readonly db: MemoryDatabase) {
+    this.search = new ThreadSearchMatch(db);
     this.views = {
       inbox: (userId, thread, query) =>
         thread.state === 'inbox' &&
-        (query.splitId !== null || searching(query) || !this.inExclusiveSplit(userId, thread)),
+        (query.splitId !== null || hasSearchTerms(query) || !this.inExclusiveSplit(userId, thread)),
       done: (_userId, thread) => thread.state === 'done',
       trash: (_userId, thread) => thread.state === 'trash',
       spam: (_userId, thread) => thread.state === 'spam',
@@ -44,6 +44,19 @@ export class ThreadFolderFilter {
     if (query.accountId !== null && thread.accountId !== query.accountId) {
       return false;
     }
+    if (query.unread === true && !thread.unread) {
+      return false;
+    }
+    if (!this.search.matches(thread, query)) {
+      return false;
+    }
+    if (query.everywhere === true) {
+      return unheld(thread);
+    }
+    return this.inScope(userId, thread, query);
+  }
+
+  private inScope(userId: UserId, thread: ThreadSummary, query: ThreadFolderQuery): boolean {
     if (query.splitId !== null && !this.visibleInSplit(userId, thread, query.splitId)) {
       return false;
     }
@@ -53,20 +66,7 @@ export class ThreadFolderFilter {
     if (query.mailboxId !== null && !this.hasMessageIn(thread, query.mailboxId)) {
       return false;
     }
-    if (query.search !== null && !this.matchesSearch(thread, query.search)) {
-      return false;
-    }
     return this.views[query.view](userId, thread, query);
-  }
-
-  private matchesSearch(thread: ThreadSummary, search: string): boolean {
-    const needle = search.toLowerCase();
-    const haystack = [
-      thread.subject,
-      thread.snippet,
-      ...thread.participants.flatMap((address) => [address.email, address.name ?? '']),
-    ];
-    return haystack.some((value) => value.toLowerCase().includes(needle));
   }
 
   private inExclusiveSplit(userId: UserId, thread: ThreadSummary): boolean {

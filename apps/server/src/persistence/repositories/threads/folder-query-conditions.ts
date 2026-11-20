@@ -3,8 +3,9 @@ import type { UserId } from '@relay/shared/domain';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { messageLabels, messages, splits, threadSplits, threads } from '../../schema';
 import type { CursorPayload } from '../../support/cursor';
-import { folderViewFilter, hasOpenTask } from './folder-view-filters';
-import { prefixTsQuery, toSearchTerms } from './search-query';
+import { folderViewFilter, hasOpenTask, notHeld } from './folder-view-filters';
+import { toSearchTerms } from './search-query';
+import { threadMessageFilter } from './thread-message-filter';
 
 const splitFilter = (query: ThreadFolderQuery): SQL | undefined => {
   if (query.splitId === null) {
@@ -39,23 +40,27 @@ const mailboxFilter = (query: ThreadFolderQuery): SQL | undefined => {
   )`;
 };
 
-const searchFilter = (query: ThreadFolderQuery): SQL | undefined => {
-  const terms = toSearchTerms(query.search);
-  if (terms.length === 0) {
-    return undefined;
-  }
-  return sql`exists(
-    select 1 from ${messages}
-    where ${messages.threadId} = ${threads.id}
-      and ${messages.searchVector} @@ ${prefixTsQuery(terms)}
-  )`;
-};
-
 const cursorFilter = (cursor: CursorPayload | null): SQL | undefined => {
   if (cursor === null) {
     return undefined;
   }
   return sql`(${threads.lastMessageAt}, ${threads.id}) < (${cursor.t}::timestamptz, ${cursor.id})`;
+};
+
+const folderScopeFilter = (query: ThreadFolderQuery): SQL | undefined => {
+  if (query.everywhere === true) {
+    return notHeld;
+  }
+  return and(
+    folderViewFilter({
+      view: query.view,
+      splitSelected: query.splitId !== null,
+      searching: toSearchTerms(query.search).length > 0,
+    }),
+    splitFilter(query),
+    labelFilter(query),
+    mailboxFilter(query),
+  );
 };
 
 export const folderQueryConditions = (
@@ -66,14 +71,8 @@ export const folderQueryConditions = (
   and(
     eq(threads.userId, userId),
     query.accountId === null ? undefined : eq(threads.accountId, query.accountId),
-    folderViewFilter({
-      view: query.view,
-      splitSelected: query.splitId !== null,
-      searching: toSearchTerms(query.search).length > 0,
-    }),
-    splitFilter(query),
-    labelFilter(query),
-    mailboxFilter(query),
-    searchFilter(query),
+    folderScopeFilter(query),
+    query.unread === true ? eq(threads.unread, true) : undefined,
+    threadMessageFilter(query),
     cursorFilter(cursor),
   );

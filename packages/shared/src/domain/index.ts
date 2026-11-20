@@ -30,6 +30,7 @@ export * from './settings';
 export * from './split';
 export * from './task';
 export * from './held-thread-state';
+export * from './thread-search-field';
 export * from './theme';
 export * from './thread';
 export * from './thread-action';

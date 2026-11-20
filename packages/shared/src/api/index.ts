@@ -21,4 +21,5 @@ export * from './endpoints/tasks';
 export * from './endpoints/threads';
 export * from './errors';
 export * from './pagination';
+export * from './query-boolean';
 export * from './request';
