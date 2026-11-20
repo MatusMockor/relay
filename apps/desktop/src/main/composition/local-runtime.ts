@@ -1,4 +1,4 @@
-import { type AiRunnerRegistry, type Clock, type Logger } from '@relay/engine';
+import { type AiRunnerRegistry, type Clock, type HistoryOptions, type Logger } from '@relay/engine';
 import { createCliRunnerRegistry } from '@relay/ai';
 import { engineMailToolBackend } from '@relay/mcp-mail';
 import { LOCAL_USER_ID } from '@relay/store-sqlite';
@@ -59,6 +59,7 @@ export interface LocalRuntimeInput {
   readonly verifyGoogleAccounts?: boolean;
   readonly serverFetch?: FetchLike;
   readonly historyCadence?: Partial<HistoryCadence>;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export interface LocalRuntime {
@@ -106,6 +107,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     aiRunners,
     mailTools: mailTools?.endpoint ?? null,
     allowPlaintextMail: input.allowPlaintextMail ?? false,
+    ...(input.historyOptions === undefined ? {} : { historyOptions: input.historyOptions }),
     calendarFetch: calendarFetchEnv(input.env),
     googleCalendar: createGoogleCalendarAdapters({
       configSource: googleClient,
@@ -137,6 +139,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     hub: infrastructure.hub,
     power: input.power,
     timers: input.timers,
+    clock: input.clock,
     logger: input.logger,
   });
   const history = new HistoryProgressSource(

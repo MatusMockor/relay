@@ -1,5 +1,5 @@
 import { DefaultAiRunnerRegistry } from '@relay/ai';
-import type { AiRunnerRegistry } from '@relay/engine';
+import type { AiRunnerRegistry, HistoryOptions } from '@relay/engine';
 import { SQLITE_MIGRATIONS_FOLDER } from '@relay/store-sqlite';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { RelayBridge } from '@relay/shared/ipc';
@@ -36,6 +36,7 @@ export interface LocalRuntimeHarnessOptions {
   readonly timers?: Timers;
   readonly cipher?: AesTestCipher;
   readonly historyCadence?: Partial<HistoryCadence>;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export const startLocalRuntime = (
@@ -60,6 +61,7 @@ export const startLocalRuntime = (
         ? { command: process.execPath, args: ['relay-mail-mcp.js'], env: { RELAY_TEST: '1' } }
         : null,
     ...(options.historyCadence === undefined ? {} : { historyCadence: options.historyCadence }),
+    ...(options.historyOptions === undefined ? {} : { historyOptions: options.historyOptions }),
   });
   const routers = composeIpc({
     app: {

@@ -14,12 +14,18 @@ import { seedImapAccount } from './support/seed-account';
 import { createTempDir, type TempDir } from './support/temp-dir';
 
 const DAY_MS = 86_400_000;
+const PERF = process.env.RELAY_PERF === '1';
+const SIZES = PERF
+  ? { inbox: 300, archive: 2_500, projects: 200 }
+  : { inbox: 60, archive: 300, projects: 40 };
+const HISTORY_OPTIONS = PERF ? undefined : { sliceMessages: 100 };
 const SEED: readonly SeedSpec[] = [
-  { path: 'INBOX', count: 300, prefix: 'inbox' },
-  { path: 'Archive', count: 2_500, prefix: 'arch', chains: true },
-  { path: 'Projekty', count: 200, prefix: 'proj' },
+  { path: 'INBOX', count: SIZES.inbox, prefix: 'inbox' },
+  { path: 'Archive', count: SIZES.archive, prefix: 'arch', chains: true },
+  { path: 'Projekty', count: SIZES.projects, prefix: 'proj' },
 ];
 const TOTAL = SEED.reduce((sum, spec) => sum + spec.count, 0);
+const TEST_TIMEOUT_MS = PERF ? 240_000 : 60_000;
 const STEP_MS = 2_000;
 const RECHECK_MS = 15 * 60_000;
 
@@ -41,6 +47,7 @@ const startRig = (dir: TempDir): Rig => {
     timers: time,
     cipher,
     historyCadence: { startDelayMs: 0 },
+    ...(HISTORY_OPTIONS === undefined ? {} : { historyOptions: HISTORY_OPTIONS }),
   });
   return { time, harness };
 };
@@ -135,120 +142,143 @@ describe('history backfill on desktop (SQLite + GreenMail)', () => {
     await dir.remove();
   });
 
-  it('downloads the whole history quietly while new mail still arrives first', async () => {
-    const { account, initial } = await connect(rig, mailbox);
-    const tasksBefore = scalar(rig, 'select count(*) as n from tasks');
-    const aiJobsBefore = scalar(rig, 'select count(*) as n from ai_jobs');
-    const historyAiJobs =
-      "select count(*) as n from ai_jobs where thread_id is null or thread_id not in (select thread_id from messages where subject = 'Nová počas histórie')";
-    rig.harness.events.length = 0;
-    const first = await runToDone(rig, 1);
-    expect(first.at(-1)?.state).toBe('running');
+  it(
+    'downloads the whole history quietly while new mail still arrives first',
+    async () => {
+      const { account, initial } = await connect(rig, mailbox);
+      const tasksBefore = scalar(rig, 'select count(*) as n from tasks');
+      const aiJobsBefore = scalar(rig, 'select count(*) as n from ai_jobs');
+      const historyAiJobs =
+        "select count(*) as n from ai_jobs where thread_id is null or thread_id not in (select thread_id from messages where subject = 'Nová počas histórie')";
+      rig.harness.events.length = 0;
+      const first = await runToDone(rig, 1);
+      expect(first.at(-1)?.state).toBe('running');
 
-    await rig.time.advance(STEP_MS);
-    await deliverMail(mailbox, {
-      from: 'Eva <eva@firma.test>',
-      subject: 'Nová počas histórie',
-      text: 'Ahoj',
-    });
-    expectOk(await rig.harness.bridge.invoke('local.sync.now', { accountId: account.id }));
-    const inbox = expectOk(
-      await rig.harness.bridge.invoke('local.threads.list', { view: 'inbox' }),
-    );
-    expect(inbox.items.map((thread) => thread.subject)).toContain('Nová počas histórie');
-    await rig.harness.runtime.background.history.idle();
-
-    const seen = [...first, ...(await runToDone(rig))];
-
-    const stored = seen.map((progress) => progress.stored);
-    expect(stored).toEqual([...stored].sort((left, right) => left - right));
-    expect(seen.at(-1)).toEqual({
-      accountId: account.id,
-      stored: TOTAL + 1,
-      total: TOTAL + 1,
-      state: 'done',
-    });
-    expect(countsByPath(rig)).toEqual({ INBOX: 301, Archive: 2_500, Projekty: 200 });
-    const states = rows<{ location: string; state: string; ts: number }>(
-      rig,
-      "select mailbox_id || ':' || uid as location, body_state as state, date_ts as ts from messages",
-    );
-    const history = states.filter((row) => !initial.has(row.location));
-    expect(history.length).toBeGreaterThan(2_500);
-    expect(history.filter((row) => row.state !== 'remote')).toEqual([
-      expect.objectContaining({ state: 'local' }),
-    ]);
-    expect(states.filter((row) => initial.has(row.location) && row.state !== 'local')).toEqual([]);
-    expect(history.every((row) => row.ts < Date.now() - 29 * DAY_MS || row.state === 'local')).toBe(
-      true,
-    );
-
-    const threadOf = new Map(
-      rows<{ id: string; thread: string }>(
-        rig,
-        "select m.message_id_header as id, m.thread_id as thread from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Archive'",
-      ).map((row) => [row.id, row.thread]),
-    );
-    const chainThreads = new Set<string | undefined>();
-    const split: number[] = [];
-    for (let root = 0; root + 2 < 2_500; root += 3) {
-      const thread = threadOf.get(`<arch-${String(root)}@hist.test>`);
-      const replies = [root + 1, root + 2].map((index) =>
-        threadOf.get(`<arch-${String(index)}@hist.test>`),
+      await rig.time.advance(STEP_MS);
+      await deliverMail(mailbox, {
+        from: 'Eva <eva@firma.test>',
+        subject: 'Nová počas histórie',
+        text: 'Ahoj',
+      });
+      expectOk(await rig.harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+      const inbox = expectOk(
+        await rig.harness.bridge.invoke('local.threads.list', { view: 'inbox' }),
       );
-      if (replies.some((reply) => reply !== thread)) {
-        split.push(root);
-      }
-      chainThreads.add(thread);
-    }
-    expect(split).toEqual([]);
-    expect(chainThreads.size).toBe(833);
+      expect(inbox.items.map((thread) => thread.subject)).toContain('Nová počas histórie');
+      await rig.harness.runtime.background.history.idle();
 
-    expect(scalar(rig, 'select count(*) as n from tasks')).toBe(tasksBefore);
-    expect(scalar(rig, historyAiJobs)).toBe(aiJobsBefore);
-    const types = new Set(rig.harness.events.map((event) => event.type));
-    expect(types.has('automation.notified')).toBe(false);
-    expect(types.has('task.upserted')).toBe(false);
-    expect(types.has('sync.history')).toBe(true);
-    const upserted = rig.harness.events.flatMap((event) =>
-      event.type === 'thread.upserted' ? [event.data.thread.subject] : [],
-    );
-    expect(new Set(upserted)).toEqual(new Set(['Nová počas histórie']));
-  }, 240_000);
+      const seen = [...first, ...(await runToDone(rig))];
 
-  it('resumes after a restart without duplicates and restarts a recreated folder', async () => {
-    const { account } = await connect(rig, mailbox);
-    const partial = await runToDone(rig, 2);
-    expect(partial.at(-1)?.state).toBe('running');
-    await rig.harness.close();
-
-    rig = startRig(dir);
-    await rig.harness.runtime.background.start();
-    const resumed = await runToDone(rig);
-    expect(resumed.at(-1)?.state).toBe('done');
-    expect(countsByPath(rig)).toEqual({ INBOX: 300, Archive: 2_500, Projekty: 200 });
-    expect(
-      rows(
+      const stored = seen.map((progress) => progress.stored);
+      expect(stored).toEqual([...stored].sort((left, right) => left - right));
+      expect(seen.at(-1)).toEqual({
+        accountId: account.id,
+        stored: TOTAL + 1,
+        total: TOTAL + 1,
+        state: 'done',
+      });
+      expect(countsByPath(rig)).toEqual({
+        INBOX: SIZES.inbox + 1,
+        Archive: SIZES.archive,
+        Projekty: SIZES.projects,
+      });
+      const states = rows<{ location: string; state: string; ts: number }>(
         rig,
-        'select mailbox_id, message_id_header, count(*) as n from messages group by 1, 2 having n > 1',
-      ),
-    ).toEqual([]);
+        "select mailbox_id || ':' || uid as location, body_state as state, date_ts as ts from messages",
+      );
+      const history = states.filter((row) => !initial.has(row.location));
+      expect(history).toHaveLength(TOTAL + 1 - initial.size);
+      expect(history.length).toBeGreaterThan(SIZES.archive);
+      expect(history.filter((row) => row.state !== 'remote')).toEqual([
+        expect.objectContaining({ state: 'local' }),
+      ]);
+      expect(states.filter((row) => initial.has(row.location) && row.state !== 'local')).toEqual(
+        [],
+      );
+      expect(
+        history.every((row) => row.ts < Date.now() - 29 * DAY_MS || row.state === 'local'),
+      ).toBe(true);
 
-    await withImap(mailbox, async (client) => {
-      await client.mailboxDelete('Projekty');
-      await seedMailbox(client, mailbox.email, { path: 'Projekty', count: 200, prefix: 'proj2' });
-    });
-    expectOk(await rig.harness.bridge.invoke('local.sync.now', { accountId: account.id }));
-    expect((await progressOf(rig)).state).toBe('running');
-    await step(rig, RECHECK_MS);
-    const restarted = await runToDone(rig);
+      const threadOf = new Map(
+        rows<{ id: string; thread: string }>(
+          rig,
+          "select m.message_id_header as id, m.thread_id as thread from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Archive'",
+        ).map((row) => [row.id, row.thread]),
+      );
+      const chainThreads = new Set<string | undefined>();
+      const split: number[] = [];
+      for (let root = 0; root + 2 < SIZES.archive; root += 3) {
+        const thread = threadOf.get(`<arch-${String(root)}@hist.test>`);
+        const replies = [root + 1, root + 2].map((index) =>
+          threadOf.get(`<arch-${String(index)}@hist.test>`),
+        );
+        if (replies.some((reply) => reply !== thread)) {
+          split.push(root);
+        }
+        chainThreads.add(thread);
+      }
+      expect(split).toEqual([]);
+      expect(chainThreads.size).toBe(Math.ceil((SIZES.archive - 2) / 3));
 
-    expect(restarted.at(-1)).toMatchObject({ stored: TOTAL, total: TOTAL, state: 'done' });
-    const projects = rows<{ id: string }>(
-      rig,
-      "select m.message_id_header as id from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Projekty'",
-    ).map((row) => row.id);
-    expect(projects).toHaveLength(200);
-    expect(projects.every((id) => id.startsWith('<proj2-'))).toBe(true);
-  }, 240_000);
+      expect(scalar(rig, 'select count(*) as n from tasks')).toBe(tasksBefore);
+      expect(scalar(rig, historyAiJobs)).toBe(aiJobsBefore);
+      const types = new Set(rig.harness.events.map((event) => event.type));
+      expect(types.has('automation.notified')).toBe(false);
+      expect(types.has('task.upserted')).toBe(false);
+      expect(types.has('sync.history')).toBe(true);
+      const upserted = rig.harness.events.flatMap((event) =>
+        event.type === 'thread.upserted' ? [event.data.thread.subject] : [],
+      );
+      expect(new Set(upserted)).toEqual(new Set(['Nová počas histórie']));
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
+    'resumes after a restart without duplicates and restarts a recreated folder',
+    async () => {
+      const { account } = await connect(rig, mailbox);
+      const partial = await runToDone(rig, 2);
+      expect(partial.at(-1)?.state).toBe('running');
+      await rig.harness.close();
+
+      rig = startRig(dir);
+      await rig.harness.runtime.background.start();
+      const resumed = await runToDone(rig);
+      expect(resumed.at(-1)?.state).toBe('done');
+      expect(countsByPath(rig)).toEqual({
+        INBOX: SIZES.inbox,
+        Archive: SIZES.archive,
+        Projekty: SIZES.projects,
+      });
+      expect(
+        rows(
+          rig,
+          'select mailbox_id, message_id_header, count(*) as n from messages group by 1, 2 having n > 1',
+        ),
+      ).toEqual([]);
+
+      await withImap(mailbox, async (client) => {
+        await client.mailboxDelete('Projekty');
+        await seedMailbox(client, mailbox.email, {
+          path: 'Projekty',
+          count: SIZES.projects,
+          prefix: 'proj2',
+        });
+      });
+      expectOk(await rig.harness.bridge.invoke('local.sync.now', { accountId: account.id }));
+      expect((await progressOf(rig)).state).toBe('running');
+      await step(rig, RECHECK_MS);
+      const restarted = await runToDone(rig);
+
+      expect(restarted.at(-1)).toMatchObject({ stored: TOTAL, total: TOTAL, state: 'done' });
+      const projects = rows<{ id: string }>(
+        rig,
+        "select m.message_id_header as id from messages m join mailboxes b on b.id = m.mailbox_id where b.path = 'Projekty'",
+      ).map((row) => row.id);
+      expect(projects).toHaveLength(SIZES.projects);
+      expect(projects.every((id) => id.startsWith('<proj2-'))).toBe(true);
+    },
+    TEST_TIMEOUT_MS,
+  );
 });

@@ -81,16 +81,17 @@ export const createSyncComponents = (
     logger,
     options,
   });
+  const scans = new ReconcileScans({
+    history: deps.historyBackfills ?? null,
+    clock,
+    options: options.reconcile,
+  });
   const reconciler = new MailboxReconciler({
     messages: repositories.messages,
     syncStates: repositories.syncStates,
     unitOfWork,
     labelsResolver,
-    scans: new ReconcileScans({
-      history: deps.historyBackfills ?? null,
-      clock,
-      options: options.reconcile,
-    }),
+    scans,
   });
   const mailboxSync = new MailboxSynchronizer({
     mailboxes: repositories.mailboxes,
@@ -131,6 +132,7 @@ export const createSyncComponents = (
     rescans,
     mailboxEvents,
     mailboxSync,
+    scans,
     initialSync: fetchers.initialSync,
     flusher,
     backfill: shared.backfill,

@@ -102,6 +102,9 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     event.type === 'account.status'
   ) {
     invalidate(client, queryKeys.accounts());
+    if (event.type !== 'account.status') {
+      invalidate(client, queryKeys.historyProgress());
+    }
     if (event.type === 'account.removed') {
       invalidate(client, queryKeys.allMailboxes());
       invalidate(client, calendarKeys.all());

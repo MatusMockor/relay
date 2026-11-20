@@ -1,4 +1,4 @@
-import type { HistorySliceReport, Logger } from '@relay/engine';
+import type { Clock, HistorySliceReport, Logger } from '@relay/engine';
 import type { AccountId, MailAccount } from '@relay/shared/domain';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { EventHub } from '../events/event-hub';
@@ -24,6 +24,7 @@ export interface LocalBackgroundDeps {
   readonly hub: EventHub<RealtimeEvent>;
   readonly power: PowerEvents;
   readonly timers: Timers;
+  readonly clock: Clock;
   readonly logger: Logger;
   readonly dueIntervalMs?: number;
 }
@@ -58,6 +59,7 @@ export const createLocalBackground = (deps: LocalBackgroundDeps): LocalBackgroun
     listAccounts: deps.listAccounts,
     backfill: deps.backfillHistory,
     timers: deps.timers,
+    clock: deps.clock,
     logger: logger.child({ worker: 'history' }),
     ...(deps.historyCadence === undefined ? {} : { cadence: deps.historyCadence }),
     ...(deps.onHistoryState === undefined ? {} : { onState: deps.onHistoryState }),

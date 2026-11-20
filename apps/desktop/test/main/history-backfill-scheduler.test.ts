@@ -20,6 +20,11 @@ const slice = (more: boolean): HistorySliceReport => ({
 
 type Outcome = HistorySliceReport | Error;
 
+const throttled = (): ProviderError =>
+  new ProviderError('Mailbox unavailable', {
+    cause: Object.assign(new Error('Command failed'), { serverResponseCode: 'OVERQUOTA' }),
+  });
+
 const setup = (outcomes: Outcome[], accounts: AccountId[] = [accountA]) => {
   const time = new ManualTime();
   const calls: { accountId: AccountId; at: number }[] = [];
@@ -34,6 +39,7 @@ const setup = (outcomes: Outcome[], accounts: AccountId[] = [accountA]) => {
       return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
     },
     timers: time,
+    clock: time,
     logger: createTestLogger().logger,
     cadence: { startDelayMs: 0 },
     onState: (accountId, state) => states.push({ accountId, state }),
@@ -97,10 +103,7 @@ describe('HistoryBackfillScheduler', () => {
   });
 
   it('pauses for an hour when the server throttles', async () => {
-    const throttled = new ProviderError('Mailbox unavailable', {
-      cause: Object.assign(new Error('Command failed'), { serverResponseCode: 'OVERQUOTA' }),
-    });
-    const { time, calls, scheduler } = setup([throttled]);
+    const { time, calls, scheduler } = setup([throttled()]);
     await scheduler.start();
     await time.advance(0);
     expect(scheduler.stateOf(accountA)).toBe('paused');
@@ -108,6 +111,42 @@ describe('HistoryBackfillScheduler', () => {
     expect(calls).toHaveLength(1);
     await time.advance(1);
     expect(calls).toHaveLength(2);
+    await scheduler.stop();
+  });
+
+  it('keeps the throttling pause across a suspend and resume', async () => {
+    const { time, calls, scheduler } = setup([throttled()]);
+    await scheduler.start();
+    await time.advance(0);
+    await time.advance(70_000);
+    await scheduler.stop();
+
+    await scheduler.start();
+    expect(scheduler.stateOf(accountA)).toBe('paused');
+    await time.advance(60 * 60_000 - 70_001);
+    expect(calls).toHaveLength(1);
+    await time.advance(1);
+    expect(calls.map((call) => call.at)).toEqual([0, 60 * 60_000]);
+    await scheduler.stop();
+  });
+
+  it('keeps the error backoff when the account loop is recreated', async () => {
+    const failure = new ProviderError('Connection reset');
+    const { time, calls, scheduler, setAccounts } = setup([failure, failure, failure]);
+    await scheduler.start();
+    await time.advance(0);
+    await time.advance(30_000);
+    setAccounts([]);
+    await scheduler.reconcile();
+    setAccounts([accountA]);
+    await scheduler.reconcile();
+
+    expect(scheduler.stateOf(accountA)).toBe('error');
+    await time.advance(60_000);
+    await time.advance(120_000 - 1);
+    expect(calls.map((call) => call.at)).toEqual([0, 30_000, 90_000]);
+    await time.advance(1);
+    expect(calls.map((call) => call.at)).toEqual([0, 30_000, 90_000, 210_000]);
     await scheduler.stop();
   });
 

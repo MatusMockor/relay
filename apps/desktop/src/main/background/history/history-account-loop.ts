@@ -7,6 +7,7 @@ import {
   stepAfterError,
   stepAfterReport,
 } from './history-cadence';
+import type { HistoryHold } from './history-holds';
 
 export interface HistoryAccountLoopDeps {
   readonly slice: () => Promise<HistorySliceReport>;
@@ -14,16 +15,21 @@ export interface HistoryAccountLoopDeps {
   readonly timers: Timers;
   readonly logger: Logger;
   readonly onState: (state: HistoryLoopState) => void;
+  readonly hold: HistoryHold;
+  readonly onStep: (step: HistoryStep, failures: number) => void;
 }
 
 export class HistoryAccountLoop {
   private timer: TimerHandle | null = null;
   private current: Promise<void> | null = null;
   private active = false;
-  private failures = 0;
-  private status: HistoryLoopState = 'running';
+  private failures: number;
+  private status: HistoryLoopState;
 
-  constructor(private readonly deps: HistoryAccountLoopDeps) {}
+  constructor(private readonly deps: HistoryAccountLoopDeps) {
+    this.failures = deps.hold.failures;
+    this.status = deps.hold.state;
+  }
 
   get state(): HistoryLoopState {
     return this.status;
@@ -67,6 +73,7 @@ export class HistoryAccountLoop {
         (report) => this.succeeded(report),
         (error: unknown) => this.failed(error),
       );
+    this.deps.onStep(step, this.failures);
     this.enter(step.state);
     if (this.stopped() || step.delayMs === null) {
       return;

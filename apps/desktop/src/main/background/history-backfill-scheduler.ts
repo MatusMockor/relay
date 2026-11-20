@@ -1,4 +1,4 @@
-import type { HistorySliceReport, Logger } from '@relay/engine';
+import type { Clock, HistorySliceReport, Logger } from '@relay/engine';
 import type { AccountId } from '@relay/shared/domain';
 import type { Timers } from '../platform/timers';
 import type { BackgroundWorker } from './background-worker';
@@ -8,11 +8,13 @@ import {
   type HistoryCadence,
   type HistoryLoopState,
 } from './history/history-cadence';
+import { HistoryHolds } from './history/history-holds';
 
 export interface HistoryBackfillSchedulerDeps {
   readonly listAccounts: () => Promise<readonly { readonly id: AccountId }[]>;
   readonly backfill: (accountId: AccountId) => Promise<HistorySliceReport>;
   readonly timers: Timers;
+  readonly clock: Clock;
   readonly logger: Logger;
   readonly cadence?: Partial<HistoryCadence>;
   readonly onState?: (accountId: AccountId, state: HistoryLoopState) => void;
@@ -23,12 +25,14 @@ export class HistoryBackfillScheduler implements BackgroundWorker {
   private readonly loops = new Map<AccountId, HistoryAccountLoop>();
   private readonly draining = new Set<Promise<void>>();
   private readonly cadence: HistoryCadence;
+  private readonly holds: HistoryHolds;
   private running = false;
   private generation = 0;
   private reconciling: Promise<void> = Promise.resolve();
 
   constructor(private readonly deps: HistoryBackfillSchedulerDeps) {
     this.cadence = { ...DEFAULT_HISTORY_CADENCE, ...deps.cadence };
+    this.holds = new HistoryHolds(deps.clock);
   }
 
   async start(): Promise<void> {
@@ -93,9 +97,13 @@ export class HistoryBackfillScheduler implements BackgroundWorker {
       timers: this.deps.timers,
       logger: this.deps.logger.child({ accountId }),
       onState: (state) => this.deps.onState?.(accountId, state),
+      hold: this.holds.of(accountId),
+      onStep: (step, failures) => {
+        this.holds.keep(accountId, step, failures);
+      },
     });
     this.loops.set(accountId, loop);
-    loop.start(this.cadence.startDelayMs);
+    loop.start(this.holds.delayFor(accountId, this.cadence.startDelayMs));
   }
 
   private release(accountId: AccountId): void {

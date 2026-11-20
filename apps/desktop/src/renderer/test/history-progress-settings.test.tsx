@@ -1,58 +1,47 @@
 // @vitest-environment jsdom
-import { AccountIdSchema, type HistoryProgress, type RealtimeEvent } from '@relay/shared';
+import type { HistoryProgress, MailAccount } from '@relay/shared';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { MailClient, MailEventListener } from '../src/data/MailClient';
+import { createDemoMailClient } from '../src/data/demo/DemoMailClient';
+import { DemoHistory, type DemoHistorySeed } from '../src/data/demo/demo-history';
+import type { MailClient } from '../src/data/MailClient';
 import { setUi } from '../src/state/ui-store';
-import { demoClient } from './features-support';
+import { present } from './support/present';
 import { renderApp, resetStores } from './support/render-app';
 
-const ACCOUNT = AccountIdSchema.parse('acc-history');
 const NBSP = new RegExp(String.fromCharCode(0xa0), 'g');
 
-const progressOf = (patch: Partial<HistoryProgress>): HistoryProgress => ({
-  accountId: ACCOUNT,
-  stored: 12_340,
-  total: 48_000,
-  state: 'running',
-  ...patch,
-});
-
-const controlledClient = (kind: MailClient['kind'] = 'demo') => {
-  const listeners = new Set<MailEventListener>();
-  const control = { progress: [progressOf({})], calls: 0 };
-  const base = demoClient();
-  const client: MailClient = {
-    ...base,
-    kind,
-    historyProgress: () => {
-      control.calls += 1;
-      return Promise.resolve(control.progress);
-    },
-    subscribe: (listener) => {
-      listeners.add(listener);
-      const unsubscribe = base.subscribe(listener);
-      return () => {
-        listeners.delete(listener);
-        unsubscribe();
-      };
-    },
-  };
-  const publish = (progress: HistoryProgress) => {
-    control.progress = [progress];
-    const event: RealtimeEvent = {
-      type: 'sync.history',
-      at: new Date().toISOString(),
-      data: progress,
-    };
-    act(() => {
-      listeners.forEach((listener) => {
-        listener(event);
-      });
+const historyClient = (seed?: DemoHistorySeed) => {
+  const seen: MailAccount[] = [];
+  const history = new DemoHistory((accounts) => {
+    seen.splice(0, seen.length, ...accounts);
+    return seed === undefined ? [] : seed(accounts);
+  });
+  const client = createDemoMailClient({ aiStepMs: 0, history });
+  const progressOf = (patch: Partial<HistoryProgress>): HistoryProgress => ({
+    accountId: present(seen[0]).id,
+    stored: 12_340,
+    total: 48_000,
+    state: 'running',
+    ...patch,
+  });
+  const publish = async (patch: Partial<HistoryProgress>) => {
+    const progress = progressOf(patch);
+    await act(async () => {
+      history.publish(progress);
+      await Promise.resolve();
     });
   };
-  return { client, control, publish };
+  return { client, history, publish };
 };
+
+const firstRunning: DemoHistorySeed = (accounts) =>
+  accounts.slice(0, 1).map((account) => ({
+    accountId: account.id,
+    stored: 12_340,
+    total: 48_000,
+    state: 'running',
+  }));
 
 const openSync = async () => {
   await screen.findByRole('listbox', { name: 'Konverzácie' });
@@ -75,7 +64,7 @@ describe('older mail progress in sync settings', () => {
   });
 
   it('shows the download progress with Slovak number formatting and follows realtime updates', async () => {
-    const { client, publish } = controlledClient();
+    const { client, publish } = historyClient(firstRunning);
     renderApp({ demo: () => client });
     const sheet = await openSync();
 
@@ -84,36 +73,75 @@ describe('older mail progress in sync settings', () => {
     });
     expect(within(sheet).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('26');
 
-    publish(progressOf({ state: 'paused' }));
+    await publish({ state: 'paused' });
     await waitFor(() => {
       expect(historyText(sheet)).toContain('Pozastavené, skúsim znova o chvíľu');
     });
 
-    publish(progressOf({ stored: 48_000, state: 'done' }));
+    await publish({ stored: 24_000, state: 'running' });
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Sťahujem históriu: 24 000 z 48 000 správ');
+    });
+    expect(within(sheet).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
+
+    await publish({ stored: 30_000, state: 'error' });
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Pozastavené, skúsim znova o chvíľu');
+    });
+    expect(within(sheet).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('63');
+
+    await publish({ stored: 48_000, state: 'done' });
     await waitFor(() => {
       expect(historyText(sheet)).toContain('Celá história je stiahnutá');
     });
     expect(within(sheet).queryByRole('progressbar')).toBeNull();
   });
 
+  it('drops a removed account from the progress', async () => {
+    const accounts = await createDemoMailClient().listAccounts();
+    expect(accounts.length).toBeGreaterThan(1);
+    const removed = present(accounts[0]).id;
+    const { client } = historyClient((listed) =>
+      listed.map((account) => ({
+        accountId: account.id,
+        stored: account.id === removed ? 100 : 500,
+        total: 500,
+        state: account.id === removed ? 'running' : 'done',
+      })),
+    );
+    renderApp({ demo: () => client });
+    const sheet = await openSync();
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Sťahujem históriu');
+    });
+
+    await act(async () => {
+      await client.removeAccount(removed);
+    });
+
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Celá história je stiahnutá');
+    });
+  });
+
   it('hides the row in remote mode', async () => {
-    const remote = controlledClient('remote');
-    renderApp({ demo: () => remote.client });
+    const { client, history } = historyClient(firstRunning);
+    const remote: MailClient = { ...client, kind: 'remote' };
+    renderApp({ demo: () => remote });
     const sheet = await openSync();
     await waitFor(() => {
       expect(within(sheet).getByText('Skontrolovať teraz', { selector: 'b' })).toBeTruthy();
     });
     expect(within(sheet).queryByText('Staršia pošta')).toBeNull();
-    expect(remote.control.calls).toBe(0);
+    expect(history.reads).toBe(0);
   });
 
   it('hides the row when no account has history', async () => {
-    const empty = controlledClient();
-    empty.control.progress = [];
-    renderApp({ demo: () => empty.client });
+    const { client, history } = historyClient();
+    renderApp({ demo: () => client });
     const sheet = await openSync();
     await waitFor(() => {
-      expect(empty.control.calls).toBe(1);
+      expect(history.reads).toBe(1);
     });
     expect(within(sheet).queryByText('Staršia pošta')).toBeNull();
   });

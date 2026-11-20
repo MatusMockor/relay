@@ -1,4 +1,10 @@
-import type { AccountId, HistoryProgress, Mailbox, UserId } from '@relay/shared/domain';
+import type {
+  AccountId,
+  HistoryProgress,
+  Mailbox,
+  MailboxRole,
+  UserId,
+} from '@relay/shared/domain';
 import type { AccountRepository } from '../../../ports/account-repository';
 import type { HistoryBackfillRepository } from '../../../ports/history-backfill-repository';
 import type { MailboxRepository } from '../../../ports/mailbox-repository';
@@ -8,6 +14,7 @@ import { selectMailboxes } from '../mailbox-selection';
 import type { SyncOptions } from '../sync-options';
 import { historyComplete } from './history-complete';
 import { HISTORY_ROLE_ORDER } from './history-mailboxes';
+import { countedMailboxes } from './progress-mailboxes';
 
 export interface HistoryProgressDeps {
   readonly accounts: AccountRepository;
@@ -26,7 +33,9 @@ export class HistoryProgressReader {
   }
 
   async forAccount(userId: UserId, accountId: AccountId): Promise<HistoryProgress> {
-    const mailboxes = this.targets(await this.deps.mailboxes.listByAccount(userId, accountId));
+    const targets = this.targets(await this.deps.mailboxes.listByAccount(userId, accountId));
+    const mailboxes = targets.map(([mailbox]) => mailbox);
+    const counted = countedMailboxes(await this.deps.accounts.findById(userId, accountId), targets);
     const states = new Map(
       (await this.deps.syncStates.listByAccount(accountId)).map((state) => [
         state.mailboxId,
@@ -49,18 +58,18 @@ export class HistoryProgressReader {
     );
     return {
       accountId,
-      stored: mailboxes.reduce(
+      stored: counted.reduce(
         (sum, mailbox) => sum + Math.min(counts.get(mailbox.id) ?? 0, mailbox.totalCount),
         0,
       ),
-      total: mailboxes.reduce((sum, mailbox) => sum + mailbox.totalCount, 0),
+      total: counted.reduce((sum, mailbox) => sum + mailbox.totalCount, 0),
       state: done.length > 0 && done.every(Boolean) ? 'done' : 'running',
     };
   }
 
-  private targets(mailboxes: readonly Mailbox[]): Mailbox[] {
-    return selectMailboxes(mailboxes, this.deps.options)
-      .filter(([, role]) => HISTORY_ROLE_ORDER.includes(role))
-      .map(([mailbox]) => mailbox);
+  private targets(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {
+    return selectMailboxes(mailboxes, this.deps.options).filter(([, role]) =>
+      HISTORY_ROLE_ORDER.includes(role),
+    );
   }
 }

@@ -2,8 +2,10 @@ import {
   type AiMailToolsEndpoint,
   type AiRunnerRegistry,
   createEngineServices,
+  DEFAULT_HISTORY_OPTIONS,
   type EngineServices,
   type GoogleCalendarAdapters,
+  type HistoryOptions,
   type Repositories,
 } from '@relay/engine';
 import {
@@ -40,6 +42,7 @@ export interface LocalEngineInput {
   readonly calendarFetch?: Partial<FeedFetchOptions>;
   readonly googleCalendar: GoogleCalendarAdapters;
   readonly googleSyncSeconds?: number;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export interface LocalEngine {
@@ -91,6 +94,9 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
       aiRunnerLocation: 'local',
       settings: { pinnedAiLocation: 'local' },
       ai: { mailTools: input.mailTools },
+      ...(input.historyOptions === undefined
+        ? {}
+        : { sync: { history: { ...DEFAULT_HISTORY_OPTIONS, ...input.historyOptions } } }),
       ...(input.googleSyncSeconds === undefined
         ? {}
         : { calendar: { googleSyncSeconds: input.googleSyncSeconds } }),

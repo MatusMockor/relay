@@ -75,7 +75,8 @@ export class MailboxReconciler {
     }
     if (pass.status.highestModseq === null) {
       const uids = await this.storedUids(mailbox);
-      await this.apply(context, mailbox, FULL_SCAN, this.deps.scans.flagScanUids(mailbox.id, uids));
+      const scanned = await this.deps.scans.flagScanUids(mailbox.id, uids);
+      await this.apply(context, mailbox, FULL_SCAN, scanned);
       return;
     }
     const since = changedSince(state, pass.status);

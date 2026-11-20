@@ -3,7 +3,7 @@ import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
-import { demoHistoryProgress } from './demo-history';
+import { DemoHistory } from './demo-history';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
@@ -32,6 +32,7 @@ export interface DemoMailClientOptions {
   readonly state?: DemoState;
   readonly serverSearch?: DemoServerSearchOptions;
   readonly remoteBodies?: DemoRemoteBodies;
+  readonly history?: DemoHistory;
 }
 
 const run = <T>(work: () => T): Promise<T> => {
@@ -56,6 +57,8 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       bus.emit(event);
     });
   };
+  const history = options.history ?? new DemoHistory();
+  history.bind(emit, now);
   const upserted = (thread: ThreadSummary): ThreadSummary => {
     emit({ type: 'thread.upserted', at: now().toISOString(), data: { thread } });
     return thread;
@@ -164,7 +167,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
     syncNow: () => Promise.resolve(),
-    historyProgress: () => Promise.resolve(demoHistoryProgress(state.accounts)),
+    historyProgress: () => Promise.resolve(history.progress(state.accounts)),
     listDrafts: () => Promise.resolve([...state.drafts]),
     createDraft: (content) =>
       run(() => {
