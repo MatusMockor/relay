@@ -10,6 +10,7 @@
   padding-left: 2px;
   color: var(--muted);
   font-size: var(--fs-xs);
+  font-weight: var(--w-medium);
 }
 .au-cond {
   display: flex;
@@ -61,4 +62,16 @@ input.au-in {
 .au-add {
   margin: 10px 0 0 -8px;
   color: var(--accent);
+}
+.au-match {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--fg3);
+  font-size: var(--fs-sm);
+}
+.au-match .seg {
+  flex-wrap: nowrap;
 }

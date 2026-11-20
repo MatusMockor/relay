@@ -10,7 +10,9 @@ export const toAutomation = (row: AutomationRow): Automation =>
     enabled: row.enabled,
     order: row.position,
     preset: row.preset,
+    match: row.match,
     conditions: row.conditions,
+    exceptions: row.exceptions,
     ai: row.ai,
     actions: row.actions,
   });
@@ -23,7 +25,9 @@ export const toAutomationRow = (automation: Automation): typeof automations.$inf
   enabled: automation.enabled,
   position: automation.order,
   preset: automation.preset,
+  match: automation.match,
   conditions: automation.conditions,
+  exceptions: automation.exceptions,
   ai: automation.ai,
   actions: automation.actions,
 });

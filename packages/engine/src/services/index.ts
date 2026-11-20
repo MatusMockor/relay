@@ -41,6 +41,7 @@ export * from './settings/settings-service';
 export * from './splits/split-service';
 export * from './automations/automation-service';
 export * from './automations/automation-presets';
+export * from './automations/recent-candidates';
 export * from './sync/account-synchronizer';
 export * from './sync/jira-task-sink';
 export * from './sync/sync-arrivals';

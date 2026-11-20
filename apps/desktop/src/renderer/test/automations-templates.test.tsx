@@ -104,10 +104,7 @@ describe('Nastavenia > Automatizácie > šablóny', () => {
     await settle();
 
     expect(await stored(client, 'Faktúry')).toMatchObject({
-      conditions: [
-        { type: 'subjectRegex', pattern: 'faktúra|faktura', caseSensitive: false },
-        { type: 'hasAttachment' },
-      ],
+      conditions: [{ type: 'subjectContains', value: 'faktúra' }, { type: 'hasAttachment' }],
       actions: [{ type: 'pin' }],
     });
     expect(within(sheet).queryByRole('heading', { name: 'AI' })).toBeNull();

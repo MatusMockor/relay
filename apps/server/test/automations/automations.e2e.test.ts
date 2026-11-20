@@ -145,4 +145,92 @@ describe('automations', () => {
     );
     expect(allAccounts).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
   });
+
+  it('previews a draft rule without saving it and validates the draft', async () => {
+    const session = await registerUser(app.api, email());
+    const before = await app.api.ok(api.automations.list, {}, session.accessToken);
+    const draft = {
+      accountId: null,
+      match: 'any' as const,
+      conditions: [{ type: 'subjectContains' as const, value: 'faktúra' }],
+      exceptions: [{ type: 'fromAddress' as const, address: 'noreply@firma.test' }],
+    };
+
+    expect(await app.api.ok(api.automations.preview, { body: draft }, session.accessToken)).toEqual(
+      { days: 30, count: 0, truncated: false, samples: [] },
+    );
+    expect(await app.api.ok(api.automations.list, {}, session.accessToken)).toEqual(before);
+    expect(
+      await app.api.fail(
+        api.automations.preview,
+        {
+          body: {
+            ...draft,
+            exceptions: [{ type: 'subjectRegex', pattern: '(', caseSensitive: false }],
+          },
+        },
+        session.accessToken,
+      ),
+    ).toMatchObject({ status: 400, error: { code: 'validation_failed' } });
+    expect(
+      await app.api.fail(
+        api.automations.preview,
+        { body: { ...draft, accountId: 'acc_unknown' } },
+        session.accessToken,
+      ),
+    ).toMatchObject({ status: 404, error: { code: 'not_found' } });
+  });
+
+  it('keeps the match mode and exceptions of a rule replaced by an older client', async () => {
+    const session = await registerUser(app.api, email());
+    const preset = required((await app.api.ok(api.automations.list, {}, session.accessToken))[0]);
+    const legacyRule = {
+      accountId: null,
+      name: 'Dodávatelia',
+      enabled: true,
+      order: 1,
+      conditions: [{ type: 'fromDomain' as const, domain: 'dodavatel.test' }],
+      ai: { runner: 'claude' as const, model: null, effort: null, instructions: null },
+      actions: [{ type: 'markRead' as const }],
+    };
+    const saved = await app.api.ok(
+      api.automations.replace,
+      {
+        body: {
+          automations: [
+            preset,
+            {
+              ...legacyRule,
+              match: 'any',
+              exceptions: [{ type: 'fromAddress', address: 'noreply@firma.test' }],
+            },
+          ],
+        },
+      },
+      session.accessToken,
+    );
+    const stored = required(saved[1]);
+
+    const replaced = await app.api.ok(
+      api.automations.replace,
+      {
+        body: {
+          automations: [
+            preset,
+            { ...legacyRule, id: stored.id, enabled: false },
+            { ...legacyRule, name: 'Nové' },
+          ],
+        },
+      },
+      session.accessToken,
+    );
+
+    expect(replaced[1]).toMatchObject({
+      id: stored.id,
+      enabled: false,
+      match: 'any',
+      exceptions: [{ type: 'fromAddress', address: 'noreply@firma.test' }],
+    });
+    expect(replaced[2]).toMatchObject({ name: 'Nové', match: 'all', exceptions: [] });
+  });
 });

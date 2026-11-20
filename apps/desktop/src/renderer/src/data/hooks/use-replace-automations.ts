@@ -9,7 +9,9 @@ export const toAutomationInput = (automation: Automation): AutomationInput => ({
   name: automation.name,
   enabled: automation.enabled,
   order: automation.order,
+  match: automation.match,
   conditions: automation.conditions,
+  exceptions: automation.exceptions,
   ai: automation.ai,
   actions: automation.actions,
 });

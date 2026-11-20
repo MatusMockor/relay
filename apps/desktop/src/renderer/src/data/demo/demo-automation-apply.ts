@@ -56,7 +56,7 @@ export const createDemoAutomationApply = (
       (record) =>
         record.summary.state === 'inbox' &&
         (automation.accountId === null || record.summary.accountId === automation.accountId) &&
-        demoRuleMatches(automation.conditions, record),
+        demoRuleMatches(automation, record),
     );
     let count = 0;
     matches.slice(0, LIMIT).forEach((record) => {

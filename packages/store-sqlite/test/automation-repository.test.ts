@@ -23,10 +23,12 @@ const buildAutomation = (overrides: Partial<Automation> = {}): Automation => ({
   enabled: true,
   order: 1,
   preset: null,
+  match: 'all',
   conditions: [
     { type: 'fromAddress', address: 'tibor@efabrica.sk' },
     { type: 'jiraEvent', kind: 'mention' },
   ],
+  exceptions: [],
   ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: 'Iba ak niečo chce.' },
   actions: [{ type: 'task' }, { type: 'notify' }],
   ...overrides,
@@ -91,6 +93,22 @@ describe('SqliteAutomationRepository', () => {
     expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([
       buildAutomation({ accountId: work.account.id, actions }),
     ]);
+  });
+
+  it('stores the match mode, exceptions and subject contains conditions', async () => {
+    const rule = buildAutomation({
+      accountId: work.account.id,
+      match: 'any',
+      conditions: [
+        { type: 'subjectContains', value: 'faktúra' },
+        { type: 'fromDomain', domain: 'dodavatel.sk' },
+      ],
+      exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }, { type: 'hasAttachment' }],
+    });
+
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([rule]);
   });
 
   it('creates a preset only once per user', async () => {

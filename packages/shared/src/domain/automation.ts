@@ -31,6 +31,11 @@ export const HasAttachmentConditionSchema = z.object({
   type: z.literal('hasAttachment'),
 });
 
+export const SubjectContainsConditionSchema = z.object({
+  type: z.literal('subjectContains'),
+  value: z.string().trim().min(1).max(200),
+});
+
 export const AutomationConditionSchema = z.discriminatedUnion('type', [
   FromDomainRuleSchema,
   FromAddressRuleSchema,
@@ -40,9 +45,15 @@ export const AutomationConditionSchema = z.discriminatedUnion('type', [
   JiraEventConditionSchema,
   RecipientConditionSchema,
   HasAttachmentConditionSchema,
+  SubjectContainsConditionSchema,
 ]);
 export type AutomationCondition = z.infer<typeof AutomationConditionSchema>;
 export type AutomationConditionType = AutomationCondition['type'];
+
+export const AutomationMatchModeSchema = z.enum(['all', 'any']);
+export type AutomationMatchMode = z.infer<typeof AutomationMatchModeSchema>;
+
+export const MAX_AUTOMATION_CONDITIONS = 20;
 
 export const AutomationPresetSchema = z.enum(['jiraTasks']);
 export type AutomationPreset = z.infer<typeof AutomationPresetSchema>;
@@ -65,7 +76,9 @@ export const AutomationSchema = z.object({
   enabled: z.boolean(),
   order: z.number().int().nonnegative(),
   preset: AutomationPresetSchema.nullable(),
-  conditions: z.array(AutomationConditionSchema).min(1).max(20),
+  match: AutomationMatchModeSchema.default('all'),
+  conditions: z.array(AutomationConditionSchema).min(1).max(MAX_AUTOMATION_CONDITIONS),
+  exceptions: z.array(AutomationConditionSchema).max(MAX_AUTOMATION_CONDITIONS).default([]),
   ai: AutomationAiSchema,
   actions: AutomationActionsSchema,
 });

@@ -45,7 +45,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
       ],
       actions: [{ type: 'task' }, { type: 'notify' }, { type: 'archive' }],
     });
-    expect(within(tibor).getByText('a zároveň')).toBeDefined();
+    expect(within(tibor).getByText('a', { selector: '.au-and' })).toBeDefined();
   });
 
   it('refuses an invalid condition and keeps the rule unchanged', async () => {

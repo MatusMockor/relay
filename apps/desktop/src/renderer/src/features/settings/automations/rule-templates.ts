@@ -46,10 +46,7 @@ export const RULE_TEMPLATES: readonly RuleTemplate[] = [
     title: 'Faktúry s prílohou',
     description: 'Maily s prílohou a slovom faktúra v predmete pripne, aby ti neušli.',
     name: 'Faktúry',
-    conditions: [
-      { type: 'subjectRegex', pattern: 'faktúra|faktura', caseSensitive: false },
-      { type: 'hasAttachment' },
-    ],
+    conditions: [{ type: 'subjectContains', value: 'faktúra' }, { type: 'hasAttachment' }],
     actions: [{ type: 'pin' }],
     needs: null,
   },

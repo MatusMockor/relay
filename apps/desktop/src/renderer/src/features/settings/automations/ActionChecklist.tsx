@@ -50,7 +50,7 @@ export function ActionChecklist({
     };
   return (
     <section className="au-sec" aria-labelledby="au-what">
-      <h3 id="au-what">Čo spraviť</h3>
+      <h3 id="au-what">Potom</h3>
       <div className="au-acts">
         {SIMPLE_ACTIONS.map((type) => {
           const checked = actions.some((action) => action.type === type);

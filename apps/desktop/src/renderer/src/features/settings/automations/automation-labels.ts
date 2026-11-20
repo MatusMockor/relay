@@ -37,7 +37,8 @@ export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
 export const CONDITION_TYPE_LABELS: Readonly<Record<AutomationConditionType, string>> = {
   fromAddress: 'Od adresy',
   fromDomain: 'Z domény',
-  subjectRegex: 'Predmet',
+  subjectContains: 'Predmet obsahuje',
+  subjectRegex: 'Predmet (regulárny výraz)',
   header: 'Hlavička',
   jira: 'Jira projekt',
   jiraEvent: 'Jira udalosť',
@@ -64,8 +65,11 @@ export const describeCondition = (condition: AutomationCondition): string => {
   if (condition.type === 'fromDomain') {
     return `z domény ${condition.domain}`;
   }
+  if (condition.type === 'subjectContains') {
+    return `predmet obsahuje ${condition.value}`;
+  }
   if (condition.type === 'subjectRegex') {
-    return `predmet obsahuje ${condition.pattern}`;
+    return `predmet zodpovedá ${condition.pattern}`;
   }
   if (condition.type === 'header') {
     return `${condition.name} obsahuje ${condition.pattern}`;

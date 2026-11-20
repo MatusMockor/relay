@@ -1,5 +1,5 @@
 import { DEFAULT_USER_SETTINGS, type MailAccount, type Split, type Task } from '@relay/shared';
-import { buildDemoAutomations } from '../demo-automations';
+import { buildDemoAutomations } from './automations';
 import type { DemoState, DemoThreadRecord } from '../demo-state';
 import { buildArchive } from './build-archive';
 import { buildDrafts } from './build-drafts';

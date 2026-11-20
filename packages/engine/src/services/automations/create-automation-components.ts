@@ -10,6 +10,7 @@ import { SummaryAutomationAction, TaskAutomationAction } from './ai-automation-a
 import { AutomationActionExecutor } from './automation-action-executor';
 import { AutomationBacklog } from './automation-backlog';
 import { AutomationBacklogMatcher } from './automation-backlog-matcher';
+import { AutomationPreview } from './automation-preview';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
 import { AutomationTargetValidator } from './automation-target-validator';
@@ -53,6 +54,12 @@ export const createAutomationComponents = (
     },
     deps.logger,
   );
+  const patterns = deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY;
+  const matcher = new AutomationBacklogMatcher({
+    candidates: repositories.automationCandidates,
+    matcher: deps.automationMatcher,
+    classifier: deps.jiraClassifier,
+  });
   return {
     service: new AutomationService({
       automations: repositories.automations,
@@ -60,20 +67,23 @@ export const createAutomationComponents = (
       settings: shared.settings,
       events: shared.events,
       ids: deps.idGenerator,
-      patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
+      patterns,
       targets: new AutomationTargetValidator(repositories.mailboxes, repositories.labels),
       backlog: new AutomationBacklog({
         accounts: repositories.accounts,
         messages: repositories.messages,
         threads: repositories.threads,
         runs: repositories.automationRuns,
-        matcher: new AutomationBacklogMatcher({
-          candidates: repositories.automationCandidates,
-          messages: repositories.messages,
-          matcher: deps.automationMatcher,
-          classifier: deps.jiraClassifier,
-        }),
+        matcher,
         executor,
+        clock: deps.clock,
+      }),
+      preview: new AutomationPreview({
+        accounts: repositories.accounts,
+        messages: repositories.messages,
+        candidates: repositories.automationCandidates,
+        matcher,
+        patterns,
         clock: deps.clock,
       }),
     }),
@@ -86,6 +96,7 @@ export const createAutomationComponents = (
     }),
     jiraTasks: new JiraTaskAutomation({
       automations: repositories.automations,
+      messages: repositories.messages,
       matcher: deps.automationMatcher,
       tasks: shared.tasks,
     }),

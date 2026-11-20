@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { CreateAiJobBodySchema, ReplaceAutomationsBodySchema } from '../src/api';
-import { AI_MODEL_CATALOG, AutomationSchema, defaultAiModel, effortsFor } from '../src/domain';
+import {
+  AI_MODEL_CATALOG,
+  type AutomationCondition,
+  AutomationSchema,
+  defaultAiModel,
+  effortsFor,
+  matchesCriteria,
+  subjectContains,
+} from '../src/domain';
 
 const rule = (ai: Record<string, unknown>, actions: unknown[] = [{ type: 'task' }]) => ({
   automations: [
@@ -110,6 +118,77 @@ describe('automation schemas', () => {
 
     expect(AutomationSchema.safeParse(stored).success).toBe(true);
     expect(AutomationSchema.safeParse({ ...stored, actions: ['task'] }).success).toBe(false);
+  });
+
+  it('reads stored rules without a match mode or exceptions as all conditions', () => {
+    const [input] = rule({}).automations;
+    const parsed = AutomationSchema.parse({
+      ...input,
+      id: 'automation_1',
+      userId: 'user_1',
+      preset: null,
+    });
+
+    expect(parsed.match).toBe('all');
+    expect(parsed.exceptions).toEqual([]);
+  });
+
+  it('accepts the any match mode, exceptions and the subject contains condition', () => {
+    const [input] = rule({}).automations;
+    const parsed = ReplaceAutomationsBodySchema.parse({
+      automations: [
+        {
+          ...input,
+          match: 'any',
+          conditions: [{ type: 'subjectContains', value: '  faktúra ' }],
+          exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }],
+        },
+      ],
+    });
+
+    expect(parsed.automations[0]).toMatchObject({
+      match: 'any',
+      conditions: [{ type: 'subjectContains', value: 'faktúra' }],
+      exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }],
+    });
+  });
+
+  it('rejects an unknown match mode, an empty subject and too many exceptions', () => {
+    const [input] = rule({}).automations;
+    const parse = (overrides: Record<string, unknown>) =>
+      ReplaceAutomationsBodySchema.safeParse({ automations: [{ ...input, ...overrides }] }).success;
+
+    expect(parse({ match: 'none' })).toBe(false);
+    expect(parse({ conditions: [{ type: 'subjectContains', value: ' ' }] })).toBe(false);
+    expect(
+      parse({ exceptions: Array.from({ length: 21 }, () => ({ type: 'hasAttachment' })) }),
+    ).toBe(false);
+  });
+
+  it('matches criteria with the mode and exceptions', () => {
+    const subject = 'Nová FAKTÚRA od dodávateľa';
+    const test = (condition: AutomationCondition) =>
+      condition.type === 'subjectContains' && subjectContains(subject, condition.value);
+    const faktura: AutomationCondition = { type: 'subjectContains', value: 'faktura' };
+    const objednavka: AutomationCondition = { type: 'subjectContains', value: 'objednávka' };
+
+    expect(
+      matchesCriteria({ match: 'all', conditions: [faktura, objednavka], exceptions: [] }, test),
+    ).toBe(false);
+    expect(
+      matchesCriteria({ match: 'any', conditions: [faktura, objednavka], exceptions: [] }, test),
+    ).toBe(true);
+    expect(
+      matchesCriteria(
+        {
+          match: 'any',
+          conditions: [objednavka, faktura],
+          exceptions: [{ type: 'subjectContains', value: 'dodavatela' }],
+        },
+        test,
+      ),
+    ).toBe(false);
+    expect(subjectContains(subject, '   ')).toBe(false);
   });
 
   it('validates the model of an AI job against its runner', () => {

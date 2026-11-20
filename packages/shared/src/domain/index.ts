@@ -11,6 +11,7 @@ export * from './attachment-external-open';
 export * from './safe-attachment-filename';
 export * from './automation';
 export * from './automation-action';
+export * from './automation-criteria';
 export * from './credentials';
 export * from './device';
 export * from './draft';

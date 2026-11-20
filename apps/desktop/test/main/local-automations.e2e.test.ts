@@ -85,6 +85,46 @@ describe('local automations through IPC (SQLite + GreenMail)', () => {
     ]);
   });
 
+  it('previews a draft rule against synced mail without saving it', async () => {
+    const { bridge } = harness;
+    const account = expectOk(
+      await bridge.invoke('local.accounts.create', imapAccountBody(mailbox)),
+    );
+    await deliverMail(mailbox, {
+      from: 'Dodávateľ <fakturacia@dodavatel.test>',
+      subject: 'FAKTÚRA 2026-11',
+      text: 'V prílohe posielam faktúru.',
+    });
+    await deliverMail(mailbox, {
+      from: 'Firma <noreply@firma.test>',
+      subject: 'Faktúra pripravená',
+      text: 'Automatická správa.',
+    });
+    await deliverMail(mailbox, {
+      from: 'Tibor <tibor@efabrica.test>',
+      subject: 'Obed',
+      text: 'Ideme?',
+    });
+    expectOk(await bridge.invoke('local.sync.now', { accountId: account.id }));
+    const before = expectOk(await bridge.invoke('local.automations.list'));
+
+    const preview = expectOk(
+      await bridge.invoke('local.automations.preview', {
+        accountId: account.id,
+        match: 'all',
+        conditions: [{ type: 'subjectContains', value: 'faktura' }],
+        exceptions: [{ type: 'fromAddress', address: 'noreply@firma.test' }],
+      }),
+    );
+
+    expect(preview).toMatchObject({
+      days: 30,
+      count: 1,
+      samples: [{ subject: 'FAKTÚRA 2026-11', from: { email: 'fakturacia@dodavatel.test' } }],
+    });
+    expect(expectOk(await bridge.invoke('local.automations.list'))).toEqual(before);
+  });
+
   it('rejects a rule with a model that is not in the catalog', async () => {
     const result = await harness.bridge.invoke('local.automations.replace', {
       automations: [
