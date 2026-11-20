@@ -1,5 +1,5 @@
 import { FolderIcon } from '@relay/ui';
-import { type CSSProperties, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 interface FolderNameInputProps {
   readonly initial: string;
@@ -21,6 +21,13 @@ export function FolderNameInput({
   const [value, setValue] = useState(initial);
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const submit = async () => {
     const name = value.trim();
     if (name === '' || name === initial) {
@@ -29,6 +36,9 @@ export function FolderNameInput({
     }
     setBusy(true);
     const saved = await onSubmit(name);
+    if (!mounted.current) {
+      return;
+    }
     setBusy(false);
     if (saved) {
       onClose();
