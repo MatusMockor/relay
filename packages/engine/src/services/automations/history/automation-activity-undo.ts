@@ -73,6 +73,6 @@ export class AutomationActivityUndo {
       return 'skipped';
     }
     const reverser = this.reversers[entry.action.type] as ActivityReverser;
-    return reverser.reverse(userId, thread, entry, activity.createdAt);
+    return reverser.reverse(userId, thread, entry);
   }
 }

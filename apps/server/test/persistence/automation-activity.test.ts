@@ -12,6 +12,7 @@ const UNDONE_ACTIONS: AutomationActivityRecord['actions'] = [
     outcome: 'ok',
     changed: [],
     previousState: 'inbox',
+    origins: [],
     undo: 'undone',
   },
 ];
@@ -46,12 +47,20 @@ const recordOf = (
   from: { name: 'Tibor', email: 'tibor@efabrica.sk' },
   subject: 'Faktúra',
   actions: [
-    { action: { type: 'archive' }, outcome: 'ok', changed: [], previousState: 'inbox', undo: null },
+    {
+      action: { type: 'archive' },
+      outcome: 'ok',
+      changed: [],
+      previousState: 'inbox',
+      origins: [],
+      undo: null,
+    },
     {
       action: { type: 'markRead' },
       outcome: 'failed',
       changed: [],
       previousState: null,
+      origins: [],
       undo: null,
     },
   ],

@@ -39,7 +39,14 @@ export class AutomationActionExecutor {
         messageId: context.arrival.message.id,
         error: errorMessage(error),
       });
-      return { action, outcome: 'failed', changed: [], previousState: null, undo: null };
+      return {
+        action,
+        outcome: 'failed',
+        changed: [],
+        previousState: null,
+        origins: [],
+        undo: null,
+      };
     }
   }
 }

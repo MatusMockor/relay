@@ -57,8 +57,14 @@ export interface PublishedEvent {
 
 export class RecordingEventPublisher implements EventPublisher {
   readonly published: PublishedEvent[] = [];
+  failing: RealtimeEventType | null = null;
+  beforePublish: ((event: RealtimeEvent) => void) | null = null;
 
   publish(userId: UserId, event: RealtimeEvent): Promise<void> {
+    this.beforePublish?.(event);
+    if (event.type === this.failing) {
+      return Promise.reject(new Error(`Publishing ${event.type} failed`));
+    }
     this.published.push({ userId, event });
     return Promise.resolve();
   }

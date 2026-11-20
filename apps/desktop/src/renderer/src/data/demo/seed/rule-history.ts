@@ -101,6 +101,7 @@ const activityOf = (
         outcome,
         changed: effective ? record.messages.map(({ id }) => id) : [],
         previousState: 'inbox' as const,
+        origins: [],
         undo: effective && seed.undoneAfterMs !== undefined ? ('undone' as const) : null,
       };
     }),

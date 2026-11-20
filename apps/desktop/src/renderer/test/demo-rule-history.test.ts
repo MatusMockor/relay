@@ -169,6 +169,29 @@ describe('demo rule history move origins', () => {
   });
 });
 
+describe('demo rule history move labels', () => {
+  it('keeps a label the user added after the move', async () => {
+    const demo = client();
+    await demo.applyAutomation(GITLAB);
+    const thread = demoIds.thread('o-pipeline');
+    const label = await demo.createLabel({ accountId: demoIds.account('efa'), name: 'Dôležité' });
+    await demo.applyThreadAction(thread, { type: 'addLabel', labelId: label.id });
+    const { entries } = await demo.automationHistory(GITLAB);
+    const applied = entries.find((entry) => entry.source === 'apply' && entry.undoneAt === null);
+
+    const result = await demo.undoAutomationActivity(
+      GITLAB,
+      applied?.id ?? AutomationActivityIdSchema.parse('missing'),
+    );
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['undone', 'undone']);
+    expect((await demo.getThread(thread)).thread).toMatchObject({
+      state: 'inbox',
+      labelIds: [label.id],
+    });
+  });
+});
+
 async function mergedRun(demo: ReturnType<typeof client>) {
   const { entries } = await demo.automationHistory(GITLAB);
   const merged = entries.find((entry) => entry.threadId === demoIds.thread('o-mr-merged'));

@@ -24,11 +24,18 @@ export type AutomationActionOutcome = z.infer<typeof AutomationActionOutcomeSche
 export const AutomationUndoOutcomeSchema = z.enum(['undone', 'skipped', 'failed', 'notUndoable']);
 export type AutomationUndoOutcome = z.infer<typeof AutomationUndoOutcomeSchema>;
 
+export const MoveOriginRefSchema = z.object({
+  messageId: MessageIdSchema,
+  revision: z.string().min(1).max(200),
+});
+export type MoveOriginRef = z.infer<typeof MoveOriginRefSchema>;
+
 export const AutomationActivityActionSchema = z.object({
   action: AutomationActionSchema,
   outcome: AutomationActionOutcomeSchema,
   changed: z.array(MessageIdSchema).default([]),
   previousState: ThreadStateSchema.nullable().default(null),
+  origins: z.array(MoveOriginRefSchema).default([]),
   undo: AutomationUndoOutcomeSchema.nullable().default(null),
 });
 export type AutomationActivityAction = z.infer<typeof AutomationActivityActionSchema>;

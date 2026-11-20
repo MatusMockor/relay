@@ -1,4 +1,5 @@
 import type {
+  Message,
   MessageId,
   ThreadAction,
   ThreadId,
@@ -16,8 +17,9 @@ import type { LabelHandler } from './handlers/label-handler';
 import type { MoveHandler } from './handlers/move-handler';
 import type { PinHandler } from './handlers/pin-handler';
 import type { ReadStateHandler } from './handlers/read-state-handler';
-import type { StateMoveHandler } from './handlers/state-move-handler';
+import type { StateMoveHandler, StateMoveOutcome } from './handlers/state-move-handler';
 import {
+  isCommitted,
   type MessageRevert,
   type TrackedAction,
   type TrackedChange,
@@ -60,12 +62,59 @@ export class MessageActionsService implements ThreadReadMarker {
   ): Promise<TrackedChange> {
     const context = await this.context(userId, threadId);
     const written = writtenBy(action, context.messages);
+    const outcome = await this.runTracked(context, action).catch(
+      async (error: unknown): Promise<StateMoveOutcome> => ({
+        thread: await this.committedThread(context, action, written, error),
+        moved: [],
+        origins: [],
+      }),
+    );
+    return {
+      thread: outcome.thread,
+      previousState: context.thread.state,
+      written: [...written.map(({ id }) => id), ...outcome.moved],
+      origins: outcome.origins,
+    };
+  }
+
+  private async runTracked(
+    context: ThreadActionContext,
+    action: TrackedAction,
+  ): Promise<StateMoveOutcome> {
+    const outcome = await this.locationOrFlags(context, action);
+    await this.deps.events.emit(context.userId, 'thread.upserted', { thread: outcome.thread });
+    return outcome;
+  }
+
+  private async locationOrFlags(
+    context: ThreadActionContext,
+    action: TrackedAction,
+  ): Promise<StateMoveOutcome> {
+    if (action.type === 'archive') {
+      return this.deps.stateMoves.handleTracked(context, 'archive');
+    }
+    if (action.type === 'move') {
+      return this.deps.moves.moveTracked(context, action.mailboxId);
+    }
     const thread =
       action.type === 'pin'
         ? await this.deps.pins.pin(context)
         : await this.dispatch(context, action);
-    await this.deps.events.emit(userId, 'thread.upserted', { thread });
-    return { thread, previousState: context.thread.state, before: context.messages, written };
+    return { thread, moved: [], origins: [] };
+  }
+
+  private async committedThread(
+    { userId, thread }: ThreadActionContext,
+    action: TrackedAction,
+    written: readonly Message[],
+    error: unknown,
+  ): Promise<ThreadSummary> {
+    const current = await this.deps.messages.listByThread(userId, thread.id);
+    const stored = await this.deps.threads.findById(userId, thread.id);
+    if (stored === null || !isCommitted(action, written, current)) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    return stored;
   }
 
   async revert(

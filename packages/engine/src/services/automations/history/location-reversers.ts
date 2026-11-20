@@ -59,37 +59,36 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
     userId: UserId,
     thread: ThreadSummary,
     recorded: RecordedAction<'moveTo'>,
-    recordedAt: string,
   ): Promise<ReverseOutcome> {
     const target = await this.probe.locate(userId, thread, recorded.action.mailboxId);
     if (target === null) {
       return 'skipped';
     }
     if (target.role !== 'inbox' && thread.state === 'inbox') {
-      return this.dropLabel(userId, thread, target);
+      return this.dropLabel(userId, thread, recorded, target);
     }
     if (target.role !== 'inbox' && !isFiledAway(thread)) {
       return 'skipped';
     }
     const messages = await this.messages.listByThread(userId, thread.id);
-    const replaced = await this.origins.replacedSince(
+    const ownership = await this.origins.ownership(
       thread.accountId,
       messages.map(({ id }) => id),
-      recordedAt,
+      recorded.origins,
     );
-    if (!replaced && (target.role === 'inbox' || !cameFromInbox(recorded))) {
-      return this.undoMove(userId, thread, messages);
-    }
     if (target.role === 'inbox' || !cameFromInbox(recorded)) {
-      return 'skipped';
+      return ownership === 'owned' ? this.undoMove(userId, thread, messages) : 'skipped';
     }
-    const returned = replaced ? thread : await this.returnThroughOrigins(userId, thread);
+    const returned =
+      ownership === 'owned' ? await this.returnThroughOrigins(userId, thread) : thread;
     const current =
-      returned.state === 'inbox' ? returned : await this.returnRecorded(userId, thread, recorded);
+      returned.state === 'inbox'
+        ? returned
+        : await this.returnRecorded(userId, thread, recorded, target);
     if (current === null) {
       return 'skipped';
     }
-    await this.dropLabel(userId, current, target);
+    await this.dropLabel(userId, current, recorded, target);
     return 'undone';
   }
 
@@ -111,11 +110,19 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
     userId: UserId,
     thread: ThreadSummary,
     recorded: RecordedAction<'moveTo'>,
+    { labelId }: LocatedMoveTarget,
   ): Promise<ThreadSummary | null> {
-    const moved = await this.probe.recordedIn(userId, thread, recorded.changed, [
-      'archive',
-      'custom',
-    ]);
+    const changed = new Set<string>(recorded.changed);
+    const destination = recorded.action.mailboxId;
+    const moved = (await this.messages.listByThread(userId, thread.id))
+      .filter(
+        (message) =>
+          changed.has(message.id) &&
+          (labelId === null
+            ? message.mailboxId === destination
+            : message.labelIds.includes(labelId)),
+      )
+      .map(({ id }) => id);
     if (moved.length === 0) {
       return null;
     }
@@ -125,12 +132,16 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
   private async dropLabel(
     userId: UserId,
     thread: ThreadSummary,
+    recorded: RecordedAction<'moveTo'>,
     { labelId }: LocatedMoveTarget,
   ): Promise<ReverseOutcome> {
     if (labelId === null || !thread.labelIds.includes(labelId)) {
       return 'skipped';
     }
-    await this.actions.apply(userId, thread.id, { type: 'removeLabel', labelId });
+    await this.actions.revert(userId, thread.id, recorded.changed, {
+      type: 'removeLabel',
+      labelId,
+    });
     return 'undone';
   }
 }

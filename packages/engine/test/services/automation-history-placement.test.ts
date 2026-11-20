@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { folderSetup, saveRule, syncNow, threadBySubject } from '../support/automation-filters';
+import {
+  type FolderSetup,
+  folderSetup,
+  saveRule,
+  syncNow,
+  threadBySubject,
+} from '../support/automation-filters';
 import { onlyEntry, undoEntry } from '../support/automation-history';
 import { TIBOR } from '../support/automations';
 import { deliverMail, present } from '../support/fixtures';
@@ -93,4 +99,52 @@ describe('undo of automation moves restores only what the rule moved', () => {
     expect(result.results.map(({ outcome }) => outcome)).toEqual(['skipped']);
     expect(setup.server.mailbox('Faktúry').messages.size).toBe(1);
   });
+
+  it('treats a later move recorded at the same time as a replaced origin', async () => {
+    const setup = await folderSetup();
+    const rule = await saveRule(setup, {
+      actions: [{ type: 'moveTo', mailboxId: setup.folder.id }],
+    });
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra 1' });
+    await syncNow(setup);
+    await moveAway(setup);
+
+    const result = await undoEntry(setup, rule, await onlyEntry(setup, rule));
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['undone']);
+    expect(setup.server.mailbox('INBOX').messages.size).toBe(1);
+    expect(setup.server.mailbox('Archive').messages.size).toBe(0);
+  });
+
+  it('treats a later move recorded with an earlier time as a replaced origin', async () => {
+    const setup = await folderSetup();
+    const rule = await saveRule(setup, {
+      actions: [{ type: 'moveTo', mailboxId: setup.folder.id }],
+    });
+    deliverMail(setup.server, 'INBOX', { id: 'm1', from: TIBOR, subject: 'Faktúra 1' });
+    await syncNow(setup);
+    setup.engine.clock.advance(-MINUTE_MS);
+    await moveAway(setup);
+
+    const result = await undoEntry(setup, rule, await onlyEntry(setup, rule));
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['undone']);
+    expect(setup.server.mailbox('INBOX').messages.size).toBe(1);
+    expect(setup.server.mailbox('Archive').messages.size).toBe(0);
+  });
 });
+
+async function moveAway(setup: FolderSetup): Promise<void> {
+  const thread = threadBySubject(setup.engine, 'Faktúra 1');
+  const archive = present(
+    await setup.engine.repositories.mailboxes.findByRole(setup.account.id, 'archive'),
+  );
+  await setup.engine.services.actions.apply(USER_ID, thread.id, {
+    type: 'move',
+    mailboxId: archive.id,
+  });
+  await setup.engine.services.actions.apply(USER_ID, thread.id, {
+    type: 'move',
+    mailboxId: setup.folder.id,
+  });
+}

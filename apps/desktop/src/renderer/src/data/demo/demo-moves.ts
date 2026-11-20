@@ -1,5 +1,6 @@
 import type {
   Label,
+  LabelId,
   Mailbox,
   MailboxId,
   Message,
@@ -19,15 +20,23 @@ interface DemoMoveOrigin {
   readonly state: ThreadState;
   readonly markedDone?: boolean;
   readonly remindAt: string | null;
-  readonly labelIds: ThreadSummary['labelIds'];
+  readonly addedLabel?: LabelId;
 }
+
+const withoutAdded = (labelIds: readonly LabelId[], origin: DemoMoveOrigin): LabelId[] =>
+  labelIds.filter((labelId) => labelId !== origin.addedLabel);
 
 const restorePlacement = (message: Message, origin: DemoMoveOrigin): Message => {
   const before = origin.messages.find((candidate) => candidate.id === message.id);
   if (before === undefined) {
     return message;
   }
-  return { ...message, mailboxId: before.mailboxId, labelIds: before.labelIds };
+  const gained = origin.addedLabel !== undefined && !before.labelIds.includes(origin.addedLabel);
+  return {
+    ...message,
+    mailboxId: before.mailboxId,
+    labelIds: gained ? withoutAdded(message.labelIds, origin) : message.labelIds,
+  };
 };
 
 const missingFolder = () =>
@@ -79,7 +88,9 @@ export class DemoMoves {
       state: summary.state,
       markedDone: summary.markedDone,
       remindAt: summary.remindAt,
-      labelIds: summary.labelIds,
+      ...(label === undefined || summary.labelIds.includes(label.id)
+        ? {}
+        : { addedLabel: label.id }),
     });
     record.messages = record.messages.map((message) => ({
       ...message,
@@ -107,7 +118,7 @@ export class DemoMoves {
       state: origin.state,
       markedDone: origin.state === 'inbox' ? false : origin.markedDone || record.summary.markedDone,
       remindAt: origin.remindAt,
-      labelIds: origin.labelIds,
+      labelIds: withoutAdded(record.summary.labelIds, origin),
     };
     return record.summary;
   }

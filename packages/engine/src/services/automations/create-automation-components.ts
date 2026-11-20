@@ -19,11 +19,9 @@ import { createAutomationHistory } from './history/create-automation-history';
 import { JiraTaskAutomation } from './jira-task-automation';
 import {
   AddLabelAutomationAction,
-  ArchiveAutomationAction,
-  FlagAutomationAction,
-  LocationTracker,
   MoveToAutomationAction,
   NotifyAutomationAction,
+  TrackedAutomationAction,
 } from './mail-automation-actions';
 
 export interface AutomationComponents {
@@ -44,17 +42,16 @@ export const createAutomationComponents = (
   },
 ): AutomationComponents => {
   const { repositories } = deps;
-  const locations = new LocationTracker(shared.actions, repositories.messages, deps.logger);
   const executor = new AutomationActionExecutor(
     {
       notify: new NotifyAutomationAction(shared.events),
       summary: new SummaryAutomationAction(shared.factory),
       task: new TaskAutomationAction(shared.factory),
-      markRead: new FlagAutomationAction(shared.actions, { type: 'markRead' }),
-      pin: new FlagAutomationAction(shared.actions, { type: 'pin' }),
+      markRead: new TrackedAutomationAction(shared.actions, { type: 'markRead' }),
+      pin: new TrackedAutomationAction(shared.actions, { type: 'pin' }),
       addLabel: new AddLabelAutomationAction(shared.actions),
-      moveTo: new MoveToAutomationAction(locations),
-      archive: new ArchiveAutomationAction(locations),
+      moveTo: new MoveToAutomationAction(shared.actions),
+      archive: new TrackedAutomationAction(shared.actions, { type: 'archive' }),
     },
     deps.logger,
   );

@@ -1,14 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { addAutomations, automationInput } from '../support/automations';
-import { present } from '../support/fixtures';
-import { gmailMoveThread, inboxAndAllMail } from '../support/gmail-move-setup';
+import { deliverMail, present } from '../support/fixtures';
+import { GMAIL_FIRST, gmailMoveThread, inboxAndAllMail } from '../support/gmail-move-setup';
+import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
 const HOUR_MS = 60 * 60_000;
 
-const movedThread = async () => {
+const labelledReply = (server: FakeMailServer) => {
+  deliverMail(server, 'Archive', {
+    id: 'g0',
+    labels: ['Klienti'],
+    emailId: 'gm-0',
+    date: '2026-11-13T08:00:00.000Z',
+  });
+  inboxAndAllMail(server, { ...GMAIL_FIRST, inReplyTo: 'g0' });
+};
+
+const movedThread = async (deliver: (server: FakeMailServer) => void = inboxAndAllMail) => {
   const engine = createTestEngine();
-  const setup = await gmailMoveThread(engine, inboxAndAllMail);
+  const setup = await gmailMoveThread(engine, deliver);
   const saved = await addAutomations(engine, [
     automationInput({
       accountId: setup.account.id,
@@ -51,5 +62,23 @@ describe('undoing an automation move on Gmail', () => {
 
     expect(result.results.map((item) => item.outcome)).toEqual(['undone']);
     expect(engine.db.tables.threads.get(thread.id)).toMatchObject({ state: 'inbox', labelIds: [] });
+  });
+
+  it('keeps the label on mail that had it before the move', async () => {
+    const { engine, thread, label, undo } = await movedThread(labelledReply);
+    engine.clock.advance(2 * HOUR_MS);
+
+    const result = await undo();
+
+    expect(result.results.map(({ outcome }) => outcome)).toEqual(['undone']);
+    const messages = [...engine.db.tables.messages.values()].filter(
+      (message) => message.threadId === thread.id,
+    );
+    const labelled = messages.filter((message) => message.labelIds.includes(label.id));
+    expect(labelled.map(({ messageIdHeader }) => messageIdHeader)).toEqual(['<g0@mail.test>']);
+    expect(engine.db.tables.threads.get(thread.id)).toMatchObject({
+      state: 'inbox',
+      labelIds: [label.id],
+    });
   });
 });
