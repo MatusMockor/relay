@@ -76,6 +76,26 @@ describe('rules from a newer Relay version', () => {
     ]);
   });
 
+  it('positions every rule by its place in the replace list, whatever order it sends', async () => {
+    const setup = await folderSetup();
+    const { automations } = setup.engine.services;
+    setup.engine.db.tables.unsupportedAutomations.set(USER_ID, [{ ...NEWER, order: 1 }]);
+
+    const saved = await automations.replace(USER_ID, {
+      automations: [
+        automationInput({ name: 'Prvé', order: 1 }),
+        { id: NEWER.id, keep: true },
+        automationInput({ name: 'Druhé', order: 1 }),
+      ],
+    });
+
+    expect(saved.map((entry) => [entry.name, entry.order])).toEqual([
+      ['Prvé', 0],
+      [NEWER.name, 1],
+      ['Druhé', 2],
+    ]);
+  });
+
   it('counts newer rules toward the rule limit when restoring the default rule', async () => {
     const setup = await folderSetup();
     const { automations } = setup.engine.services;

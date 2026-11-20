@@ -34,6 +34,41 @@ const inputOf = (input: AutomationInput, context: ReplacementContext): Automatio
   return storedAutomationOf(input, input.id ?? context.newId(), context.userId, existing);
 };
 
+interface Positioned {
+  readonly id: string;
+  readonly order: number;
+  readonly index: number;
+}
+
+const positionsOf = (
+  automations: readonly Automation[],
+  keep: readonly KeptAutomation[],
+  listIndex: ReadonlyMap<string, number>,
+): ReadonlyMap<string, number> => {
+  const all: Positioned[] = [...automations, ...keep].map((entry) => ({
+    id: entry.id,
+    order: entry.order,
+    index: listIndex.get(entry.id) ?? 0,
+  }));
+  const sorted = [...all].sort(
+    (left, right) => left.order - right.order || left.index - right.index,
+  );
+  return new Map(sorted.map((entry, position) => [entry.id, position]));
+};
+
+const renumbered = (
+  automations: readonly Automation[],
+  keep: readonly KeptAutomation[],
+  listIndex: ReadonlyMap<string, number>,
+): AutomationReplacement => {
+  const positions = positionsOf(automations, keep, listIndex);
+  const at = (id: string): number => positions.get(id) ?? 0;
+  return {
+    automations: automations.map((automation) => ({ ...automation, order: at(automation.id) })),
+    keep: keep.map((kept) => ({ ...kept, order: at(kept.id) })),
+  };
+};
+
 export const resolveReplacement = (
   items: readonly AutomationReplaceItem[],
   context: ReplacementContext,
@@ -41,11 +76,15 @@ export const resolveReplacement = (
   const unsupported = new Set(context.unsupported.map((entry) => entry.id));
   const automations: Automation[] = [];
   const keep: KeptAutomation[] = [];
+  const listIndex = new Map<string, number>();
   items.forEach((item, order) => {
     if (!isKeepAutomationInput(item)) {
-      automations.push(inputOf(item, context));
+      const automation = inputOf(item, context);
+      listIndex.set(automation.id, order);
+      automations.push(automation);
       return;
     }
+    listIndex.set(item.id, order);
     const stored = context.known.get(item.id);
     if (stored !== undefined) {
       automations.push({ ...stored, order });
@@ -60,7 +99,7 @@ export const resolveReplacement = (
   if (new Set(ids).size !== ids.length) {
     throw new ValidationError('Automation ids must be unique');
   }
-  return { automations, keep };
+  return renumbered(automations, keep, listIndex);
 };
 
 export const withUnsupported = (
