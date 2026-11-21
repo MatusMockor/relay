@@ -48,7 +48,7 @@ describe('SqliteSplitRepository conditions', () => {
     ]);
   });
 
-  it('lists a split from a newer version apart and keeps it at a new position', async () => {
+  it('lists a split from a newer version apart, keeps it at a new position and when omitted', async () => {
     await store.repositories.splits.replaceAll(LOCAL_USER_ID, [strictSplit]);
     store.database.sqlite
       .prepare(
@@ -76,7 +76,10 @@ describe('SqliteSplitRepository conditions', () => {
     expect(await store.repositories.splits.listUnsupported(LOCAL_USER_ID)).toEqual([
       { ...newer, order: 0 },
     ]);
-    await store.repositories.splits.replaceAll(LOCAL_USER_ID, [strictSplit]);
-    expect(await store.repositories.splits.listUnsupported(LOCAL_USER_ID)).toEqual([]);
+    await store.repositories.splits.replaceAll(LOCAL_USER_ID, []);
+    expect(await store.repositories.splits.listByUser(LOCAL_USER_ID)).toEqual([]);
+    expect(await store.repositories.splits.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
   });
 });

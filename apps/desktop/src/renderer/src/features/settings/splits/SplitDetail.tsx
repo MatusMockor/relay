@@ -29,7 +29,7 @@ export interface SplitDetailProps {
   readonly accounts: readonly MailAccount[];
   readonly disabled: boolean;
   readonly onBack: () => void;
-  readonly onSave: (draft: SplitDraft, settled: () => void) => void;
+  readonly onSave: (draft: SplitDraft, done: (error: string | null) => void) => void;
   readonly onRemove: () => void;
 }
 
@@ -42,6 +42,7 @@ export function SplitDetail({
   onRemove,
 }: SplitDetailProps) {
   const [pending, setPending] = useState<SplitDraft | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const draft = pending ?? splitInputOf(split);
   const ruleRows = useConditionRows(
     draft.rules,
@@ -67,15 +68,18 @@ export function SplitDetail({
     if (missingRule(next) !== null) {
       return;
     }
-    onSave(next, () => {
-      setPending(null);
+    onSave(next, (error) => {
+      setFailure(error);
+      if (error === null) {
+        setPending(null);
+      }
     });
   };
   return (
     <section className="au-detail" aria-label={`Split ${draft.name}`}>
       <SplitDetailHeader
         name={draft.name}
-        unsaved={missing !== null}
+        unsaved={missing !== null || failure !== null}
         disabled={disabled}
         onBack={onBack}
         onRename={(name) => {
@@ -120,6 +124,11 @@ export function SplitDetail({
       {missing === null ? null : (
         <p className="au-hint" role="status">
           {missing}
+        </p>
+      )}
+      {failure === null ? null : (
+        <p className="au-hint" role="alert">
+          Zmenu sa nepodarilo uložiť: {failure} Oprav ju alebo skús znova.
         </p>
       )}
       <footer className="au-foot">

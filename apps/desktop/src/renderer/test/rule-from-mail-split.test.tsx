@@ -1,53 +1,19 @@
 // @vitest-environment jsdom
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { supportedSplits } from '@relay/shared';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoIds } from '../src/data/demo/seed/ids';
-import type { MailClient } from '../src/data/MailClient';
-import { setUi } from '../src/state/ui-store';
 import { demoClient } from './features-support';
 import { click } from './support/automations';
-import { present } from './support/present';
-import { renderApp, resetStores } from './support/render-app';
-
-const TITLE = 'Nové pravidlo z mailu';
-const SENDER = { type: 'fromAddress', address: 'tomas.balaz@firma.sk' };
-
-const openLunch = async (client: MailClient): Promise<HTMLElement> => {
-  renderApp({ demo: () => client });
-  await screen.findByRole('listbox', { name: 'Konverzácie' });
-  act(() => {
-    setUi({ overlay: { kind: 'ruleFromMail', threadId: demoIds.thread('c-lunch') } });
-  });
-  const dialog = await screen.findByRole('dialog', { name: TITLE });
-  await within(dialog).findByRole('group', { name: 'Akcie pravidla' });
-  click(within(dialog).getByRole('button', { name: 'Zaradiť do splitu…' }));
-  return within(dialog).getByRole('region', { name: 'Zaradiť do splitu' });
-};
-
-const pick = (panel: HTMLElement, name: string) => {
-  const select = within(panel).getByRole<HTMLSelectElement>('combobox', { name: 'Split' });
-  const option = present(
-    within(select)
-      .getAllByRole<HTMLOptionElement>('option')
-      .find((item) => item.textContent === name),
-  );
-  act(() => {
-    fireEvent.change(select, { target: { value: option.value } });
-  });
-};
-
-const splitNamed = async (client: MailClient, name: string) =>
-  present(supportedSplits(await client.listSplits()).find((split) => split.name === name));
-
-const closed = async () => {
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog', { name: TITLE })).toBeNull();
-  });
-};
-
-const lunchSplits = async (client: MailClient) =>
-  (await client.getThread(demoIds.thread('c-lunch'))).thread.splitIds;
+import { resetStores } from './support/render-app';
+import {
+  closed,
+  lunchSplits,
+  openLunch,
+  pick,
+  SENDER,
+  splitNamed,
+  TITLE,
+} from './support/rule-from-mail-split';
 
 describe('Zaradiť do splitu z mailu', () => {
   beforeEach(() => {

@@ -58,22 +58,63 @@ describe('RemoteMailClient splits', () => {
     hideTasks: false,
   };
 
-  it('restores the previous splits when the server dropped the match mode and exceptions', async () => {
-    const previous = [{ ...legacy, rules: [{ type: 'fromDomain', domain: 'stary.sk' }] }];
-    server.handle('splits.list', () => ({ body: previous }));
-    server.handle('splits.replace', () => ({ body: [legacy] }));
+  const olderServer = (initial: readonly (typeof legacy)[]) => {
+    let stored = [...initial];
+    server.handle('splits.list', () => ({ body: stored }));
+    server.handle('splits.replace', (request) => {
+      const body = request.body as { splits: { id?: string; name: string; order: number }[] };
+      if (
+        body.splits.some((item) => item.id !== undefined && !stored.some((s) => s.id === item.id))
+      ) {
+        return {
+          status: 400,
+          body: { error: { code: 'validation_failed', message: 'Unknown split id' } },
+        };
+      }
+      stored = body.splits.map((item, index) => ({
+        ...legacy,
+        name: item.name,
+        order: item.order,
+        id: item.id ?? `split-new-${String(index)}`,
+      }));
+      return { body: stored };
+    });
+    return { current: () => stored };
+  };
 
-    await expect(connect().replaceSplits([split])).rejects.toMatchObject({
+  it('refuses to write to an older server that already holds splits', async () => {
+    const previous = [
+      { ...legacy, id: 'split-old', rules: [{ type: 'fromDomain', domain: 'stary.sk' }] },
+    ];
+    const older = olderServer(previous);
+
+    await expect(connect().replaceSplits([{ ...split, id: undefined }])).rejects.toMatchObject({
       code: 'not_implemented',
       message:
         'Server je starší a nepodporuje režim podmienok ani výnimky v splitoch. Aktualizuj server.',
     });
 
-    const replaces = server.requests.filter((item) => item.key === 'splits.replace');
-    expect(replaces).toHaveLength(2);
-    expect(replaces[1]?.body).toMatchObject({
-      splits: [{ id: 'split-1', rules: [{ type: 'fromDomain', domain: 'stary.sk' }] }],
+    expect(server.requests.filter((item) => item.key === 'splits.replace')).toEqual([]);
+    expect(older.current()).toEqual(previous);
+  });
+
+  it('removes a split an empty older server stored without its match mode', async () => {
+    const older = olderServer([]);
+
+    await expect(connect().replaceSplits([{ ...split, id: undefined }])).rejects.toMatchObject({
+      code: 'not_implemented',
     });
+
+    expect(older.current()).toEqual([]);
+  });
+
+  it('writes directly when the server already knows the match mode', async () => {
+    server.handle('splits.list', () => ({ body: [{ ...legacy, match: 'any', exceptions: [] }] }));
+    server.handle('splits.replace', () => ({ body: [{ ...split, userId: 'user-1' }] }));
+
+    await expect(connect().replaceSplits([split])).resolves.toEqual([
+      { ...split, userId: 'user-1' },
+    ]);
   });
 
   it('reads an older server response with the defaults', async () => {

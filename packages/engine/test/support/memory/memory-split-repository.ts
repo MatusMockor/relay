@@ -28,9 +28,9 @@ export class MemorySplitRepository implements SplitRepository {
     const unsupported = this.db.tables.unsupportedSplits.get(userId) ?? [];
     this.db.tables.unsupportedSplits.set(
       userId,
-      unsupported.flatMap((entry) => {
+      unsupported.map((entry) => {
         const kept = keep.find(({ id }) => id === entry.id);
-        return kept === undefined ? [] : [{ ...entry, order: kept.order }];
+        return kept === undefined ? entry : { ...entry, order: kept.order };
       }),
     );
     return this.listByUser(userId);

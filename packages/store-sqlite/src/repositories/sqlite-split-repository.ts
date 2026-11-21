@@ -8,7 +8,7 @@ import {
   type UnsupportedSplit,
   type UserId,
 } from '@relay/shared/domain';
-import { and, asc, eq, inArray, isNull, notInArray, or, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toSplitEntry, toSplitRow } from '../mappers/split-mapper';
@@ -45,14 +45,14 @@ export class SqliteSplitRepository implements SplitRepository {
     keep: readonly KeptSplit[] = [],
   ): Promise<Split[]> {
     return this.executor.execute((db) => {
-      const keepIds = [...items.map((split) => split.id), ...keep.map(({ id }) => id)];
-      const removed = db
-        .delete(splits)
-        .where(and(eq(splits.userId, userId), notInArray(splits.id, keepIds)))
-        .returning({ id: splits.id })
-        .all()
-        .map((row) => row.id);
+      const keepIds = new Set([...items.map((split) => split.id), ...keep.map(({ id }) => id)]);
+      const removed = supportedSplits(this.listOwned(db, userId))
+        .map((split) => split.id)
+        .filter((id) => !keepIds.has(id));
       if (removed.length > 0) {
+        db.delete(splits)
+          .where(and(eq(splits.userId, userId), inArray(splits.id, removed)))
+          .run();
         db.delete(threadSplits).where(inArray(threadSplits.splitId, removed)).run();
       }
       items.forEach((split) => {

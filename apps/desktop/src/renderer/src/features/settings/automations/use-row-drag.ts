@@ -28,12 +28,14 @@ export interface RowDragOptions {
 const KEY_STEPS: Readonly<Record<string, number>> = { ArrowUp: -1, ArrowDown: 1 };
 
 export const useRowDrag = ({ keys, disabled, onMove }: RowDragOptions): RowDrag => {
-  const [dragging, setDragging] = useState<number | null>(null);
+  const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [over, setOver] = useState<number | null>(null);
   const [moved, setMoved] = useState<string | null>(null);
   const sortable = (index: number) => !disabled && index < keys.length;
+  const found = draggedKey === null ? -1 : keys.indexOf(draggedKey);
+  const dragging = found < 0 ? null : found;
   const reset = () => {
-    setDragging(null);
+    setDraggedKey(null);
     setOver(null);
   };
   return {
@@ -58,7 +60,7 @@ export const useRowDrag = ({ keys, disabled, onMove }: RowDragOptions): RowDrag 
           event.dataTransfer.setDragImage(row, 16, 16);
         }
         setMoved(null);
-        setDragging(index);
+        setDraggedKey(keys[index] ?? null);
       },
       onDragEnd: reset,
       onKeyDown: (event) => {

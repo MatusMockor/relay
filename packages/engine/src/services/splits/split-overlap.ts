@@ -7,10 +7,16 @@ import {
   splitCriteria,
   type UserId,
 } from '@relay/shared/domain';
+import type { InboxCandidate } from '../../ports/automation-candidate-repository';
 import type { AutomationRepository } from '../../ports/automation-repository';
 import type { SplitRepository } from '../../ports/split-repository';
-import type { AutomationBacklogMatcher } from '../automations/automation-backlog-matcher';
+import {
+  type AutomationBacklogMatcher,
+  type JiraByMessage,
+  usesJira,
+} from '../automations/automation-backlog-matcher';
 import type { AccountMatches } from '../automations/recent-matches';
+import { threadJiraOf } from './thread-jira';
 
 const PLACING_ACTIONS: ReadonlySet<string> = new Set(['archive', 'moveTo']);
 
@@ -26,6 +32,11 @@ export interface SplitOverlapDeps {
   readonly splits: SplitRepository;
   readonly automations: AutomationRepository;
   readonly matcher: AutomationBacklogMatcher;
+}
+
+interface AccountJira {
+  readonly thread: JiraByMessage;
+  message: JiraByMessage | null;
 }
 
 const earlierSplits = (splits: readonly Split[], splitId: Split['id'] | null): Split[] => {
@@ -54,6 +65,11 @@ const automationRival = (automation: Automation): OverlapRival => ({
 const byOrder = <Item extends { readonly order: number }>(left: Item, right: Item): number =>
   left.order - right.order;
 
+const matchedCandidates = (account: AccountMatches): InboxCandidate[] => {
+  const matched = new Set(account.matches.map((match) => match.threadId));
+  return account.candidates.filter((candidate) => matched.has(candidate.threadId));
+};
+
 export class SplitOverlapFinder {
   constructor(private readonly deps: SplitOverlapDeps) {}
 
@@ -62,14 +78,43 @@ export class SplitOverlapFinder {
     body: SplitPreviewBody,
     accounts: readonly AccountMatches[],
   ): Promise<SplitOverlap[]> {
-    const overlaps: SplitOverlap[] = [];
-    for (const rival of await this.rivals(userId, body)) {
-      const count = await this.count(userId, rival, accounts);
-      if (count > 0) {
-        overlaps.push({ kind: rival.kind, id: rival.id, name: rival.name, count });
+    const rivals = await this.rivals(userId, body);
+    const counts = new Map(rivals.map((rival) => [rival, 0]));
+    for (const account of accounts.filter((item) => item.matches.length > 0)) {
+      const candidates = matchedCandidates(account);
+      const jira: AccountJira = { thread: threadJiraOf(candidates), message: null };
+      for (const rival of rivals) {
+        if (rival.accountId !== null && rival.accountId !== account.accountId) {
+          continue;
+        }
+        const known = await this.jiraFor(userId, rival, candidates, jira);
+        const caught = await this.deps.matcher.match(
+          userId,
+          account.accountId,
+          candidates,
+          rival.criteria,
+          known,
+        );
+        counts.set(rival, (counts.get(rival) ?? 0) + caught.length);
       }
     }
-    return overlaps;
+    return rivals.flatMap((rival) => {
+      const count = counts.get(rival) ?? 0;
+      return count === 0 ? [] : [{ kind: rival.kind, id: rival.id, name: rival.name, count }];
+    });
+  }
+
+  private async jiraFor(
+    userId: UserId,
+    rival: OverlapRival,
+    candidates: readonly InboxCandidate[],
+    jira: AccountJira,
+  ): Promise<JiraByMessage> {
+    if (rival.kind === 'split' || !usesJira(rival.criteria)) {
+      return jira.thread;
+    }
+    jira.message ??= await this.deps.matcher.jiraOf(userId, candidates);
+    return jira.message;
   }
 
   private async rivals(userId: UserId, body: SplitPreviewBody): Promise<OverlapRival[]> {
@@ -82,31 +127,5 @@ export class SplitOverlapFinder {
       ...[...splits].sort(byOrder).map(splitRival),
       ...[...automations].sort(byOrder).map(automationRival),
     ];
-  }
-
-  private async count(
-    userId: UserId,
-    rival: OverlapRival,
-    accounts: readonly AccountMatches[],
-  ): Promise<number> {
-    let count = 0;
-    for (const account of accounts) {
-      if (account.matches.length === 0) {
-        continue;
-      }
-      if (rival.accountId !== null && rival.accountId !== account.accountId) {
-        continue;
-      }
-      const matched = new Set(account.matches.map((match) => match.threadId));
-      const candidates = account.candidates.filter((candidate) => matched.has(candidate.threadId));
-      const caught = await this.deps.matcher.match(
-        userId,
-        account.accountId,
-        candidates,
-        rival.criteria,
-      );
-      count += caught.length;
-    }
-    return count;
   }
 }

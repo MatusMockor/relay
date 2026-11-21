@@ -63,7 +63,7 @@ describe('splits from a newer Relay version', () => {
     expect(tab.items.map((item) => item.id)).toEqual([thread.id]);
   });
 
-  it('refuses to keep an unknown split and drops a newer split that is not kept', async () => {
+  it('refuses to keep an unknown split and keeps a newer split a stale client omitted', async () => {
     const { engine } = await setup();
     const { splits } = engine.services;
 
@@ -72,8 +72,14 @@ describe('splits from a newer Relay version', () => {
         splits: [{ id: SplitIdSchema.parse('split_unknown'), keep: true }],
       }),
     ).rejects.toMatchObject({ code: 'validation_failed' });
-    await splits.replace(USER_ID, { splits: [clients] });
+    await expect(
+      splits.replace(USER_ID, {
+        splits: Array.from({ length: 50 }, (_, order) => ({ ...clients, order })),
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    const replaced = await splits.replace(USER_ID, { splits: [clients] });
 
-    expect(await splits.list(USER_ID)).not.toContainEqual(NEWER);
+    expect(replaced.at(-1)).toEqual({ ...NEWER, order: 1 });
+    expect([...threadBySubject(engine, 'Übersetzung').splitIds]).toContain(NEWER.id);
   });
 });

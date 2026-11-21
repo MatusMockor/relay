@@ -2,6 +2,7 @@ import {
   type AutomationInput,
   type AutomationReplaceItem,
   isKeepAutomationInput,
+  MAX_AUTOMATIONS,
 } from '@relay/shared/api';
 import type {
   Automation,
@@ -12,6 +13,7 @@ import type {
 } from '@relay/shared/domain';
 import { ValidationError } from '../../errors';
 import type { KeptAutomation } from '../../ports/automation-repository';
+import { withOmittedUnsupported } from '../shared/omitted-unsupported';
 import { storedAutomationOf } from './automation-input';
 
 export interface AutomationReplacement {
@@ -99,7 +101,15 @@ export const resolveReplacement = (
   if (new Set(ids).size !== ids.length) {
     throw new ValidationError('Automation ids must be unique');
   }
-  return renumbered(automations, keep, listIndex);
+  const replacement = renumbered(automations, keep, listIndex);
+  return {
+    automations: replacement.automations,
+    keep: withOmittedUnsupported(
+      { written: replacement.automations.length, keep: replacement.keep },
+      context.unsupported,
+      { max: MAX_AUTOMATIONS, what: 'automations' },
+    ),
+  };
 };
 
 export const withUnsupported = (

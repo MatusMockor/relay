@@ -1,7 +1,13 @@
-import { isKeepSplitInput, type SplitInput, type SplitReplaceItem } from '@relay/shared/api';
+import {
+  isKeepSplitInput,
+  MAX_SPLITS,
+  type SplitInput,
+  type SplitReplaceItem,
+} from '@relay/shared/api';
 import type { Split, SplitEntry, SplitId, UnsupportedSplit, UserId } from '@relay/shared/domain';
 import { ValidationError } from '../../errors';
 import type { KeptSplit } from '../../ports/split-repository';
+import { withOmittedUnsupported } from '../shared/omitted-unsupported';
 
 export interface SplitReplacementContext {
   readonly userId: UserId;
@@ -75,7 +81,13 @@ export const resolveSplits = (
     }
     keep.push({ id: item.kept.id, order });
   });
-  return { splits, keep };
+  return {
+    splits,
+    keep: withOmittedUnsupported({ written: splits.length, keep }, context.unsupported, {
+      max: MAX_SPLITS,
+      what: 'splits',
+    }),
+  };
 };
 
 export const withUnsupportedSplits = (

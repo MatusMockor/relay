@@ -105,4 +105,15 @@ describe('split inputs', () => {
       true,
     );
   });
+
+  it('previews a stored split with more than 20 rules like the stored schema allows', () => {
+    const rules = Array.from({ length: 25 }, (_, index) => ({
+      type: 'fromDomain',
+      domain: `klient${String(index)}.sk`,
+    }));
+    const preview = { splitId: null, accountId: null, match: 'any', exceptions: [], rules };
+
+    expect(SplitSchema.safeParse({ ...legacy, rules }).success).toBe(true);
+    expect(SplitPreviewBodySchema.safeParse(preview).success).toBe(true);
+  });
 });

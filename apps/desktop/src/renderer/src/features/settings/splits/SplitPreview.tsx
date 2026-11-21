@@ -12,9 +12,7 @@ export function SplitPreview({ draft }: { readonly draft: SplitDraft }) {
   if (invalid) {
     return (
       <section className="au-prev" aria-label="Náhľad splitu">
-        <p className="au-prev-h">
-          Náhľad sa nedá spočítať. Split môže mať najviac 20 podmienok a 20 výnimiek.
-        </p>
+        <p className="au-prev-h">Náhľad sa nedá spočítať. Split môže mať najviac 20 výnimiek.</p>
       </section>
     );
   }

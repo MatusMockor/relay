@@ -17,11 +17,13 @@ export interface SplitEditor {
   readonly splits: readonly Split[];
   readonly unsupported: readonly UnsupportedSplit[];
   readonly locked: boolean;
-  readonly save: (draft: SplitDraft, settled: () => void) => void;
+  readonly save: (draft: SplitDraft, done: (error: string | null) => void) => void;
   readonly remove: (splitId: Split['id']) => void;
   readonly reorder: (from: number, to: number) => void;
   readonly add: (input: SplitInput, onCreated: (splitId: Split['id']) => void) => void;
 }
+
+const BUSY = 'Ešte sa ukladá predchádzajúca zmena, skús to znova.';
 
 const byOrder = (left: Split, right: Split): number => left.order - right.order;
 
@@ -35,10 +37,10 @@ export const useSplitEditor = (): SplitEditor => {
   const persist = (
     inputs: SplitInput[],
     onSaved: (stored: readonly Split[]) => void,
-    settled: () => void = () => undefined,
+    onFailed: (message: string) => void = showToast,
   ) => {
     if (locked) {
-      settled();
+      onFailed(BUSY);
       return;
     }
     setSaving(true);
@@ -49,12 +51,11 @@ export const useSplitEditor = (): SplitEditor => {
           onSaved(supportedSplits(stored));
         },
         (error: unknown) => {
-          showToast(describeError(error));
+          onFailed(describeError(error));
         },
       )
       .finally(() => {
         setSaving(false);
-        settled();
       });
   };
   const inputs = (): SplitInput[] => splits.map(splitInputOf);
@@ -62,11 +63,13 @@ export const useSplitEditor = (): SplitEditor => {
     splits,
     unsupported: (entries ?? []).filter(isUnsupportedSplit),
     locked,
-    save: (draft, settled) => {
+    save: (draft, done) => {
       persist(
         splits.map((split) => (split.id === draft.id ? draft : splitInputOf(split))),
-        () => undefined,
-        settled,
+        () => {
+          done(null);
+        },
+        done,
       );
     },
     remove: (splitId) => {

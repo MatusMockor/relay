@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AccountIdSchema, SplitIdSchema } from '../../domain/ids';
-import { AutomationMatchModeSchema, MAX_AUTOMATION_CONDITIONS } from '../../domain/mail-conditions';
+import { AutomationMatchModeSchema } from '../../domain/mail-conditions';
 import { SplitExceptionsSchema, SplitRuleSchema } from '../../domain/split';
 import { AutomationPreviewResponseSchema } from './automation-preview';
 
@@ -8,7 +8,7 @@ export const SplitPreviewBodySchema = z.object({
   splitId: SplitIdSchema.nullable(),
   accountId: AccountIdSchema.nullable(),
   match: AutomationMatchModeSchema,
-  rules: z.array(SplitRuleSchema).min(1).max(MAX_AUTOMATION_CONDITIONS),
+  rules: z.array(SplitRuleSchema).min(1),
   exceptions: SplitExceptionsSchema,
 });
 export type SplitPreviewBody = z.infer<typeof SplitPreviewBodySchema>;

@@ -32,7 +32,7 @@ export const joinIssue = (split: Split, rules: readonly SplitRule[]): string | n
   return null;
 };
 
-export const joinedSplits = (
+const joinedSplits = (
   entries: readonly SplitEntry[],
   target: Split,
   rules: readonly SplitRule[],
@@ -43,7 +43,7 @@ export const joinedSplits = (
       : splitInputOf(split),
   );
 
-export const withNewSplit = (
+const withNewSplit = (
   entries: readonly SplitEntry[],
   name: string,
   accountId: AccountId,
@@ -61,3 +61,22 @@ export const withNewSplit = (
     hideTasks: false,
   },
 ];
+
+export type FilingPlan =
+  | { readonly kind: 'join'; readonly splitId: Split['id'] }
+  | { readonly kind: 'new'; readonly name: string; readonly accountId: AccountId };
+
+export const filedSplits = (
+  entries: readonly SplitEntry[],
+  plan: FilingPlan,
+  rules: readonly SplitRule[],
+): SplitInput[] | string => {
+  if (plan.kind === 'new') {
+    return withNewSplit(entries, plan.name, plan.accountId, rules);
+  }
+  const target = supportedSplits(entries).find((split) => split.id === plan.splitId);
+  if (target === undefined) {
+    return 'Split medzičasom zmizol. Vyber iný split alebo vytvor nový.';
+  }
+  return joinIssue(target, rules) ?? joinedSplits(entries, target, rules);
+};

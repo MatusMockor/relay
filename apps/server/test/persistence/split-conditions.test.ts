@@ -77,5 +77,8 @@ describe('PgSplitRepository conditions', () => {
     await expect(context.repositories.splits.listByUser(user.id)).resolves.toEqual([
       { ...split, order: 1 },
     ]);
+    await context.repositories.splits.replaceAll(user.id, []);
+    await expect(context.repositories.splits.listByUser(user.id)).resolves.toEqual([]);
+    await expect(context.repositories.splits.listUnsupported(user.id)).resolves.toHaveLength(1);
   });
 });

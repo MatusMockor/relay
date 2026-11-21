@@ -132,7 +132,9 @@ describe('SqliteAutomationRepository', () => {
       { ...newer, order: 0 },
     ]);
     await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
-    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
   });
 
   it('stores reminder, forward and AI reply draft actions', async () => {

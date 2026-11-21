@@ -1,11 +1,10 @@
-import { type AccountId, type AutomationCondition, supportedSplits } from '@relay/shared';
-import { Button, Field } from '@relay/ui';
-import { useState } from 'react';
+import type { AccountId, AutomationCondition } from '@relay/shared';
+import { Button } from '@relay/ui';
 import { useSplits } from '../../data/hooks/use-mail-queries';
-import { toSplitRules } from '../../data/split-input';
-import { openSplitEditor } from '../settings/splits/split-view';
-import { filingTargets, joinedSplits, joinIssue, NEW_SPLIT, withNewSplit } from './split-filing';
-import { useFileToSplit } from './use-file-to-split';
+import { SplitFilingForm } from './SplitFilingForm';
+
+export const SPLITS_LOADING = 'Načítavam splity…';
+export const SPLITS_FAILED = 'Splity sa nepodarilo načítať. Zavri okno a skús to znova.';
 
 export interface SplitFilingProps {
   readonly accountId: AccountId;
@@ -15,90 +14,25 @@ export interface SplitFilingProps {
   readonly onFiled: () => void;
 }
 
-export function SplitFiling({
-  accountId,
-  conditions,
-  suggestedName,
-  onCancel,
-  onFiled,
-}: SplitFilingProps) {
-  const entries = useSplits().data ?? [];
-  const targets = filingTargets(entries, accountId);
-  const filing = useFileToSplit();
-  const [choice, setChoice] = useState<string>(targets[0]?.id ?? NEW_SPLIT);
-  const [name, setName] = useState(suggestedName);
-  const rules = toSplitRules(conditions);
-  const target = targets.find((split) => split.id === choice);
-  const issue = target === undefined ? null : joinIssue(target, rules);
-  const blank = target === undefined && name.trim() === '';
-  const file = () => {
-    if (target !== undefined) {
-      filing.file(
-        joinedSplits(entries, target, rules),
-        `Mail pôjde do splitu ${target.name}`,
-        onFiled,
-      );
-      return;
-    }
-    const trimmed = name.trim();
-    const known = new Set(entries.map((entry) => entry.id));
-    filing.file(
-      withNewSplit(entries, trimmed, accountId, rules),
-      `Split ${trimmed} je vytvorený`,
-      (stored) => {
-        const created = supportedSplits(stored).find((split) => !known.has(split.id));
-        if (created === undefined) {
-          onFiled();
-          return;
-        }
-        openSplitEditor(created.id);
-      },
+export function SplitFiling({ onCancel, ...props }: SplitFilingProps) {
+  const splits = useSplits();
+  const entries = splits.data;
+  if (entries !== undefined) {
+    return (
+      <section className="rfm-split" aria-label="Zaradiť do splitu">
+        <SplitFilingForm entries={entries} onCancel={onCancel} {...props} />
+      </section>
     );
-  };
+  }
   return (
     <section className="rfm-split" aria-label="Zaradiť do splitu">
-      <label className="fld">
-        <span>Split</span>
-        <select
-          value={choice}
-          disabled={filing.busy}
-          onChange={(event) => {
-            setChoice(event.target.value);
-          }}
-        >
-          {targets.map((split) => (
-            <option key={split.id} value={split.id}>
-              {split.name}
-            </option>
-          ))}
-          <option value={NEW_SPLIT}>Nový split…</option>
-        </select>
-      </label>
-      {target === undefined ? (
-        <Field
-          label="Názov nového splitu"
-          value={name}
-          maxLength={100}
-          onChange={(event) => {
-            setName(event.target.value);
-          }}
-        />
-      ) : null}
-      {issue === null ? null : (
-        <p className="rfm-lead" role="status">
-          {issue}
-        </p>
-      )}
+      <p className="rfm-lead" role="status">
+        {splits.isError ? SPLITS_FAILED : SPLITS_LOADING}
+      </p>
       <footer className="rfm-foot">
-        <Button disabled={filing.busy} onClick={onCancel}>
-          Späť
-        </Button>
-        <Button
-          variant="primary"
-          disabled={filing.busy || issue !== null || blank || rules.length === 0}
-          onClick={file}
-        >
-          {filing.busy ? 'Ukladám…' : 'Zaradiť'}
+        <Button onClick={onCancel}>Späť</Button>
+        <Button variant="primary" disabled>
+          Zaradiť
         </Button>
       </footer>
     </section>

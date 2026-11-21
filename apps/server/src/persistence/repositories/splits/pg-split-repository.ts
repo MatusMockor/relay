@@ -9,7 +9,7 @@ import {
   type UnsupportedSplit,
   type UserId,
 } from '@relay/shared/domain';
-import { and, asc, eq, inArray, isNull, ne, notInArray, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { splits } from '../../schema';
 import { assertOwned, lockUser } from '../../support/ownership';
@@ -69,16 +69,14 @@ export class PgSplitRepository implements SplitRepository {
         await assertOwned(tx, 'Account', userId, accountId);
       }
       const written = items.map((split) => split.id);
-      const keepIds = [...written, ...keep.map(({ id }) => id)];
+      const keepIds = new Set([...written, ...keep.map(({ id }) => id)]);
       await assertIdsAvailable(tx, userId, written);
-      await tx
-        .delete(splits)
-        .where(
-          and(
-            eq(splits.userId, userId),
-            keepIds.length === 0 ? undefined : notInArray(splits.id, keepIds),
-          ),
-        );
+      const removed = (await new PgSplitRepository(tx).listByUser(userId))
+        .map((split) => split.id)
+        .filter((id) => !keepIds.has(id));
+      if (removed.length > 0) {
+        await tx.delete(splits).where(and(eq(splits.userId, userId), inArray(splits.id, removed)));
+      }
       if (items.length > 0) {
         const stored = await tx
           .insert(splits)

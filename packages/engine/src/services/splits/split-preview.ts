@@ -4,6 +4,7 @@ import type { SplitPatternPolicy } from '../../ports/split-pattern-policy';
 import type { RecentMatches } from '../automations/recent-matches';
 import type { SplitOverlapFinder } from './split-overlap';
 import { assertRulePatterns } from './split-rule-validator';
+import { threadJiraOf } from './thread-jira';
 
 export interface SplitPreviewDeps {
   readonly recent: RecentMatches;
@@ -19,7 +20,12 @@ export class SplitPreview {
       { kind: 'Split', name: 'preview', rules: [...body.rules, ...body.exceptions] },
       this.deps.patterns,
     );
-    const result = await this.deps.recent.collect(userId, body.accountId, splitCriteria(body));
+    const result = await this.deps.recent.collect(
+      userId,
+      body.accountId,
+      splitCriteria(body),
+      threadJiraOf,
+    );
     const response = await this.deps.recent.respond(userId, result);
     return {
       ...response,

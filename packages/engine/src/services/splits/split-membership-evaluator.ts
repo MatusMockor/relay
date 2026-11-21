@@ -13,6 +13,7 @@ import type { SplitRepository } from '../../ports/split-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { sameMembers } from '../sync/message-diff';
+import { threadJira } from './thread-jira';
 
 const PAGE_SIZE = 200;
 
@@ -100,7 +101,7 @@ export class SplitMembershipEvaluator {
 }
 
 const jiraOf = (thread: ThreadSummary | null): JiraClassification | null =>
-  thread?.jiraKey == null ? null : { jiraKey: thread.jiraKey, eventKind: 'other', actor: null };
+  threadJira(thread?.jiraKey);
 
 const sameSplits = (current: readonly Split[], evaluated: readonly Split[]): boolean =>
   JSON.stringify(current) === JSON.stringify(evaluated);

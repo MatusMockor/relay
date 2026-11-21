@@ -13,7 +13,11 @@ import type {
 } from '../../ports/automation-candidate-repository';
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
-import type { AutomationBacklogMatcher, BacklogMatch } from './automation-backlog-matcher';
+import type {
+  AutomationBacklogMatcher,
+  BacklogMatch,
+  JiraByMessage,
+} from './automation-backlog-matcher';
 import { BACKLOG_LIMIT } from './automation-backlog';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -47,6 +51,7 @@ export class RecentMatches {
     userId: UserId,
     accountId: AccountId | null,
     criteria: AutomationCriteria,
+    jiraOf?: (candidates: readonly InboxCandidate[]) => JiraByMessage,
   ): Promise<RecentMatchResult> {
     const since = new Date(this.deps.clock.now().getTime() - AUTOMATION_PREVIEW_DAYS * DAY_MS);
     const query = { since: since.toISOString(), limit: BACKLOG_LIMIT };
@@ -55,7 +60,13 @@ export class RecentMatches {
     for (const id of await this.accountIds(userId, accountId)) {
       const candidates = await this.deps.candidates.listRecent(id, query);
       truncated = truncated || candidates.length >= query.limit;
-      const matches = await this.deps.matcher.match(userId, id, candidates, criteria);
+      const matches = await this.deps.matcher.match(
+        userId,
+        id,
+        candidates,
+        criteria,
+        jiraOf?.(candidates),
+      );
       accounts.push({ accountId: id, candidates, matches });
     }
     return { accounts, truncated };

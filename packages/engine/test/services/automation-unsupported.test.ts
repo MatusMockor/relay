@@ -45,7 +45,10 @@ describe('rules from a newer Relay version', () => {
     await syncNow(setup);
     expect(setup.engine.events.ofType('automation.notified')).toHaveLength(1);
     await automations.replace(USER_ID, { automations: [{ id: rule.id, keep: true }] });
-    expect(await automations.list(USER_ID)).not.toContainEqual(NEWER);
+    expect(await automations.list(USER_ID)).toEqual([
+      { ...rule, order: 0 },
+      { ...NEWER, order: 1 },
+    ]);
   });
 
   it('keeps a newer rule at its place among the rules around it', async () => {

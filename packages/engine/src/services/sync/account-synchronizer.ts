@@ -5,6 +5,7 @@ import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { Logger } from '../../ports/logger';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { SplitRepository } from '../../ports/split-repository';
+import type { SplitSnapshotGuard } from '../splits/split-snapshot-guard';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
 import { completedSyncState } from './completed-sync-state';
@@ -34,6 +35,7 @@ export interface SyncReport {
 
 export interface AccountSynchronizerDeps {
   readonly splits: SplitRepository;
+  readonly splitGuard: SplitSnapshotGuard;
   readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
@@ -167,6 +169,7 @@ export class AccountSynchronizer {
     await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
+    await this.deps.splitGuard.settle(context.userId, context.account.id, splits);
   }
 
   private async fetchIncremental(
