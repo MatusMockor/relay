@@ -32,9 +32,11 @@ export interface AutomationBacklogMatcherDeps {
 
 const JIRA_CONDITIONS: readonly AutomationCondition['type'][] = ['jira', 'jiraEvent'];
 
-const NO_JIRA = new Map<MessageId, JiraClassification | null>();
+export type JiraByMessage = ReadonlyMap<MessageId, JiraClassification | null>;
 
-const usesJira = (criteria: AutomationCriteria): boolean =>
+const NO_JIRA: JiraByMessage = new Map();
+
+export const usesJira = (criteria: AutomationCriteria): boolean =>
   [...criteria.conditions, ...criteria.exceptions].some((condition) =>
     JIRA_CONDITIONS.includes(condition.type),
   );
@@ -62,8 +64,9 @@ export class AutomationBacklogMatcher {
     accountId: AccountId,
     candidates: readonly InboxCandidate[],
     criteria: AutomationCriteria,
+    known?: JiraByMessage,
   ): Promise<BacklogMatch[]> {
-    const jira = usesJira(criteria) ? await this.jiraOf(userId, candidates) : NO_JIRA;
+    const jira = known ?? (usesJira(criteria) ? await this.jiraOf(userId, candidates) : NO_JIRA);
     const matches: BacklogMatch[] = [];
     for (const candidate of candidates) {
       const messageIds: MessageId[] = [];
@@ -89,10 +92,7 @@ export class AutomationBacklogMatcher {
     return matches;
   }
 
-  private async jiraOf(
-    userId: UserId,
-    candidates: readonly InboxCandidate[],
-  ): Promise<Map<MessageId, JiraClassification | null>> {
+  async jiraOf(userId: UserId, candidates: readonly InboxCandidate[]): Promise<JiraByMessage> {
     const subjects = candidates
       .filter((candidate) => candidate.jiraKey !== null)
       .flatMap((candidate) => candidate.messages);

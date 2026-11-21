@@ -45,6 +45,8 @@ const buildSplits = (): Split[] => [
     accountId: demoIds.account('efa'),
     name: 'Jira',
     order: 0,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [{ type: 'jira', projectKeys: ['WEB', 'API', 'CMS'] }],
@@ -55,6 +57,8 @@ const buildSplits = (): Split[] => [
     accountId: demoIds.account('fl'),
     name: 'Klienti',
     order: 1,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [
@@ -68,6 +72,8 @@ const buildSplits = (): Split[] => [
     accountId: null,
     name: 'Ostatné',
     order: 2,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [

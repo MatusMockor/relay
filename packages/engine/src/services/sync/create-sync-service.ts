@@ -2,6 +2,8 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
+import { SplitMembershipEvaluator } from '../splits/split-membership-evaluator';
+import { SplitSnapshotGuard } from '../splits/split-snapshot-guard';
 import { AccountRunQueue } from './account-run-queue';
 import { AccountSynchronizer, type SyncReport } from './account-synchronizer';
 import { ChangeFlusher } from './change-flusher';
@@ -126,6 +128,17 @@ export const createSyncComponents = (
   });
   const synchronizer = new AccountSynchronizer({
     splits: repositories.splits,
+    splitGuard: new SplitSnapshotGuard({
+      splits: repositories.splits,
+      evaluator: new SplitMembershipEvaluator({
+        splits: repositories.splits,
+        messages: repositories.messages,
+        threads: repositories.threads,
+        matcher: deps.splitMatcher,
+        unitOfWork,
+      }),
+      events: shared.events,
+    }),
     pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,

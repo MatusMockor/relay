@@ -2,7 +2,7 @@
 import {
   DEFAULT_USER_SETTINGS,
   type DeviceSettings,
-  type SplitInput,
+  type SplitReplaceItem,
   type UserSettings,
 } from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -163,7 +163,7 @@ describe('split settings', () => {
   it('does not send a split edit while the previous save is pending', async () => {
     const base = demoClient();
     const held = gate();
-    const saves: SplitInput[][] = [];
+    const saves: SplitReplaceItem[][] = [];
     const client: MailClient = {
       ...base,
       replaceSplits: async (splits) => {
@@ -175,16 +175,27 @@ describe('split settings', () => {
     renderApp({ demo: () => client });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
     const sheet = openSection('splits');
-    const removes = await within(sheet).findAllByRole('button', { name: /^Odstrániť split/ });
-    expect(removes.length).toBeGreaterThan(1);
+    await within(sheet).findByRole('button', { name: 'Otvoriť split Jira' });
     act(() => {
-      fireEvent.click(removes[0] ?? document.body);
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Otvoriť split Jira' }));
+    });
+    const editor = within(sheet).getByRole('region', { name: 'Split Jira' });
+    act(() => {
+      fireEvent.click(
+        within(editor).getByRole('switch', { name: 'Vybrať maily z Dôležitých do splitu Jira' }),
+      );
     });
     act(() => {
       fireEvent.click(
-        within(sheet).getAllByRole('button', { name: /^Odstrániť split/ })[1] ?? document.body,
+        within(editor).getByRole('switch', {
+          name: 'Skryť vlákna, ktoré sú v Úlohách, v splite Jira',
+        }),
       );
     });
+    await waitFor(() => {
+      expect(saves).toHaveLength(1);
+    });
+    await settle();
     expect(saves).toHaveLength(1);
     held.open();
     await settle();
@@ -193,7 +204,7 @@ describe('split settings', () => {
   it('does not add a split before the existing splits load', async () => {
     const base = demoClient();
     const held = gate();
-    const saves: SplitInput[][] = [];
+    const saves: SplitReplaceItem[][] = [];
     const client: MailClient = {
       ...base,
       listSplits: async () => {

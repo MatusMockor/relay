@@ -48,6 +48,8 @@ describe('PgThreadRepository.queryFolder', () => {
       accountId: null,
       name: 'Newsletter',
       order: 0,
+      match: 'any',
+      exceptions: [],
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
       hideTasks: false,

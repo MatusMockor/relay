@@ -1,5 +1,5 @@
 import type { SplitMatcher, SplitMatchInput } from '@relay/engine';
-import type { SplitId } from '@relay/shared/domain';
+import { matchesCriteria, type SplitId, splitCriteria } from '@relay/shared/domain';
 import { RegexCache } from './regex-cache';
 import { evaluateRule } from './rule-evaluators';
 
@@ -14,7 +14,9 @@ export class RuleSplitMatcher implements SplitMatcher {
     const context = { message: input.message, jira: input.jira, regex: this.regex };
     return [...input.splits]
       .sort((left, right) => left.order - right.order)
-      .filter((split) => split.rules.some((rule) => evaluateRule(rule, context)))
+      .filter((split) =>
+        matchesCriteria(splitCriteria(split), (rule) => evaluateRule(rule, context)),
+      )
       .map((split) => split.id);
   }
 }

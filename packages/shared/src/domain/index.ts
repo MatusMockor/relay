@@ -39,6 +39,8 @@ export * from './rule-target-match';
 export * from './scheduled-send';
 export * from './settings';
 export * from './split';
+export * from './split-criteria';
+export * from './split-entry';
 export * from './task';
 export * from './held-thread-state';
 export * from './thread-search-field';

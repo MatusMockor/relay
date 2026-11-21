@@ -12,17 +12,26 @@ const StepSchema = z.object({
   env: z.record(z.string(), z.string()).optional(),
 });
 
+const ArchMatrixSchema = z.object({ include: z.array(z.object({ arch: z.string() })) });
+const ShardMatrixSchema = z.object({ shard: z.array(z.number().int().positive()) });
+
 const JobSchema = z.object({
   needs: z.union([z.string(), z.array(z.string())]).optional(),
   if: z.string().optional(),
   environment: z.string().optional(),
   permissions: z.record(z.string(), z.string()).optional(),
   env: z.record(z.string(), z.string()).optional(),
-  strategy: z
-    .object({ matrix: z.object({ include: z.array(z.object({ arch: z.string() })) }) })
-    .optional(),
+  strategy: z.object({ matrix: z.union([ArchMatrixSchema, ShardMatrixSchema]) }).optional(),
   steps: z.array(StepSchema),
 });
+
+const archEntries = (entry: Job | undefined): string[] => {
+  const matrix = entry?.strategy?.matrix;
+  if (matrix === undefined || !('include' in matrix)) {
+    return [];
+  }
+  return matrix.include.map((item) => item.arch);
+};
 
 const WorkflowSchema = z.object({
   permissions: z.record(z.string(), z.string()),
@@ -87,18 +96,23 @@ describe('release.yml', () => {
   it('builds Linux for both architectures without secrets or the release environment', () => {
     const linux = job('build-linux');
     expect(linux?.environment).toBeUndefined();
-    expect(linux?.strategy?.matrix.include.map((entry) => entry.arch)).toEqual(['x64', 'arm64']);
+    expect(archEntries(linux)).toEqual(['x64', 'arm64']);
     expect(JSON.stringify(linux)).not.toMatch(SECRET);
   });
 
-  it('signs both mac architectures and publishes only tag pushes after every platform', () => {
+  it('gates publish on every parallel check job and both platform builds', () => {
+    const checkJobNames = jobs
+      .map(([name]) => name)
+      .filter((name) => name.startsWith('check-'))
+      .sort();
+    expect(checkJobNames.length).toBeGreaterThan(0);
+    const checksGate = job('checks');
+    const checksNeeds = Array.isArray(checksGate?.needs) ? [...checksGate.needs].sort() : [];
+    expect(checksNeeds).toEqual(checkJobNames);
     const publish = job('publish');
-    expect(job('build-mac')?.strategy?.matrix.include.map((entry) => entry.arch)).toEqual([
-      'arm64',
-      'x64',
-    ]);
+    expect(archEntries(job('build-mac'))).toEqual(['arm64', 'x64']);
     expect(publish?.if).toBe("github.event_name == 'push'");
-    expect(publish?.needs).toEqual(['version', 'build-mac', 'build-linux']);
+    expect(publish?.needs).toEqual(['version', 'checks', 'build-mac', 'build-linux']);
   });
 
   it('only runs release tools that exist and are executable', () => {

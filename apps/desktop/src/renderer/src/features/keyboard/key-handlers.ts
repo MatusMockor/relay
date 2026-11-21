@@ -1,4 +1,4 @@
-import type { Split, ThreadDetail } from '@relay/shared';
+import type { SplitEntry, ThreadDetail } from '@relay/shared';
 import { type Folder, folderKey, MAIN_TAB_LABEL } from '../../state/folders';
 import type { AccountScope } from '../../state/folders';
 import { ALL_ACCOUNTS_DIGIT } from '../folders/account-shortcut';
@@ -32,7 +32,7 @@ export const G_VIEWS: Readonly<Record<string, Folder>> = {
   k: { kind: 'view', view: 'trash' },
 };
 
-export const tabFolders = (splits: readonly Split[], hasTasks: boolean): Folder[] => [
+export const tabFolders = (splits: readonly SplitEntry[], hasTasks: boolean): Folder[] => [
   { kind: 'inbox', splitId: null },
   ...(hasTasks ? [{ kind: 'view' as const, view: 'tasks' as const }] : []),
   ...splits.map((split) => ({ kind: 'inbox' as const, splitId: split.id })),

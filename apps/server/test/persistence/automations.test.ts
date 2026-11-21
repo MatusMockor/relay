@@ -116,6 +116,11 @@ describe('PgAutomationRepository', () => {
     await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
       { ...known, order: 1 },
     ]);
+    await context.repositories.automations.replaceAll(seeded.user.id, []);
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([]);
+    await expect(
+      context.repositories.automations.listUnsupported(seeded.user.id),
+    ).resolves.toHaveLength(1);
   });
 
   it('rejects automations of another user and foreign accounts', async () => {

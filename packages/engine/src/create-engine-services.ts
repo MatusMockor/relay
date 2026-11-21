@@ -52,9 +52,8 @@ import {
   DEFAULT_USER_SETTINGS_POLICY,
   UserSettingsReader,
 } from './services/shared/user-settings-reader';
-import { SplitMembershipEvaluator } from './services/splits/split-membership-evaluator';
-import { PERMISSIVE_PATTERN_POLICY } from './services/splits/split-rule-validator';
-import { SplitService } from './services/splits/split-service';
+import { createSplitService } from './services/splits/create-split-service';
+import type { SplitService } from './services/splits/split-service';
 import { createBodyRepairBackfills } from './services/sync/body-repair/create-body-repair';
 import { CompositeArrivalListener } from './services/sync/composite-arrival-listener';
 import { createSyncComponents } from './services/sync/create-sync-service';
@@ -252,20 +251,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     attachmentSweeper,
     bodyRetention: createBodyRetention(deps, events),
     offlineStats: createOfflineStats(deps),
-    splits: new SplitService({
-      splits: repositories.splits,
-      accounts: repositories.accounts,
-      evaluator: new SplitMembershipEvaluator({
-        splits: repositories.splits,
-        messages: repositories.messages,
-        threads: repositories.threads,
-        matcher: deps.splitMatcher,
-        unitOfWork,
-      }),
-      events,
-      ids,
-      patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
-    }),
+    splits: createSplitService(deps, events),
     automations: automations.service,
     automationHistory: automations.history,
     ai: ai.service,

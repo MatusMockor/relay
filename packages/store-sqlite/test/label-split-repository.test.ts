@@ -15,6 +15,8 @@ const buildSplit = (overrides: Partial<Split> = {}): Split => ({
   accountId: null,
   name: 'Jira',
   order: 0,
+  match: 'any',
+  exceptions: [],
   rules: [{ type: 'jira', projectKeys: ['REL'] }],
   exclusive: true,
   hideTasks: false,

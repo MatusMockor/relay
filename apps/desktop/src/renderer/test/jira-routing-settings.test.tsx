@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import type { SplitInput, UserSettingsPatch } from '@relay/shared';
+import {
+  type SplitReplaceItem,
+  splitInputsOf,
+  supportedSplits,
+  type UserSettingsPatch,
+} from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
@@ -80,7 +85,7 @@ describe('split hide tasks toggle', () => {
 
   it('saves the flag for the toggled split only', async () => {
     const base = demoClient();
-    const saves: SplitInput[][] = [];
+    const saves: SplitReplaceItem[][] = [];
     const client: MailClient = {
       ...base,
       replaceSplits: (splits) => {
@@ -89,6 +94,10 @@ describe('split hide tasks toggle', () => {
       },
     };
     const sheet = await openSection(client, 'splits');
+    const open = await within(sheet).findByRole('button', { name: 'Otvoriť split Jira' });
+    act(() => {
+      fireEvent.click(open);
+    });
     const toggle = await within(sheet).findByRole('switch', { name: HIDE_IN_JIRA });
     expect(toggle.getAttribute('aria-checked')).toBe('false');
 
@@ -100,7 +109,7 @@ describe('split hide tasks toggle', () => {
       expect(checkedOf(sheet, HIDE_IN_JIRA)).toBe('true');
     });
     expect(saves).toHaveLength(1);
-    const flags = saves[0]?.map((split) => [split.name, split.hideTasks]);
+    const flags = splitInputsOf(saves[0] ?? []).map((split) => [split.name, split.hideTasks]);
     expect(flags).toEqual([
       ['Jira', true],
       ['Klienti', false],
@@ -118,7 +127,7 @@ describe('split hide tasks toggle', () => {
     );
     expect(open.length).toBeGreaterThan(0);
 
-    const splits = await client.listSplits();
+    const splits = supportedSplits(await client.listSplits());
     await client.replaceSplits(
       splits.map((split) => ({ ...split, hideTasks: split.id === before.split?.id })),
     );

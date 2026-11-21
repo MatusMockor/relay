@@ -1,6 +1,11 @@
-import type { ReplaceSplitsBody } from '@relay/shared/api';
-import type { Split, UserId } from '@relay/shared/domain';
-import { NotFoundError, ValidationError } from '../../errors';
+import {
+  type ReplaceSplitsBody,
+  type SplitPreviewBody,
+  type SplitPreviewResponse,
+  splitInputsOf,
+} from '@relay/shared/api';
+import type { Split, SplitEntry, UserId } from '@relay/shared/domain';
+import { NotFoundError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { SplitPatternPolicy } from '../../ports/split-pattern-policy';
@@ -8,12 +13,15 @@ import type { SplitRepository } from '../../ports/split-repository';
 import type { EngineEvents } from '../shared/engine-events';
 import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { SplitMembershipEvaluator } from './split-membership-evaluator';
+import type { SplitPreview } from './split-preview';
+import { resolveSplits, withUnsupportedSplits } from './split-replacement';
 import { validateSplitRules } from './split-rule-validator';
 
 export interface SplitServiceDeps {
   readonly splits: SplitRepository;
   readonly accounts: AccountRepository;
   readonly evaluator: SplitMembershipEvaluator;
+  readonly preview: SplitPreview;
   readonly events: EngineEvents;
   readonly ids: IdGenerator;
   readonly patterns: SplitPatternPolicy;
@@ -24,32 +32,38 @@ export class SplitService {
 
   constructor(private readonly deps: SplitServiceDeps) {}
 
-  list(userId: UserId): Promise<Split[]> {
-    return this.deps.splits.listByUser(userId);
+  async list(userId: UserId): Promise<SplitEntry[]> {
+    return withUnsupportedSplits(
+      await this.deps.splits.listByUser(userId),
+      await this.deps.splits.listUnsupported(userId),
+    );
   }
 
-  replace(userId: UserId, body: ReplaceSplitsBody): Promise<Split[]> {
+  replace(userId: UserId, body: ReplaceSplitsBody): Promise<SplitEntry[]> {
     return this.serializer.run(userId, () => this.replaceNow(userId, body));
+  }
+
+  preview(userId: UserId, body: SplitPreviewBody): Promise<SplitPreviewResponse> {
+    return this.deps.preview.preview(userId, body);
   }
 
   reevaluate(userId: UserId): Promise<number> {
     return this.serializer.run(userId, () => this.reevaluateNow(userId));
   }
 
-  private async replaceNow(userId: UserId, body: ReplaceSplitsBody): Promise<Split[]> {
-    validateSplitRules(body.splits, this.deps.patterns);
-    await this.assertAccounts(userId, body);
-    const knownIds = new Set((await this.deps.splits.listByUser(userId)).map((split) => split.id));
-    const splits = body.splits.map((input): Split => {
-      if (input.id !== undefined && !knownIds.has(input.id)) {
-        throw new ValidationError(`Unknown split id ${input.id}`);
-      }
-      return { ...input, id: input.id ?? this.deps.ids.generate('split'), userId };
+  private async replaceNow(userId: UserId, body: ReplaceSplitsBody): Promise<SplitEntry[]> {
+    const inputs = splitInputsOf(body.splits);
+    validateSplitRules(inputs, this.deps.patterns);
+    await this.assertAccounts(userId, inputs);
+    const current = await this.deps.splits.listByUser(userId);
+    const { splits, keep } = resolveSplits(body.splits, {
+      userId,
+      known: new Map(current.map((split) => [split.id, split])),
+      unsupported: await this.deps.splits.listUnsupported(userId),
+      newId: () => this.deps.ids.generate('split'),
     });
-    if (new Set(splits.map((split) => split.id)).size !== splits.length) {
-      throw new ValidationError('Split ids must be unique');
-    }
-    const stored = await this.deps.splits.replaceAll(userId, splits);
+    await this.deps.splits.replaceAll(userId, splits, keep);
+    const stored = await this.list(userId);
     await this.deps.events.emit(userId, 'splits.updated', { splits: stored });
     await this.reevaluateNow(userId);
     return stored;
@@ -68,8 +82,11 @@ export class SplitService {
     return changed;
   }
 
-  private async assertAccounts(userId: UserId, body: ReplaceSplitsBody): Promise<void> {
-    const accountIds = new Set(body.splits.flatMap((split) => split.accountId ?? []));
+  private async assertAccounts(
+    userId: UserId,
+    inputs: readonly { readonly accountId: Split['accountId'] }[],
+  ): Promise<void> {
+    const accountIds = new Set(inputs.flatMap((split) => split.accountId ?? []));
     for (const accountId of accountIds) {
       if ((await this.deps.accounts.findById(userId, accountId)) === null) {
         throw new NotFoundError('Account', accountId);

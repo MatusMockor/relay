@@ -1,4 +1,4 @@
-import type { AutomationCondition } from '@relay/shared';
+import type { AutomationCondition, AutomationConditionType } from '@relay/shared';
 import { Button } from '@relay/ui';
 import { Fragment } from 'react';
 import { describeCondition } from './automation-labels';
@@ -23,6 +23,7 @@ export interface ConditionListProps {
   readonly disabled: boolean;
   readonly onChange: (conditions: AutomationCondition[]) => void;
   readonly tracker: RowTracker;
+  readonly types?: readonly AutomationConditionType[];
 }
 
 export function ConditionList({
@@ -33,6 +34,7 @@ export function ConditionList({
   disabled,
   onChange,
   tracker,
+  types,
 }: ConditionListProps) {
   const { rows } = state;
   const entries = [
@@ -77,6 +79,7 @@ export function ConditionList({
                   onChange(conditions.filter((_, position) => position !== index));
                 }}
                 tracker={tracker}
+                types={types}
               />
             </Fragment>
           ))}

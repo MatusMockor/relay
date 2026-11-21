@@ -166,6 +166,8 @@ describe('references to rows of another user', () => {
           accountId: owner.account.id,
           name: 'X',
           order: 0,
+          match: 'any',
+          exceptions: [],
           rules: [{ type: 'fromDomain', domain: 'x.sk' }],
           exclusive: false,
           hideTasks: false,

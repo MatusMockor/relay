@@ -10,6 +10,7 @@ export const createSettingsHandlers = (
   'local.settings.update': (patch) => services.settings.update(userId, patch),
   'local.splits.list': () => services.splits.list(userId),
   'local.splits.replace': (body) => services.splits.replace(userId, body),
+  'local.splits.preview': (body) => services.splits.preview(userId, body),
   'local.automations.list': () => services.automations.list(userId),
   'local.automations.replace': (body) => services.automations.replace(userId, body),
   'local.automations.restoreDefault': () => services.automations.restoreDefault(userId),

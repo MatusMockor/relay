@@ -14,7 +14,7 @@ import {
   type UnsupportedAutomation,
   type UserId,
 } from '@relay/shared/domain';
-import { and, asc, eq, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { automations, removedAutomationPresets } from '../../schema';
 import { assertOwned, lockUser } from '../../support/ownership';
@@ -48,15 +48,15 @@ export class PgAutomationRepository implements AutomationRepository {
         await assertOwned(tx, 'Account', userId, accountId);
       }
       const written = items.map((automation) => automation.id);
-      const keepIds = [...written, ...keep.map(({ id }) => id)];
-      await tx
-        .delete(automations)
-        .where(
-          and(
-            eq(automations.userId, userId),
-            keepIds.length === 0 ? undefined : notInArray(automations.id, keepIds),
-          ),
-        );
+      const keepIds = new Set([...written, ...keep.map(({ id }) => id)]);
+      const removed = (await new PgAutomationRepository(tx).listByUser(userId))
+        .map((automation) => automation.id)
+        .filter((id) => !keepIds.has(id));
+      if (removed.length > 0) {
+        await tx
+          .delete(automations)
+          .where(and(eq(automations.userId, userId), inArray(automations.id, removed)));
+      }
       if (items.length > 0) {
         const stored = await tx
           .insert(automations)
