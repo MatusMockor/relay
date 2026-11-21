@@ -15,6 +15,7 @@ import { AutomationActionExecutor } from './automation-action-executor';
 import { AutomationBacklog } from './automation-backlog';
 import { AutomationBacklogMatcher } from './automation-backlog-matcher';
 import { AutomationPreview } from './automation-preview';
+import { RecentMatches } from './recent-matches';
 import { AutomationRunner } from './automation-runner';
 import { AutomationService } from './automation-service';
 import { AutomationForwardValidator } from './automation-forward-validator';
@@ -100,12 +101,14 @@ export const createAutomationComponents = (
         clock: deps.clock,
       }),
       preview: new AutomationPreview({
-        accounts: repositories.accounts,
-        messages: repositories.messages,
-        candidates: repositories.automationCandidates,
-        matcher,
+        recent: new RecentMatches({
+          accounts: repositories.accounts,
+          messages: repositories.messages,
+          candidates: repositories.automationCandidates,
+          matcher,
+          clock: deps.clock,
+        }),
         patterns,
-        clock: deps.clock,
       }),
     }),
     runner: new AutomationRunner({

@@ -38,9 +38,9 @@ export class MemoryAutomationRepository implements AutomationRepository {
     const unsupported = this.db.tables.unsupportedAutomations.get(userId) ?? [];
     this.db.tables.unsupportedAutomations.set(
       userId,
-      unsupported.flatMap((entry) => {
+      unsupported.map((entry) => {
         const kept = keep.find(({ id }) => id === entry.id);
-        return kept === undefined ? [] : [{ ...entry, order: kept.order }];
+        return kept === undefined ? entry : { ...entry, order: kept.order };
       }),
     );
     return this.listByUser(userId);

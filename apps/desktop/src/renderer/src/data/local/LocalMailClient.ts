@@ -90,6 +90,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
       ignore(bridge.invoke('local.scheduled.cancel', { scheduledSendId })),
     listSplits: () => unwrap(bridge.invoke('local.splits.list')),
     replaceSplits: (splits) => unwrap(bridge.invoke('local.splits.replace', { splits })),
+    previewSplit: (body) => unwrap(bridge.invoke('local.splits.preview', body)),
     listAutomations: () => unwrap(bridge.invoke('local.automations.list')),
     replaceAutomations: (automations) =>
       unwrap(bridge.invoke('local.automations.replace', { automations })),

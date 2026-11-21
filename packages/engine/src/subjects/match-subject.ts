@@ -1,7 +1,7 @@
-import type { AttachmentMeta, Message } from '@relay/shared/domain';
+import type { Message } from '@relay/shared/domain';
 import type { MessageHeaders, SplitMatchSubject } from '../model/split-match-subject';
 
-export const hasFileAttachments = (attachments: readonly AttachmentMeta[]): boolean =>
+export const hasFileAttachments = (attachments: readonly { readonly inline: boolean }[]): boolean =>
   attachments.some((attachment) => !attachment.inline);
 
 export const matchSubjectOf = (message: Message, headers: MessageHeaders): SplitMatchSubject => ({

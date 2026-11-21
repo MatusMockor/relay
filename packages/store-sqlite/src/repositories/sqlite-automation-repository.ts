@@ -8,7 +8,7 @@ import {
   type UnsupportedAutomation,
   type UserId,
 } from '@relay/shared/domain';
-import { and, asc, eq, notInArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toAutomationEntry, toAutomationRow } from '../mappers/automation-mapper';
@@ -36,17 +36,18 @@ export class SqliteAutomationRepository implements AutomationRepository {
     keep: readonly KeptAutomation[] = [],
   ): Promise<Automation[]> {
     return this.executor.execute((db) => {
-      db.delete(automations)
-        .where(
-          and(
-            eq(automations.userId, userId),
-            notInArray(automations.id, [
-              ...items.map((automation) => automation.id),
-              ...keep.map(({ id }) => id),
-            ]),
-          ),
-        )
-        .run();
+      const keepIds = new Set([
+        ...items.map((automation) => automation.id),
+        ...keep.map(({ id }) => id),
+      ]);
+      const removed = supportedAutomations(this.listOwned(db, userId))
+        .map((automation) => automation.id)
+        .filter((id) => !keepIds.has(id));
+      if (removed.length > 0) {
+        db.delete(automations)
+          .where(and(eq(automations.userId, userId), inArray(automations.id, removed)))
+          .run();
+      }
       items.forEach((automation) => {
         const row = toAutomationRow({ ...automation, userId });
         const { id: _id, userId: _owner, ...changes } = row;

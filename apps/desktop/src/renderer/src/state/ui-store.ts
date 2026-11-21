@@ -32,6 +32,7 @@ export interface SettingsOverlay {
   readonly section: SettingsSection;
   readonly adding: boolean;
   readonly automation?: AutomationView;
+  readonly split?: string;
 }
 
 export type OverlayState =

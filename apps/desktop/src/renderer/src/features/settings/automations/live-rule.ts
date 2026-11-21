@@ -3,7 +3,7 @@ import type { ConditionRows } from './condition-rows';
 import type { RuleInput } from './editable-rule';
 import type { LiveDraft } from './use-live-drafts';
 
-const liveConditions = (
+export const liveConditions = (
   saved: readonly AutomationCondition[],
   rows: ConditionRows,
   drafts: ReadonlyMap<string, LiveDraft>,

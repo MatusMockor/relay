@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { api } from '@relay/shared/api';
+import { supportedSplits } from '@relay/shared/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { registerUser } from '../support/auth-flow';
 import { authenticateRealtime } from '../support/realtime-client';
@@ -46,7 +47,9 @@ describe('splits', () => {
       },
       session.accessToken,
     );
-    expect(saved.map((split) => [split.name, split.userId, split.hideTasks])).toEqual([
+    expect(
+      supportedSplits(saved).map((split) => [split.name, split.userId, split.hideTasks]),
+    ).toEqual([
       ['Jira', session.user.id, true],
       ['Faktúry', session.user.id, false],
     ]);

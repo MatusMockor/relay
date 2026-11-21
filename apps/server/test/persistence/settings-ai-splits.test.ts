@@ -46,6 +46,8 @@ describe('PgSplitRepository', () => {
     accountId: null,
     name: 'Jira',
     order: 0,
+    match: 'any',
+    exceptions: [],
     rules: [{ type: 'subjectRegex', pattern: '^\\[JIRA\\]', caseSensitive: false }],
     exclusive: false,
     hideTasks: false,

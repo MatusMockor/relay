@@ -27,6 +27,7 @@ import {
   AutomationPreviewResponseSchema,
 } from '../api/endpoints/automation-preview';
 import { ServerSearchRequestSchema, ServerSearchResponseSchema } from '../api/endpoints/search';
+import { SplitPreviewBodySchema, SplitPreviewResponseSchema } from '../api/endpoints/split-preview';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
@@ -62,7 +63,7 @@ import { MailboxSchema } from '../domain/mailbox';
 import { MessageBodyResultSchema } from '../domain/message-body';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsPatchSchema, UserSettingsSchema } from '../domain/settings';
-import { SplitSchema } from '../domain/split';
+import { SplitEntriesSchema } from '../domain/split-entry';
 import { TaskSchema } from '../domain/task';
 import { ThreadAiStateSchema, ThreadDetailSchema, ThreadSummarySchema } from '../domain/thread';
 import { ThreadActionSchema } from '../domain/thread-action';
@@ -156,8 +157,9 @@ export const localInvokeChannels = {
     z.object({ taskId: TaskIdSchema, patch: UpdateTaskBodySchema }),
     TaskSchema,
   ),
-  'local.splits.list': invokeChannel(z.undefined(), z.array(SplitSchema)),
-  'local.splits.replace': invokeChannel(ReplaceSplitsBodySchema, z.array(SplitSchema)),
+  'local.splits.list': invokeChannel(z.undefined(), SplitEntriesSchema),
+  'local.splits.replace': invokeChannel(ReplaceSplitsBodySchema, SplitEntriesSchema),
+  'local.splits.preview': invokeChannel(SplitPreviewBodySchema, SplitPreviewResponseSchema),
   'local.automations.list': invokeChannel(z.undefined(), AutomationEntriesSchema),
   'local.automations.replace': invokeChannel(ReplaceAutomationsBodySchema, AutomationEntriesSchema),
   'local.automations.restoreDefault': invokeChannel(z.undefined(), AutomationEntriesSchema),

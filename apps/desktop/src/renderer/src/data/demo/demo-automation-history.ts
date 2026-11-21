@@ -13,6 +13,7 @@ import { MailClientError } from '../errors';
 import type { Organizer } from '../MailClient';
 import type { DemoRuleUndo } from './demo-rule-undo';
 import type { DemoState } from './demo-state';
+import { settled } from './settled';
 
 type DemoAutomationHistoryMethods = Pick<
   Organizer,
@@ -20,14 +21,6 @@ type DemoAutomationHistoryMethods = Pick<
 >;
 
 const DAY_MS = 86_400_000;
-
-const settled = <Result>(work: () => Result): Promise<Result> => {
-  try {
-    return Promise.resolve(work());
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
-  }
-};
 
 const notFound = (what: string) =>
   new MailClientError({ code: 'not_found', message: `${what} neexistuje` });

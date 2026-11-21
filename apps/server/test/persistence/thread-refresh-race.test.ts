@@ -79,6 +79,8 @@ describe('thread refresh racing a concurrent thread write (Postgres)', () => {
       accountId: null,
       name: 'Newsletter',
       order: 0,
+      match: 'any',
+      exceptions: [],
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
       hideTasks: false,
