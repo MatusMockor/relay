@@ -52,7 +52,6 @@ describe('Gmail labels', () => {
     expect(present(threads[0]).labelIds).toEqual([acme.id]);
     expect([...engine.db.tables.messages.values()].map((message) => message.emailId)).toEqual([
       'gm-1',
-      'gm-1',
     ]);
     const synced = server.uidListings.concat(server.streamedMessages.map(({ path }) => path));
     expect(

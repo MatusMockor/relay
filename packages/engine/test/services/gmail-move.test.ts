@@ -57,7 +57,7 @@ const stored = (engine: TestEngine, thread: ThreadSummary) =>
   present(engine.db.tables.threads.get(thread.id));
 
 describe('moving a Gmail thread to a label', () => {
-  it('adds the label once per message and archives, merging the All Mail copy', async () => {
+  it('adds the label once per message and archives by dropping the INBOX placement', async () => {
     const engine = createTestEngine();
     const { account, server, thread, label, target } = await gmailThread(engine, inboxAndAllMail);
 
@@ -75,7 +75,11 @@ describe('moving a Gmail thread to a label', () => {
     expect(server.record('Archive', 1).labels).toEqual(['\\Inbox', 'Klienti']);
     expect(pendingOps(engine)).toEqual([]);
     expect(localLabels(engine)).toEqual([[label.id]]);
-    expect(threadRefreshes(engine)).toHaveLength(1);
+    expect(threadRefreshes(engine)).toEqual([]);
+    const allMail = present(await engine.repositories.mailboxes.findByPath(account.id, 'Archive'));
+    expect([...engine.db.tables.messages.values()].map((message) => message.placements)).toEqual([
+      [{ mailboxId: allMail.id, uid: 1 }],
+    ]);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
     expect(stored(engine, thread).state).toBe('done');

@@ -9,6 +9,7 @@ import type { MoveOriginWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
+import { keepsSource } from '../actions/placement-transition';
 import type { MovedCopyMerger } from '../actions/moved-copy-merger';
 import { recordMoveOrigins } from '../shared/move-origins';
 import { PENDING_UID } from '../shared/pending-uid';
@@ -73,7 +74,11 @@ export class TrashedCopies {
         await this.deps.merger.merge(account, message, source, twin);
         continue;
       }
-      await messages.move(message.id, { mailboxId: trash.id, uid });
+      await messages.movePlacement(message.id, {
+        from: folder.id,
+        to: { mailboxId: trash.id, uid },
+        keepSource: keepsSource(account, folder.role, trash.role),
+      });
     }
     return [...new Set(moved.messages.map((message) => message.threadId))];
   }

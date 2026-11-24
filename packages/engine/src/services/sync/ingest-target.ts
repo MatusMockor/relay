@@ -1,6 +1,16 @@
-import type { MailAccount, Mailbox, Message, Split, SplitId, UserId } from '@relay/shared/domain';
+import type {
+  MailAccount,
+  Mailbox,
+  Message,
+  MessageBodyState,
+  Split,
+  SplitId,
+  UserId,
+} from '@relay/shared/domain';
 import type { JiraClassification } from '../../model/jira';
 import type { ParsedMessage } from '../../model/parsed-message';
+import type { PlacedKind } from '../../model/placement-ingest';
+import type { RemoteMessageMeta } from '../../model/remote-mail';
 import type { SyncJournal } from './sync-journal';
 
 export interface IngestTarget {
@@ -15,6 +25,13 @@ export interface IngestTarget {
   readonly history?: boolean;
 }
 
+export interface FetchedMessage {
+  readonly remote: RemoteMessageMeta;
+  readonly source: Uint8Array | null;
+  readonly bodyState: MessageBodyState;
+  readonly parse: () => Promise<ParsedMessage>;
+}
+
 export interface CreatedMessage {
   readonly message: Message;
   readonly parsed: ParsedMessage;
@@ -24,5 +41,10 @@ export interface CreatedMessage {
 
 export type IngestOutcome =
   | { readonly kind: 'skipped'; readonly reason: string }
-  | { readonly kind: 'existing'; readonly message: Message; readonly changed: boolean }
+  | {
+      readonly kind: 'existing';
+      readonly message: Message;
+      readonly changed: boolean;
+      readonly placed: PlacedKind;
+    }
   | ({ readonly kind: 'created' } & CreatedMessage);

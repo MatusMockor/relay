@@ -95,7 +95,6 @@ describe('LabelService for Gmail labels', () => {
     const messages = [...engine.db.tables.messages.values()];
     expect(messages.map((message) => [...message.labelIds].sort())).toEqual([
       [parent.id, child.id].sort(),
-      [parent.id, child.id].sort(),
     ]);
   });
 
@@ -129,7 +128,7 @@ describe('LabelService for Gmail labels', () => {
 
     expect(server.labelWrites.at(-1)).toMatchObject({ add: ['Práca/Alfa'] });
     const messages = await engine.repositories.messages.listByThread(USER_ID, plain.id);
-    expect(messages.map((message) => message.labelIds)).toEqual([[child.id], [child.id]]);
+    expect(messages.map((message) => message.labelIds)).toEqual([[child.id]]);
   });
 
   it('deletes the label on Gmail, keeps the mail and clears it from local threads', async () => {

@@ -4,7 +4,6 @@ import type { MailboxSyncState } from '../../model/sync-state';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
-import { PENDING_UID } from '../shared/pending-uid';
 import type { MailboxPass } from './mailbox-pass';
 import { flagsDiffer, sameMembers } from './message-diff';
 import type { MessageLabelsResolver } from './message-labels-resolver';
@@ -24,8 +23,10 @@ export class MailboxReconciler {
   constructor(private readonly deps: MailboxReconcilerDeps) {}
 
   async reset(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<void> {
-    const uids = await this.deps.messages.listUids(mailbox.id);
-    await this.expunge(context, mailbox, role, uids);
+    await this.deps.unitOfWork.run(async (repositories) => {
+      const threadIds = await repositories.messages.forgetMailbox(mailbox.id);
+      await context.journal.expunged(repositories.pendingWork, threadIds, role);
+    });
     await this.deps.syncStates.delete(mailbox.id);
     this.deps.scans.forget(mailbox.id);
   }
@@ -56,9 +57,8 @@ export class MailboxReconciler {
     return context.provider.listUids(mailbox.path, { among: local });
   }
 
-  private async storedUids(mailbox: Mailbox): Promise<number[]> {
-    const uids = await this.deps.messages.listUids(mailbox.id);
-    return uids.filter((uid) => uid !== PENDING_UID);
+  private storedUids(mailbox: Mailbox): Promise<number[]> {
+    return this.deps.messages.listUids(mailbox.id);
   }
 
   private expunge(

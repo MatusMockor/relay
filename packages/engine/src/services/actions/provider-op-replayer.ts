@@ -15,6 +15,7 @@ import type { PendingProviderOp } from '../shared/provider-ops';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import { MovedCopyMerger } from './moved-copy-merger';
 import { MoveTargetResolver } from './move-target-resolver';
+import { keepsSource } from './placement-transition';
 import { type OpBatch, ProviderOpBatches } from './provider-op-batches';
 import { writeStoreChange } from './store-change-writer';
 
@@ -124,7 +125,11 @@ export class ProviderOpReplayer {
         await this.merger.merge(account, message, placement, twin);
         continue;
       }
-      await this.deps.messages.move(message.id, { mailboxId: target.id, uid });
+      await this.deps.messages.movePlacement(message.id, {
+        from: placement.mailboxId,
+        to: { mailboxId: target.id, uid },
+        keepSource: keepsSource(account, mailbox.role, target.role),
+      });
     }
   }
 

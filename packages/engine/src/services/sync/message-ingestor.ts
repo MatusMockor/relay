@@ -1,172 +1,74 @@
-import { type Message, type MessageBodyState, placementIn } from '@relay/shared/domain';
 import type { ParsedMessage } from '../../model/parsed-message';
-import type { RawMessage, RemoteMessageMeta, RemoteMessageSummary } from '../../model/remote-mail';
-import type { IdGenerator } from '../../ports/id-generator';
-import type { JiraClassifier } from '../../ports/jira-classifier';
-import type { MessageParser } from '../../ports/message-parser';
-import type { MessageLocation, MessageRepository } from '../../ports/message-repository';
-import type { SplitMatcher } from '../../ports/split-matcher';
-import type { ThreadResolver } from '../../ports/thread-resolver';
-import type { UnitOfWork } from '../../ports/unit-of-work';
-import { hasFileAttachments } from '../../subjects/match-subject';
+import type { RawMessage, RemoteMessageSummary } from '../../model/remote-mail';
 import { errorMessage } from '../shared/mail-provider-sessions';
-import { PENDING_UID } from '../shared/pending-uid';
-import type { CalendarPartsSink } from './calendar-parts-sink';
+import { CreatedIngest } from './created-ingest';
 import { summaryMessage } from './history/summary-message';
-import { withAdoptedPlacement } from './adopted-placement';
-import { recordCreated } from './ingest-effects';
-import type { IngestOutcome, IngestTarget } from './ingest-target';
-import { flagsDiffer, sameMembers } from './message-diff';
-import { buildMessage } from './message-builder';
-import type { MessageLabelsResolver } from './message-labels-resolver';
-import { syncedFlags } from './synced-flags';
+import type { FetchedMessage, IngestOutcome, IngestTarget } from './ingest-target';
+import type { MessageIngestorDeps } from './ingestor-deps';
+import { PlacedIngest } from './placed-ingest';
+import { identityOf } from './placement-identity';
 
 export type { IngestOutcome, IngestTarget } from './ingest-target';
-
-export interface MessageIngestorDeps {
-  readonly messages: MessageRepository;
-  readonly unitOfWork: UnitOfWork;
-  readonly parser: MessageParser;
-  readonly threadResolver: ThreadResolver;
-  readonly jiraClassifier: JiraClassifier;
-  readonly splitMatcher: SplitMatcher;
-  readonly labelsResolver: MessageLabelsResolver;
-  readonly ids: IdGenerator;
-  readonly calendarParts: CalendarPartsSink;
-}
-
-type Parse = () => Promise<ParsedMessage>;
+export type { MessageIngestorDeps } from './ingestor-deps';
 
 export class MessageIngestor {
-  constructor(private readonly deps: MessageIngestorDeps) {}
+  private readonly created: CreatedIngest;
+  private readonly placed: PlacedIngest;
+
+  constructor(private readonly deps: MessageIngestorDeps) {
+    this.created = new CreatedIngest(deps);
+    this.placed = new PlacedIngest(deps);
+  }
 
   ingest(target: IngestTarget, raw: RawMessage): Promise<IngestOutcome> {
-    return this.ingestRemote(target, raw, () => this.deps.parser.parse(raw.source), 'local');
+    return this.ingestRemote(target, {
+      remote: raw,
+      source: raw.source,
+      bodyState: 'local',
+      parse: () => this.deps.parser.parse(raw.source),
+    });
   }
 
   ingestSummary(target: IngestTarget, summary: RemoteMessageSummary): Promise<IngestOutcome> {
     return this.ingestRemote(
       { ...target, history: true },
-      summary,
-      () => summaryMessage(this.deps.parser, summary),
-      'remote',
+      {
+        remote: summary,
+        source: null,
+        bodyState: 'remote',
+        parse: () => summaryMessage(this.deps.parser, summary),
+      },
     );
   }
 
   private async ingestRemote(
     target: IngestTarget,
-    remote: RemoteMessageMeta,
-    parse: Parse,
-    bodyState: MessageBodyState,
+    fetched: FetchedMessage,
   ): Promise<IngestOutcome> {
-    const location = { mailboxId: target.mailbox.id, uid: remote.uid };
-    const known = await this.deps.messages.findByLocation(location);
-    if (known !== null) {
-      return this.refreshKnown(target, known, remote, null);
+    const identity = identityOf(target, fetched.remote, null);
+    const match = await this.deps.messages.matchPlacement(identity);
+    if (match === null) {
+      return this.parseAndPlace(target, fetched);
     }
-    const parsed = await parse().catch((error: unknown) => error);
+    const placed = await this.placed.apply(target, fetched, identity, match, null);
+    return placed ?? this.parseAndPlace(target, fetched);
+  }
+
+  private async parseAndPlace(
+    target: IngestTarget,
+    fetched: FetchedMessage,
+  ): Promise<IngestOutcome> {
+    const parsed = await fetched.parse().catch((error: unknown) => error);
     if (!isParsed(parsed)) {
       return { kind: 'skipped', reason: errorMessage(parsed) };
     }
-    const pending = await this.findPending(target, parsed);
-    if (pending !== null) {
-      return this.refreshKnown(target, pending, remote, location);
+    const identity = identityOf(target, fetched.remote, parsed.messageIdHeader);
+    const match = await this.deps.messages.matchPlacement(identity);
+    if (match === null) {
+      return this.created.create(target, fetched, identity, parsed);
     }
-    return this.create(target, remote, parsed, bodyState);
-  }
-
-  private async create(
-    target: IngestTarget,
-    remote: RemoteMessageMeta,
-    parsed: ParsedMessage,
-    bodyState: MessageBodyState,
-  ): Promise<IngestOutcome> {
-    const resolution = await this.deps.threadResolver.resolve(target.account.id, parsed);
-    const jira = await this.deps.jiraClassifier.classify(parsed);
-    const splitIds = await this.deps.splitMatcher.match({
-      message: {
-        from: parsed.from,
-        subject: parsed.subject,
-        headers: parsed.headers,
-        to: parsed.to,
-        cc: parsed.cc,
-        hasAttachments: hasFileAttachments(parsed.attachments),
-      },
-      jira,
-      splits: target.splits,
-    });
-    const message = await this.deps.unitOfWork.run(async (repositories) => {
-      const labelIds = await this.deps.labelsResolver.resolve(
-        repositories,
-        target.account.id,
-        remote,
-      );
-      const built = buildMessage(
-        {
-          accountId: target.account.id,
-          threadId: resolution.threadId,
-          mailbox: target.mailbox,
-          raw: remote,
-          parsed,
-          labelIds,
-          bodyState,
-        },
-        this.deps.ids,
-      );
-      const stored = await repositories.messages.upsert(built, parsed.headers);
-      await recordCreated(repositories.pendingWork, this.deps.calendarParts, target, {
-        message: stored,
-        parsed,
-        jira,
-        splitIds,
-      });
-      return stored;
-    });
-    return { kind: 'created', message, parsed, jira, splitIds };
-  }
-
-  private async refreshKnown(
-    target: IngestTarget,
-    known: Message,
-    remote: RemoteMessageMeta,
-    relocated: MessageLocation | null,
-  ): Promise<IngestOutcome> {
-    return this.deps.unitOfWork.run(async (repositories) => {
-      if (relocated !== null) {
-        await repositories.messages.move(known.id, relocated);
-      }
-      await target.journal?.touched(repositories.pendingWork, known.threadId);
-      const labelIds = await this.deps.labelsResolver.resolve(
-        repositories,
-        target.account.id,
-        remote,
-      );
-      const flags = await syncedFlags(repositories.pendingWork, known, remote.flags);
-      const flagsChanged = flagsDiffer(known.flags, flags);
-      const labelsChanged = !sameMembers(known.labelIds, labelIds);
-      if (flagsChanged) {
-        await repositories.messages.updateFlags(known.id, flags);
-      }
-      if (labelsChanged) {
-        await repositories.messages.updateLabels(known.id, labelIds);
-      }
-      const message: Message = { ...withAdoptedPlacement(known, relocated), flags, labelIds };
-      return { kind: 'existing', message, changed: flagsChanged || labelsChanged };
-    });
-  }
-
-  private async findPending(target: IngestTarget, parsed: ParsedMessage): Promise<Message | null> {
-    if (parsed.messageIdHeader === null) {
-      return null;
-    }
-    const candidates = await this.deps.messages.findByMessageIdHeaders(target.account.id, [
-      parsed.messageIdHeader,
-    ]);
-    return (
-      candidates.find(
-        (candidate) => placementIn(candidate, target.mailbox.id)?.uid === PENDING_UID,
-      ) ?? null
-    );
+    const placed = await this.placed.apply(target, fetched, identity, match, parsed);
+    return placed ?? this.created.create(target, fetched, identity, parsed);
   }
 }
 

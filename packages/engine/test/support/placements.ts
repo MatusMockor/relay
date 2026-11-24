@@ -2,7 +2,6 @@ import {
   type MailboxRoleOf,
   type Message,
   type MessagePlacement,
-  placementRank,
   primaryPlacement,
 } from '@relay/shared/domain';
 import { expect } from 'vitest';
@@ -47,12 +46,9 @@ export const gmailJoinedMessage = async (
   deliver: (server: FakeMailServer) => void,
 ) => {
   const setup = await gmailMoveThread(engine, deliver);
-  const roleOf = roleOfIn(engine);
-  const rank = (message: Message) => placementRank(primaryPlacement(message, roleOf), roleOf);
   const messages = await engine.repositories.messages.listByThread(USER_ID, setup.thread.id);
-  expect(messages.length).toBeGreaterThan(1);
-  const [keeper, ...others] = [...messages].sort((a, b) => rank(a) - rank(b));
-  return { ...setup, message: joinPlacements(engine, present(keeper), others) };
+  expect(messages).toHaveLength(1);
+  return { ...setup, message: present(messages[0]) };
 };
 
 export const gmailInboxAndAllMail = async (engine: TestEngine, spec: MailSpec = GMAIL_FIRST) => {

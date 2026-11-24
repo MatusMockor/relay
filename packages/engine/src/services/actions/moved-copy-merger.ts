@@ -76,7 +76,7 @@ export class MovedCopyMerger {
     await this.deps.unitOfWork.run(async (repositories) => {
       await transferOrigins(repositories.pendingWork, account.id, moving, twin);
       await repositories.drafts.retargetReplies(moving.id, twin.id);
-      await repositories.messages.deleteByUids(source.mailboxId, [source.uid]);
+      await repositories.messages.removePlacement(moving.id, source.mailboxId);
       await journal.touched(repositories.pendingWork, moving.threadId);
       if (twin.threadId !== moving.threadId) {
         await journal.touched(repositories.pendingWork, twin.threadId);
