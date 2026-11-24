@@ -17,8 +17,10 @@ import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './Real
 import { RemoteAiRuns } from './RemoteAiRuns';
 import { createRemoteCalendarClient } from './remote-calendar-client';
 import { createRemoteGoogleCalendarClient } from './remote-google-calendar-client';
+import { createRemoteTaskSystemClient } from './remote-task-system-client';
 import type { CalendarClient } from '../CalendarClient';
 import type { GoogleCalendarClient } from '../GoogleCalendarClient';
+import type { TaskSystemClient } from '../TaskSystemClient';
 
 export interface RemoteMailClientOptions {
   readonly http: HttpApi;
@@ -36,6 +38,7 @@ type RemoteMailMethods = Omit<
   | 'runAi'
   | keyof CalendarClient
   | keyof GoogleCalendarClient
+  | keyof TaskSystemClient
 >;
 
 const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
@@ -153,6 +156,7 @@ export const createRemoteMailClient = (options: RemoteMailClientOptions): MailCl
     ...remoteMethods(http),
     ...createRemoteCalendarClient(http),
     ...createRemoteGoogleCalendarClient(http),
+    ...createRemoteTaskSystemClient(http),
     runAi: (request, listener) => aiRuns.start(request, listener),
     subscribe: (listener) => bus.subscribe(listener),
     onRealtimeConnected: (listener) =>

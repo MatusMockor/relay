@@ -4,6 +4,7 @@ import { useFolderMailbox } from '../folders/use-folder-mailbox';
 import { MAIN_TAB_LABEL, VIEW_META } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useSplits } from '../../data/hooks/use-mail-queries';
+import { useTaskSystemConnections } from '../../data/hooks/use-task-systems';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { backToList } from '../mail/navigation';
 import { RowActions } from './RowActions';
@@ -14,6 +15,7 @@ const useFolderLabel = (): string => {
   const splits = useSplits();
   const labels = useLabels();
   const mailbox = useFolderMailbox(folder);
+  const connections = useTaskSystemConnections();
   if (folder.kind === 'view') {
     return VIEW_META[folder.view].label;
   }
@@ -22,6 +24,10 @@ const useFolderLabel = (): string => {
   }
   if (folder.kind === 'mailbox') {
     return mailbox?.name ?? 'Priečinok';
+  }
+  if (folder.kind === 'taskSystem') {
+    const connection = connections.data?.find((item) => item.id === folder.connectionId);
+    return connection?.label ?? 'Task systém';
   }
   return folder.splitId === null
     ? MAIN_TAB_LABEL

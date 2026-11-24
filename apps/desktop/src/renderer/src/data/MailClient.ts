@@ -75,6 +75,7 @@ import type {
 
 import type { CalendarClient } from './CalendarClient';
 import type { GoogleCalendarClient } from './GoogleCalendarClient';
+import type { TaskSystemClient } from './TaskSystemClient';
 
 export type MailClientKind = 'remote' | 'local' | 'demo';
 
@@ -194,7 +195,8 @@ export interface MailClient
     Organizer,
     AiAssistant,
     CalendarClient,
-    GoogleCalendarClient {
+    GoogleCalendarClient,
+    TaskSystemClient {
   readonly kind: MailClientKind;
   subscribe(listener: MailEventListener): Unsubscribe;
   onRealtimeConnected(listener: () => void): Unsubscribe;

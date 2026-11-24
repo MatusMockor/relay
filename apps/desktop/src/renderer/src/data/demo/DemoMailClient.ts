@@ -16,6 +16,7 @@ import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { createDemoTaskMethods, demoTaskFromAi } from './demo-tasks';
+import { createDemoTaskSystems, type DemoTaskSystemsOptions } from './demo-task-systems';
 import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
@@ -36,6 +37,7 @@ export interface DemoMailClientOptions {
   readonly serverSearch?: DemoServerSearchOptions;
   readonly remoteBodies?: DemoRemoteBodies;
   readonly history?: DemoHistory;
+  readonly taskSystems?: DemoTaskSystemsOptions;
 }
 
 const run = <T>(work: () => T): Promise<T> => {
@@ -216,6 +218,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     ...createDemoSplits(state, now),
     ...createDemoTaskMethods(state, now),
+    ...createDemoTaskSystems(now, emit, options.taskSystems),
     getSettings: () => Promise.resolve(state.settings),
     updateSettings: (patch) =>
       run(() => {

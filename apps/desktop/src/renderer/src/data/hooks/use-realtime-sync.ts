@@ -5,6 +5,7 @@ import { invalidateBatched } from './invalidation-batch';
 import { queryKeys } from './query-keys';
 import { applyRealtimeEvent } from './realtime-cache';
 import { useClient } from './services-context';
+import { taskSystemKeys } from './task-system-keys';
 
 const RECONNECT_KEYS = [
   queryKeys.threadLists(),
@@ -18,6 +19,7 @@ const RECONNECT_KEYS = [
   queryKeys.settings(),
   queryKeys.allMailboxes(),
   queryKeys.labels(),
+  taskSystemKeys.all(),
 ];
 
 export const useRealtimeSync = (): void => {

@@ -6,7 +6,7 @@ interface SidebarSectionProps {
   readonly Heading: SectionHeadingLevel;
   readonly title: string;
   readonly collapseKey: string;
-  readonly add: SectionAdd;
+  readonly add?: SectionAdd;
   readonly children: ReactNode;
 }
 
@@ -27,13 +27,17 @@ export function SidebarSection({
         onToggle={() => {
           toggleCollapsed(collapseKey);
         }}
-        add={{
-          ...add,
-          onAdd: () => {
-            expandCollapsed(collapseKey);
-            add.onAdd();
-          },
-        }}
+        add={
+          add === undefined
+            ? undefined
+            : {
+                ...add,
+                onAdd: () => {
+                  expandCollapsed(collapseKey);
+                  add.onAdd();
+                },
+              }
+        }
       />
       {shut ? null : children}
     </>

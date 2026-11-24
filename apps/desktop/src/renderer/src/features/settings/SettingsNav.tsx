@@ -4,7 +4,7 @@ import { useSessionStore } from '../../session/session-store';
 import type { SettingsSection } from '../../state/ui-store';
 import { StorageNote } from './StorageNote';
 
-type Entry = readonly [SettingsSection, string, StrokeIconName | 'spark' | 'label'];
+type Entry = readonly [SettingsSection, string, StrokeIconName | 'spark' | 'label' | 'task'];
 
 const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
   [
@@ -23,6 +23,7 @@ const GROUPS: readonly (readonly [string, readonly Entry[]])[] = [
       ['labels', 'Štítky', 'label'],
       ['automations', 'Automatizácie', 'bolt'],
       ['jira', 'Jira', 'check'],
+      ['taskSystems', 'Task systémy', 'task'],
       ['sync', 'Synchronizácia', 'refresh'],
       ['calendars', 'Kalendáre', 'calendar'],
     ],
@@ -43,8 +44,8 @@ const iconOf = (name: Entry[2]): ReactNode => {
   if (name === 'spark') {
     return <Spark />;
   }
-  if (name === 'label') {
-    return <FolderIcon name="label" />;
+  if (name === 'label' || name === 'task') {
+    return <FolderIcon name={name} />;
   }
   return <Icon name={name} />;
 };

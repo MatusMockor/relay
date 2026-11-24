@@ -7,6 +7,7 @@ import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
 import { AccountFolders } from './AccountFolders';
 import { FolderEditHost } from './edit/FolderEditHost';
 import { SystemFolders } from './SystemFolders';
+import { TaskSystemFolders } from './TaskSystemFolders';
 import { rectOf } from './rect';
 import { accountCount } from '../../lib/text';
 import { SidebarUpdateControl } from '../updates/SidebarUpdateControl';
@@ -103,6 +104,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
         <Kbd keys={['C']} />
       </button>
       <SystemFolders showTasks={openTasks} />
+      <TaskSystemFolders />
       <AccountFolders labels={scopedLabels} />
       <FolderEditHost />
       <div className="fold-foot">

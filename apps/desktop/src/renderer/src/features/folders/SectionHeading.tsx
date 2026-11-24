@@ -13,7 +13,7 @@ interface SectionHeadingProps {
   readonly title: string;
   readonly shut: boolean;
   readonly onToggle: () => void;
-  readonly add: SectionAdd;
+  readonly add?: SectionAdd;
 }
 
 export function SectionHeading({ Heading, title, shut, onToggle, add }: SectionHeadingProps) {
@@ -30,15 +30,17 @@ export function SectionHeading({ Heading, title, shut, onToggle, add }: SectionH
           <Icon name="down" size={10} />
         </button>
       </Heading>
-      <button
-        type="button"
-        className="ft-add"
-        title={add.title}
-        aria-label={add.label}
-        onClick={add.onAdd}
-      >
-        <Icon name="plus" size={12} />
-      </button>
+      {add === undefined ? null : (
+        <button
+          type="button"
+          className="ft-add"
+          title={add.title}
+          aria-label={add.label}
+          onClick={add.onAdd}
+        >
+          <Icon name="plus" size={12} />
+        </button>
+      )}
     </div>
   );
 }
