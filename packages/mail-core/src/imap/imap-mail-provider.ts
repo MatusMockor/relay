@@ -42,15 +42,18 @@ import { requireBatchSize } from './uid-batches';
 
 export interface ImapMailProviderOptions {
   readonly fetchBatchSize?: number;
+  readonly headerBatchSize?: number;
   readonly idle?: IdleWatcherOptions;
 }
 
 const DEFAULT_FETCH_BATCH_SIZE = 50;
+const DEFAULT_HEADER_BATCH_SIZE = 500;
 
 export class ImapMailProvider implements MailProvider {
   private readonly connection: ImapConnection;
   private readonly watchers = new Set<IdleWatcher>();
   private readonly fetchBatchSize: number;
+  private readonly headerBatchSize: number;
 
   constructor(
     private readonly factory: ImapClientFactory,
@@ -58,6 +61,7 @@ export class ImapMailProvider implements MailProvider {
   ) {
     this.connection = new ImapConnection(factory);
     this.fetchBatchSize = requireBatchSize(options.fetchBatchSize ?? DEFAULT_FETCH_BATCH_SIZE);
+    this.headerBatchSize = requireBatchSize(options.headerBatchSize ?? DEFAULT_HEADER_BATCH_SIZE);
   }
 
   async connect(): Promise<void> {
@@ -103,7 +107,13 @@ export class ImapMailProvider implements MailProvider {
     uidValidity: number,
     uids: readonly number[],
   ): Promise<RemoteThreadHeaders[]> {
-    return fetchThreadHeaders(this.connection, mailboxPath, uidValidity, uids, this.fetchBatchSize);
+    return fetchThreadHeaders(
+      this.connection,
+      mailboxPath,
+      uidValidity,
+      uids,
+      this.headerBatchSize,
+    );
   }
 
   fetchSummaries(

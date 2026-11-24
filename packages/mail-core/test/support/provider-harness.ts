@@ -28,6 +28,7 @@ export const createProvider = (account: MailAccount, credentials: AccountCredent
     allowPlaintext: true,
     provider: {
       fetchBatchSize: 2,
+      headerBatchSize: 2,
       idle: {
         autoIdleDelayMs: 100,
         maxIdleTimeMs: 60_000,

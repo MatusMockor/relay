@@ -23,7 +23,9 @@ const seedMail = async (engine: TestEngine) => {
 
 describe('initial sync progress', () => {
   it('reports header reading, the first inbox batch and the rest per account', async () => {
-    const engine = createTestEngine({ sync: { batchSize: 5, firstBatchSize: 4 } });
+    const engine = createTestEngine({
+      sync: { batchSize: 5, firstBatchSize: 4, firstPageConversations: 0 },
+    });
     const { account } = await seedMail(engine);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
@@ -67,7 +69,9 @@ describe('initial sync progress', () => {
   });
 
   it('does not report the first batch as downloaded when the inbox changed meanwhile', async () => {
-    const engine = createTestEngine({ sync: { batchSize: 5, firstBatchSize: 4 } });
+    const engine = createTestEngine({
+      sync: { batchSize: 5, firstBatchSize: 4, firstPageConversations: 0 },
+    });
     const { account, server } = await seedMail(engine);
     engine.events.beforePublish = (event) => {
       if (event.type === 'sync.progress' && event.data.stage === 'inbox') {

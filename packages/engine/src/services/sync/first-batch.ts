@@ -1,21 +1,37 @@
 import { normalizeSubject } from '../../subjects/normalize-subject';
 import type { WindowEntry } from './initial-window';
 
+export interface FirstBatchLimits {
+  readonly messages: number;
+  readonly conversations: number;
+}
+
 const subjectOnlyReply = (entry: WindowEntry): boolean =>
   entry.parentIds.length === 0 && normalizeSubject(entry.subject).hadReplyPrefix;
 
-export const firstBatch = (ordered: readonly WindowEntry[], size: number): WindowEntry[] => {
+export const firstBatch = (
+  conversations: readonly (readonly WindowEntry[])[],
+  limits: FirstBatchLimits,
+): WindowEntry[] => {
   const deferred = new Set<string>();
   const batch: WindowEntry[] = [];
-  for (const entry of ordered) {
-    if (batch.length === size) {
+  let taken = 0;
+  for (const conversation of conversations) {
+    if (taken === limits.conversations) {
       return batch;
     }
-    if (subjectOnlyReply(entry) || entry.parentIds.some((id) => deferred.has(id))) {
-      deferred.add(entry.messageId ?? '');
-      continue;
+    const before = batch.length;
+    for (const entry of conversation) {
+      if (batch.length === limits.messages) {
+        return batch;
+      }
+      if (subjectOnlyReply(entry) || entry.parentIds.some((id) => deferred.has(id))) {
+        deferred.add(entry.messageId ?? '');
+        continue;
+      }
+      batch.push(entry);
     }
-    batch.push(entry);
+    taken += batch.length > before ? 1 : 0;
   }
   return batch;
 };

@@ -23,7 +23,7 @@ const onFirstFetchOf = (server: FakeMailServer, target: string, run: () => void)
 };
 
 describe('initial Gmail sync inbox first', () => {
-  it('flushes the newest inbox mail first and attaches the All Mail copies later', async () => {
+  it('flushes the newest inbox mail first, fills the first page and attaches the All Mail copies later', async () => {
     const engine = createTestEngine({ sync: { batchSize: 3, firstBatchSize: 2 } });
     const { account, server } = await seedGmailAccount(engine);
     [1, 2, 3, 4, 5].forEach((date) => {
@@ -40,7 +40,8 @@ describe('initial Gmail sync inbox first', () => {
 
     const report = await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect(beforeOthers.sort()).toEqual(['Subject i4', 'Subject i5']);
+    expect(beforeOthers.slice(0, 2).sort()).toEqual(['Subject i4', 'Subject i5']);
+    expect(beforeOthers.slice(2)).toEqual(['Subject i3']);
     expect(server.uidListings.slice(0, 2)).toEqual(['INBOX', 'Sent']);
     const order = streamed(server);
     expect(order.slice(0, 2)).toEqual(['INBOX:5', 'INBOX:4']);
