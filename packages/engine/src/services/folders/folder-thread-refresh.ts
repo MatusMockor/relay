@@ -4,13 +4,13 @@ import type { PendingWorkRepository } from '../../ports/pending-work-repository'
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { EngineEvents } from '../shared/engine-events';
 import { MailCopies } from '../shared/mail-copies';
-import { pendingMoveRoles } from '../shared/provider-ops';
+import { PendingMoves } from '../shared/pending-moves';
 import {
   publishThreadOutcomes,
   refreshThread,
   type ThreadRefreshOutcome,
 } from '../shared/thread-refresh';
-import { messageRoleOf } from '../sync/synced-thread-state';
+import { placementRolesOf } from '../sync/synced-thread-state';
 import { emptyThreadWork, threadWorkHint } from '../sync/thread-refresh-work';
 
 export interface FolderThreadRefresherDeps {
@@ -32,14 +32,14 @@ export class FolderThreadRefresher {
       return;
     }
     const mailboxes = await this.deps.mailboxes.listForSync(account.id);
-    const roleOf = messageRoleOf(
+    const rolesOf = placementRolesOf(
       new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.role])),
-      await pendingMoveRoles(this.deps.pendingWork, account.id),
+      await PendingMoves.load(this.deps.pendingWork, account.id),
     );
     const copies = MailCopies.of(account);
     const outcomes: ThreadRefreshOutcome[] = [];
     for (const threadId of new Set(threadIds)) {
-      const hint = threadWorkHint(emptyThreadWork(threadId), roleOf, copies);
+      const hint = threadWorkHint(emptyThreadWork(threadId), rolesOf, copies);
       outcomes.push(
         await this.deps.unitOfWork.run((repositories) =>
           refreshThread(repositories, userId, account.id, threadId, hint),

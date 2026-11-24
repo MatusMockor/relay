@@ -1,6 +1,6 @@
-import type { MailboxRole, Message } from '@relay/shared/domain';
+import { isPendingPlacement, type MailboxRole, type Message } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
-import { PENDING_UID } from '../../shared/pending-uid';
+import { placementKey } from '../../shared/placement-key';
 import { inRoles, type LocatedMessage, type PlannedMove } from './state-move-plan';
 
 type Role = MailboxRole | undefined;
@@ -12,7 +12,7 @@ const rankOf = (role: Role): number => {
   return index === -1 ? RANK.length : index;
 };
 
-const pending = (located: LocatedMessage): boolean => located.message.uid === PENDING_UID;
+const pending = (located: LocatedMessage): boolean => isPendingPlacement(located.placement);
 
 const preferred = (candidate: LocatedMessage, current: LocatedMessage): boolean => {
   if (candidate.moving !== current.moving) {
@@ -56,7 +56,9 @@ export const receivedIn = (
   const filed = copies.filedSentCopies(messages);
   return copiesIn(
     copies,
-    messages.filter(({ message }) => !filed.has(message.id)),
+    messages.filter(
+      ({ message, placement }) => !filed.has(placementKey(message.id, placement.mailboxId)),
+    ),
     roles,
   );
 };
@@ -78,8 +80,9 @@ export const rolesAfter = (
   keyOf: (message: Message) => string = (message) => copies.identityOf(message),
 ): Role[] => {
   const targets = new Map(moves.map((move) => [move.messageId, move.role]));
-  const placed = messages.map(({ message, role }) => ({
+  const placed = messages.map(({ message, placement, role }) => ({
     message,
+    placement,
     role: targets.get(message.id) ?? role,
   }));
   const roles = copies.filedRoles(placed);

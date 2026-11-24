@@ -8,6 +8,7 @@ import type {
   MailboxId,
   MailboxRole,
   MessageId,
+  MessagePlacement,
   ScheduledSendId,
   SplitId,
   ThreadId,
@@ -24,6 +25,7 @@ export type ProviderChange =
 export interface ProviderOpWork {
   readonly messageId: MessageId;
   readonly change: ProviderChange;
+  readonly source?: MessagePlacement;
 }
 
 export interface ThreadRefreshWork {
@@ -46,6 +48,7 @@ export interface MoveOriginWork {
   readonly messageId: MessageId;
   readonly role: MailboxRole;
   readonly mailboxId?: MailboxId;
+  readonly uid?: number;
   readonly labelId?: LabelId;
   readonly held?: readonly HeldOriginWork[];
   readonly markedDone?: boolean;

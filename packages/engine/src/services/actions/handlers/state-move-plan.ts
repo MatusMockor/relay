@@ -4,6 +4,7 @@ import type {
   MailboxRole,
   Message,
   MessageId,
+  MessagePlacement,
   ThreadState,
   ThreadSummary,
 } from '@relay/shared/domain';
@@ -22,6 +23,7 @@ export type StateMoveAction =
 
 export interface LocatedMessage {
   readonly message: Message;
+  readonly placement: MessagePlacement;
   readonly role: MailboxRole | undefined;
   readonly mailboxId: MailboxId | undefined;
   readonly origin: MoveOrigin | undefined;

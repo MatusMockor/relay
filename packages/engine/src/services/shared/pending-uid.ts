@@ -1,1 +1,1 @@
-export const PENDING_UID = 0;
+export { PENDING_UID } from '@relay/shared/domain';

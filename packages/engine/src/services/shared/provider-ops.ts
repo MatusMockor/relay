@@ -1,10 +1,13 @@
-import type { AccountId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type { AccountId, MailboxId, MessageId } from '@relay/shared/domain';
 import type { PendingWork, ProviderChange, ProviderOpWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
 export type PendingProviderOp = PendingWork<'provider-op'>;
 
-const changeKey = (change: ProviderChange): string => {
+const moveKey = (source: MailboxId | undefined): string =>
+  source === undefined ? 'move' : `move:${source}`;
+
+const changeKey = (change: ProviderChange, source: MailboxId | undefined): string => {
   switch (change.kind) {
     case 'flag':
       return `flag:${change.flag}`;
@@ -13,12 +16,33 @@ const changeKey = (change: ProviderChange): string => {
     case 'label':
       return `label:${change.label}`;
     case 'move':
-      return 'move';
+      return moveKey(source);
   }
 };
 
-export const providerOpRef = (messageId: MessageId, change: ProviderChange): string =>
-  `${messageId}:${changeKey(change)}`;
+export const providerOpRef = (
+  messageId: MessageId,
+  change: ProviderChange,
+  source?: MailboxId,
+): string => `${messageId}:${changeKey(change, source)}`;
+
+export const legacyMoveRef = (messageId: MessageId): string => `${messageId}:${moveKey(undefined)}`;
+
+const dropLegacyMove = async (
+  pendingWork: PendingWorkRepository,
+  accountId: AccountId,
+  op: ProviderOpWork,
+): Promise<void> => {
+  if (op.change.kind !== 'move' || op.source === undefined) {
+    return;
+  }
+  const ref = legacyMoveRef(op.messageId);
+  const legacy = await pendingWork.find({ accountId, kind: 'provider-op', ref });
+  if (legacy === null) {
+    return;
+  }
+  await pendingWork.remove([legacy]);
+};
 
 export const recordProviderOps = async (
   pendingWork: PendingWorkRepository,
@@ -28,40 +52,16 @@ export const recordProviderOps = async (
 ): Promise<PendingProviderOp[]> => {
   const recorded: PendingProviderOp[] = [];
   for (const op of ops) {
+    await dropLegacyMove(pendingWork, accountId, op);
     recorded.push(
       await pendingWork.put({
         accountId,
         kind: 'provider-op',
-        ref: providerOpRef(op.messageId, op.change),
+        ref: providerOpRef(op.messageId, op.change, op.source?.mailboxId),
         payload: op,
         createdAt,
       }),
     );
   }
   return recorded;
-};
-
-export interface PendingMoveTarget {
-  readonly role: MailboxRole;
-  readonly mailboxId?: MailboxId;
-}
-
-export const pendingMoveTargets = async (
-  pendingWork: PendingWorkRepository,
-  accountId: AccountId,
-): Promise<Map<MessageId, PendingMoveTarget>> => {
-  const ops = await pendingWork.list(accountId, 'provider-op');
-  return new Map(
-    ops.flatMap((op) =>
-      op.payload.change.kind === 'move' ? [[op.payload.messageId, op.payload.change] as const] : [],
-    ),
-  );
-};
-
-export const pendingMoveRoles = async (
-  pendingWork: PendingWorkRepository,
-  accountId: AccountId,
-): Promise<Map<MessageId, MailboxRole>> => {
-  const targets = await pendingMoveTargets(pendingWork, accountId);
-  return new Map([...targets].map(([messageId, target]) => [messageId, target.role]));
 };

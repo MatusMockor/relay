@@ -4,27 +4,34 @@ import {
   type MailboxId,
   type MailboxRole,
   type Message,
-  type MessageId,
+  rankedPlacements,
   type ThreadState,
   type ThreadSummary,
 } from '@relay/shared/domain';
 import type { ThreadRefreshWork } from '../../model/pending-work';
-import type { MailCopies } from '../shared/mail-copies';
+import type { MailCopies, PlacedCopy } from '../shared/mail-copies';
+import { roleMapLookup } from '../shared/mailbox-role-of';
+import type { PendingMoves } from '../shared/pending-moves';
 import { isHeldRole } from './held-roles';
 
-export type MessageRoleOf = (message: Message) => MailboxRole | undefined;
+export type PlacementRolesOf = (message: Message) => PlacedCopy[];
 
 type Roles = readonly (MailboxRole | undefined)[];
 
 const RESTORE_ROLES: readonly MailboxRole[] = ['inbox', 'archive'];
 
-export const messageRoleOf =
-  (
-    mailboxRoles: ReadonlyMap<MailboxId, MailboxRole>,
-    pendingMoves: ReadonlyMap<MessageId, MailboxRole>,
-  ): MessageRoleOf =>
-  (message) =>
-    pendingMoves.get(message.id) ?? mailboxRoles.get(message.mailboxId);
+export const placementRolesOf = (
+  mailboxRoles: ReadonlyMap<MailboxId, MailboxRole>,
+  pendingMoves: PendingMoves,
+): PlacementRolesOf => {
+  const roleOf = roleMapLookup(mailboxRoles);
+  return (message) =>
+    rankedPlacements(message, roleOf).map((placement) => ({
+      message,
+      placement,
+      role: pendingMoves.targetOf(message, placement, roleOf)?.role ?? roleOf(placement.mailboxId),
+    }));
+};
 
 const heldPlacement = (roles: Roles): HeldThreadState | undefined => {
   const placed = roles.filter((role) => role !== 'sent');
@@ -45,11 +52,12 @@ export const syncedThreadState = (
   work: ThreadRefreshWork,
   existing: ThreadSummary | null,
   messages: readonly Message[],
-  roleOf: MessageRoleOf,
+  rolesOf: PlacementRolesOf,
   copies: MailCopies,
 ): ThreadState => {
-  const roles = messages.map(roleOf);
-  const placed = copies.filedRoles(messages.map((message) => ({ message, role: roleOf(message) })));
+  const placedCopies = messages.flatMap(rolesOf);
+  const roles = placedCopies.map(({ role }) => role);
+  const placed = copies.filedRoles(placedCopies);
   const inInbox = roles.includes('inbox');
   if (work.arrivedIn.includes('inbox') && inInbox) {
     return 'inbox';

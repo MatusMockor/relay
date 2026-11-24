@@ -1,10 +1,15 @@
-import type { MailAccount, MailboxRole, Message, MessageId } from '@relay/shared/domain';
+import type { MailAccount, MailboxRole, Message, MessagePlacement } from '@relay/shared/domain';
 import { mailboxAddress } from './mailbox-address';
+import { placementKey } from './placement-key';
 
 export interface PlacedCopy {
   readonly message: Message;
+  readonly placement: MessagePlacement;
   readonly role: MailboxRole | undefined;
 }
+
+const copyKey = ({ message, placement }: PlacedCopy): string =>
+  placementKey(message.id, placement.mailboxId);
 
 const GMAIL_IMAP_HOSTS: ReadonlySet<string> = new Set(['imap.gmail.com', 'imap.googlemail.com']);
 
@@ -28,7 +33,7 @@ export class MailCopies {
     return message.messageIdHeader;
   }
 
-  filedSentCopies(copies: readonly PlacedCopy[]): ReadonlySet<MessageId> {
+  filedSentCopies(copies: readonly PlacedCopy[]): ReadonlySet<string> {
     const sent = new Set(
       copies.filter(({ role }) => role === 'sent').map(({ message }) => this.identityOf(message)),
     );
@@ -40,13 +45,13 @@ export class MailCopies {
             sent.has(this.identityOf(message)) &&
             !this.addressedToSelf(message),
         )
-        .map(({ message }) => message.id),
+        .map(copyKey),
     );
   }
 
   filedRoles(copies: readonly PlacedCopy[]): (MailboxRole | undefined)[] {
     const filed = this.filedSentCopies(copies);
-    return copies.map(({ message, role }) => (filed.has(message.id) ? 'sent' : role));
+    return copies.map((copy) => (filed.has(copyKey(copy)) ? 'sent' : copy.role));
   }
 
   private addressedToSelf(message: Message): boolean {
