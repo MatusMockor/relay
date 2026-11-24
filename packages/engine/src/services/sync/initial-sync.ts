@@ -1,26 +1,16 @@
 import type { MailboxId } from '@relay/shared/domain';
-import type { RawMessage } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
-import { chunked } from '../shared/chunked';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { completedSyncState } from './completed-sync-state';
-import { conversationOrder, orderEntries } from './conversation-order';
-import { entryKey, fetchChunk } from './initial-chunk';
-import { isHeldRole } from './held-roles';
+import type { BacklogRun, InitialBacklog } from './initial-backlog';
 import { InitialProgress } from './initial-progress';
-import {
-  type InitialWindowDeps,
-  type MailboxWindow,
-  mailboxWindow,
-  type WindowEntry,
-} from './initial-window';
+import { type InitialWindowDeps, type MailboxWindow, mailboxWindow } from './initial-window';
 import { mailboxOrder } from './mailbox-order';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { MessageFetchSteps, SyncMark } from './message-fetch-steps';
 import type { SyncContext } from './sync-context';
-import type { TrashRelatives } from './trash-relatives';
 import { skipOnUidValidityChange } from './uid-validity-guard';
 
 export interface SyncRound {
@@ -30,13 +20,11 @@ export interface SyncRound {
 
 export interface InitialSyncDeps extends InitialWindowDeps {
   readonly steps: MessageFetchSteps;
-  readonly relatives: TrashRelatives;
+  readonly backlog: InitialBacklog;
   readonly syncStates: SyncStateRepository;
   readonly calendarParts: CalendarPartsSink;
   readonly logger: Logger;
 }
-
-const BACKLOG = { publish: false, live: false, holdCalendar: true } as const;
 
 const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): SyncMark => {
   const { state, status } = window.pass;
@@ -47,17 +35,7 @@ const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): S
   };
 };
 
-const allFetched = (
-  entries: ReadonlySet<WindowEntry>,
-  fetched: ReadonlyMap<string, RawMessage>,
-): boolean =>
-  [...entries].every((entry) => fetched.has(entryKey(entry.pass.mailbox.id, entry.uid)));
-
-const deferHeld = (chunk: readonly WindowEntry[], failed: Set<MailboxId>): void => {
-  chunk
-    .filter((entry) => isHeldRole(entry.pass.role))
-    .forEach((entry) => failed.add(entry.pass.mailbox.id));
-};
+const isInbox = (pass: MailboxPass): boolean => pass.role === 'inbox';
 
 export class InitialSync {
   constructor(private readonly deps: InitialSyncDeps) {}
@@ -77,14 +55,20 @@ export class InitialSync {
       await this.releaseWhenSettled(context, round, selected);
       return;
     }
-    const windows = await this.windows(context, passes);
-    for (const window of windows) {
-      await steps.save(context, window.pass, mark(window, window.frozen));
-    }
-    const progress = new InitialProgress(windows);
-    const failed = await this.ingest(context, windows, progress, round.passes);
+    const progress = new InitialProgress();
+    const run: BacklogRun = { context, passes: round.passes, progress, failed: new Set() };
+    const inbox = await this.open(context, passes.filter(isInbox), progress);
+    const head = await this.deps.backlog.head(run, inbox);
+    const others = await this.open(
+      context,
+      passes.filter((pass) => !isInbox(pass)),
+      progress,
+    );
+    await this.deps.backlog.rest(run, [...inbox, ...others], head);
     await steps.flush(context);
-    const completed = progress.all().filter(({ window }) => !failed.has(window.pass.mailbox.id));
+    const completed = progress
+      .all()
+      .filter(({ window }) => !run.failed.has(window.pass.mailbox.id));
     for (const { window, processed } of completed) {
       await steps.save(context, window.pass, mark(window, null));
       await steps.progress(context, window.pass, processed, Math.max(window.total, processed));
@@ -113,9 +97,10 @@ export class InitialSync {
     await this.deps.calendarParts.release(context.userId, context.account, order);
   }
 
-  private async windows(
+  private async open(
     context: SyncContext,
     passes: readonly MailboxPass[],
+    progress: InitialProgress,
   ): Promise<MailboxWindow[]> {
     const windows: MailboxWindow[] = [];
     for (const pass of passes) {
@@ -123,44 +108,11 @@ export class InitialSync {
         mailboxWindow(context, pass, this.deps),
       );
       if (window !== null) {
+        await this.deps.steps.save(context, pass, mark(window, window.frozen));
         windows.push(window);
       }
     }
+    progress.add(windows);
     return windows;
-  }
-
-  private async ingest(
-    context: SyncContext,
-    windows: readonly MailboxWindow[],
-    progress: InitialProgress,
-    passes: readonly MailboxPass[],
-  ): Promise<Set<MailboxId>> {
-    const { steps, relatives, options, logger } = this.deps;
-    const failed = new Set<MailboxId>();
-    const wanted = conversationOrder(windows).filter((entry) => entry.wanted);
-    for (const chunk of chunked(wanted, options.batchSize)) {
-      const found = await relatives.find(context, chunk, passes);
-      const related = new Set(found.entries);
-      const ordered = related.size === 0 ? chunk : orderEntries([chunk, [...related]]);
-      const fetched = await fetchChunk(context, logger, ordered, failed);
-      if (!found.complete || !allFetched(related, fetched)) {
-        deferHeld(chunk, failed);
-      }
-      for (const entry of ordered) {
-        const mailboxId = entry.pass.mailbox.id;
-        const raw = fetched.get(entryKey(mailboxId, entry.uid));
-        if (raw !== undefined && !failed.has(mailboxId)) {
-          await steps.ingest(context, entry.pass, raw, BACKLOG);
-        }
-        if (!failed.has(mailboxId) && !related.has(entry)) {
-          progress.advance(mailboxId);
-        }
-      }
-      await steps.flush(context);
-      for (const { window, processed } of progress.takeTouched()) {
-        await steps.progress(context, window.pass, processed, window.total);
-      }
-    }
-    return failed;
   }
 }

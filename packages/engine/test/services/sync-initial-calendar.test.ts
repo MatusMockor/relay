@@ -64,7 +64,10 @@ describe('SyncService initial sync calendar invitations', () => {
 
     expect(skipped.ok).toBe(true);
     expect(rows(engine)).toEqual([]);
-    expect(inviteWork(engine).map((work) => work.payload)).toMatchObject([{ held: true }]);
+    expect(inviteWork(engine).map((work) => work.payload)).toMatchObject([
+      { held: true, mailboxRole: 'inbox' },
+      { held: true, mailboxRole: 'sent' },
+    ]);
 
     const synced = await sync(engine, seeded);
 

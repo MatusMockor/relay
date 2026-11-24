@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type SeededAccount, seedAccount } from '../support/fixtures';
+import { deliverMail, type SeededAccount, seedAccount } from '../support/fixtures';
 import { cancelOne, master, rows } from '../support/range-invites';
 import { deliverAt, sync } from '../support/rebuild-invites';
 import { createTestEngine, type TestEngine } from '../support/test-engine';
@@ -102,9 +102,11 @@ describe('SyncService calendar holds around an unfinished initial sync', () => {
     const seeded = await seedAccount(engine);
     const { server } = seeded;
     deliverRequest(engine, seeded);
+    deliverMail(server, 'Archive', { id: 'older', date: day(2) });
     deliverCancel(engine, seeded, 'Archive');
-    server.interruptStreamAfter = 1;
+    server.interruptStreamAfter = 2;
     expect((await sync(engine, seeded)).ok).toBe(false);
+    expect(inviteWork(engine)).toHaveLength(2);
     server.mailboxes.set('Archive', { ...server.mailbox('Archive'), role: 'custom' });
 
     const synced = await sync(engine, seeded);

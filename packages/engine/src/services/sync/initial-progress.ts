@@ -9,9 +9,13 @@ export interface MailboxProgress {
 export class InitialProgress {
   private readonly processed = new Map<MailboxId, number>();
   private readonly touched = new Set<MailboxId>();
+  private readonly windows: MailboxWindow[] = [];
 
-  constructor(private readonly windows: readonly MailboxWindow[]) {
-    windows.forEach((window) => this.processed.set(window.pass.mailbox.id, window.done));
+  add(windows: readonly MailboxWindow[]): void {
+    windows.forEach((window) => {
+      this.windows.push(window);
+      this.processed.set(window.pass.mailbox.id, window.done);
+    });
   }
 
   advance(mailboxId: MailboxId): void {

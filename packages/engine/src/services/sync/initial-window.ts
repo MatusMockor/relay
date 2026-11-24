@@ -64,7 +64,7 @@ const UNDATED_ROLES: ReadonlySet<MailboxRole> = new Set(['trash', 'custom']);
 const limitOf = (pass: MailboxPass, options: SyncOptions): number =>
   pass.role === 'custom' ? options.initialFolderMessageLimit : options.initialMessageLimit;
 
-const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
+export const cutoffOf = (pass: MailboxPass, frozen: InitialSyncWindow): number => {
   if (UNDATED_ROLES.has(pass.role)) {
     return Number.NEGATIVE_INFINITY;
   }

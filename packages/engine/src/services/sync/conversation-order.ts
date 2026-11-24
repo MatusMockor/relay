@@ -66,15 +66,31 @@ const groupsOf = (items: readonly Positioned[]): number[][] => {
     .map((group) => parentsFirst(group, parents, compare));
 };
 
-export const orderEntries = (groups: readonly (readonly WindowEntry[])[]): WindowEntry[] => {
+type Lead = (entry: WindowEntry) => boolean;
+
+const NO_LEAD: Lead = () => false;
+
+export const orderEntries = (
+  groups: readonly (readonly WindowEntry[])[],
+  leads: Lead = NO_LEAD,
+): WindowEntry[] => {
   const items = groups.flatMap((entries, mailbox) => entries.map((entry) => ({ entry, mailbox })));
-  return groupsOf(items).flatMap((group) =>
+  const conversations = groupsOf(items).map((group) =>
     group.flatMap((index) => {
       const item = items[index];
       return item === undefined ? [] : [item.entry];
     }),
   );
+  const leading = conversations.filter((conversation) => conversation.some(leads));
+  const trailing = conversations.filter((conversation) => !conversation.some(leads));
+  return [...leading, ...trailing].flat();
 };
 
-export const conversationOrder = (windows: readonly MailboxWindow[]): WindowEntry[] =>
-  orderEntries(windows.map((window) => window.entries));
+export const conversationOrder = (
+  windows: readonly MailboxWindow[],
+  leads: Lead = NO_LEAD,
+): WindowEntry[] =>
+  orderEntries(
+    windows.map((window) => window.entries),
+    leads,
+  );
