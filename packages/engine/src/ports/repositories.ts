@@ -8,6 +8,7 @@ import type { AutomationRunRepository } from './automation-run-repository';
 import type { CalendarEventRepository } from './calendar-event-repository';
 import type { CalendarSubscriptionRepository } from './calendar-subscription-repository';
 import type { DraftRepository } from './draft-repository';
+import type { EmailIdResolutions } from './email-id-resolutions';
 import type {
   GoogleCalendarRepository,
   GoogleConnectionRepository,
@@ -16,6 +17,7 @@ import type {
 import type { InviteCandidateRepository } from './invite-candidate-repository';
 import type { LabelRepository } from './label-repository';
 import type { MailboxRepository } from './mailbox-repository';
+import type { MessageMerges } from './message-merges';
 import type { MessageRepository } from './message-repository';
 import type { PendingWorkRepository } from './pending-work-repository';
 import type { ReminderRepository } from './reminder-repository';
@@ -31,6 +33,8 @@ export interface Repositories {
   readonly accounts: AccountRepository;
   readonly mailboxes: MailboxRepository;
   readonly messages: MessageRepository;
+  readonly messageMerges: MessageMerges;
+  readonly emailIdResolutions: EmailIdResolutions;
   readonly threads: ThreadRepository;
   readonly labels: LabelRepository;
   readonly splits: SplitRepository;

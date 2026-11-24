@@ -32,6 +32,8 @@ import { SqliteLabelRepository } from './repositories/sqlite-label-repository';
 import { SqliteMailboxRepository } from './repositories/sqlite-mailbox-repository';
 import { SqliteMessageAttachmentLookup } from './repositories/sqlite-message-attachment-lookup';
 import { SqliteMessageBodyRepairRepository } from './repositories/sqlite-message-body-repair-repository';
+import { SqliteEmailIdResolutions } from './repositories/merges/sqlite-email-id-resolutions';
+import { SqliteMessageMerges } from './repositories/merges/sqlite-message-merges';
 import { SqliteMessageRepository } from './repositories/sqlite-message-repository';
 import { SqlitePendingWorkRepository } from './repositories/sqlite-pending-work-repository';
 import { SqliteReminderRepository } from './repositories/sqlite-reminder-repository';
@@ -47,6 +49,8 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   accounts: new SqliteAccountRepository(executor),
   mailboxes: new SqliteMailboxRepository(executor),
   messages: new SqliteMessageRepository(executor),
+  messageMerges: new SqliteMessageMerges(),
+  emailIdResolutions: new SqliteEmailIdResolutions(),
   threads: new SqliteThreadRepository(executor),
   labels: new SqliteLabelRepository(executor),
   splits: new SqliteSplitRepository(executor),

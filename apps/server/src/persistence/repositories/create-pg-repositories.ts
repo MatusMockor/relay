@@ -17,6 +17,8 @@ import { PgLabelRepository } from './labels/pg-label-repository';
 import { PgMailboxRepository } from './mailboxes/pg-mailbox-repository';
 import { PgAutomationCandidateRepository } from './automations/pg-automation-candidate-repository';
 import { PgInviteCandidateRepository } from './messages/pg-invite-candidate-repository';
+import { PgEmailIdResolutions } from './messages/merges/pg-email-id-resolutions';
+import { PgMessageMerges } from './messages/merges/pg-message-merges';
 import { PgMessageRepository } from './messages/pg-message-repository';
 import { PgPendingWorkRepository } from './pending-work/pg-pending-work-repository';
 import { PgRefreshTokenRepository } from './refresh-tokens/pg-refresh-token-repository';
@@ -34,6 +36,8 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   accounts: new PgAccountRepository(db),
   mailboxes: new PgMailboxRepository(db),
   messages: new PgMessageRepository(db),
+  messageMerges: new PgMessageMerges(),
+  emailIdResolutions: new PgEmailIdResolutions(),
   threads: new PgThreadRepository(db),
   labels: new PgLabelRepository(db),
   splits: new PgSplitRepository(db),
