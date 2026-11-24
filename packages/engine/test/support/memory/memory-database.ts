@@ -24,6 +24,7 @@ import type {
   Split,
   Task,
   TaskId,
+  TaskSystemConnectionId,
   ThreadId,
   ThreadSummary,
   UserId,
@@ -41,6 +42,7 @@ import type {
   MessageHeaders,
   PendingWork,
   StoredCalendarEvent,
+  TaskSystemConnectionRecord,
 } from '../../../src';
 
 export interface StoredDraft {
@@ -84,6 +86,7 @@ export class MemoryTables {
   readonly googleConnections = new Map<CalendarConnectionId, GoogleConnectionRecord>();
   readonly googleCalendars = new Map<GoogleCalendarId, GoogleCalendarRecord>();
   readonly googleEventRefs = new Map<CalendarEventId, { remoteId: string; etag: string }>();
+  readonly taskSystemConnections = new Map<TaskSystemConnectionId, TaskSystemConnectionRecord>();
 }
 
 export class MemoryDatabase {

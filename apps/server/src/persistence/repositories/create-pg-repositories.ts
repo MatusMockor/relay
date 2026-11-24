@@ -26,6 +26,7 @@ import { PgSettingsRepository } from './settings/pg-settings-repository';
 import { PgSplitRepository } from './splits/pg-split-repository';
 import { PgSyncStateRepository } from './sync-states/pg-sync-state-repository';
 import { PgTaskRepository } from './tasks/pg-task-repository';
+import { PgTaskSystemConnectionRepository } from './task-systems/pg-task-system-connection-repository';
 import { PgThreadRepository } from './threads/pg-thread-repository';
 import { PgUserRepository } from './users/pg-user-repository';
 
@@ -55,6 +56,7 @@ export const createPgRepositories = (db: DbExecutor): ServerRepositories => ({
   googleCalendars: new PgGoogleCalendarRepository(db),
   googleEvents: new PgGoogleEventRepository(db),
   inviteCandidates: new PgInviteCandidateRepository(db),
+  taskSystemConnections: new PgTaskSystemConnectionRepository(db),
   users: new PgUserRepository(db),
   devices: new PgDeviceRepository(db),
   refreshTokens: new PgRefreshTokenRepository(db),

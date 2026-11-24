@@ -49,6 +49,7 @@ describe('runMigrations', () => {
       'scheduled_sends',
       'splits',
       'sync_state',
+      'task_system_connections',
       'tasks',
       'thread_splits',
       'threads',

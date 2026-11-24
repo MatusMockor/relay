@@ -29,6 +29,7 @@ const REPOSITORY_TOKENS = {
   googleEvents: PORT_TOKENS.GoogleEventRepository,
   inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
   automationCandidates: PORT_TOKENS.AutomationCandidateRepository,
+  taskSystemConnections: PORT_TOKENS.TaskSystemConnectionRepository,
 } as const satisfies Record<keyof Repositories, symbol>;
 
 const KEYS = Object.keys(REPOSITORY_TOKENS) as (keyof Repositories)[];

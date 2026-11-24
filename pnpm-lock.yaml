@@ -53,6 +53,9 @@ importers:
       '@relay/store-sqlite':
         specifier: workspace:*
         version: link:../../packages/store-sqlite
+      '@relay/task-systems':
+        specifier: workspace:*
+        version: link:../../packages/task-systems
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -186,6 +189,9 @@ importers:
       '@relay/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@relay/task-systems':
+        specifier: workspace:*
+        version: link:../../packages/task-systems
       argon2:
         specifier: 0.44.0
         version: 0.44.0
@@ -510,6 +516,34 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(jsdom@26.1.0)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/task-systems:
+    dependencies:
+      '@relay/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@relay/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 4.1.13
+        version: 4.1.13
+    devDependencies:
+      '@relay/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
       eslint:
         specifier: 9.39.5
         version: 9.39.5

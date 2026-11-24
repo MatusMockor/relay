@@ -45,6 +45,9 @@ import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { SplitRepository } from './ports/split-repository';
 import type { SyncStateRepository } from './ports/sync-state-repository';
 import type { TaskRepository } from './ports/task-repository';
+import type { TaskSystemAdapterRegistry } from './ports/task-system-adapter-registry';
+import type { TaskSystemConnectionRepository } from './ports/task-system-connection-repository';
+import type { TaskSystemSecretStore } from './ports/task-system-secret-store';
 import type { ThreadRepository } from './ports/thread-repository';
 import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
@@ -77,6 +80,9 @@ export const PORT_TOKENS = {
   GoogleCalendarRepository: Symbol.for('relay.engine.GoogleCalendarRepository'),
   GoogleEventRepository: Symbol.for('relay.engine.GoogleEventRepository'),
   GoogleCalendarAdapters: Symbol.for('relay.engine.GoogleCalendarAdapters'),
+  TaskSystemConnectionRepository: Symbol.for('relay.engine.TaskSystemConnectionRepository'),
+  TaskSystemAdapterRegistry: Symbol.for('relay.engine.TaskSystemAdapterRegistry'),
+  TaskSystemSecretStore: Symbol.for('relay.engine.TaskSystemSecretStore'),
   MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
   MessageBodyRepairRepository: Symbol.for('relay.engine.MessageBodyRepairRepository'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
@@ -128,6 +134,9 @@ export interface PortRegistry {
   GoogleCalendarRepository: GoogleCalendarRepository;
   GoogleEventRepository: GoogleEventRepository;
   GoogleCalendarAdapters: GoogleCalendarAdapters;
+  TaskSystemConnectionRepository: TaskSystemConnectionRepository;
+  TaskSystemAdapterRegistry: TaskSystemAdapterRegistry;
+  TaskSystemSecretStore: TaskSystemSecretStore;
   MessageAttachmentLookup: MessageAttachmentLookup;
   MessageBodyRepairRepository: MessageBodyRepairRepository;
   UnitOfWork: UnitOfWork;

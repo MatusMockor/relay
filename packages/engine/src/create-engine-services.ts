@@ -60,6 +60,8 @@ import { createSyncComponents } from './services/sync/create-sync-service';
 import { SyncBackfills } from './services/sync/sync-backfill';
 import type { SyncService } from './services/sync/sync-service';
 import { TaskService } from './services/tasks/task-service';
+import { createTaskSystemService } from './services/task-systems/create-task-system-service';
+import type { TaskSystemService } from './services/task-systems/task-system-service';
 import { ThreadAiPreparer } from './services/threads/thread-ai-preparer';
 import { ThreadChecklistService } from './services/threads/thread-checklist-service';
 import { ThreadQueryService } from './services/threads/thread-query-service';
@@ -96,6 +98,7 @@ export interface EngineServices {
   readonly calendar: CalendarService;
   readonly failedInvitations: FailedInvitationService;
   readonly googleCalendar: GoogleCalendarService;
+  readonly taskSystems: TaskSystemService;
 }
 
 export const createEngineServices = (deps: EngineDeps): EngineServices => {
@@ -258,5 +261,6 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     calendar,
     failedInvitations: invites.failed,
     googleCalendar: google.service,
+    taskSystems: createTaskSystemService(deps, events),
   };
 };

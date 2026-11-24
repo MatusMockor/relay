@@ -33,6 +33,7 @@ import {
 } from './memory-small-repositories';
 import { MemorySplitRepository } from './memory-split-repository';
 import { MemoryTaskRepository } from './memory-task-repository';
+import { MemoryTaskSystemConnectionRepository } from './memory-task-system-connection-repository';
 import { MemoryThreadRepository } from './memory-thread-repository';
 
 export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
@@ -61,6 +62,7 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   googleCalendars: new MemoryGoogleCalendarRepository(db),
   googleEvents: new MemoryGoogleEventRepository(db),
   inviteCandidates: new MemoryInviteCandidateRepository(db),
+  taskSystemConnections: new MemoryTaskSystemConnectionRepository(db),
 });
 
 export class MemoryUnitOfWork implements UnitOfWork {

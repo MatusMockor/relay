@@ -24,6 +24,7 @@ import type { SettingsRepository } from './settings-repository';
 import type { SplitRepository } from './split-repository';
 import type { SyncStateRepository } from './sync-state-repository';
 import type { TaskRepository } from './task-repository';
+import type { TaskSystemConnectionRepository } from './task-system-connection-repository';
 import type { ThreadRepository } from './thread-repository';
 
 export interface Repositories {
@@ -52,4 +53,5 @@ export interface Repositories {
   readonly googleCalendars: GoogleCalendarRepository;
   readonly googleEvents: GoogleEventRepository;
   readonly inviteCandidates: InviteCandidateRepository;
+  readonly taskSystemConnections: TaskSystemConnectionRepository;
 }

@@ -13,5 +13,6 @@ export * from './scheduled-sends';
 export * from './settings';
 export * from './splits';
 export * from './tasks';
+export * from './task-systems';
 export * from './threads';
 export * from './users';

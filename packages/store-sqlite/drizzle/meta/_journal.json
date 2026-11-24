@@ -253,6 +253,13 @@
       "when": 1795515163578,
       "tag": "0035_task_priority",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1795518429933,
+      "tag": "0036_task_system_connections",
+      "breakpoints": true
     }
   ]
 }

@@ -50,6 +50,8 @@ export * from './sync/sync-options';
 export * from './sync/sync-service';
 export * from './sync/history/trace-headers';
 export * from './tasks/task-service';
+export * from './task-systems/task-system-service';
+export * from './task-systems/unconfigured-task-systems';
 export * from './threads/checklist-item';
 export * from './threads/thread-ai-preparer';
 export * from './threads/thread-checklist-service';
