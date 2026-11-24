@@ -1,3 +1,4 @@
+import type { SyncStage } from '@relay/shared/realtime';
 import type { RawMessage } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
@@ -98,6 +99,16 @@ export class MessageFetchSteps {
       phase: 'messages',
       processed,
       total,
+    });
+  }
+
+  stage(context: SyncContext, stage: SyncStage, processed: number, total: number): Promise<void> {
+    return this.deps.reporter.progress(context.userId, context.account.id, {
+      mailboxId: null,
+      phase: 'messages',
+      processed: Math.min(processed, total),
+      total,
+      stage,
     });
   }
 }

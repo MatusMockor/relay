@@ -59,11 +59,15 @@ export class InitialBacklog {
     if (head.length === 0 || frozen === undefined) {
       return new Set();
     }
+    const { steps } = this.deps;
+    await steps.stage(run.context, 'inbox', 0, head.length);
     const ancestors = await this.deps.ancestors.find(run.context, head, run.passes, frozen);
     if (ancestors === null) {
       return new Set();
     }
     await this.chunk(run, head, ancestors);
+    const fetched = head.filter((entry) => !run.failed.has(entry.pass.mailbox.id));
+    await steps.stage(run.context, 'inbox', fetched.length, head.length);
     return new Set(head.map(keyOf));
   }
 
@@ -75,9 +79,16 @@ export class InitialBacklog {
     const wanted = conversationOrder(windows, inInbox).filter(
       (entry) => entry.wanted && !done.has(keyOf(entry)),
     );
+    await this.backlogProgress(run);
     for (const chunk of chunked(wanted, this.deps.options.batchSize)) {
       await this.chunk(run, chunk, []);
+      await this.backlogProgress(run);
     }
+  }
+
+  private backlogProgress(run: BacklogRun): Promise<void> {
+    const { processed, total } = run.progress.totals();
+    return this.deps.steps.stage(run.context, 'backlog', processed, total);
   }
 
   private async chunk(

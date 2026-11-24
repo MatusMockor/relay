@@ -50,6 +50,24 @@ describe('older mail progress in sync settings', () => {
     expect(within(sheet).queryByRole('progressbar')).toBeNull();
   });
 
+  it('says the history waits for the first sync instead of showing frozen numbers', async () => {
+    const { client, publish } = historyClient(firstRunning);
+    renderApp({ demo: () => client });
+    const sheet = await openSync();
+
+    await publish({ stored: 500, state: 'waiting' });
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Začnem sťahovať po dokončení prvej synchronizácie');
+    });
+    expect(historyText(sheet)).not.toContain('Sťahujem históriu');
+    expect(within(sheet).queryByRole('progressbar')).toBeNull();
+
+    await publish({ stored: 900, state: 'running' });
+    await waitFor(() => {
+      expect(historyText(sheet)).toContain('Sťahujem históriu: 900 z 48 000 správ');
+    });
+  });
+
   it('drops a removed account from the progress', async () => {
     const accounts = await createDemoMailClient().listAccounts();
     expect(accounts.length).toBeGreaterThan(1);

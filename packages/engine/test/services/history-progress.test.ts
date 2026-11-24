@@ -1,3 +1,4 @@
+import type { HistoryProgress } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, ME, seedAccount } from '../support/fixtures';
 import { backfillUntilDone, historyDate, seedHistory } from '../support/history';
@@ -81,5 +82,64 @@ describe('history progress', () => {
     expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([
       { accountId: account.id, stored: 11, total: 11, state: 'done' },
     ]);
+  });
+
+  it('counts Gmail inbox history at once instead of waiting for its All Mail copies', async () => {
+    const engine = createTestEngine({ sync: { history: TIGHT } });
+    const { account, server } = await seedAccount(
+      engine,
+      { settings: GMAIL_SETTINGS },
+      { gmail: true },
+    );
+    Array.from({ length: 30 }, (_, index) => {
+      const spec = {
+        id: `old-${String(index)}`,
+        emailId: `gm-old-${String(index)}`,
+        labels: ['\\Inbox'],
+        date: historyDate(index, 30),
+      };
+      deliverMail(server, 'INBOX', spec);
+      deliverMail(server, 'Archive', spec);
+      return spec;
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    engine.events.clear();
+
+    await backfillUntilDone(engine, account.id);
+
+    const stored = engine.events.ofType('sync.history').map((event) => event.data.stored);
+    expect(stored.slice(0, 3)).toEqual([10, 20, 30]);
+    expect(engine.events.ofType('sync.history').at(-1)?.data).toEqual({
+      accountId: account.id,
+      stored: 30,
+      total: 30,
+      state: 'done',
+    });
+  });
+
+  it('reports waiting until a history mailbox finished its initial sync', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 2 } });
+    const { account, server } = await seedAccount(engine);
+    seedHistory(server, 'INBOX', 6, (index) => ({
+      date: `2026-11-0${String(index + 1)}T08:00:00Z`,
+    }));
+    const reads: Promise<HistoryProgress[]>[] = [];
+    engine.events.beforePublish = (event) => {
+      if (event.type !== 'sync.progress' || event.data.processed >= (event.data.total ?? 0)) {
+        return;
+      }
+      reads.push(engine.services.sync.historyProgress(USER_ID));
+    };
+
+    expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([
+      { accountId: account.id, stored: 0, total: 0, state: 'waiting' },
+    ]);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const during = await Promise.all(reads);
+    expect(during.length).toBeGreaterThan(1);
+    expect(during.every(([progress]) => progress?.state === 'waiting')).toBe(true);
+    const [after] = await engine.services.sync.historyProgress(USER_ID);
+    expect(after?.state).toBe('running');
   });
 });
