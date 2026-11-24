@@ -1,5 +1,6 @@
 import type { MailboxRole } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
+import { uniqueIds } from './located-ids';
 import { copiesIn, receivedIn, rolesAfter } from './physical-messages';
 import {
   type LocatedMessage,
@@ -34,12 +35,13 @@ export const trash: StateMovePlanner = (messages, thread, copies) => {
 };
 
 export const restore: StateMovePlanner = (messages, _thread, copies) => {
-  const moves = copiesIn(copies, messages, ['trash']).map(({ message, origin }) => ({
+  const moves = copiesIn(copies, messages, ['trash']).map(({ message, placement, origin }) => ({
     messageId: message.id,
+    source: placement,
     ...returnTo(origin, RESTORE_TARGETS),
   }));
   return {
     ...plan(settledState(rolesAfter(copies, messages, moves)), moves),
-    origins: [{ kind: 'trash-origin', remember: [], forget: moves.map((move) => move.messageId) }],
+    origins: [{ kind: 'trash-origin', remember: [], forget: uniqueIds(moves) }],
   };
 };

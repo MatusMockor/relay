@@ -1,5 +1,6 @@
 import type { MailboxRole } from '@relay/shared/domain';
 import { ValidationError } from '../../../errors';
+import { uniqueIds } from './located-ids';
 import { copiesIn, receivedIn, rolesAfter } from './physical-messages';
 import {
   moveTo,
@@ -29,8 +30,9 @@ export const reportSpam: StateMovePlanner = (messages, thread, copies) => {
 };
 
 export const notSpam: StateMovePlanner = (messages, thread, copies) => {
-  const moves = copiesIn(copies, messages, ['spam']).map(({ message, origin }) => ({
+  const moves = copiesIn(copies, messages, ['spam']).map(({ message, placement, origin }) => ({
     messageId: message.id,
+    source: placement,
     ...returnTo(origin, REPORTABLE_ROLES),
   }));
   if (moves.length === 0 && thread.state !== 'spam') {
@@ -38,6 +40,6 @@ export const notSpam: StateMovePlanner = (messages, thread, copies) => {
   }
   return {
     ...plan(settledState(rolesAfter(copies, messages, moves)), moves),
-    origins: [{ kind: 'spam-origin', remember: [], forget: moves.map((move) => move.messageId) }],
+    origins: [{ kind: 'spam-origin', remember: [], forget: uniqueIds(moves) }],
   };
 };

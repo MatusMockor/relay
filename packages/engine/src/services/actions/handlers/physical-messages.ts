@@ -79,16 +79,17 @@ export const rolesAfter = (
   moves: readonly PlannedMove[],
   keyOf: (message: Message) => string = (message) => copies.identityOf(message),
 ): Role[] => {
-  const targets = new Map(moves.map((move) => [move.messageId, move.role]));
-  const placed = messages.map(({ message, placement, role }) => ({
-    message,
-    placement,
-    role: targets.get(message.id) ?? role,
-  }));
+  const targets = new Map(
+    moves.map((move) => [placementKey(move.messageId, move.source.mailboxId), move.role]),
+  );
+  const placed = messages.map(({ message, placement, role }) => {
+    const target = targets.get(placementKey(message.id, placement.mailboxId));
+    return { message, placement, role: target ?? role, moved: target !== undefined };
+  });
   const roles = copies.filedRoles(placed);
   const byMessage = new Map<string, Placement>();
-  placed.forEach(({ message }, index) => {
-    const placement = { moved: targets.has(message.id), role: roles[index] };
+  placed.forEach(({ message, moved }, index) => {
+    const placement = { moved, role: roles[index] };
     const key = keyOf(message);
     const current = byMessage.get(key);
     if (current === undefined || better(placement, current)) {

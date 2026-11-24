@@ -1,12 +1,13 @@
-import type {
-  LabelId,
-  MailboxId,
-  MailboxRole,
-  Message,
-  MessageId,
-  MessagePlacement,
-  ThreadState,
-  ThreadSummary,
+import {
+  isPendingPlacement,
+  type LabelId,
+  type MailboxId,
+  type MailboxRole,
+  type Message,
+  type MessageId,
+  type MessagePlacement,
+  type ThreadState,
+  type ThreadSummary,
 } from '@relay/shared/domain';
 import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
@@ -39,6 +40,7 @@ export interface MoveTarget {
 
 export interface PlannedMove extends MoveTarget {
   readonly messageId: MessageId;
+  readonly source: MessagePlacement;
 }
 
 export interface OriginChanges {
@@ -81,15 +83,18 @@ export const plan = (state: ThreadState, moves: readonly PlannedMove[] = []): St
 export const moveTo = (state: ThreadState, sources: readonly LocatedMessage[], role: MailboxRole) =>
   plan(
     state,
-    sources.map(({ message }) => ({ messageId: message.id, role })),
+    sources.map(({ message, placement }) => ({ messageId: message.id, source: placement, role })),
   );
+
+export const sourceUidOf = (located: LocatedMessage): { readonly uid?: number } =>
+  located.moving || isPendingPlacement(located.placement) ? {} : { uid: located.placement.uid };
 
 const originOf = (source: LocatedMessage, role: MailboxRole): MoveOriginWork => {
   const { message, mailboxId } = source;
   if (role !== 'custom' || mailboxId === undefined) {
-    return { messageId: message.id, role };
+    return { messageId: message.id, role, ...sourceUidOf(source) };
   }
-  return { messageId: message.id, role, mailboxId };
+  return { messageId: message.id, role, mailboxId, ...sourceUidOf(source) };
 };
 
 export const originsOf = (sources: readonly LocatedMessage[]): MoveOriginWork[] =>

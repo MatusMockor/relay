@@ -1,4 +1,11 @@
-import type { AccountId, Mailbox, MailAccount, Message } from '@relay/shared/domain';
+import {
+  type AccountId,
+  isPlacedIn,
+  type Mailbox,
+  type MailAccount,
+  type Message,
+  type MessagePlacement,
+} from '@relay/shared/domain';
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
@@ -56,15 +63,20 @@ export class MovedCopyMerger {
       return null;
     }
     const copies = await this.deps.messages.findByEmailId(moving.accountId, moving.emailId);
-    return copies.find((copy) => copy.mailboxId === target.id && copy.id !== moving.id) ?? null;
+    return copies.find((copy) => isPlacedIn(copy, target.id) && copy.id !== moving.id) ?? null;
   }
 
-  async merge(account: MailAccount, moving: Message, twin: Message): Promise<void> {
+  async merge(
+    account: MailAccount,
+    moving: Message,
+    source: MessagePlacement,
+    twin: Message,
+  ): Promise<void> {
     const journal = new SyncJournal(account.id, this.deps.clock);
     await this.deps.unitOfWork.run(async (repositories) => {
       await transferOrigins(repositories.pendingWork, account.id, moving, twin);
       await repositories.drafts.retargetReplies(moving.id, twin.id);
-      await repositories.messages.deleteByUids(moving.mailboxId, [moving.uid]);
+      await repositories.messages.deleteByUids(source.mailboxId, [source.uid]);
       await journal.touched(repositories.pendingWork, moving.threadId);
       if (twin.threadId !== moving.threadId) {
         await journal.touched(repositories.pendingWork, twin.threadId);
