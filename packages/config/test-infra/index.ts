@@ -1,5 +1,7 @@
 export * from './google-calendar-stub';
 export * from './jira-cloud-stub';
+export * from './linear-stub';
+export * from './stub-http';
 
 export interface PostgresTestInfra {
   readonly url: string;
