@@ -17,6 +17,7 @@ describe('looksLikeHtml', () => {
     ],
     ['a comment before the root', '<!-- generated -->\n<html><body>Ahoj</body></html>'],
     ['an html root without head or body', '<html><title>Stav</title><p>Odoslané</p></html>'],
+    ['an html root without end tags', '<html lang="sk"><body><p>Odoslané</p>'],
     ['a fragment after a comment', '<!-- generated --><div>Odoslané</div>'],
     ['a fragment with block tags', '<div><p>Zásielka je na ceste</p></div>'],
     ['a table layout', '<table><tr><td>Ahoj</td></tr></table>'],

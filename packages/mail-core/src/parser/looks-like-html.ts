@@ -11,6 +11,10 @@ const DOCUMENT_SECTION_END = /<\/(?:head|body)\s*>/i;
 
 const HTML_END = /<\/html\s*>$/i;
 
+const BODY_START = /<body(?:\s[^<>]*)?>/i;
+
+const CLOSED_BLOCK = /<\/(?:p|div|table|td)\s*>/i;
+
 const STRUCTURAL_START = /^<(?:head|body|table|div|p|meta|style|center)[\s>/]/i;
 
 const STRUCTURAL_END = /<\/(?:html|body|table|div|p)\s*>$/i;
@@ -46,7 +50,10 @@ const isDocument = (text: string): boolean => {
   if (!HTML_ROOT.test(text)) {
     return false;
   }
-  return DOCUMENT_SECTION_END.test(text) || HTML_END.test(text);
+  if (DOCUMENT_SECTION_END.test(text) || HTML_END.test(text)) {
+    return true;
+  }
+  return BODY_START.test(text) && CLOSED_BLOCK.test(text);
 };
 
 export const looksLikeHtml = (text: string): boolean => {
