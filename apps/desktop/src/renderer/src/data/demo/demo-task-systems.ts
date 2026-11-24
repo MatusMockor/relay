@@ -6,6 +6,7 @@ import type {
 } from '@relay/shared';
 import { MailClientError } from '../errors';
 import type { TaskSystemClient } from '../TaskSystemClient';
+import { DEMO_ACCOUNT_NAME, DEMO_LINEAR_SITE, demoAccountOf } from './demo-task-system-accounts';
 import {
   DEMO_JIRA_ACCOUNT,
   DEMO_JIRA_EMAIL,
@@ -13,14 +14,15 @@ import {
   type DemoConnectionRecord,
   demoConnection,
   demoConnectionId,
-  demoSiteUrl,
   demoTicket,
   rejectedToken,
 } from './demo-task-system-data';
-import { DEMO_NEW_TICKETS, DEMO_TICKETS } from './seed/task-system-tickets';
+import { DEMO_TICKETS } from './seed/task-system-tickets';
+import { DEMO_LINEAR_TICKETS } from './seed/task-system-tickets-more';
 
 export interface DemoTaskSystemsOptions {
   readonly connected?: boolean;
+  readonly linear?: boolean;
   readonly tokenRejected?: boolean;
   readonly empty?: boolean;
   readonly truncated?: boolean;
@@ -30,10 +32,39 @@ const seedRecords = (now: Date, options: DemoTaskSystemsOptions): DemoConnection
   if (options.connected === false) {
     return [];
   }
-  const fields = { label: 'Acme Jira', siteUrl: DEMO_JIRA_SITE, accountName: DEMO_JIRA_ACCOUNT };
-  const connection = demoConnection(demoConnectionId(1), fields, now.toISOString());
-  const tickets = options.empty === true ? [] : DEMO_TICKETS;
-  return [{ connection, email: DEMO_JIRA_EMAIL, tickets }];
+  const at = now.toISOString();
+  const ticketsOf = (seeds: DemoConnectionRecord['tickets']) =>
+    options.empty === true ? [] : seeds;
+  const jira = demoConnection(
+    demoConnectionId(1),
+    {
+      provider: 'jira',
+      label: 'Acme Jira',
+      siteUrl: DEMO_JIRA_SITE,
+      accountName: DEMO_JIRA_ACCOUNT,
+    },
+    at,
+  );
+  const records = [
+    { connection: jira, account: DEMO_JIRA_EMAIL, tickets: ticketsOf(DEMO_TICKETS) },
+  ];
+  if (options.linear === false) {
+    return records;
+  }
+  const linear = demoConnection(
+    demoConnectionId(2),
+    {
+      provider: 'linear',
+      label: 'Acme Linear',
+      siteUrl: DEMO_LINEAR_SITE,
+      accountName: DEMO_ACCOUNT_NAME,
+    },
+    at,
+  );
+  return [
+    ...records,
+    { connection: linear, account: 'linear-jan', tickets: ticketsOf(DEMO_LINEAR_TICKETS) },
+  ];
 };
 
 const notFound = () => new MailClientError({ code: 'not_found', message: 'Pripojenie neexistuje' });
@@ -52,7 +83,7 @@ export const createDemoTaskSystems = (
   options: DemoTaskSystemsOptions = {},
 ): TaskSystemClient => {
   let records = seedRecords(now(), options);
-  let created = records.length;
+  let created = Math.max(records.length, 2);
   const updated = (connectionId: TaskSystemConnectionId) => {
     emit({ type: 'taskSystems.updated', at: now().toISOString(), data: { connectionId } });
   };
@@ -70,29 +101,36 @@ export const createDemoTaskSystems = (
     return connection;
   };
   const reject = (record: DemoConnectionRecord): never => {
-    const error = rejectedToken();
+    const error = rejectedToken(record.connection.provider);
     if (record.connection.status === 'ok') {
       save(record, { status: 'error', lastError: error.message });
     }
     throw error;
   };
   const connect = (input: ConnectTaskSystemInput): TaskSystemConnection => {
-    const siteUrl = demoSiteUrl(input.siteUrl);
+    const account = demoAccountOf(input);
     if (options.tokenRejected === true) {
-      throw rejectedToken();
+      throw rejectedToken(input.provider);
     }
     const existing = records.find(
-      (record) => record.connection.siteUrl === siteUrl && record.email === input.email,
+      ({ connection, account: known }) =>
+        connection.provider === input.provider &&
+        connection.siteUrl === account.siteUrl &&
+        known === account.account,
     );
     if (existing !== undefined) {
       const label = input.label ?? existing.connection.label;
       return save(existing, { label, status: 'ok', lastError: null });
     }
     created += 1;
-    const label = input.label ?? new URL(siteUrl).host;
-    const fields = { label, siteUrl, accountName: input.email };
+    const fields = {
+      provider: input.provider,
+      label: input.label ?? account.defaultLabel,
+      siteUrl: account.siteUrl,
+      accountName: account.accountName,
+    };
     const connection = demoConnection(demoConnectionId(created), fields, now().toISOString());
-    records = [...records, { connection, email: input.email, tickets: DEMO_NEW_TICKETS }];
+    records = [...records, { connection, account: account.account, tickets: account.tickets }];
     updated(connection.id);
     return connection;
   };

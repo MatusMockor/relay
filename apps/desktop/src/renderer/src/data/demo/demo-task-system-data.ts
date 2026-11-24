@@ -1,6 +1,7 @@
 import {
   type ExternalTask,
   type TaskSystemConnection,
+  type TaskSystemProvider,
   type TaskSystemConnectionId,
   TaskSystemConnectionIdSchema,
 } from '@relay/shared';
@@ -14,7 +15,7 @@ export const DEMO_JIRA_ACCOUNT = 'Ján Novák';
 
 export interface DemoConnectionRecord {
   readonly connection: TaskSystemConnection;
-  readonly email: string;
+  readonly account: string;
   readonly tickets: readonly DemoTicketSeed[];
 }
 
@@ -32,18 +33,29 @@ export const demoConnectionId = (index: number): TaskSystemConnectionId =>
 
 export const demoConnection = (
   id: TaskSystemConnectionId,
-  fields: Pick<TaskSystemConnection, 'label' | 'siteUrl' | 'accountName'>,
+  fields: Pick<TaskSystemConnection, 'provider' | 'label' | 'siteUrl' | 'accountName'>,
   at: string,
 ): TaskSystemConnection => ({
   id,
   userId: demoIds.user,
-  provider: 'jira',
   ...fields,
   status: 'ok',
   lastError: null,
   createdAt: at,
   updatedAt: at,
 });
+
+const GITHUB_KEY = /^(.+)#(\d+)$/;
+
+const TICKET_URLS: Readonly<Record<TaskSystemProvider, (siteUrl: string, key: string) => string>> =
+  {
+    jira: (siteUrl, key) => `${siteUrl}/browse/${key}`,
+    linear: (siteUrl, key) => `${siteUrl}/issue/${key.toLowerCase()}`,
+    github: (siteUrl, key) => {
+      const match = GITHUB_KEY.exec(key);
+      return match === null ? siteUrl : `${siteUrl}/${match[1] ?? ''}/issues/${match[2] ?? ''}`;
+    },
+  };
 
 export const demoTicket = (
   record: DemoConnectionRecord,
@@ -55,7 +67,7 @@ export const demoTicket = (
   externalId: `${record.connection.id}-${seed.key}`,
   key: seed.key,
   title: seed.title,
-  url: `${record.connection.siteUrl}/browse/${seed.key}`,
+  url: TICKET_URLS[record.connection.provider](record.connection.siteUrl, seed.key),
   status: seed.status,
   priority: seed.priority,
   projectName: seed.projectName,
@@ -86,8 +98,11 @@ export const demoSiteUrl = (raw: string): string => {
   return url.origin;
 };
 
-export const rejectedToken = () =>
-  new MailClientError({
-    code: 'forbidden',
-    message: 'Jira odmietla prihlasovacie údaje. Skontroluj e-mail a API token.',
-  });
+const REJECTED_MESSAGES: Readonly<Record<TaskSystemProvider, string>> = {
+  jira: 'Jira odmietla prihlasovacie údaje. Skontroluj e-mail a API token.',
+  linear: 'Linear odmietol API kľúč. Skontroluj, či je platný a má právo čítať.',
+  github: 'GitHub odmietol token. Skontroluj, či je platný a nevypršal.',
+};
+
+export const rejectedToken = (provider: TaskSystemProvider) =>
+  new MailClientError({ code: 'forbidden', message: REJECTED_MESSAGES[provider] });

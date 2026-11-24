@@ -73,7 +73,7 @@ describe('task systems settings', () => {
     expect(within(form).queryByText('Zadaj API token')).toBeNull();
   });
 
-  it('offers Jira and marks the other providers as coming soon', async () => {
+  it('offers Jira, Linear and GitHub Issues with Jira picked first', async () => {
     const opened = await openSection(taskSystemClient({ connected: false }));
     const form = await connectForm();
     const providers = within(form).getByRole('radiogroup', { name: 'Systém' });
@@ -81,14 +81,15 @@ describe('task systems settings', () => {
     expect(
       within(providers).getByRole('radio', { name: /Jira/ }).getAttribute('aria-checked'),
     ).toBe('true');
-    expect(within(providers).getByRole('radio', { name: /Linear čoskoro/ })).toHaveProperty(
+    expect(within(providers).getByRole('radio', { name: 'Linear' })).toHaveProperty(
       'disabled',
-      true,
+      false,
     );
-    expect(within(providers).getByRole('radio', { name: /GitHub Issues čoskoro/ })).toHaveProperty(
+    expect(within(providers).getByRole('radio', { name: 'GitHub Issues' })).toHaveProperty(
       'disabled',
-      true,
+      false,
     );
+    expect(within(form).queryByText('čoskoro')).toBeNull();
     act(() => {
       fireEvent.click(within(form).getByRole('button', { name: 'nastaveniach účtu Atlassian' }));
     });
@@ -126,7 +127,7 @@ describe('task systems settings', () => {
   });
 
   it('disconnects a connection after a confirmation', async () => {
-    await openSection(taskSystemClient());
+    await openSection(taskSystemClient({ linear: false }));
     const row = await within(settingsSheet()).findByRole('region', { name: `Jira ${ACME_JIRA}` });
 
     act(() => {

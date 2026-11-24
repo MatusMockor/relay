@@ -5,80 +5,62 @@ import {
   type TaskSystemProvider,
 } from '@relay/shared';
 import { MailClientError } from '../../../data/errors';
+import {
+  type ConnectField,
+  type ConnectFormErrors,
+  type ConnectFormValues,
+  PROVIDER_FORMS,
+  type ProviderFormSpec,
+  SITE_URL_MESSAGE,
+} from './provider-forms';
 
-export interface ConnectFormValues {
-  readonly siteUrl: string;
-  readonly email: string;
-  readonly apiToken: string;
-  readonly label: string;
-}
-
-export type ConnectField = keyof ConnectFormValues;
-export type ConnectFormErrors = Partial<Record<ConnectField, string>>;
 export type ConnectFormResult =
   | { readonly ok: true; readonly input: ConnectTaskSystemInput }
   | { readonly ok: false; readonly errors: ConnectFormErrors };
 
-const MESSAGES: Readonly<Record<ConnectField, string>> = {
-  siteUrl: 'Zadaj adresu webu, napríklad https://firma.atlassian.net',
-  email: 'Zadaj platný e-mail',
-  apiToken: 'Zadaj API token',
-  label: 'Názov môže mať najviac 100 znakov',
+const messageOf = (spec: ProviderFormSpec, field: ConnectField): string => {
+  const messages: Readonly<Record<ConnectField, string>> = {
+    siteUrl: SITE_URL_MESSAGE,
+    email: 'Zadaj platný e-mail',
+    apiToken: spec.secretMessage,
+    label: 'Názov môže mať najviac 100 znakov',
+  };
+  return messages[field];
 };
 
-const FIELDS: readonly ConnectField[] = ['siteUrl', 'email', 'apiToken', 'label'];
+const fieldOf = (spec: ProviderFormSpec, key: PropertyKey | undefined): ConnectField | null =>
+  typeof key === 'string' ? (spec.fieldOf[key] ?? null) : null;
 
-const isField = (value: unknown): value is ConnectField => FIELDS.some((field) => field === value);
-
-const parsedUrl = (raw: string): URL | null => {
-  try {
-    return new URL(raw);
-  } catch {
-    return null;
-  }
-};
-
-export const normalizeSiteUrl = (raw: string): string => {
-  const trimmed = raw.trim();
-  if (trimmed === '' || /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-  return `https://${trimmed}`;
-};
-
-const siteUrlError = (siteUrl: string): string | null => {
-  const url = parsedUrl(siteUrl);
-  if (url === null || !url.hostname.includes('.')) {
-    return MESSAGES.siteUrl;
-  }
-  return url.protocol === 'https:' ? null : 'Adresa musí začínať https://';
-};
-
-const issueErrors = (paths: readonly (readonly PropertyKey[])[]): ConnectFormErrors =>
+const issueErrors = (
+  spec: ProviderFormSpec,
+  paths: readonly (readonly PropertyKey[])[],
+): ConnectFormErrors =>
   paths.reduce<ConnectFormErrors>((errors, path) => {
-    const field = path[0];
-    if (!isField(field) || errors[field] !== undefined) {
+    const field = fieldOf(spec, path[0]);
+    if (field === null || errors[field] !== undefined) {
       return errors;
     }
-    return { ...errors, [field]: MESSAGES[field] };
+    return { ...errors, [field]: messageOf(spec, field) };
   }, {});
 
 export const parseConnectForm = (
   provider: TaskSystemProvider,
   values: ConnectFormValues,
 ): ConnectFormResult => {
-  const siteUrl = normalizeSiteUrl(values.siteUrl);
+  const spec = PROVIDER_FORMS[provider];
   const parsed = ConnectTaskSystemInputSchema.safeParse({
     provider,
-    siteUrl,
-    email: values.email,
-    apiToken: values.apiToken,
+    ...spec.inputOf(values),
     label: values.label.trim() === '' ? undefined : values.label,
   });
-  const siteError = siteUrlError(siteUrl);
   const errors: ConnectFormErrors = {
-    ...(parsed.success ? {} : issueErrors(parsed.error.issues.map((issue) => issue.path))),
-    ...(siteError === null ? {} : { siteUrl: siteError }),
+    ...(parsed.success
+      ? {}
+      : issueErrors(
+          spec,
+          parsed.error.issues.map((issue) => issue.path),
+        )),
+    ...spec.validate(values),
   };
   if (!parsed.success || Object.keys(errors).length > 0) {
     return { ok: false, errors };
@@ -86,17 +68,19 @@ export const parseConnectForm = (
   return { ok: true, input: parsed.data };
 };
 
-const fieldOfIssue = (issue: ApiErrorIssue): ConnectField | null => {
-  const last = issue.path.split('.').at(-1);
-  return isField(last) ? last : null;
-};
+const fieldOfIssue = (spec: ProviderFormSpec, issue: ApiErrorIssue): ConnectField | null =>
+  fieldOf(spec, issue.path.split('.').at(-1));
 
-export const serverFieldErrors = (error: unknown): ConnectFormErrors => {
+export const serverFieldErrors = (
+  provider: TaskSystemProvider,
+  error: unknown,
+): ConnectFormErrors => {
   if (!(error instanceof MailClientError)) {
     return {};
   }
+  const spec = PROVIDER_FORMS[provider];
   return error.issues.reduce<ConnectFormErrors>((errors, issue) => {
-    const field = fieldOfIssue(issue);
+    const field = fieldOfIssue(spec, issue);
     if (field === null || errors[field] !== undefined) {
       return errors;
     }
