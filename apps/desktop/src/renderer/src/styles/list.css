@@ -270,3 +270,6 @@
 .a-row.unread.sel .snip.ai {
   color: var(--ai-ink);
 }
+.a-prio .a-day-date {
+  font-variant-numeric: tabular-nums;
+}

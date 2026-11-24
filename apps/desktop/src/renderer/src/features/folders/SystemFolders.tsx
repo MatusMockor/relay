@@ -37,7 +37,7 @@ export function SystemFolders({ showTasks }: { readonly showTasks: boolean }) {
             key={view}
             type="button"
             className={`f${isOn(folder, view) ? ' on' : ''}`}
-            title={`${meta.label} (G ${meta.g})`}
+            title={`${meta.sub ?? meta.label} (G ${meta.g})`}
             aria-current={isOn(folder, view) ? 'page' : undefined}
             onClick={() => {
               selectFolder(entry);

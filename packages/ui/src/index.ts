@@ -7,6 +7,7 @@ export * from './components/Kbd';
 export * from './components/layers';
 export * from './components/Overlay';
 export * from './components/Popover';
+export * from './components/PriorityIcon';
 export * from './components/ResizeHandle';
 export { moveRovingFocus, rovingIndex, rovingTabIndex } from './components/roving-focus';
 export * from './components/Segmented';

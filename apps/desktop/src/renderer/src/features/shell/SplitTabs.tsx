@@ -1,6 +1,6 @@
 import type { SplitEntry, SplitId } from '@relay/shared';
 import { useSplits, useThreadList } from '../../data/hooks/use-mail-queries';
-import { type Folder, MAIN_TAB_LABEL } from '../../state/folders';
+import { type Folder, MAIN_TAB_LABEL, VIEW_META } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { selectFolder } from '../mail/navigation';
 
@@ -76,10 +76,10 @@ export function SplitTabs() {
         hint="Prejsť na Dôležité (G I)"
       />
       <SplitTab
-        label="Úlohy"
+        label={VIEW_META.tasks.label}
         folder={{ kind: 'view', view: 'tasks' }}
         active={isTasks}
-        hint="Prejsť na Úlohy (G U)"
+        hint={`${VIEW_META.tasks.sub ?? VIEW_META.tasks.label} (G U)`}
         view="tasks"
       />
       {splits.map((split) => (

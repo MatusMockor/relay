@@ -34,6 +34,16 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     ],
   ],
   [
+    'Moje úlohy',
+    [
+      ['Priorita: Urgentná', ['P', '1']],
+      ['Priorita: Vysoká', ['P', '2']],
+      ['Priorita: Stredná', ['P', '3']],
+      ['Priorita: Nízka', ['P', '4']],
+      ['Priorita: Bez priority', ['P', '0']],
+    ],
+  ],
+  [
     'Vlákno',
     [
       ['Späť do zoznamu', ['Esc']],
@@ -66,7 +76,7 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     'Prejsť na',
     [
       ['Dôležité', ['G', 'I']],
-      ['Úlohy', ['G', 'U']],
+      ['Moje úlohy', ['G', 'U']],
       ['Pripomenuté', ['G', 'H']],
       ['Hotovo', ['G', 'E']],
       ['Archív', ['G', 'A']],

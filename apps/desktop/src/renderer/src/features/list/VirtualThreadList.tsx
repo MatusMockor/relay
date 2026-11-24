@@ -2,7 +2,7 @@ import { cx } from '@relay/ui';
 import type { ListPaging } from '../../data/hooks/use-thread-list-paging';
 import { dayGroupName } from '../../lib/day-groups';
 import type { ListItem } from '../mail/list-items';
-import { DayHeader } from './DayHeader';
+import { GroupHeader } from './GroupHeader';
 import type { ListLayout } from './list-entries';
 import { ListFooter } from './ListFooter';
 import { ListRow } from './ListRow';
@@ -47,7 +47,7 @@ export function VirtualThreadList(props: VirtualThreadListProps) {
               style={{ top, height: bottom - top }}
             >
               {span.header ? (
-                <DayHeader
+                <GroupHeader
                   group={span.group}
                   index={span.first}
                   measureRef={virtualizer.measureElement}

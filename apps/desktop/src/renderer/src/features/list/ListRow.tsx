@@ -1,9 +1,10 @@
 import { displaySubject, type FolderView, type MailAccount, type Task } from '@relay/shared';
-import { AccountSquare, cx } from '@relay/ui';
+import { AccountSquare, cx, PriorityIcon } from '@relay/ui';
 import { jiraActorOf } from '../mail/jira-display';
 import type { ListItem } from '../mail/list-items';
 import { accountLike } from '../mail/use-accounts-model';
 import { RowActions } from '../shell/RowActions';
+import { priorityTitle } from '../tasks/priority-labels';
 import { Highlight } from './Highlight';
 import { LabelChips } from './LabelChips';
 import { useThreadMenu } from './use-thread-menu';
@@ -121,6 +122,12 @@ export function ListRow({ item, selected, context, onOpen, position }: ListRowPr
     >
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
+        {context.view === 'tasks' && thread !== null ? (
+          <PriorityIcon
+            priority={context.task?.priority ?? 'none'}
+            label={priorityTitle(context.task?.priority ?? 'none')}
+          />
+        ) : null}
         <span
           className="who-n"
           title={thread !== null && jiraActorOf(thread) !== null ? 'Cez Jira' : undefined}
