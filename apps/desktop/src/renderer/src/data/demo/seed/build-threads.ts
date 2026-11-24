@@ -19,15 +19,15 @@ const snippetOf = (text: string): string =>
 
 const buildMessages = (seed: DemoThread, now: Date, order: number): Message[] => {
   const me = `me-${seed.acct}`;
+  const mailboxId =
+    seed.folder === undefined ? demoIds.mailbox(seed.acct) : demoIds.folder(seed.acct, seed.folder);
   return seed.msgs.map(([from, at, text, copies], index) => ({
     id: demoIds.message(`${seed.id}-m${String(index)}`),
     threadId: demoIds.thread(seed.id),
     accountId: demoIds.account(seed.acct),
-    mailboxId:
-      seed.folder === undefined
-        ? demoIds.mailbox(seed.acct)
-        : demoIds.folder(seed.acct, seed.folder),
+    mailboxId,
     uid: order * 10 + index + 1,
+    placements: [{ mailboxId, uid: order * 10 + index + 1 }],
     messageIdHeader: `<${seed.id}.${String(index)}@demo.relay>`,
     emailId: null,
     inReplyTo: index === 0 ? null : `<${seed.id}.${String(index - 1)}@demo.relay>`,

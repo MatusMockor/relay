@@ -2,9 +2,8 @@ import type { MessageAttachmentLookup } from '@relay/engine';
 import type { AttachmentId, Message, UserId } from '@relay/shared/domain';
 import { and, eq, sql } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toMessage } from '../mappers/message-mapper';
 import { messages } from '../schema';
-import { readMessageLabels } from './message-label-reader';
+import { hydrateMessages } from './message-hydrator';
 
 export class SqliteMessageAttachmentLookup implements MessageAttachmentLookup {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -24,7 +23,7 @@ export class SqliteMessageAttachmentLookup implements MessageAttachmentLookup {
       if (row === undefined) {
         return null;
       }
-      return toMessage(row, readMessageLabels(db, [row.id]).get(row.id) ?? []);
+      return hydrateMessages(db, [row])[0] ?? null;
     });
   }
 }

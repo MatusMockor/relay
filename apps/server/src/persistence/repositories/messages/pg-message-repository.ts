@@ -27,6 +27,9 @@ import { decodeCursor, pageOf } from '../../support/cursor';
 import { toIso } from '../../support/timestamps';
 import { toMessageHeaders, toStoredHeaders } from './message-headers';
 import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
+import { resolvedMessageId } from '../../support/message-alias';
+import { deleteAtUids, findAtLocation, listPlacedUids, moveMessage } from './message-locations';
+import { replacePlacement } from './message-placement-writer';
 import { toMessage, toMessageInsert } from './message.mapper';
 import { messageSelection } from './message-selection';
 import { replyThreadCondition } from './reply-thread-condition';
@@ -38,7 +41,7 @@ export class PgMessageRepository implements MessageRepository {
     const [row] = await this.db
       .select(messageSelection)
       .from(messages)
-      .where(and(eq(messages.userId, userId), eq(messages.id, messageId)));
+      .where(and(eq(messages.userId, userId), eq(messages.id, resolvedMessageId(messageId))));
     return row === undefined ? null : toMessage(row);
   }
 
@@ -46,7 +49,7 @@ export class PgMessageRepository implements MessageRepository {
     const [row] = await this.db
       .select({ headers: messages.headers })
       .from(messages)
-      .where(and(eq(messages.userId, userId), eq(messages.id, messageId)));
+      .where(and(eq(messages.userId, userId), eq(messages.id, resolvedMessageId(messageId))));
     return row === undefined ? null : toMessageHeaders(row.headers);
   }
 
@@ -59,12 +62,8 @@ export class PgMessageRepository implements MessageRepository {
     return rows.map(toMessage);
   }
 
-  async findByLocation(location: MessageLocation): Promise<Message | null> {
-    const [row] = await this.db
-      .select(messageSelection)
-      .from(messages)
-      .where(and(eq(messages.mailboxId, location.mailboxId), eq(messages.uid, location.uid)));
-    return row === undefined ? null : toMessage(row);
+  findByLocation(location: MessageLocation): Promise<Message | null> {
+    return findAtLocation(this.db, location);
   }
 
   async findByMessageIdHeaders(
@@ -140,13 +139,8 @@ export class PgMessageRepository implements MessageRepository {
     return rows.map((row) => row.threadId);
   }
 
-  async listUids(mailboxId: MailboxId): Promise<number[]> {
-    const rows = await this.db
-      .select({ uid: messages.uid })
-      .from(messages)
-      .where(eq(messages.mailboxId, mailboxId))
-      .orderBy(asc(messages.uid));
-    return rows.map((row) => row.uid);
+  listUids(mailboxId: MailboxId): Promise<number[]> {
+    return listPlacedUids(this.db, mailboxId);
   }
 
   async upsert(message: Message, headers: MessageHeaders): Promise<Message> {
@@ -169,6 +163,7 @@ export class PgMessageRepository implements MessageRepository {
       if (written.length === 0) {
         throw new ConflictError(`Message ${message.id} belongs to another user`);
       }
+      await replacePlacement(tx, message.id, message);
       await replaceMessageLabels(tx, message.id, message.labelIds);
       const stored = await new PgMessageRepository(tx).findById(userId, message.id);
       return stored ?? message;
@@ -225,7 +220,7 @@ export class PgMessageRepository implements MessageRepository {
     await this.db
       .update(messages)
       .set({ seen: flags.seen, flagged: flags.flagged, answered: flags.answered })
-      .where(eq(messages.id, messageId));
+      .where(eq(messages.id, resolvedMessageId(messageId)));
   }
 
   async updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void> {
@@ -240,21 +235,11 @@ export class PgMessageRepository implements MessageRepository {
     await removeMessageLabel(this.db, messageId, labelId);
   }
 
-  async move(messageId: MessageId, target: MessageLocation): Promise<void> {
-    await this.db
-      .update(messages)
-      .set({ mailboxId: target.mailboxId, uid: target.uid })
-      .where(eq(messages.id, messageId));
+  move(messageId: MessageId, target: MessageLocation): Promise<void> {
+    return moveMessage(this.db, messageId, target);
   }
 
-  async deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
-    if (uids.length === 0) {
-      return [];
-    }
-    const rows = await this.db
-      .delete(messages)
-      .where(and(eq(messages.mailboxId, mailboxId), inArray(messages.uid, [...uids])))
-      .returning({ threadId: messages.threadId });
-    return [...new Set(rows.map((row) => row.threadId))];
+  deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
+    return deleteAtUids(this.db, mailboxId, uids);
   }
 }

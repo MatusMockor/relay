@@ -28,14 +28,12 @@ export class MemoryAutomationCandidateRepository implements AutomationCandidateR
 
   listRecent(accountId: AccountId, query: RecentCandidatesQuery): Promise<InboxCandidate[]> {
     const since = Date.parse(query.since);
-    const arrived = (message: Message): boolean => {
-      const role = this.db.tables.mailboxes.get(message.mailboxId)?.role;
-      return (
-        Date.parse(message.date) >= since &&
-        role !== undefined &&
-        !RECENT_EXCLUDED_ROLES.includes(role)
-      );
-    };
+    const arrived = (message: Message): boolean =>
+      Date.parse(message.date) >= since &&
+      message.placements.some((placement) => {
+        const role = this.db.tables.mailboxes.get(placement.mailboxId)?.role;
+        return role !== undefined && !RECENT_EXCLUDED_ROLES.includes(role);
+      });
     const recent = [...this.db.tables.threads.values()]
       .filter(
         (thread) =>

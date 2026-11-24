@@ -1,7 +1,7 @@
 import type { ThreadFolderQuery } from '@relay/engine';
 import { eq, sql } from 'drizzle-orm';
 import type { RelayDb } from '../../database/sqlite-database';
-import { messages } from '../../schema';
+import { messagePlacements } from '../../schema';
 
 export const SPARSE_MAILBOX_MESSAGES = 2_000;
 
@@ -10,8 +10,8 @@ export type ThreadFolderPlan = 'order-first' | 'mailbox-first';
 const mailboxMessagesUpTo = (db: RelayDb, mailboxId: string, cap: number): number => {
   const probe = db
     .select({ one: sql`1`.as('one') })
-    .from(messages)
-    .where(eq(messages.mailboxId, mailboxId))
+    .from(messagePlacements)
+    .where(eq(messagePlacements.mailboxId, mailboxId))
     .limit(cap)
     .as('probe');
   const [row] = db

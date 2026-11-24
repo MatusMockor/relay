@@ -7,6 +7,7 @@ export * from './drafts';
 export * from './google-calendar';
 export * from './labels';
 export * from './mailboxes';
+export * from './message-placements';
 export * from './messages';
 export * from './pending-work';
 export * from './scheduled-sends';

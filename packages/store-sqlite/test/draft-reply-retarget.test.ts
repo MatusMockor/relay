@@ -1,8 +1,8 @@
 import { type Draft, DraftIdSchema } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LOCAL_USER_ID } from '../src';
-import { accountId, messageId } from './support/fixtures';
-import { seedAccount } from './support/seed';
+import { accountId, buildMessage, messageId, NO_HEADERS } from './support/fixtures';
+import { seedAccount, type SeededAccount } from './support/seed';
 import { createTestStore, type TestStore } from './support/test-database';
 
 const draftId = (value: string) => DraftIdSchema.parse(value);
@@ -24,10 +24,11 @@ const buildDraft = (id: string, replied: string): Draft => ({
 
 describe('SqliteDraftRepository reply references', () => {
   let store: TestStore;
+  let seeded: SeededAccount;
 
   beforeEach(async () => {
     store = createTestStore();
-    await seedAccount(store.repositories);
+    seeded = await seedAccount(store.repositories);
   });
 
   afterEach(() => {
@@ -45,5 +46,34 @@ describe('SqliteDraftRepository reply references', () => {
       (await drafts.findById(LOCAL_USER_ID, draftId(id)))?.inReplyToMessageId;
     expect(await replied('drf-1')).toBe('msg-3');
     expect(await replied('drf-2')).toBe('msg-2');
+  });
+
+  it('stores the keeper when a reply draft names a merged message id', async () => {
+    const { drafts, messages } = store.repositories;
+    await messages.upsert(
+      buildMessage({ id: messageId('msg-keeper'), mailboxId: seeded.inbox.id }),
+      NO_HEADERS,
+    );
+    store.database.sqlite
+      .prepare('insert into message_aliases (alias_id, message_id) values (?, ?)')
+      .run('msg-merged', 'msg-keeper');
+
+    const created = await drafts.create(LOCAL_USER_ID, buildDraft('drf-1', 'msg-merged'));
+    const plain = await drafts.create(LOCAL_USER_ID, {
+      ...buildDraft('drf-2', 'msg-keeper'),
+      inReplyToMessageId: null,
+    });
+    const updated = await drafts.update(
+      LOCAL_USER_ID,
+      plain.id,
+      { inReplyToMessageId: messageId('msg-merged') },
+      { expected: plain.updatedAt, next: '2026-11-10T10:01:00.000Z' },
+    );
+
+    expect(created.inReplyToMessageId).toBe('msg-keeper');
+    expect(updated?.inReplyToMessageId).toBe('msg-keeper');
+    expect((await drafts.findById(LOCAL_USER_ID, draftId('drf-1')))?.inReplyToMessageId).toBe(
+      'msg-keeper',
+    );
   });
 });

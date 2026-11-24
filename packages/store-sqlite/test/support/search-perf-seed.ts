@@ -7,6 +7,7 @@ import { messages, threads } from '../../src/schema';
 import { buildMessage, buildThread, messageId, NO_HEADERS, threadId } from './fixtures';
 import type { SeededAccount } from './seed';
 import type { TestStore } from './test-database';
+import { mirrorPlacements } from './placement-mirror';
 
 const WORDS = [
   'faktúra',
@@ -136,4 +137,5 @@ export const seedSearchPerfMailbox = (
       insertBatch(start);
     }
   })();
+  mirrorPlacements(store);
 };

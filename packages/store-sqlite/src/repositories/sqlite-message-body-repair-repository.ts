@@ -6,7 +6,7 @@ import type {
 import type { MailboxId, MessageId, ThreadId } from '@relay/shared/domain';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { messages } from '../schema';
+import { messagePlacements, messages } from '../schema';
 
 const REPLACEMENT_CHARACTER = '\uFFFD';
 
@@ -25,18 +25,19 @@ export class SqliteMessageBodyRepairRepository implements MessageBodyRepairRepos
         .select({
           messageId: messages.id,
           threadId: messages.threadId,
-          uid: messages.uid,
+          uid: messagePlacements.uid,
           messageIdHeader: messages.messageIdHeader,
         })
-        .from(messages)
+        .from(messagePlacements)
+        .innerJoin(messages, eq(messages.id, messagePlacements.messageId))
         .where(
           and(
-            eq(messages.mailboxId, mailboxId),
-            gt(messages.uid, afterUid),
+            eq(messagePlacements.mailboxId, mailboxId),
+            gt(messagePlacements.uid, afterUid),
             hasReplacementCharacter,
           ),
         )
-        .orderBy(asc(messages.uid))
+        .orderBy(asc(messagePlacements.uid))
         .limit(limit)
         .all()
         .map((row) => ({

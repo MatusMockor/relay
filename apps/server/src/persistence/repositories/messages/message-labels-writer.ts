@@ -2,14 +2,22 @@ import type { LabelId, MessageId } from '@relay/shared/domain';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { labels, messageLabels, messages } from '../../schema';
+import { resolvedMessageId } from '../../support/message-alias';
 
 export const replaceMessageLabels = async (
   db: DbExecutor,
   messageId: MessageId,
   labelIds: readonly LabelId[],
 ): Promise<void> => {
-  await db.execute(sql`select 1 from ${messages} where ${messages.id} = ${messageId} for update`);
-  await db.delete(messageLabels).where(eq(messageLabels.messageId, messageId));
+  const [row] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(eq(messages.id, resolvedMessageId(messageId)))
+    .for('update');
+  if (row === undefined) {
+    return;
+  }
+  await db.delete(messageLabels).where(eq(messageLabels.messageId, row.id));
   if (labelIds.length === 0) {
     return;
   }
@@ -18,7 +26,7 @@ export const replaceMessageLabels = async (
     select ${messages.id}, ${labels.id}, ${messages.userId}
     from ${messages}
     join ${labels} on ${labels.accountId} = ${messages.accountId}
-    where ${messages.id} = ${messageId} and ${labels.id} in ${[...labelIds]}
+    where ${messages.id} = ${row.id} and ${labels.id} in ${[...labelIds]}
     on conflict do nothing
   `);
 };
@@ -33,7 +41,7 @@ export const addMessageLabel = async (
     select ${messages.id}, ${labels.id}, ${messages.userId}
     from ${messages}
     join ${labels} on ${labels.accountId} = ${messages.accountId}
-    where ${messages.id} = ${messageId} and ${labels.id} = ${labelId}
+    where ${messages.id} = ${resolvedMessageId(messageId)} and ${labels.id} = ${labelId}
     on conflict do nothing
   `);
 };
@@ -45,5 +53,10 @@ export const removeMessageLabel = async (
 ): Promise<void> => {
   await db
     .delete(messageLabels)
-    .where(and(eq(messageLabels.messageId, messageId), eq(messageLabels.labelId, labelId)));
+    .where(
+      and(
+        eq(messageLabels.messageId, resolvedMessageId(messageId)),
+        eq(messageLabels.labelId, labelId),
+      ),
+    );
 };

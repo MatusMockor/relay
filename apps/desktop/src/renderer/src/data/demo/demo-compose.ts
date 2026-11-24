@@ -34,6 +34,7 @@ const outgoingMessage = (
     accountId: content.accountId,
     mailboxId: demoIds.mailbox('sent'),
     uid: 0,
+    placements: [{ mailboxId: demoIds.mailbox('sent'), uid: 0 }],
     messageIdHeader: `<${nextKey('msg')}@demo.relay>`,
     emailId: null,
     inReplyTo: null,

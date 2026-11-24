@@ -8,6 +8,7 @@ import {
   setupServerSearch,
   subjectsOf,
 } from '../support/server-search';
+import { placedAt } from '../support/memory/memory-placements';
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -76,8 +77,8 @@ describe('ServerSearchService races', () => {
         ...state,
         uidValidity: state.uidValidity + 1,
       });
-      engine.db.tables.messages.set(invoice.id, { ...invoice, uid: invite.uid });
-      engine.db.tables.messages.set(invite.id, { ...invite, uid: invoice.uid });
+      engine.db.tables.messages.set(invoice.id, placedAt(invoice, { ...invoice, uid: invite.uid }));
+      engine.db.tables.messages.set(invite.id, placedAt(invite, { ...invite, uid: invoice.uid }));
       return Promise.resolve();
     };
 

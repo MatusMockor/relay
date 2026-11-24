@@ -1,11 +1,19 @@
 import { normalizeSubject } from '@relay/engine';
-import type { LabelId, Message, UserId } from '@relay/shared/domain';
+import {
+  type LabelId,
+  type Message,
+  MessagePlacementSchema,
+  type UserId,
+} from '@relay/shared/domain';
 import type { messages } from '../../schema';
 import { toDate, toIso } from '../../support/timestamps';
 
 type MessageRow = Omit<typeof messages.$inferSelect, 'searchVector'> & {
   readonly labelIds: LabelId[];
+  readonly placements: unknown;
 };
+
+const PlacementsSchema = MessagePlacementSchema.array().min(1);
 type MessageInsert = typeof messages.$inferInsert;
 
 export const toMessage = (row: MessageRow): Message => ({
@@ -31,6 +39,7 @@ export const toMessage = (row: MessageRow): Message => ({
   flags: { seen: row.seen, flagged: row.flagged, answered: row.answered },
   labelIds: row.labelIds,
   attachments: row.attachments,
+  placements: PlacementsSchema.parse(row.placements),
 });
 
 export const toMessageInsert = (

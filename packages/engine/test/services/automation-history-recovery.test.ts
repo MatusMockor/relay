@@ -4,6 +4,7 @@ import { onlyEntry, undoEntry } from '../support/automation-history';
 import { TIBOR } from '../support/automations';
 import { deliverMail, present } from '../support/fixtures';
 import { USER_ID } from '../support/test-engine';
+import { placedAt } from '../support/memory/memory-placements';
 
 const HOUR_MS = 60 * 60_000;
 
@@ -108,7 +109,10 @@ describe('rule history when a step around the action fails', () => {
     const entry = await onlyEntry(setup, rule);
     const [recorded] = present(entry.actions[0]).changed;
     const moved = present(setup.engine.db.tables.messages.get(present(recorded)));
-    setup.engine.db.tables.messages.set(moved.id, { ...moved, mailboxId: other.id });
+    setup.engine.db.tables.messages.set(
+      moved.id,
+      placedAt(moved, { ...moved, mailboxId: other.id }),
+    );
     setup.engine.clock.advance(2 * HOUR_MS);
 
     const result = await undoEntry(setup, rule, entry);

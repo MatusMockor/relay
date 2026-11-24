@@ -54,5 +54,6 @@ export const buildMessage = (draft: MessageDraft, ids: IdGenerator): Message => 
       inline: attachment.inline,
     })),
     ...(draft.bodyState === 'remote' ? { bodyState: 'remote' as const } : {}),
+    placements: [{ mailboxId: draft.mailbox.id, uid: raw.uid }],
   };
 };

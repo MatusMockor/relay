@@ -32,6 +32,7 @@ const bulkMessage = (thread: ThreadSummary, index: number): Message => ({
   accountId: thread.accountId,
   mailboxId: demoIds.mailbox('efa'),
   uid: 100_000 + index,
+  placements: [{ mailboxId: demoIds.mailbox('efa'), uid: 100_000 + index }],
   messageIdHeader: `<${thread.id}@demo.relay>`,
   emailId: null,
   inReplyTo: null,

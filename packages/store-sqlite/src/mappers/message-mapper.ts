@@ -1,5 +1,10 @@
 import { type MessageHeaders, normalizeSubject } from '@relay/engine';
-import { type Message, MessageSchema, type UserId } from '@relay/shared/domain';
+import {
+  type Message,
+  type MessagePlacement,
+  MessageSchema,
+  type UserId,
+} from '@relay/shared/domain';
 import { z } from 'zod';
 import type { MessageRow, messages } from '../schema';
 import { toTimestamp } from './timestamp';
@@ -9,7 +14,11 @@ const HeaderEntriesSchema = z.array(z.tuple([z.string(), z.array(z.string())]));
 export const toMessageHeaders = (stored: unknown): MessageHeaders =>
   new Map(HeaderEntriesSchema.parse(stored));
 
-export const toMessage = (row: MessageRow, labelIds: readonly string[]): Message =>
+export const toMessage = (
+  row: MessageRow,
+  labelIds: readonly string[],
+  placements: readonly MessagePlacement[],
+): Message =>
   MessageSchema.parse({
     id: row.id,
     threadId: row.threadId,
@@ -34,6 +43,7 @@ export const toMessage = (row: MessageRow, labelIds: readonly string[]): Message
     labelIds,
     attachments: row.attachments,
     ...(row.bodyState === 'remote' ? { bodyState: 'remote' } : {}),
+    placements,
   });
 
 export const toMessageRow = (

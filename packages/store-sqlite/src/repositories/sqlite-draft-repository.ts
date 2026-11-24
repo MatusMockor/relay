@@ -19,6 +19,7 @@ import { toDraft, toDraftAttachmentRows, toDraftRow } from '../mappers/draft-map
 import { toTimestamp } from '../mappers/timestamp';
 import { type DraftAttachmentRow, type DraftRow, draftAttachments, drafts } from '../schema';
 import { chunked } from './chunked';
+import { withResolvedReplyTarget } from './draft-reply-target';
 import { leaseStaleBefore } from './stale-lease';
 
 const ownedBy = (userId: UserId, draftId: DraftId) =>
@@ -47,9 +48,10 @@ export class SqliteDraftRepository implements DraftRepository {
 
   create(userId: UserId, draft: Draft): Promise<Draft> {
     return this.executor.execute((db) => {
-      db.insert(drafts).values(toDraftRow(userId, draft)).run();
+      const resolved = withResolvedReplyTarget(db, draft);
+      db.insert(drafts).values(toDraftRow(userId, resolved)).run();
       this.replaceAttachments(db, draft.id, draft.attachments);
-      return draft;
+      return resolved;
     });
   }
 
@@ -60,7 +62,7 @@ export class SqliteDraftRepository implements DraftRepository {
     revision: DraftRevision,
   ): Promise<Draft | null> {
     return this.executor.execute((db) => {
-      const { attachments, ...content } = changes;
+      const { attachments, ...content } = withResolvedReplyTarget(db, changes);
       const result = db
         .update(drafts)
         .set({ ...content, updatedAt: revision.next, updatedTs: toTimestamp(revision.next) })

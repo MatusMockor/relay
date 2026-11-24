@@ -2,7 +2,7 @@ import { NotFoundError } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../database/database';
-import { drafts, mailAccounts, messages, threads, users } from '../schema';
+import { drafts, mailAccounts, threads, users } from '../schema';
 
 type OwnershipQuery = (db: DbExecutor, id: string, userId: UserId) => Promise<unknown[]>;
 
@@ -17,11 +17,6 @@ const OWNERSHIP_QUERIES = {
       .select({ id: threads.id })
       .from(threads)
       .where(and(sql`${threads.id} = ${id}`, eq(threads.userId, userId))),
-  Message: (db, id, userId) =>
-    db
-      .select({ id: messages.id })
-      .from(messages)
-      .where(and(sql`${messages.id} = ${id}`, eq(messages.userId, userId))),
   Draft: (db, id, userId) =>
     db
       .select({ id: drafts.id })

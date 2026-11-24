@@ -4,9 +4,9 @@ import {
   type StoredMatchSubject,
 } from '@relay/engine';
 import type { ThreadId } from '@relay/shared/domain';
-import { and, asc, eq, inArray, lte, type SQL, sql } from 'drizzle-orm';
+import { and, asc, inArray, lte, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
-import { mailboxes, messages } from '../../schema';
+import { messages } from '../../schema';
 import { toMessageHeaders } from '../messages/message-headers';
 
 const appendTo = (
@@ -46,7 +46,6 @@ export const loadCandidateSubjects = async (
       ),
     })
     .from(messages)
-    .innerJoin(mailboxes, eq(mailboxes.id, messages.mailboxId))
     .where(and(inArray(messages.threadId, [...threadIds]), filter))
     .as('ranked');
   const rows = await db

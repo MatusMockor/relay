@@ -73,31 +73,37 @@ export const buildThread = (overrides: Partial<ThreadSummary> = {}): ThreadSumma
   ...overrides,
 });
 
-export const buildMessage = (overrides: Partial<Message> = {}): Message => ({
-  id: messageId('msg-1'),
-  threadId: threadId('thr-1'),
-  accountId: accountId('acc-1'),
-  mailboxId: mailboxId('mbx-inbox'),
-  uid: 1,
-  messageIdHeader: '<msg-1@klient.sk>',
-  emailId: null,
-  inReplyTo: null,
-  references: [],
-  from: { name: 'Jana Nováková', email: 'jana@klient.sk' },
-  to: [{ name: null, email: 'jan@firma.sk' }],
-  cc: [],
-  bcc: [],
-  replyTo: [],
-  subject: 'Faktúra za október',
-  date: '2026-11-10T10:00:00.000Z',
-  snippet: 'Dobrý deň, posielam faktúru',
-  textBody: 'Dobrý deň, posielam faktúru za október.',
-  htmlBody: null,
-  flags: { seen: false, flagged: false, answered: false },
-  labelIds: [],
-  attachments: [],
-  ...overrides,
-});
+export const buildMessage = (overrides: Partial<Message> = {}): Message => {
+  const message = {
+    id: messageId('msg-1'),
+    threadId: threadId('thr-1'),
+    accountId: accountId('acc-1'),
+    mailboxId: mailboxId('mbx-inbox'),
+    uid: 1,
+    messageIdHeader: '<msg-1@klient.sk>',
+    emailId: null,
+    inReplyTo: null,
+    references: [],
+    from: { name: 'Jana Nováková', email: 'jana@klient.sk' },
+    to: [{ name: null, email: 'jan@firma.sk' }],
+    cc: [],
+    bcc: [],
+    replyTo: [],
+    subject: 'Faktúra za október',
+    date: '2026-11-10T10:00:00.000Z',
+    snippet: 'Dobrý deň, posielam faktúru',
+    textBody: 'Dobrý deň, posielam faktúru za október.',
+    htmlBody: null,
+    flags: { seen: false, flagged: false, answered: false },
+    labelIds: [],
+    attachments: [],
+    ...overrides,
+  };
+  return {
+    ...message,
+    placements: overrides.placements ?? [{ mailboxId: message.mailboxId, uid: message.uid }],
+  };
+};
 
 export const NO_HEADERS: ReadonlyMap<string, readonly string[]> = new Map();
 
