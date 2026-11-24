@@ -26,6 +26,7 @@
     "@relay/mail-core": "workspace:*",
     "@relay/mcp-mail": "workspace:*",
     "@relay/shared": "workspace:*",
+    "@relay/task-systems": "workspace:*",
     "argon2": "0.44.0",
     "drizzle-orm": "0.45.4",
     "fastify": "5.12.8",

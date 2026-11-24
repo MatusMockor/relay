@@ -21,6 +21,7 @@ COPY packages/engine/package.json packages/engine/
 COPY packages/mail-core/package.json packages/mail-core/
 COPY packages/ai/package.json packages/ai/
 COPY packages/mcp-mail/package.json packages/mcp-mail/
+COPY packages/task-systems/package.json packages/task-systems/
 COPY apps/server/package.json apps/server/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter "@relay/server..."
@@ -41,6 +42,7 @@ COPY --chown=node:node packages/engine packages/engine
 COPY --chown=node:node packages/mail-core packages/mail-core
 COPY --chown=node:node packages/ai packages/ai
 COPY --chown=node:node packages/mcp-mail packages/mcp-mail
+COPY --chown=node:node packages/task-systems packages/task-systems
 COPY --chown=node:node apps/server apps/server
 USER node
 WORKDIR /app/apps/server

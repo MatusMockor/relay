@@ -22,6 +22,7 @@ import {
   SplitService,
   SyncService,
   TaskService,
+  TaskSystemService,
   ThreadAiPreparer,
   ThreadChecklistService,
   ThreadQueryService,
@@ -66,6 +67,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(CalendarService, 'calendar'),
   service(FailedInvitationService, 'failedInvitations'),
   service(GoogleCalendarService, 'googleCalendar'),
+  service(TaskSystemService, 'taskSystems'),
 ];
 
 @Global()
@@ -97,6 +99,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     CalendarService,
     FailedInvitationService,
     GoogleCalendarService,
+    TaskSystemService,
   ],
 })
 export class EngineModule {}

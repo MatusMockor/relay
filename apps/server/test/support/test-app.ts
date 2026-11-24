@@ -1,7 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { PORT_TOKENS } from '@relay/engine';
+import { PORT_TOKENS, type TaskSystemAdapterRegistry } from '@relay/engine';
 import { AppModule } from '../../src/app.module';
 import type { ServerConfig } from '../../src/config/server-config';
 import { createFastifyAdapter } from '../../src/http/fastify-adapter.factory';
@@ -24,6 +24,7 @@ export interface TestAppOptions {
   readonly env?: TestEnv;
   readonly clock?: ManualClock;
   readonly databaseName?: string;
+  readonly taskSystems?: TaskSystemAdapterRegistry;
 }
 
 const listen = async (app: NestFastifyApplication): Promise<string> => {
@@ -32,11 +33,17 @@ const listen = async (app: NestFastifyApplication): Promise<string> => {
   return `http://127.0.0.1:${address.port}`;
 };
 
-const createApp = async (config: ServerConfig, clock: ManualClock) => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
+const createApp = async (config: ServerConfig, clock: ManualClock, options: TestAppOptions) => {
+  const builder = Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
     .overrideProvider(PORT_TOKENS.Clock)
-    .useValue(clock)
-    .compile();
+    .useValue(clock);
+  const moduleRef = await (
+    options.taskSystems === undefined
+      ? builder
+      : builder
+          .overrideProvider(PORT_TOKENS.TaskSystemAdapterRegistry)
+          .useValue(options.taskSystems)
+  ).compile();
   return configureApp(
     moduleRef.createNestApplication<NestFastifyApplication>(
       createFastifyAdapter(config.http.trustProxyHops),
@@ -65,7 +72,7 @@ export const startTestApp = async (options: TestAppOptions = {}): Promise<TestAp
   let ready = false;
   try {
     const config = createTestConfig(database.url, options.env);
-    app = await createApp(config, clock);
+    app = await createApp(config, clock, options);
     const baseUrl = await listen(app);
     const running = app;
     ready = true;
