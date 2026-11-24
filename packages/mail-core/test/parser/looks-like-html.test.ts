@@ -17,6 +17,7 @@ describe('looksLikeHtml', () => {
     ],
     ['a comment before the root', '<!-- generated -->\n<html><body>Ahoj</body></html>'],
     ['an html root without head or body', '<html><title>Stav</title><p>Odoslané</p></html>'],
+    ['a fragment after a comment', '<!-- generated --><div>Odoslané</div>'],
     ['a fragment with block tags', '<div><p>Zásielka je na ceste</p></div>'],
     ['a table layout', '<table><tr><td>Ahoj</td></tr></table>'],
     ['a head without a root', '<head><style>p{}</style></head><body>Ahoj</body>'],
@@ -35,6 +36,10 @@ describe('looksLikeHtml', () => {
     ['a block tag that is never closed', '<p> je tag pre odstavec, používame ho často'],
     ['markup followed by prose', '<div>Example</div>\nPaste this into the template'],
     ['prose about the html tag', '<html> is the root element. Paste it into your template.'],
+    [
+      'prose about the closed body tag',
+      '<html> is the root element. The <body> tag goes inside it.',
+    ],
     ['prose about the body tag', '<html> is the root element. The <body tag goes inside it.'],
     ['an unterminated comment', '<!-- poznámka bez konca <html><body>Ahoj</body>'],
     ['an empty string', ''],

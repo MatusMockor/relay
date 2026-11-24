@@ -7,7 +7,7 @@ const DOCTYPE = /^<!doctype\s+html\b/i;
 
 const HTML_ROOT = /^<html[\s>]/i;
 
-const DOCUMENT_SECTION = /<(?:head|body)(?:\s[^<>]*)?>/i;
+const DOCUMENT_SECTION_END = /<\/(?:head|body)\s*>/i;
 
 const HTML_END = /<\/html\s*>$/i;
 
@@ -46,13 +46,13 @@ const isDocument = (text: string): boolean => {
   if (!HTML_ROOT.test(text)) {
     return false;
   }
-  return DOCUMENT_SECTION.test(text) || HTML_END.test(text);
+  return DOCUMENT_SECTION_END.test(text) || HTML_END.test(text);
 };
 
 export const looksLikeHtml = (text: string): boolean => {
-  const trimmed = text.trim();
-  if (isDocument(withoutProlog(trimmed))) {
+  const content = withoutProlog(text.trim());
+  if (isDocument(content)) {
     return true;
   }
-  return STRUCTURAL_START.test(trimmed) && STRUCTURAL_END.test(trimmed);
+  return STRUCTURAL_START.test(content) && STRUCTURAL_END.test(content);
 };
