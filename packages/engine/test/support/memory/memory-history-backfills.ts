@@ -35,6 +35,14 @@ export class MemoryHistoryBackfills implements HistoryBackfillRepository {
     return Promise.resolve([...counts].map(([mailboxId, stored]) => ({ mailboxId, stored })));
   }
 
+  countDistinct(accountId: AccountId, mailboxIds: readonly MailboxId[]): Promise<number> {
+    const wanted = new Set(mailboxIds);
+    const keys = [...this.db.tables.messages.values()]
+      .filter((message) => message.accountId === accountId && wanted.has(message.mailboxId))
+      .map((message) => message.messageIdHeader ?? message.emailId ?? message.id);
+    return Promise.resolve(new Set(keys).size);
+  }
+
   flagScanOffset(mailboxId: MailboxId): Promise<number | null> {
     return Promise.resolve(this.db.tables.historyFlagOffsets.get(mailboxId) ?? null);
   }

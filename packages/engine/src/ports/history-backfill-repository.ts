@@ -6,6 +6,7 @@ export interface HistoryBackfillRepository {
   save(cursor: HistoryCursor): Promise<void>;
   storedUids(mailboxId: MailboxId, uids: readonly number[]): Promise<number[]>;
   countsByMailbox(accountId: AccountId): Promise<HistoryMailboxCount[]>;
+  countDistinct(accountId: AccountId, mailboxIds: readonly MailboxId[]): Promise<number>;
   flagScanOffset(mailboxId: MailboxId): Promise<number | null>;
   saveFlagScanOffset(mailboxId: MailboxId, offset: number): Promise<void>;
 }

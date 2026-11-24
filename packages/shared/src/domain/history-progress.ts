@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AccountIdSchema } from './ids';
 
-export const HistoryStateSchema = z.enum(['running', 'done', 'paused', 'error']);
+export const HistoryStateSchema = z.enum(['waiting', 'running', 'done', 'paused', 'error']);
 export type HistoryState = z.infer<typeof HistoryStateSchema>;
 
 export const HistoryProgressSchema = z.object({
