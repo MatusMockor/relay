@@ -5,13 +5,21 @@ import {
   AiJobIdSchema,
   LabelIdSchema,
   SplitIdSchema,
+  TaskIdSchema,
   ThreadIdSchema,
 } from './ids';
 import { MessageSchema } from './message';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
+import { TaskPrioritySchema } from './task-priority';
 
 export const ThreadStateSchema = z.enum(['inbox', 'done', 'trash', 'spam', 'reminder']);
 export type ThreadState = z.infer<typeof ThreadStateSchema>;
+
+export const ThreadActiveTaskSchema = z.object({
+  id: TaskIdSchema,
+  priority: TaskPrioritySchema,
+});
+export type ThreadActiveTask = z.infer<typeof ThreadActiveTaskSchema>;
 
 export const ThreadSummarySchema = z.object({
   id: ThreadIdSchema,
@@ -31,6 +39,7 @@ export const ThreadSummarySchema = z.object({
   markedDone: z.boolean().optional(),
   remindAt: IsoDateTimeSchema.nullable(),
   hasDraft: z.boolean(),
+  activeTask: ThreadActiveTaskSchema.nullable().optional(),
 });
 export type ThreadSummary = z.infer<typeof ThreadSummarySchema>;
 

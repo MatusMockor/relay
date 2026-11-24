@@ -47,6 +47,7 @@ export * from './held-thread-state';
 export * from './thread-search-field';
 export * from './theme';
 export * from './thread';
+export * from './thread-active-task';
 export * from './thread-action';
 export * from './time-zone';
 export * from './user';

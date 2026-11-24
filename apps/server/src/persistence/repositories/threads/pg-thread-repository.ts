@@ -15,12 +15,16 @@ import { toDateOrNull } from '../../support/timestamps';
 import { folderQueryConditions } from './folder-query-conditions';
 import { toThreadInsert, toThreadSummary } from './thread.mapper';
 import { threadSelection } from './thread-selection';
+import { ordersByActiveTask, queryTaskFolder } from './thread-task-folder';
 import { replaceThreadSplits } from './thread-splits-writer';
 
 export class PgThreadRepository implements ThreadRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async queryFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>> {
+    if (ordersByActiveTask(query)) {
+      return queryTaskFolder(this.db, userId, query);
+    }
     const cursor = decodeCursor(query.cursor);
     const rows = await this.db
       .select(threadSelection)

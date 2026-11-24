@@ -21,6 +21,11 @@ export const restoreThreadLists = (client: QueryClient, entries: readonly ListEn
   });
 };
 
+const keepActiveTask = (next: ThreadSummary, listed: ThreadSummary): ThreadSummary =>
+  next.activeTask === undefined && listed.activeTask !== undefined
+    ? { ...next, activeTask: listed.activeTask }
+    : next;
+
 export const writeThreadToLists = (client: QueryClient, thread: ThreadSummary): void => {
   snapshotThreadLists(client).forEach(([key, page]) => {
     const params = paramsOf(key);
@@ -33,7 +38,7 @@ export const writeThreadToLists = (client: QueryClient, thread: ThreadSummary): 
     }
     const items = leavesList(params, thread)
       ? page.items.filter((item) => item.id !== thread.id)
-      : page.items.map((item) => (item.id === thread.id ? thread : item));
+      : page.items.map((item) => (item.id === thread.id ? keepActiveTask(thread, item) : item));
     client.setQueryData<ThreadPage>(key, { ...page, items });
   });
 };

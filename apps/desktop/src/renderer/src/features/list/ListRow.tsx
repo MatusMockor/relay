@@ -1,4 +1,10 @@
-import { displaySubject, type FolderView, type MailAccount, type Task } from '@relay/shared';
+import {
+  displaySubject,
+  type FolderView,
+  type MailAccount,
+  type Task,
+  type TaskPriority,
+} from '@relay/shared';
 import { AccountSquare, cx, PriorityIcon } from '@relay/ui';
 import { jiraActorOf } from '../mail/jira-display';
 import type { ListItem } from '../mail/list-items';
@@ -17,6 +23,7 @@ export interface RowContext {
   readonly time: string;
   readonly account: MailAccount | undefined;
   readonly task: Task | undefined;
+  readonly priority?: TaskPriority;
 }
 
 const TASK_TONE: Readonly<Record<string, string>> = { waiting: 'warn', open: 'acc', done: 'ok' };
@@ -122,12 +129,9 @@ export function ListRow({ item, selected, context, onOpen, position }: ListRowPr
     >
       <span className={thread?.unread === true ? 'dot' : undefined} />
       <span className="who">
-        {context.view === 'tasks' && thread !== null ? (
-          <PriorityIcon
-            priority={context.task?.priority ?? 'none'}
-            label={priorityTitle(context.task?.priority ?? 'none')}
-          />
-        ) : null}
+        {context.priority === undefined ? null : (
+          <PriorityIcon priority={context.priority} label={priorityTitle(context.priority)} />
+        )}
         <span
           className="who-n"
           title={thread !== null && jiraActorOf(thread) !== null ? 'Cez Jira' : undefined}

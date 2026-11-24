@@ -1,4 +1,11 @@
-import type { AccountId, ThreadId, ThreadSummary, UserId } from '@relay/shared/domain';
+import {
+  type AccountId,
+  activeTaskOf,
+  compareTaskThreads,
+  type ThreadId,
+  type ThreadSummary,
+  type UserId,
+} from '@relay/shared/domain';
 import type { Page, ThreadFolderQuery, ThreadRepository, ThreadStateChange } from '../../../src';
 import { type MemoryDatabase, offsetPage } from './memory-database';
 import { ThreadFolderFilter } from './thread-folder-filter';
@@ -12,6 +19,11 @@ export class MemoryThreadRepository implements ThreadRepository {
   }
 
   queryFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>> {
+    if (query.view === 'tasks' && query.everywhere !== true) {
+      return Promise.resolve(
+        offsetPage(this.taskThreads(userId, query), query.cursor, query.limit),
+      );
+    }
     const matches = [...this.db.tables.threads.values()]
       .filter((thread) => this.filter.matches(userId, thread, query))
       .sort(
@@ -91,5 +103,13 @@ export class MemoryThreadRepository implements ThreadRepository {
   delete(threadId: ThreadId): Promise<void> {
     this.db.tables.threads.delete(threadId);
     return Promise.resolve();
+  }
+
+  private taskThreads(userId: UserId, query: ThreadFolderQuery): ThreadSummary[] {
+    const tasks = [...this.db.tables.tasks.values()].filter((task) => task.userId === userId);
+    return [...this.db.tables.threads.values()]
+      .filter((thread) => this.filter.matches(userId, thread, query))
+      .map((thread) => ({ ...thread, activeTask: activeTaskOf(tasks, thread) }))
+      .sort(compareTaskThreads);
   }
 }

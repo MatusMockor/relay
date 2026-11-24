@@ -4,7 +4,7 @@ import { folderKey, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
 import { priorityOfItem } from '../tasks/thread-priorities';
-import { useThreadTaskIndex } from '../tasks/use-thread-task-index';
+import { usePendingPriorities } from '../tasks/use-pending-priorities';
 import { useOpenItem } from '../mail/use-open-item';
 import { EmptyFolder, InboxZero, NoHits } from './EmptyState';
 import { buildListLayout } from './list-entries';
@@ -22,13 +22,13 @@ export function ThreadList() {
   const splits = useSplits();
   const openItem = useOpenItem();
   const contextOf = useRowContext();
-  const taskIndex = useThreadTaskIndex();
+  const pending = usePendingPriorities();
   const view = viewOf(folder);
   const now = new Date();
   const [year, month, day] = [now.getFullYear(), now.getMonth(), now.getDate()];
   const layout = useMemo(
-    () => buildListLayout(items, view, new Date(year, month, day), priorityOfItem(taskIndex)),
-    [items, view, year, month, day, taskIndex],
+    () => buildListLayout(items, view, new Date(year, month, day), priorityOfItem(pending)),
+    [items, view, year, month, day, pending],
   );
   if (loading) {
     return <div className="a-list" aria-busy="true" />;

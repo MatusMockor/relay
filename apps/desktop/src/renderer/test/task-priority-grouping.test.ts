@@ -1,67 +1,68 @@
-import { type Task, type TaskPriority, TaskSchema, ThreadIdSchema } from '@relay/shared';
+import { type TaskPriority, TaskIdSchema, ThreadIdSchema, type ThreadSummary } from '@relay/shared';
 import { describe, expect, it } from 'vitest';
 import { buildListLayout } from '../src/features/list/list-entries';
-import { threadItem } from '../src/features/mail/list-items';
+import { type ListItem, threadItem } from '../src/features/mail/list-items';
 import {
-  orderByPriority,
+  orderTaskItems,
   priorityOfItem,
-  threadTaskIndex,
+  threadPriority,
 } from '../src/features/tasks/thread-priorities';
 import { serverThread } from './support/thread-fixtures';
 
 const NOW = new Date(2026, 10, 19, 12, 0);
 
-const task = (id: string, threadId: string, overrides: Partial<Task> = {}): Task =>
-  TaskSchema.parse({
-    id,
-    userId: 'user-1',
-    threadId,
-    jiraKey: null,
-    title: `Úloha ${id}`,
-    aiWhat: null,
-    state: 'open',
-    source: 'manual',
-    createdAt: '2026-11-15T08:00:00.000Z',
-    updatedAt: '2026-11-15T08:00:00.000Z',
-    ...overrides,
+const taskThread = (
+  id: string,
+  priority: TaskPriority | null,
+  lastMessageAt = '2026-11-15T08:00:00.000Z',
+): ThreadSummary =>
+  serverThread(`Predmet ${id}`, {
+    id: ThreadIdSchema.parse(id),
+    lastMessageAt,
+    activeTask: priority === null ? null : { id: TaskIdSchema.parse(`task-${id}`), priority },
   });
 
-const item = (id: string) =>
-  threadItem(serverThread(`Predmet ${id}`, { id: ThreadIdSchema.parse(id) }));
-
-const tasksFor = (priorities: Readonly<Record<string, TaskPriority>>): Task[] =>
-  Object.entries(priorities).map(([threadId, priority]) =>
-    task(`task-${threadId}`, threadId, { priority }),
-  );
+const keys = (items: readonly ListItem[]): string[] => items.map((entry) => entry.key);
 
 describe('task priority grouping', () => {
-  it('uses the open task with the highest priority as the task of a thread', () => {
-    const index = threadTaskIndex([
-      task('done-urgent', 'thr-1', { state: 'done', priority: 'urgent' }),
-      task('open-low', 'thr-1', { priority: 'low' }),
-      task('open-high', 'thr-1', { priority: 'high', state: 'waiting' }),
-      task('loose', 'thr-2', { threadId: null, priority: 'urgent' }),
-    ]);
+  it('reads the priority of the active task and prefers a pending change', () => {
+    const thread = taskThread('a', 'low');
 
-    expect(index.get('thr-1')?.id).toBe('open-high');
-    expect(index.has('thr-2')).toBe(false);
+    expect(threadPriority(thread, {})).toBe('low');
+    expect(threadPriority(thread, { 'task-a': 'urgent' })).toBe('urgent');
+    expect(threadPriority(taskThread('b', null), { 'task-b': 'high' })).toBe('none');
   });
 
-  it('orders by priority and keeps the list order within a priority', () => {
-    const priorityOf = priorityOfItem(
-      threadTaskIndex(tasksFor({ a: 'low', b: 'urgent', c: 'none', d: 'urgent', e: 'medium' })),
-    );
+  it('orders by priority, then by the last message and the thread id like the stores', () => {
+    const items = [
+      taskThread('a', 'low', '2026-11-15T08:00:00.000Z'),
+      taskThread('b', 'urgent', '2026-10-01T08:00:00.000Z'),
+      taskThread('c', 'none', '2026-11-18T08:00:00.000Z'),
+      taskThread('d', 'urgent', '2026-11-16T08:00:00.000Z'),
+      taskThread('e', 'low', '2026-11-15T08:00:00.000Z'),
+    ].map(threadItem);
 
-    const ordered = orderByPriority(['a', 'b', 'c', 'd', 'e', 'f'].map(item), priorityOf);
-
-    expect(ordered.map((entry) => entry.key)).toEqual(['b', 'd', 'e', 'a', 'c', 'f']);
+    expect(keys(orderTaskItems(items, priorityOfItem({})))).toEqual(['d', 'b', 'e', 'a', 'c']);
+    expect(keys(orderTaskItems(items, priorityOfItem({ 'task-c': 'high' })))).toEqual([
+      'd',
+      'b',
+      'c',
+      'e',
+      'a',
+    ]);
   });
 
   it('lays out the tasks view under priority headers in the displayed order', () => {
-    const priorityOf = priorityOfItem(
-      threadTaskIndex(tasksFor({ a: 'none', b: 'high', c: 'urgent', d: 'high' })),
+    const priorityOf = priorityOfItem({});
+    const items = orderTaskItems(
+      [
+        taskThread('a', 'none'),
+        taskThread('b', 'high', '2026-11-16T08:00:00.000Z'),
+        taskThread('c', 'urgent'),
+        taskThread('d', 'high'),
+      ].map(threadItem),
+      priorityOf,
     );
-    const items = orderByPriority(['a', 'b', 'c', 'd'].map(item), priorityOf);
 
     const layout = buildListLayout(items, 'tasks', NOW, priorityOf);
 
@@ -86,9 +87,12 @@ describe('task priority grouping', () => {
   });
 
   it('keeps day groups outside the tasks view', () => {
-    const priorityOf = priorityOfItem(threadTaskIndex(tasksFor({ a: 'urgent' })));
-
-    const layout = buildListLayout([item('a')], 'inbox', NOW, priorityOf);
+    const layout = buildListLayout(
+      [threadItem(taskThread('a', 'urgent'))],
+      'inbox',
+      NOW,
+      priorityOfItem({}),
+    );
 
     expect(layout.spans.map((span) => span.group.priority)).toEqual([undefined]);
   });

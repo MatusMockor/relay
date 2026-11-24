@@ -12,9 +12,10 @@ import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toTask, toTaskRow } from '../mappers/task-mapper';
 import { toTimestamp } from '../mappers/timestamp';
 import { assertPageLimit } from '../pagination/page-limit';
+import { rankTimeIdCursor } from '../pagination/rank-time-id-cursor';
 import { toPage } from '../pagination/to-page';
 import { tasks } from '../schema';
-import { afterTaskPosition, rankedTaskColumns, taskCursor, taskListOrder } from './task-list-order';
+import { afterTaskPosition, rankedTaskColumns, taskListOrder } from './task-list-order';
 
 export class SqliteTaskRepository implements TaskRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -30,14 +31,14 @@ export class SqliteTaskRepository implements TaskRepository {
             eq(tasks.userId, userId),
             query.state === null ? undefined : eq(tasks.state, query.state),
             query.threadId === undefined ? undefined : eq(tasks.threadId, query.threadId),
-            afterTaskPosition(taskCursor.decode(query.cursor)),
+            afterTaskPosition(rankTimeIdCursor.decode(query.cursor)),
           ),
         )
         .orderBy(...taskListOrder)
         .limit(limit + 1)
         .all();
       return toPage(rows, limit, toTask, (row) =>
-        taskCursor.encode({ rank: row.rank, ts: row.updatedTs, id: row.id }),
+        rankTimeIdCursor.encode({ rank: row.rank, ts: row.updatedTs, id: row.id }),
       );
     });
   }

@@ -7,8 +7,8 @@ import {
 } from '../../data/hooks/use-thread-list-paging';
 import { usesThreadList } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
-import { orderByPriority, priorityOfItem } from '../tasks/thread-priorities';
-import { useThreadTaskIndex } from '../tasks/use-thread-task-index';
+import { orderTaskItems, priorityOfItem } from '../tasks/thread-priorities';
+import { usePendingPriorities } from '../tasks/use-pending-priorities';
 import { draftItems, type ListItem, scheduledItems, threadItem } from './list-items';
 import { useListParams } from './use-list-params';
 
@@ -25,7 +25,7 @@ export const useFolderItems = (): FolderItems => {
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
   const isTasks = folder.kind === 'view' && folder.view === 'tasks';
-  const taskIndex = useThreadTaskIndex();
+  const pending = usePendingPriorities();
   const params = useListParams();
   const threads = useThreadList(params, usesThreadList(folder));
   const threadPaging = useThreadListPaging(
@@ -57,12 +57,12 @@ export const useFolderItems = (): FolderItems => {
     }
     const items = (threads.data?.items ?? []).map(threadItem);
     return {
-      items: isTasks ? orderByPriority(items, priorityOfItem(taskIndex)) : items,
+      items: isTasks ? orderTaskItems(items, priorityOfItem(pending)) : items,
       loading: threads.isPending,
     };
   }, [
     isTasks,
-    taskIndex,
+    pending,
     isDrafts,
     isScheduled,
     drafts.data,

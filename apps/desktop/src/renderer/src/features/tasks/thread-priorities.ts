@@ -1,48 +1,40 @@
 import {
   compareTaskPriority,
   DEFAULT_TASK_PRIORITY,
-  type Task,
   type TaskPriority,
+  type ThreadSummary,
 } from '@relay/shared';
 import type { ListItem } from '../mail/list-items';
-
-export type ThreadTaskIndex = ReadonlyMap<string, Task>;
+import type { PendingPriorities } from './pending-priorities';
 
 export type PriorityOf = (item: ListItem) => TaskPriority;
 
-const outranks = (candidate: Task, current: Task | undefined): boolean => {
-  if (current === undefined) {
-    return true;
+export const threadPriority = (
+  thread: Pick<ThreadSummary, 'activeTask'>,
+  pending: PendingPriorities,
+): TaskPriority => {
+  if (thread.activeTask == null) {
+    return DEFAULT_TASK_PRIORITY;
   }
-  if ((candidate.state === 'done') !== (current.state === 'done')) {
-    return current.state === 'done';
-  }
-  return compareTaskPriority(candidate.priority, current.priority) < 0;
+  return pending[thread.activeTask.id] ?? thread.activeTask.priority;
 };
 
-export const threadTaskIndex = (tasks: readonly Task[]): ThreadTaskIndex =>
-  tasks.reduce((index, task) => {
-    if (task.threadId === null || !outranks(task, index.get(task.threadId))) {
-      return index;
-    }
-    index.set(task.threadId, task);
-    return index;
-  }, new Map<string, Task>());
-
 export const priorityOfItem =
-  (index: ThreadTaskIndex): PriorityOf =>
+  (pending: PendingPriorities): PriorityOf =>
   (item) => {
     if (item.kind !== 'thread') {
       return DEFAULT_TASK_PRIORITY;
     }
-    return index.get(item.thread.id)?.priority ?? DEFAULT_TASK_PRIORITY;
+    return threadPriority(item.thread, pending);
   };
 
-export const orderByPriority = (items: readonly ListItem[], priorityOf: PriorityOf): ListItem[] =>
-  items
-    .map((item, position) => ({ item, position, priority: priorityOf(item) }))
-    .sort(
-      (left, right) =>
-        compareTaskPriority(left.priority, right.priority) || left.position - right.position,
-    )
-    .map(({ item }) => item);
+const lastMessageTime = (item: ListItem): number =>
+  item.kind === 'thread' ? Date.parse(item.thread.lastMessageAt) : 0;
+
+export const orderTaskItems = (items: readonly ListItem[], priorityOf: PriorityOf): ListItem[] =>
+  [...items].sort(
+    (left, right) =>
+      compareTaskPriority(priorityOf(left), priorityOf(right)) ||
+      lastMessageTime(right) - lastMessageTime(left) ||
+      right.key.localeCompare(left.key),
+  );

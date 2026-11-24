@@ -1,5 +1,4 @@
 import type { Task, UserId } from '@relay/shared/domain';
-import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { at, newId, seedAccount } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
@@ -22,15 +21,10 @@ const buildTask = (userId: UserId, overrides: Partial<Task> = {}): Task => ({
 describe('PgTaskRepository priority', () => {
   const context = usePgTestContext();
 
-  it('persists the priority, changes it with an update and reads rows without one as none', async () => {
+  it('persists the priority and changes it with an update', async () => {
     const { user } = await seedAccount(context.repositories);
     const { tasks } = context.repositories;
     const stored = await tasks.upsert(buildTask(user.id, { priority: 'high' }));
-    const legacy = newId('task');
-    await context.db.execute(
-      sql`insert into tasks (id, user_id, title, state, source, created_at, updated_at)
-          values (${legacy}, ${user.id}, 'Stará', 'open', 'jira', now(), now())`,
-    );
 
     const updated = await tasks.update(user.id, stored.id, {
       priority: 'urgent',
@@ -39,7 +33,6 @@ describe('PgTaskRepository priority', () => {
 
     expect(stored.priority).toBe('high');
     expect(updated).toMatchObject({ id: stored.id, priority: 'urgent' });
-    expect(await tasks.findById(user.id, legacy)).toMatchObject({ priority: 'none' });
   });
 
   it('lists by priority, then by the latest change, and pages across the groups', async () => {

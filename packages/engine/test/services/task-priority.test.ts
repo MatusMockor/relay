@@ -77,4 +77,25 @@ describe('TaskService priorities', () => {
     expect(created.priority).toBe('none');
     expect(reopened).toMatchObject({ id: created.id, state: 'open', priority: 'medium' });
   });
+
+  it('lists the tasks view with the active task of each thread', async () => {
+    const engine = createTestEngine();
+    const thread = await syncedThread(engine);
+    await engine.services.tasks.createFromAi(USER_ID, {
+      threadId: thread.id,
+      title: 'Odpovedať',
+      aiWhat: null,
+      priority: 'low',
+    });
+    const high = await engine.services.tasks.createFromAi(USER_ID, {
+      threadId: thread.id,
+      title: 'Poslať ponuku',
+      aiWhat: null,
+      priority: 'high',
+    });
+
+    const view = await engine.services.inbox.list(USER_ID, { view: 'tasks', limit: 50 });
+
+    expect(view.items.map((item) => item.activeTask)).toEqual([{ id: high.id, priority: 'high' }]);
+  });
 });

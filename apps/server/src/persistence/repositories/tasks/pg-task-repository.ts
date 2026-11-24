@@ -13,20 +13,15 @@ import { tasks } from '../../schema';
 import { isUniqueViolation } from '../../support/postgres-errors';
 import { assertOwned } from '../../support/ownership';
 import { toDate, toIso } from '../../support/timestamps';
-import {
-  afterTaskPosition,
-  decodeTaskCursor,
-  encodeTaskCursor,
-  rankedTaskColumns,
-  taskListOrder,
-} from './task-list-order';
+import { decodeRankedCursor, encodeRankedCursor } from '../../support/ranked-cursor';
+import { afterTaskPosition, rankedTaskColumns, taskListOrder } from './task-list-order';
 import { toTask, toTaskInsert } from './task.mapper';
 
 export class PgTaskRepository implements TaskRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async list(userId: UserId, query: TaskQuery): Promise<Page<Task>> {
-    const position = decodeTaskCursor(query.cursor);
+    const position = decodeRankedCursor(query.cursor);
     const rows = await this.db
       .select(rankedTaskColumns)
       .from(tasks)
@@ -47,7 +42,7 @@ export class PgTaskRepository implements TaskRepository {
       nextCursor:
         rows.length <= query.limit || last === undefined
           ? null
-          : encodeTaskCursor({ rank: last.rank, t: toIso(last.updatedAt), id: last.id }),
+          : encodeRankedCursor({ rank: last.rank, t: toIso(last.updatedAt), id: last.id }),
     };
   }
 

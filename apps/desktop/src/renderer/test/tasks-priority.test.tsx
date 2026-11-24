@@ -2,46 +2,16 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoClient, press } from './features-support';
+import {
+  chord,
+  CSV_SUBJECT,
+  groupLabels,
+  groupOfRow,
+  rowSubjects,
+  selectRow,
+} from './support/priority-view';
 import { renderApp, resetStores } from './support/render-app';
 import { gotoTasks, selectedSubject, TASK_TITLE, taskOf, toastText } from './support/tasks-view';
-
-const CSV_SUBJECT = 'WEB-479';
-
-const listbox = () => screen.getByRole('listbox', { name: 'Konverzácie' });
-
-const groupLabels = (): string[] =>
-  Array.from(listbox().querySelectorAll('.a-prio .a-day-label')).map((node) => node.textContent);
-
-const rowSubjects = (): string[] =>
-  within(listbox())
-    .getAllByRole('option')
-    .map((row) => row.querySelector('.subj')?.textContent.trim() ?? '');
-
-const groupOfRow = (subject: string): string | null =>
-  within(listbox())
-    .getAllByRole('group')
-    .find((group) =>
-      within(group)
-        .queryAllByRole('option')
-        .some((row) => row.textContent.includes(subject)),
-    )
-    ?.getAttribute('aria-label') ?? null;
-
-const selectRow = (subject: string) => {
-  const row = within(listbox())
-    .getAllByRole('option')
-    .find((option) => option.textContent.includes(subject));
-  expect(row).toBeDefined();
-  act(() => {
-    fireEvent.click(row ?? document.body);
-  });
-  press('Escape', {}, document.body);
-};
-
-const chord = (code: string, key: string) => {
-  press('p', {}, document.body);
-  press(key, { code }, document.body);
-};
 
 describe('my tasks grouped by priority', () => {
   beforeEach(() => {
@@ -85,7 +55,9 @@ describe('my tasks grouped by priority', () => {
     await waitFor(() => {
       expect(groupOfRow(CSV_SUBJECT)).toBe('Urgentné');
     });
-    expect(toastText()).toContain('Priorita: Urgentná');
+    await waitFor(() => {
+      expect(toastText()).toContain('Priorita: Urgentná');
+    });
     expect(selectedSubject()).toContain(CSV_SUBJECT);
     await waitFor(async () => {
       expect((await taskOf(client, TASK_TITLE)).priority).toBe('urgent');
