@@ -1,4 +1,4 @@
-import type { ConnectTaskSystemInput, TaskSystemProvider } from '@relay/shared';
+import type { ConnectTaskSystemInput, JiraConnectInput } from '@relay/shared';
 import { demoSiteUrl } from './demo-task-system-data';
 import { DEMO_NEW_TICKETS, type DemoTicketSeed } from './seed/task-system-tickets';
 import { DEMO_GITHUB_TICKETS, DEMO_LINEAR_TICKETS } from './seed/task-system-tickets-more';
@@ -15,43 +15,40 @@ export interface DemoAccount {
   readonly tickets: readonly DemoTicketSeed[];
 }
 
-type DemoAccountResolvers = {
-  readonly [Provider in TaskSystemProvider]: (
-    input: Extract<ConnectTaskSystemInput, { provider: Provider }>,
-  ) => DemoAccount;
+const jiraAccount = (input: JiraConnectInput): DemoAccount => {
+  const siteUrl = demoSiteUrl(input.siteUrl);
+  return {
+    siteUrl,
+    account: input.email,
+    accountName: input.email,
+    defaultLabel: new URL(siteUrl).host,
+    tickets: DEMO_NEW_TICKETS,
+  };
 };
 
-const RESOLVERS: DemoAccountResolvers = {
-  jira: (input) => {
-    const siteUrl = demoSiteUrl(input.siteUrl);
-    return {
-      siteUrl,
-      account: input.email,
-      accountName: input.email,
-      defaultLabel: new URL(siteUrl).host,
-      tickets: DEMO_NEW_TICKETS,
-    };
-  },
-  linear: () => ({
-    siteUrl: DEMO_LINEAR_SITE,
-    account: 'linear-jan',
-    accountName: DEMO_ACCOUNT_NAME,
-    defaultLabel: 'Acme',
-    tickets: DEMO_LINEAR_TICKETS,
-  }),
-  github: () => ({
-    siteUrl: DEMO_GITHUB_SITE,
-    account: 'jnovak',
-    accountName: DEMO_ACCOUNT_NAME,
-    defaultLabel: 'jnovak',
-    tickets: DEMO_GITHUB_TICKETS,
-  }),
+const LINEAR_ACCOUNT: DemoAccount = {
+  siteUrl: DEMO_LINEAR_SITE,
+  account: 'linear-jan',
+  accountName: DEMO_ACCOUNT_NAME,
+  defaultLabel: 'Acme',
+  tickets: DEMO_LINEAR_TICKETS,
 };
 
-const resolve = <Provider extends TaskSystemProvider>(
-  provider: Provider,
-  input: Extract<ConnectTaskSystemInput, { provider: Provider }>,
-): DemoAccount => RESOLVERS[provider](input);
+const GITHUB_ACCOUNT: DemoAccount = {
+  siteUrl: DEMO_GITHUB_SITE,
+  account: 'jnovak',
+  accountName: DEMO_ACCOUNT_NAME,
+  defaultLabel: 'jnovak',
+  tickets: DEMO_GITHUB_TICKETS,
+};
 
-export const demoAccountOf = (input: ConnectTaskSystemInput): DemoAccount =>
-  resolve(input.provider, input);
+export const demoAccountOf = (input: ConnectTaskSystemInput): DemoAccount => {
+  switch (input.provider) {
+    case 'jira':
+      return jiraAccount(input);
+    case 'linear':
+      return LINEAR_ACCOUNT;
+    case 'github':
+      return GITHUB_ACCOUNT;
+  }
+};

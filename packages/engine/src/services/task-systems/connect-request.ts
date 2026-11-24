@@ -3,7 +3,6 @@ import type {
   GitHubConnectInput,
   JiraConnectInput,
   LinearConnectInput,
-  TaskSystemProvider,
 } from '@relay/shared/domain';
 import type { TaskSystemAccess, TaskSystemAccount } from '../../model/task-system';
 
@@ -33,30 +32,16 @@ const githubRequest = (input: GitHubConnectInput): ConnectRequest => ({
   label: input.label ?? null,
 });
 
-type ConnectInputOf = {
-  readonly [Provider in TaskSystemProvider]: Extract<
-    ConnectTaskSystemInput,
-    { provider: Provider }
-  >;
+export const connectRequestOf = (input: ConnectTaskSystemInput): ConnectRequest => {
+  switch (input.provider) {
+    case 'jira':
+      return jiraRequest(input);
+    case 'linear':
+      return linearRequest(input);
+    case 'github':
+      return githubRequest(input);
+  }
 };
-
-type ConnectRequestBuilders = {
-  readonly [Provider in TaskSystemProvider]: (input: ConnectInputOf[Provider]) => ConnectRequest;
-};
-
-const BUILDERS: ConnectRequestBuilders = {
-  jira: jiraRequest,
-  linear: linearRequest,
-  github: githubRequest,
-};
-
-const build = <Provider extends TaskSystemProvider>(
-  provider: Provider,
-  input: ConnectInputOf[Provider],
-): ConnectRequest => BUILDERS[provider](input);
-
-export const connectRequestOf = (input: ConnectTaskSystemInput): ConnectRequest =>
-  build(input.provider, input);
 
 export const defaultLabelOf = (account: TaskSystemAccount): string => {
   const label = account.defaultLabel.trim();
