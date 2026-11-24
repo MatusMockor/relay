@@ -35,7 +35,8 @@ export class GitHubApiClient {
     path: string,
     schema: Schema,
   ): Promise<GitHubPage<z.output<Schema>>> {
-    const response = await this.http.request(`${this.origin}${path}`, {
+    const url = `${this.origin}${path}`;
+    const response = await this.http.request(url, {
       method: 'GET',
       headers: {
         authorization: `Bearer ${credentials.token}`,
@@ -44,10 +45,9 @@ export class GitHubApiClient {
       },
     });
     if (!response.ok) {
-      await response.body?.cancel();
-      throw githubApiError(response);
+      throw await githubApiError(response);
     }
     const data = this.http.parse(await this.http.json(response), schema);
-    return { data, next: nextPageOf(response.headers.get('link'), this.origin) };
+    return { data, next: nextPageOf(response.headers.get('link'), url, this.origin) };
   }
 }

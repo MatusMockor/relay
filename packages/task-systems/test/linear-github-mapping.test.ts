@@ -1,3 +1,4 @@
+import { ProviderError } from '@relay/engine';
 import { describe, expect, it } from 'vitest';
 import {
   githubPriorityOf,
@@ -28,6 +29,8 @@ describe('Linear priority and status mapping', () => {
     ['completed', 'done'],
     ['canceled', 'done'],
     ['custom', 'todo'],
+    ['constructor', 'todo'],
+    ['__proto__', 'todo'],
     [null, 'todo'],
   ] as const)('maps state type %s to %s', (type, category) => {
     expect(linearStatusCategoryOf(type)).toBe(category);
@@ -49,6 +52,7 @@ describe('GitHub label mapping', () => {
     [['p4'], 'low'],
     [['bug', 'P2', 'priority: urgent'], 'medium'],
     [['urgent', 'high', 'p5', 'priority: someday'], 'none'],
+    [['priority: constructor', 'priority: __proto__', 'priority: toString'], 'none'],
     [[], 'none'],
   ] as const)('maps labels %j to %s', (labels, priority) => {
     expect(githubPriorityOf(labels)).toBe(priority);
@@ -71,18 +75,38 @@ describe('GitHub label mapping', () => {
 
 describe('GitHub Link header', () => {
   const origin = 'https://api.github.com';
+  const current = 'https://api.github.com/issues?filter=assigned&per_page=100&page=1';
 
   it('returns the path of the next page on the API origin', () => {
     const header =
       '<https://api.github.com/issues?page=1>; rel="prev", <https://api.github.com/issues?page=3&per_page=100>; rel="next"';
-    expect(nextPageOf(header, origin)).toBe('/issues?page=3&per_page=100');
-    expect(nextPageOf('<https://api.github.com/issues?page=9>; rel="last"', origin)).toBeNull();
-    expect(nextPageOf(null, origin)).toBeNull();
+    expect(nextPageOf(header, current, origin)).toBe('/issues?page=3&per_page=100');
+    expect(nextPageOf('<https://api.github.com/issues?page=9>; rel="last"', current, origin)).toBe(
+      null,
+    );
+    expect(nextPageOf(null, current, origin)).toBeNull();
+  });
+
+  it('keeps commas inside the URI and quoted parameters', () => {
+    const header =
+      '<https://api.github.com/issues?labels=bug,p1&page=2>; title="a, b"; rel="next", <https://api.github.com/issues?page=5>; rel="last"';
+    expect(nextPageOf(header, current, origin)).toBe('/issues?labels=bug,p1&page=2');
+    expect(nextPageOf('<https://api.github.com/x?a=1>; rel="prev next"', current, origin)).toBe(
+      '/x?a=1',
+    );
+  });
+
+  it('resolves relative targets against the current request', () => {
+    expect(nextPageOf('<?page=2>; rel="next"', current, origin)).toBe('/issues?page=2');
+    expect(nextPageOf('</issues?page=3>; rel=next', current, origin)).toBe('/issues?page=3');
   });
 
   it('rejects next links outside the API origin', () => {
-    expect(() => nextPageOf('<https://evil.test/issues?page=2>; rel="next"', origin)).toThrow(
-      'GitHub vrátil neplatný odkaz na ďalšiu stranu.',
+    expect(() =>
+      nextPageOf('<https://evil.test/issues?page=2>; rel="next"', current, origin),
+    ).toThrow('GitHub vrátil neplatný odkaz na ďalšiu stranu.');
+    expect(() => nextPageOf('<//evil.test/issues>; rel="next"', current, origin)).toThrow(
+      ProviderError,
     );
   });
 });

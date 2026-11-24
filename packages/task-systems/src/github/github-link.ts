@@ -1,39 +1,25 @@
 import { ProviderError } from '@relay/engine';
+import { parseLinkHeader } from './github-link-header';
 
-const LINK_PART = /^\s*<([^>]+)>(.*)$/;
-const REL_PARAM = /^\s*rel\s*=\s*"?([^"]*)"?\s*$/i;
-
-const isNextRel = (params: string): boolean =>
-  params
-    .split(';')
-    .map((param) => REL_PARAM.exec(param)?.[1] ?? '')
-    .some((rel) => rel.toLowerCase().split(/\s+/).includes('next'));
-
-const nextTarget = (header: string): string | null => {
-  for (const part of header.split(',')) {
-    const match = LINK_PART.exec(part);
-    if (match?.[1] !== undefined && isNextRel(match[2] ?? '')) {
-      return match[1];
-    }
-  }
-  return null;
-};
-
-const sameOrigin = (target: string, origin: string): URL | null => {
+const resolveOnOrigin = (target: string, requestUrl: string, origin: string): URL | null => {
   try {
-    const url = new URL(target, origin);
+    const url = new URL(target, requestUrl);
     return url.origin === origin ? url : null;
   } catch {
     return null;
   }
 };
 
-export const nextPageOf = (header: string | null, origin: string): string | null => {
-  const target = header === null ? null : nextTarget(header);
-  if (target === null) {
+export const nextPageOf = (
+  header: string | null,
+  requestUrl: string,
+  origin: string,
+): string | null => {
+  const next = parseLinkHeader(header ?? '').find((link) => link.rels.includes('next'));
+  if (next === undefined) {
     return null;
   }
-  const url = sameOrigin(target, origin);
+  const url = resolveOnOrigin(next.target, requestUrl, origin);
   if (url === null) {
     throw new ProviderError('GitHub vrátil neplatný odkaz na ďalšiu stranu.');
   }
