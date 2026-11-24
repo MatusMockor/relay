@@ -137,6 +137,26 @@ describe('MailparserMessageParser', () => {
     expect(message.textBody).toBe('Dobrý deň, posielam faktúru. Čau, šťž\n');
     expect(message.snippet).toBe('Dobrý deň, posielam faktúru. Čau, šťž');
   });
+
+  it('replaces raw HTML in the text part of an alternative mail with readable text', async () => {
+    const message = await parseFixture('geis-html-in-text.eml');
+
+    expect(message.snippet).toBe(
+      'Zásielka je na ceste k Vám. Číslo zásielky: 12345678. Doručenie očakávajte zajtra.',
+    );
+    expect(message.htmlBody).toContain('<!DOCTYPE html>');
+    expect(message.textBody).toBe(
+      'Zásielka je na ceste k Vám. Číslo zásielky: 12345678.\n\nDoručenie očakávajte zajtra.',
+    );
+  });
+
+  it('treats a single text part full of HTML as the HTML body', async () => {
+    const message = await parseFixture('html-only-in-text.eml');
+
+    expect(message.textBody).toBeNull();
+    expect(message.htmlBody).toContain('<p>Zásielka bola doručená.</p>');
+    expect(message.snippet).toBe('Zásielka bola doručená. Ďakujeme, že využívate naše služby.');
+  });
 });
 
 describe('buildSnippet', () => {
@@ -148,6 +168,27 @@ describe('buildSnippet', () => {
     expect(snippet.endsWith('slovo…')).toBe(true);
     expect(buildSnippet('Ahoj\n> citácia\nkoniec', null)).toBe('Ahoj koniec');
     expect(buildSnippet('', '<p>Len <b>HTML</b></p>')).toBe('Len HTML');
+  });
+});
+
+describe('buildSnippet with HTML in the text part', () => {
+  const markup =
+    '<!DOCTYPE html>\n<html lang="sk" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head><style>body { color: #333; }</style></head>\n<body><p>Zásielka je na ceste k Vám.</p></body></html>';
+
+  it('prefers the HTML part over markup in the text part', () => {
+    expect(buildSnippet(markup, '<p>Zásielka je na ceste k Vám (HTML).</p>')).toBe(
+      'Zásielka je na ceste k Vám (HTML).',
+    );
+  });
+
+  it('converts the markup when there is no HTML part', () => {
+    expect(buildSnippet(markup, null)).toBe('Zásielka je na ceste k Vám.');
+  });
+
+  it('keeps plain text that only mentions tags', () => {
+    expect(buildSnippet('Jan <jan@x.sk> poslal <b> tag a < b', null)).toBe(
+      'Jan <jan@x.sk> poslal <b> tag a < b',
+    );
   });
 });
 

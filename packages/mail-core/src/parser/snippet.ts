@@ -1,4 +1,5 @@
 import { convert } from 'html-to-text';
+import { looksLikeHtml } from './looks-like-html';
 
 export const SNIPPET_LENGTH = 160;
 
@@ -44,9 +45,23 @@ export const truncate = (text: string, length: number): string => {
   return `${base.trimEnd()}…`;
 };
 
+const isFilled = (value: string | null): value is string => value !== null && value.trim() !== '';
+
+const snippetSource = (text: string | null, html: string | null): string => {
+  if (isFilled(text) && !looksLikeHtml(text)) {
+    return text;
+  }
+  if (isFilled(html)) {
+    return htmlToText(html);
+  }
+  if (isFilled(text)) {
+    return htmlToText(text);
+  }
+  return '';
+};
+
 export const buildSnippet = (text: string | null, html: string | null): string => {
-  const hasText = text !== null && text.trim() !== '';
-  const source = hasText ? text : html === null ? '' : htmlToText(html);
+  const source = snippetSource(text, html);
   const clean = withoutQuotes(source).join(' ').replace(/\s+/g, ' ').trim();
   return truncate(clean, SNIPPET_LENGTH);
 };

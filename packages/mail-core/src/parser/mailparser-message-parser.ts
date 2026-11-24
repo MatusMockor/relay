@@ -1,6 +1,7 @@
 import type { Clock, MessageParser, ParsedAttachment, ParsedMessage } from '@relay/engine';
 import { simpleParser, type Attachment } from 'mailparser';
 import { firstAddress, toAddresses } from './addresses';
+import { normalizeBodyParts } from './body-parts';
 import { calendarPartsOf, isCalendarBodyPart } from './calendar-parts';
 import { toMessageHeaders } from './header-lines';
 import { extractMessageIds, firstMessageId } from './message-ids';
@@ -40,8 +41,10 @@ export class MailparserMessageParser implements MessageParser {
       skipTextToHtml: true,
       skipImageLinks: true,
     });
-    const textBody = nonEmpty(parsed.text);
-    const htmlBody = parsed.html === false ? null : parsed.html;
+    const { textBody, htmlBody } = normalizeBodyParts({
+      textBody: nonEmpty(parsed.text),
+      htmlBody: parsed.html === false ? null : parsed.html,
+    });
     return {
       messageIdHeader: firstMessageId(parsed.messageId),
       inReplyTo: firstMessageId(parsed.inReplyTo),

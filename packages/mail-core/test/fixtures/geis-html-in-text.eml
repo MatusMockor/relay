@@ -1,0 +1,51 @@
+From: GEIS SK <robot@geis.sk>
+To: matus@relay.test
+Subject: =?utf-8?Q?Z=C3=A1sielka_je_na_ceste?=
+Date: Mon, 23 Nov 2026 08:15:00 +0100
+Message-ID: <geis-20261123-0815@geis.sk>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="geis-alt"
+
+--geis-alt
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+<!DOCTYPE html>
+<html lang="sk" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; }
+  .content { color: #333333; }
+</style>
+</head>
+<body>
+<table class="content"><tr><td>
+<p>Zásielka je na ceste k Vám. Číslo zásielky: 12345678.</p>
+<p>Doručenie očakávajte zajtra.</p>
+</td></tr></table>
+</body>
+</html>
+
+--geis-alt
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+<!DOCTYPE html>
+<html lang="sk" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; }
+  .content { color: #333333; }
+</style>
+</head>
+<body>
+<table class="content"><tr><td>
+<p>Zásielka je na ceste k Vám. Číslo zásielky: 12345678.</p>
+<p>Doručenie očakávajte zajtra.</p>
+</td></tr></table>
+</body>
+</html>
+
+--geis-alt--

@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import pg from 'pg';
+import { backfillHtmlSnippets } from './backfill-html-snippets';
 import { backfillNormalizedSubjects } from './backfill-normalized-subjects';
 import { repairLabelNameKeys } from './repair-label-name-keys';
 
@@ -26,6 +27,7 @@ export const runMigrations = async (options: MigrationOptions): Promise<void> =>
     });
     await backfillNormalizedSubjects(client);
     await repairLabelNameKeys(client);
+    await backfillHtmlSnippets(client);
   } finally {
     await client
       .query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY])
