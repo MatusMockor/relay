@@ -1,8 +1,9 @@
 import type { MailboxId } from '@relay/shared/domain';
 import type { RawMessage } from '../../model/remote-mail';
+import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import { chunked } from '../shared/chunked';
-import { conversationOrder, orderEntries } from './conversation-order';
+import { conversationGroups, conversationOrder, orderEntries } from './conversation-order';
 import { firstBatch } from './first-batch';
 import { isHeldRole } from './held-roles';
 import type { InboxAncestors } from './inbox-ancestors';
@@ -51,24 +52,46 @@ export class InitialBacklog {
   constructor(private readonly deps: InitialBacklogDeps) {}
 
   async head(run: BacklogRun, windows: readonly MailboxWindow[]): Promise<ReadonlySet<string>> {
-    const { firstBatchSize, batchSize } = this.deps.options;
-    const size = Math.min(firstBatchSize, batchSize);
-    const wanted = conversationOrder(windows).filter((entry) => entry.wanted);
-    const head = firstBatch(wanted, size);
+    const { firstBatchSize, firstPageConversations, batchSize } = this.deps.options;
+    const wanted = conversationGroups(windows).map((group) =>
+      group.filter((entry) => entry.wanted),
+    );
+    const head = firstBatch(wanted, {
+      messages: Math.min(firstBatchSize, batchSize),
+      conversations: Number.POSITIVE_INFINITY,
+    });
+    const page = firstBatch(wanted, { messages: batchSize, conversations: firstPageConversations });
     const frozen = windows[0]?.frozen;
     if (head.length === 0 || frozen === undefined) {
       return new Set();
     }
+    const parts = [head, page.slice(head.length)].filter((part) => part.length > 0);
+    const total = parts.reduce((sum, part) => sum + part.length, 0);
     const { steps } = this.deps;
-    await steps.stage(run.context, 'inbox', 0, head.length);
+    await steps.stage(run.context, 'inbox', 0, total);
+    const done: WindowEntry[] = [];
+    for (const part of parts) {
+      if (!(await this.part(run, part, frozen))) {
+        return new Set(done.map(keyOf));
+      }
+      done.push(...part);
+      const fetched = done.filter((entry) => !run.failed.has(entry.pass.mailbox.id));
+      await steps.stage(run.context, 'inbox', fetched.length, total);
+    }
+    return new Set(done.map(keyOf));
+  }
+
+  private async part(
+    run: BacklogRun,
+    head: readonly WindowEntry[],
+    frozen: InitialSyncWindow,
+  ): Promise<boolean> {
     const ancestors = await this.deps.ancestors.find(run.context, head, run.passes, frozen);
     if (ancestors === null) {
-      return new Set();
+      return false;
     }
     await this.chunk(run, head, ancestors);
-    const fetched = head.filter((entry) => !run.failed.has(entry.pass.mailbox.id));
-    await steps.stage(run.context, 'inbox', fetched.length, head.length);
-    return new Set(head.map(keyOf));
+    return true;
   }
 
   async rest(

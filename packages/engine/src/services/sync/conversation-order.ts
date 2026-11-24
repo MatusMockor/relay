@@ -70,10 +70,10 @@ type Lead = (entry: WindowEntry) => boolean;
 
 const NO_LEAD: Lead = () => false;
 
-export const orderEntries = (
+const orderConversations = (
   groups: readonly (readonly WindowEntry[])[],
-  leads: Lead = NO_LEAD,
-): WindowEntry[] => {
+  leads: Lead,
+): WindowEntry[][] => {
   const items = groups.flatMap((entries, mailbox) => entries.map((entry) => ({ entry, mailbox })));
   const conversations = groupsOf(items).map((group) =>
     group.flatMap((index) => {
@@ -83,8 +83,19 @@ export const orderEntries = (
   );
   const leading = conversations.filter((conversation) => conversation.some(leads));
   const trailing = conversations.filter((conversation) => !conversation.some(leads));
-  return [...leading, ...trailing].flat();
+  return [...leading, ...trailing];
 };
+
+export const orderEntries = (
+  groups: readonly (readonly WindowEntry[])[],
+  leads: Lead = NO_LEAD,
+): WindowEntry[] => orderConversations(groups, leads).flat();
+
+export const conversationGroups = (windows: readonly MailboxWindow[]): WindowEntry[][] =>
+  orderConversations(
+    windows.map((window) => window.entries),
+    NO_LEAD,
+  );
 
 export const conversationOrder = (
   windows: readonly MailboxWindow[],

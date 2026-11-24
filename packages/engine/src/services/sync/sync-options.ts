@@ -23,6 +23,7 @@ export interface SyncOptions {
   readonly history: HistoryOptions;
   readonly reconcile: ReconcileOptions;
   readonly firstBatchSize: number;
+  readonly firstPageConversations: number;
 }
 
 export const DEFAULT_HISTORY_OPTIONS: HistoryOptions = {
@@ -48,4 +49,5 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   history: DEFAULT_HISTORY_OPTIONS,
   reconcile: DEFAULT_RECONCILE_OPTIONS,
   firstBatchSize: 15,
+  firstPageConversations: 25,
 };

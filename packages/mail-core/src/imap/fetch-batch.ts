@@ -3,6 +3,7 @@ import type { FetchMessageObject, FetchQueryObject, MailboxObject } from 'imapfl
 import type { ImapConnection } from './imap-connection';
 import { labelReadingOf } from './gmail-labels';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
+import { uidSet } from './uid-batches';
 
 export const READ = { operation: 'fetch', retryOnDisconnect: true } as const;
 
@@ -26,7 +27,7 @@ export const fetchObjects = (
 ): Promise<FetchMessageObject[]> =>
   connection.withMailbox(path, READ, async (client, mailbox) => {
     requireSameUidValidity(path, uidValidity, mailbox);
-    return client.fetchAll(uids, query, { uid: true });
+    return client.fetchAll(uidSet(uids), query, { uid: true });
   });
 
 export const fetchBatch = (
@@ -37,7 +38,7 @@ export const fetchBatch = (
 ): Promise<RawMessage[]> =>
   connection.withMailbox(path, READ, async (client, mailbox) => {
     requireSameUidValidity(path, uidValidity, mailbox);
-    const fetched = await client.fetchAll(uids, FULL_MESSAGE_QUERY, { uid: true });
+    const fetched = await client.fetchAll(uidSet(uids), FULL_MESSAGE_QUERY, { uid: true });
     const reading = labelReadingOf(client);
     return fetched
       .map((message) => toRawMessage(path, message, reading))

@@ -37,7 +37,9 @@ const states = (engine: TestEngine) =>
 
 describe('SyncService initial sync inbox first', () => {
   it('flushes the newest inbox mail before reading the other mailboxes', async () => {
-    const engine = createTestEngine({ sync: { batchSize: 3, firstBatchSize: 2 } });
+    const engine = createTestEngine({
+      sync: { batchSize: 3, firstBatchSize: 2, firstPageConversations: 0 },
+    });
     const { account, server } = await seedAccount(engine);
     [1, 2, 3, 4, 5].forEach((date) => {
       deliverMail(server, 'INBOX', { id: `i${String(date)}`, date: day(date) });
@@ -68,6 +70,34 @@ describe('SyncService initial sync inbox first', () => {
     ]);
     expect(engine.db.tables.threads.size).toBe(9);
     expect(states(engine)).toEqual([null, null, null, null]);
+  });
+
+  it('fills the first inbox page in a second flush before reading the other mailboxes', async () => {
+    const engine = createTestEngine({
+      sync: { batchSize: 5, firstBatchSize: 2, firstPageConversations: 4 },
+    });
+    const { account, server } = await seedAccount(engine);
+    [1, 2, 3, 4, 5, 6].forEach((date) => {
+      deliverMail(server, 'INBOX', { id: `i${String(date)}`, date: day(date) });
+    });
+    deliverMail(server, 'Archive', { id: 'a7', date: day(7) });
+    const seen: string[][] = [];
+    const record = (path: string): void => {
+      seen.push([path, ...upsertedSubjects(engine).sort()]);
+      server.beforeNextFetch = record;
+    };
+    server.beforeNextFetch = record;
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(seen.slice(0, 4)).toEqual([
+      ['INBOX'],
+      ['INBOX'],
+      ['INBOX', 'Subject i5', 'Subject i6'],
+      ['Sent', 'Subject i3', 'Subject i4', 'Subject i5', 'Subject i6'],
+    ]);
+    expect(streamed(server).slice(0, 4)).toEqual(['INBOX:6', 'INBOX:5', 'INBOX:4', 'INBOX:3']);
+    expect(engine.db.tables.threads.size).toBe(7);
   });
 
   it('pulls the sent original of a new inbox reply into the first batch', async () => {
@@ -154,7 +184,9 @@ describe('SyncService initial sync inbox first', () => {
   });
 
   it('keeps an inbox thread in the inbox when its archive copy arrives later', async () => {
-    const engine = createTestEngine({ sync: { batchSize: 2, firstBatchSize: 1 } });
+    const engine = createTestEngine({
+      sync: { batchSize: 2, firstBatchSize: 1, firstPageConversations: 0 },
+    });
     const { account, server } = await seedAccount(engine);
     deliverMail(server, 'INBOX', { id: 'm1', date: day(10) });
     deliverMail(server, 'INBOX', { id: 'm2', date: day(11) });
@@ -171,7 +203,9 @@ describe('SyncService initial sync inbox first', () => {
   });
 
   it('resumes an initial sync interrupted after the first batch', async () => {
-    const engine = createTestEngine({ sync: { batchSize: 2, firstBatchSize: 1 } });
+    const engine = createTestEngine({
+      sync: { batchSize: 2, firstBatchSize: 1, firstPageConversations: 0 },
+    });
     const { account, server } = await seedAccount(engine);
     [1, 2, 3].forEach((date) => {
       deliverMail(server, 'INBOX', { id: `i${String(date)}`, date: day(date) });

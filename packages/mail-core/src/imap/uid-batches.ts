@@ -28,3 +28,18 @@ export const searchUids = async (
   minUid = 1,
 ): Promise<number[]> =>
   sortedUids(requireAccepted('search', await client.search(query, { uid: true })), minUid);
+
+export const uidSet = (uids: readonly number[]): string => {
+  const ranges: [number, number][] = [];
+  for (const uid of sortedUids(uids)) {
+    const last = ranges.at(-1);
+    if (last !== undefined && uid === last[1] + 1) {
+      last[1] = uid;
+      continue;
+    }
+    ranges.push([uid, uid]);
+  }
+  return ranges
+    .map(([from, to]) => (from === to ? String(from) : `${String(from)}:${String(to)}`))
+    .join(',');
+};
