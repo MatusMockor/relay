@@ -38,11 +38,11 @@ export class DeferredStatusProbe {
       if (status === undefined) {
         continue;
       }
-      await this.deps.mailboxes.saveUidValidity(mailbox.id, status.uidValidity);
       await this.deps.mailboxes.updateCounts(mailbox.id, {
         unreadCount: status.unseen,
         totalCount: status.messages,
       });
+      await this.deps.mailboxes.saveUidValidity(mailbox.id, status.uidValidity);
       changed = changed || countsDiffer(mailbox, status);
     }
     if (changed) {

@@ -50,9 +50,11 @@ export const searchScope = async (
   if (queries.length === 1) {
     return searchUids(client, only);
   }
-  let found: number[] = [];
+  const found: number[] = [];
   for (const query of queries) {
-    found = found.concat(await searchUids(client, query));
+    for (const uid of await searchUids(client, query)) {
+      found.push(uid);
+    }
   }
   return sortedUids(found);
 };
