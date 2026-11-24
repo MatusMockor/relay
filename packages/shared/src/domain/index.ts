@@ -27,6 +27,7 @@ export * from './label';
 export * from './label-name-keys';
 export * from './mailbox';
 export * from './message';
+export * from './message-placements';
 export * from './message-body';
 export * from './offline-window';
 export * from './primitives';

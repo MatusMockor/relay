@@ -1,10 +1,30 @@
-import type { MailAccount, Mailbox, Message, ThreadId } from '@relay/shared/domain';
+import {
+  type MailAccount,
+  type Mailbox,
+  type Message,
+  placementIn,
+  type ThreadId,
+} from '@relay/shared/domain';
+import type { MoveOriginWork } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { MovedCopyMerger } from '../actions/moved-copy-merger';
 import { recordMoveOrigins } from '../shared/move-origins';
 import { PENDING_UID } from '../shared/pending-uid';
+import { legacyMoveRef, providerOpRef } from '../shared/provider-ops';
+
+const TRASH_MOVE = { kind: 'move', role: 'trash' } as const;
+
+const originOf = (message: Message, folder: Mailbox): MoveOriginWork => {
+  const source = placementIn(message, folder.id);
+  return {
+    messageId: message.id,
+    role: 'custom',
+    mailboxId: folder.id,
+    ...(source === undefined ? {} : { uid: source.uid }),
+  };
+};
 
 export const cachedMessages = async (
   messages: MessageRepository,
@@ -39,27 +59,38 @@ export class TrashedCopies {
   ): Promise<ThreadId[]> {
     const { messages, pendingWork } = this.deps;
     const now = this.deps.clock.now().toISOString();
-    const origins = moved.messages.map((message) => ({
-      messageId: message.id,
-      role: 'custom' as const,
-      mailboxId: folder.id,
-    }));
+    const origins = moved.messages.map((message) => originOf(message, folder));
     await recordMoveOrigins(pendingWork, account.id, 'trash-origin', origins, now);
     for (const message of moved.messages) {
-      const pendingMove = await pendingWork.find({
-        accountId: account.id,
-        kind: 'provider-op',
-        ref: `${message.id}:move`,
-      });
-      await pendingWork.remove(pendingMove === null ? [] : [pendingMove]);
-      const uid = moved.uidMap.get(message.uid) ?? PENDING_UID;
+      await this.dropPendingMoves(account, folder, message);
+      const source = placementIn(message, folder.id);
+      if (source === undefined) {
+        continue;
+      }
+      const uid = moved.uidMap.get(source.uid) ?? PENDING_UID;
       const twin = await this.deps.merger.twinOf(account, message, trash, uid);
       if (twin !== null) {
-        await this.deps.merger.merge(account, message, twin);
+        await this.deps.merger.merge(account, message, source, twin);
         continue;
       }
       await messages.move(message.id, { mailboxId: trash.id, uid });
     }
     return [...new Set(moved.messages.map((message) => message.threadId))];
+  }
+
+  private async dropPendingMoves(
+    account: MailAccount,
+    folder: Mailbox,
+    message: Message,
+  ): Promise<void> {
+    const refs = [legacyMoveRef(message.id), providerOpRef(message.id, TRASH_MOVE, folder.id)];
+    for (const ref of refs) {
+      const pendingMove = await this.deps.pendingWork.find({
+        accountId: account.id,
+        kind: 'provider-op',
+        ref,
+      });
+      await this.deps.pendingWork.remove(pendingMove === null ? [] : [pendingMove]);
+    }
   }
 }

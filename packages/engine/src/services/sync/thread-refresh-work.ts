@@ -2,7 +2,7 @@ import type { ThreadId } from '@relay/shared/domain';
 import type { ThreadRefreshWork } from '../../model/pending-work';
 import type { MailCopies } from '../shared/mail-copies';
 import type { ThreadRefreshHint } from '../shared/thread-refresh';
-import { type MessageRoleOf, syncedThreadState } from './synced-thread-state';
+import { type PlacementRolesOf, syncedThreadState } from './synced-thread-state';
 
 const quietFlag = (quiet: boolean): Pick<ThreadRefreshWork, 'quiet'> =>
   quiet ? { quiet: true } : {};
@@ -34,11 +34,12 @@ export const mergeThreadWork = (
 
 export const threadWorkHint = (
   work: ThreadRefreshWork,
-  roleOf: MessageRoleOf,
+  rolesOf: PlacementRolesOf,
   copies: MailCopies,
 ): ThreadRefreshHint => ({
   addSplitIds: [...work.addSplitIds],
   ...(work.jiraKey === null ? {} : { jiraKey: work.jiraKey }),
   ...(work.jiraActor === null ? {} : { jiraActor: work.jiraActor }),
-  resolveState: (existing, messages) => syncedThreadState(work, existing, messages, roleOf, copies),
+  resolveState: (existing, messages) =>
+    syncedThreadState(work, existing, messages, rolesOf, copies),
 });

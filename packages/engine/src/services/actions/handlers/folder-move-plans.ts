@@ -1,12 +1,14 @@
 import type { LabelId, MailboxRole, Message, ThreadState } from '@relay/shared/domain';
 import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
+import { uniqueMessageIds } from './located-ids';
 import { receivedIn } from './physical-messages';
 import {
   type LabelChange,
   type LocatedMessage,
   type MoveTarget,
   plan,
+  sourceUidOf,
   type StateMovePlan,
   type StateMovePlanner,
 } from './state-move-plan';
@@ -32,6 +34,7 @@ export const placementOf = (located: LocatedMessage, labelId?: LabelId): MoveOri
       messageId: message.id,
       role,
       ...(mailboxId === undefined ? {} : { mailboxId }),
+      ...sourceUidOf(located),
       ...(labelId === undefined ? {} : { labelId }),
       ...(held.length === 0 ? {} : { held }),
     },
@@ -71,17 +74,21 @@ export const movedPlan = (
   messages: readonly LocatedMessage[],
   moved: MovedThread,
 ): StateMovePlan => {
-  const movedIds = moved.sources.map(({ message }) => message.id);
+  const movedIds = uniqueMessageIds(moved.sources);
   return {
     ...plan(
       moved.state,
-      moved.sources.map(({ message }) => ({ messageId: message.id, ...moved.target })),
+      moved.sources.map(({ message, placement }) => ({
+        messageId: message.id,
+        source: placement,
+        ...moved.target,
+      })),
     ),
     origins: [
       {
         kind: 'move-origin',
         remember: moved.remember,
-        forget: messages.map(({ message }) => message.id),
+        forget: uniqueMessageIds(messages),
       },
       { kind: 'trash-origin', remember: [], forget: movedIds },
       { kind: 'spam-origin', remember: [], forget: movedIds },

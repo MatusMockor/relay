@@ -1,4 +1,4 @@
-import type { AccountId, Mailbox } from '@relay/shared';
+import { type AccountId, isPlacedIn, type Mailbox } from '@relay/shared';
 import type { DemoState } from './demo-state';
 
 const countsOf = (
@@ -7,7 +7,7 @@ const countsOf = (
 ): Pick<Mailbox, 'unreadCount' | 'totalCount'> => {
   const messages = [...state.threads.values()]
     .flatMap((record) => record.messages)
-    .filter((message) => message.mailboxId === mailbox.id);
+    .filter((message) => isPlacedIn(message, mailbox.id));
   return {
     unreadCount: messages.filter((message) => !message.flags.seen).length,
     totalCount: messages.length,

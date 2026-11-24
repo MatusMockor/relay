@@ -127,7 +127,11 @@ export class StateMoveHandler {
       const moveOps = await recordProviderOps(
         repositories.pendingWork,
         accountId,
-        plan.moves.map((move) => ({ messageId: move.messageId, change: moveChange(move) })),
+        plan.moves.map((move) => ({
+          messageId: move.messageId,
+          change: moveChange(move),
+          source: move.source,
+        })),
         now,
       );
       const origins = await applyOrigins(

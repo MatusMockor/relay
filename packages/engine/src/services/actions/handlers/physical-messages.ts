@@ -1,6 +1,11 @@
-import type { MailboxRole, Message } from '@relay/shared/domain';
+import {
+  isPendingPlacement,
+  type MailboxRole,
+  type Message,
+  type MessageId,
+} from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
-import { PENDING_UID } from '../../shared/pending-uid';
+import { placementKey } from '../../shared/placement-key';
 import { inRoles, type LocatedMessage, type PlannedMove } from './state-move-plan';
 
 type Role = MailboxRole | undefined;
@@ -12,7 +17,7 @@ const rankOf = (role: Role): number => {
   return index === -1 ? RANK.length : index;
 };
 
-const pending = (located: LocatedMessage): boolean => located.message.uid === PENDING_UID;
+const pending = (located: LocatedMessage): boolean => isPendingPlacement(located.placement);
 
 const preferred = (candidate: LocatedMessage, current: LocatedMessage): boolean => {
   if (candidate.moving !== current.moving) {
@@ -56,20 +61,39 @@ export const receivedIn = (
   const filed = copies.filedSentCopies(messages);
   return copiesIn(
     copies,
-    messages.filter(({ message }) => !filed.has(message.id)),
+    messages.filter(
+      ({ message, placement }) => !filed.has(placementKey(message.id, placement.mailboxId)),
+    ),
     roles,
   );
 };
 
-interface Placement {
+interface PlacedRow {
+  readonly message: Message;
   readonly moved: boolean;
-  readonly role: Role;
+  readonly roles: readonly Role[];
 }
 
-const better = (candidate: Placement, current: Placement): boolean =>
-  candidate.moved !== current.moved
-    ? candidate.moved
-    : rankOf(candidate.role) < rankOf(current.role);
+const bestRank = (row: PlacedRow): number => Math.min(...row.roles.map(rankOf));
+
+const better = (candidate: PlacedRow, current: PlacedRow): boolean =>
+  candidate.moved !== current.moved ? candidate.moved : bestRank(candidate) < bestRank(current);
+
+const rowsOf = (
+  placed: readonly { readonly message: Message; readonly moved: boolean }[],
+  roles: readonly Role[],
+): PlacedRow[] => {
+  const rows = new Map<MessageId, PlacedRow>();
+  placed.forEach(({ message, moved }, index) => {
+    const row = rows.get(message.id) ?? { message, moved: false, roles: [] };
+    rows.set(message.id, {
+      message,
+      moved: row.moved || moved,
+      roles: [...row.roles, roles[index]],
+    });
+  });
+  return [...rows.values()];
+};
 
 export const rolesAfter = (
   copies: MailCopies,
@@ -77,20 +101,20 @@ export const rolesAfter = (
   moves: readonly PlannedMove[],
   keyOf: (message: Message) => string = (message) => copies.identityOf(message),
 ): Role[] => {
-  const targets = new Map(moves.map((move) => [move.messageId, move.role]));
-  const placed = messages.map(({ message, role }) => ({
-    message,
-    role: targets.get(message.id) ?? role,
-  }));
-  const roles = copies.filedRoles(placed);
-  const byMessage = new Map<string, Placement>();
-  placed.forEach(({ message }, index) => {
-    const placement = { moved: targets.has(message.id), role: roles[index] };
-    const key = keyOf(message);
-    const current = byMessage.get(key);
-    if (current === undefined || better(placement, current)) {
-      byMessage.set(key, placement);
-    }
+  const targets = new Map(
+    moves.map((move) => [placementKey(move.messageId, move.source.mailboxId), move.role]),
+  );
+  const placed = messages.map(({ message, placement, role }) => {
+    const target = targets.get(placementKey(message.id, placement.mailboxId));
+    return { message, placement, role: target ?? role, moved: target !== undefined };
   });
-  return [...byMessage.values()].map((placement) => placement.role);
+  const byKey = new Map<string, PlacedRow>();
+  for (const row of rowsOf(placed, copies.filedRoles(placed))) {
+    const key = keyOf(row.message);
+    const current = byKey.get(key);
+    if (current === undefined || better(row, current)) {
+      byKey.set(key, row);
+    }
+  }
+  return [...byKey.values()].flatMap((row) => row.roles);
 };

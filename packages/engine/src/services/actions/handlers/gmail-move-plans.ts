@@ -1,7 +1,8 @@
-import type { LabelId, MessageId } from '@relay/shared/domain';
+import { isPendingPlacement, type LabelId, type MessageId } from '@relay/shared/domain';
+import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
-import { PENDING_UID } from '../../shared/pending-uid';
 import { folderSources, movedPlan, physicalKeyOf, placementOf } from './folder-move-plans';
+import { firstPerMessage, uniqueMessageIds } from './located-ids';
 import {
   type LabelChange,
   type LocatedMessage,
@@ -13,7 +14,7 @@ import {
 const ALL_MAIL: MoveTarget = { role: 'archive' };
 
 const carrierRank = (located: LocatedMessage): number => {
-  if (located.message.uid === PENDING_UID) {
+  if (isPendingPlacement(located.placement)) {
     return 2;
   }
   return located.role === 'archive' ? 0 : 1;
@@ -47,7 +48,7 @@ export const labelChange = (
     {
       labelId,
       value,
-      messageIds: messages.map(({ message }) => message.id),
+      messageIds: uniqueMessageIds(messages),
       providerMessageIds: labelCarriers(copies, messages),
     },
   ];
@@ -77,10 +78,28 @@ const addedLabel = (
     {
       labelId,
       value: true,
-      messageIds: unlabelled.map(({ message }) => message.id),
+      messageIds: uniqueMessageIds(unlabelled),
       providerMessageIds: labelCarriers(copies, owned),
     },
   ];
+};
+
+const recordedOrigins = (
+  messages: readonly LocatedMessage[],
+  sources: readonly LocatedMessage[],
+  added: ReadonlySet<MessageId>,
+  labelId: LabelId,
+): MoveOriginWork[] => {
+  const moved = new Map(sources.map((source) => [source.message.id, source]));
+  return firstPerMessage(
+    messages.filter(({ message }) => moved.has(message.id) || added.has(message.id)),
+  ).flatMap((located) => {
+    const source = moved.get(located.message.id);
+    return placementOf(
+      source ?? { ...located, heldOrigins: [] },
+      added.has(located.message.id) ? labelId : undefined,
+    );
+  });
 };
 
 export const gmailMove =
@@ -94,20 +113,11 @@ export const gmailMove =
     const labelled = labelledKeys(copies, labelId, messages);
     const owned = unlabelled.filter(({ message }) => !labelled.has(physicalKeyOf(copies, message)));
     const added = new Set(owned.map(({ message }) => message.id));
-    const moved = new Set(sources.map(({ message }) => message.id));
-    const recorded = messages.filter(
-      ({ message }) => moved.has(message.id) || added.has(message.id),
-    );
     return movedPlan(messages, {
       state: 'done',
       target: ALL_MAIL,
       sources,
-      remember: recorded.flatMap((located) =>
-        placementOf(
-          moved.has(located.message.id) ? located : { ...located, heldOrigins: [] },
-          added.has(located.message.id) ? labelId : undefined,
-        ),
-      ),
+      remember: recordedOrigins(messages, sources, added, labelId),
       labels: addedLabel(copies, labelId, unlabelled, owned),
     });
   };

@@ -6,7 +6,7 @@ import type { UnitOfWork } from '../../ports/unit-of-work';
 import type { EngineEvents } from '../shared/engine-events';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { MailCopies } from '../shared/mail-copies';
-import { pendingMoveRoles } from '../shared/provider-ops';
+import { PendingMoves } from '../shared/pending-moves';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import {
   publishThreadOutcomes,
@@ -15,7 +15,7 @@ import {
 } from '../shared/thread-refresh';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncContext } from './sync-context';
-import { messageRoleOf } from './synced-thread-state';
+import { placementRolesOf } from './synced-thread-state';
 import { isQuietWork, threadWorkHint } from './thread-refresh-work';
 
 export interface ChangeFlusherDeps {
@@ -65,12 +65,12 @@ export class ChangeFlusher {
       return [];
     }
     const refreshed = await this.deps.unitOfWork.run(async (repositories) => {
-      const pendingMoves = await pendingMoveRoles(repositories.pendingWork, account.id);
-      const roleOf = messageRoleOf(context.mailboxRoles, pendingMoves);
+      const pendingMoves = await PendingMoves.load(repositories.pendingWork, account.id);
+      const rolesOf = placementRolesOf(context.mailboxRoles, pendingMoves);
       const copies = MailCopies.of(account);
       const results: RefreshedThread[] = [];
       for (const item of work) {
-        const hint = threadWorkHint(item.payload, roleOf, copies);
+        const hint = threadWorkHint(item.payload, rolesOf, copies);
         const outcome = await refreshThread(
           repositories,
           userId,

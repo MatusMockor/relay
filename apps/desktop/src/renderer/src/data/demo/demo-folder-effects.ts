@@ -1,5 +1,5 @@
-import type { Mailbox, ThreadSummary } from '@relay/shared';
-import { placedIn } from './demo-message-location';
+import { isPlacedIn, type Mailbox, type ThreadSummary } from '@relay/shared';
+import { demoRoleOf, withPlacementMoved } from './demo-message-location';
 import type { DemoState } from './demo-state';
 
 export const relabelDemoTree = (state: DemoState, from: string, to: string, root: Mailbox) => {
@@ -20,15 +20,18 @@ export const trashDemoFolder = (state: DemoState, folder: Mailbox): ThreadSummar
   if (trash === undefined) {
     return [];
   }
+  const roleOf = demoRoleOf(state);
   const changed: ThreadSummary[] = [];
   state.threads.forEach((record) => {
-    if (!record.messages.some((message) => message.mailboxId === folder.id)) {
+    if (!record.messages.some((message) => isPlacedIn(message, folder.id))) {
       return;
     }
     record.messages = record.messages.map((message) =>
-      message.mailboxId === folder.id ? placedIn(message, trash.id) : message,
+      withPlacementMoved(message, folder.id, trash.id, roleOf),
     );
-    const held = record.messages.every((message) => message.mailboxId === trash.id);
+    const held = record.messages.every((message) =>
+      message.placements.every((placement) => placement.mailboxId === trash.id),
+    );
     record.summary = held ? { ...record.summary, state: 'trash' } : record.summary;
     changed.push(record.summary);
   });

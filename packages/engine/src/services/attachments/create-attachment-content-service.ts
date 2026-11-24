@@ -1,5 +1,6 @@
 import type { EngineDeps } from '../../engine-deps';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
+import { PlacementLocations } from '../shared/placement-locations';
 import { AttachmentContentService } from './attachment-content-service';
 import { ReceivedAttachmentReader } from './received-attachment-reader';
 
@@ -16,8 +17,10 @@ export const createAttachmentContentService = (
           lookup,
           extractor,
           accounts: deps.repositories.accounts,
-          mailboxes: deps.repositories.mailboxes,
+          locations: new PlacementLocations(deps.repositories.mailboxes),
+          syncStates: deps.repositories.syncStates,
           sessions,
+          parser: deps.messageParser,
         });
   return new AttachmentContentService(deps.attachmentStore, received);
 };

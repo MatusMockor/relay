@@ -1,5 +1,6 @@
 import type { EngineDeps } from '../../engine-deps';
 import type { LingeringSessions } from '../shared/lingering-sessions';
+import { PlacementLocations } from '../shared/placement-locations';
 import { type BodyOptions, DEFAULT_BODY_OPTIONS } from './body-options';
 import { MessageBodyService } from './message-body-service';
 import { MessageCopyFinder } from './message-copies';
@@ -23,7 +24,7 @@ export const createMessageBodyService = (
     copies: new MessageCopyFinder(repositories.messages),
     fetcher: new RemoteBodyFetcher({
       sessions,
-      mailboxes: repositories.mailboxes,
+      locations: new PlacementLocations(repositories.mailboxes),
       syncStates: repositories.syncStates,
       parser: deps.messageParser,
       logger: deps.logger.child({ component: 'remote-bodies' }),

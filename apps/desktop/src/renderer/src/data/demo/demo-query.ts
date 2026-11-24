@@ -2,6 +2,7 @@ import {
   activeTaskOf,
   compareTaskThreads,
   isHeldThreadState,
+  isPlacedIn,
   type SplitId,
   type ThreadId,
   type ThreadPage,
@@ -60,9 +61,11 @@ const inView = (state: DemoState, record: DemoThreadRecord, params: ThreadListPa
     return false;
   }
   if (params.view === 'mailbox') {
+    const { mailboxId } = params;
     return (
       !isHeldThreadState(thread.state) &&
-      record.messages.some((message) => message.mailboxId === params.mailboxId)
+      mailboxId !== undefined &&
+      record.messages.some((message) => isPlacedIn(message, mailboxId))
     );
   }
   if (params.view === 'label') {

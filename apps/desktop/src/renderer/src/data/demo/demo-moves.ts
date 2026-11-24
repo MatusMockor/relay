@@ -11,7 +11,7 @@ import type {
 } from '@relay/shared';
 import { MailClientError } from '../errors';
 import { projectThreadAction } from '../thread-projection';
-import { placedIn } from './demo-message-location';
+import { demoRoleOf, withPlacementsOf, withSinglePlacement } from './demo-message-location';
 import { applyReadFlags } from './demo-read-flags';
 import { DemoReminders } from './demo-reminders';
 import type { DemoState, DemoThreadRecord } from './demo-state';
@@ -35,7 +35,7 @@ const restorePlacement = (message: Message, origin: DemoMoveOrigin): Message => 
   }
   const gained = origin.addedLabel !== undefined && !before.labelIds.includes(origin.addedLabel);
   return {
-    ...placedIn(message, before.mailboxId),
+    ...withPlacementsOf(message, before),
     labelIds: gained ? withoutAdded(message.labelIds, origin) : message.labelIds,
   };
 };
@@ -100,8 +100,9 @@ export class DemoMoves {
         ? {}
         : { addedLabel: label.id }),
     });
+    const roleOf = demoRoleOf(this.state);
     record.messages = record.messages.map((message) => ({
-      ...placedIn(message, physical.id),
+      ...withSinglePlacement(message, physical.id, roleOf),
       labelIds:
         label === undefined ? message.labelIds : [...new Set([...message.labelIds, label.id])],
     }));

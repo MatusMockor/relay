@@ -3,6 +3,7 @@ import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin } from '../../shared/move-origins';
 import { isAt, physicalKeyOf } from './folder-move-plans';
 import { labelChange } from './gmail-move-plans';
+import { firstPerMessage, uniqueMessageIds } from './located-ids';
 import { rolesAfter } from './physical-messages';
 import {
   type LabelChange,
@@ -20,13 +21,26 @@ const targetOf = (origin: MoveOrigin): MoveTarget =>
     ? { role: origin.role }
     : { role: origin.role, mailboxId: origin.mailboxId };
 
+const movedFrom = (
+  placements: readonly LocatedMessage[],
+  origin: MoveOrigin,
+): LocatedMessage | undefined =>
+  placements.find(({ moving, placement }) => moving && placement.mailboxId === origin.mailboxId) ??
+  placements.find(({ moving }) => moving);
+
 const returnMoves = (recorded: readonly LocatedMessage[]): PlannedMove[] =>
-  recorded.flatMap((located) => {
-    const target = located.moveOrigin === undefined ? null : targetOf(located.moveOrigin);
-    if (target === null || isAt(located, target)) {
+  firstPerMessage(recorded).flatMap((first) => {
+    const origin = first.moveOrigin;
+    if (origin === undefined) {
       return [];
     }
-    return [{ messageId: located.message.id, ...target }];
+    const target = targetOf(origin);
+    const placements = recorded.filter(({ message }) => message.id === first.message.id);
+    if (placements.some((located) => isAt(located, target))) {
+      return [];
+    }
+    const source = movedFrom(placements, origin) ?? first;
+    return [{ messageId: first.message.id, source: source.placement, ...target }];
   });
 
 const labelRemovals = (copies: MailCopies, recorded: readonly LocatedMessage[]): LabelChange[] => {
@@ -53,7 +67,7 @@ const HELD_KINDS = ['trash-origin', 'spam-origin'] as const;
 const heldOrigins = (recorded: readonly LocatedMessage[]): OriginChanges[] =>
   HELD_KINDS.map((kind) => ({
     kind,
-    remember: recorded.flatMap(({ message, moveOrigin }) =>
+    remember: firstPerMessage(recorded).flatMap(({ message, moveOrigin }) =>
       (moveOrigin?.held ?? [])
         .filter((held) => held.kind === kind)
         .map((held) =>
@@ -91,7 +105,7 @@ export const undoMove: StateMovePlanner = (messages, thread, copies) => {
       {
         kind: 'move-origin',
         remember: [],
-        forget: recorded.map(({ message }) => message.id),
+        forget: uniqueMessageIds(recorded),
       },
       ...heldOrigins(recorded),
     ],

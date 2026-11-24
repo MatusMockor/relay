@@ -6,20 +6,31 @@ import {
   type UserId,
 } from '@relay/shared/domain';
 import type { AttachmentContent } from '../../model/attachment';
+import type { RawMessage } from '../../model/remote-mail';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentExtractor } from '../../ports/attachment-extractor';
-import type { MailboxRepository } from '../../ports/mailbox-repository';
+import type { MailProvider } from '../../ports/mail-provider';
 import type { MessageAttachmentLookup } from '../../ports/message-attachment-lookup';
+import type { MessageParser } from '../../ports/message-parser';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import { PENDING_UID } from '../shared/pending-uid';
+import type { PlacementLocations } from '../shared/placement-locations';
+import {
+  copyLocationOf,
+  type RemoteCopyLocation,
+  readVerifiedMessage,
+  sameMessageId,
+} from '../shared/verified-message-read';
 import { pickRemoteAttachment } from './remote-attachment-pick';
 
 export interface ReceivedAttachmentReaderDeps {
   readonly lookup: MessageAttachmentLookup;
   readonly extractor: AttachmentExtractor;
   readonly accounts: AccountRepository;
-  readonly mailboxes: MailboxRepository;
+  readonly locations: PlacementLocations;
+  readonly syncStates: SyncStateRepository;
   readonly sessions: MailProviderSessions;
+  readonly parser: MessageParser;
 }
 
 export class ReceivedAttachmentReader {
@@ -27,18 +38,18 @@ export class ReceivedAttachmentReader {
 
   async read(userId: UserId, attachmentId: AttachmentId): Promise<AttachmentContent | null> {
     const message = await this.deps.lookup.findByAttachmentId(userId, attachmentId);
-    if (message === null || message.uid === PENDING_UID) {
+    if (message === null) {
       return null;
     }
     const index = message.attachments.findIndex((attachment) => attachment.id === attachmentId);
     const meta = message.attachments[index];
     const account = await this.deps.accounts.findById(userId, message.accountId);
-    const mailbox = await this.deps.mailboxes.findById(message.mailboxId);
-    if (meta === undefined || account === null || mailbox === null) {
+    const locations = await this.copyLocations(message);
+    if (meta === undefined || account === null || locations.length === 0) {
       return null;
     }
     const raw = await this.deps.sessions.with(account, (provider) =>
-      provider.fetchMessage(mailbox.path, message.uid),
+      this.firstSource(provider, message, locations),
     );
     const extracted = raw === null ? null : await this.extract(message, raw.source, index, meta);
     if (extracted === null) {
@@ -49,6 +60,36 @@ export class ReceivedAttachmentReader {
       contentType: meta.contentType,
       content: extracted.content,
     };
+  }
+
+  private async firstSource(
+    provider: MailProvider,
+    message: Message,
+    locations: readonly RemoteCopyLocation[],
+  ): Promise<RawMessage | null> {
+    for (const location of locations) {
+      const raw = await readVerifiedMessage(provider, location);
+      if (raw !== null && (await this.isSameMessage(message, raw))) {
+        return raw;
+      }
+    }
+    return null;
+  }
+
+  private async isSameMessage(message: Message, raw: RawMessage): Promise<boolean> {
+    if (message.messageIdHeader === null) {
+      return true;
+    }
+    const parsed = await this.deps.parser.parse(raw.source).catch(() => null);
+    return parsed !== null && sameMessageId(message, parsed);
+  }
+
+  private async copyLocations(message: Message): Promise<RemoteCopyLocation[]> {
+    const located = await this.deps.locations.of(message);
+    const locations = await Promise.all(
+      located.map((placement) => copyLocationOf(this.deps.syncStates, placement)),
+    );
+    return locations.filter((location): location is RemoteCopyLocation => location !== null);
   }
 
   private async extract(
