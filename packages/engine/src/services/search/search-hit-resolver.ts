@@ -1,4 +1,4 @@
-import type { MailboxId, Message } from '@relay/shared/domain';
+import { type MailboxId, type Message, placementIn } from '@relay/shared/domain';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { MessageUidLookup } from '../../ports/message-uid-lookup';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
@@ -9,6 +9,11 @@ export interface SearchHitResolverDeps {
   readonly syncStates: SyncStateRepository;
   readonly lookup: MessageUidLookup | undefined;
 }
+
+const hitOf = (message: Message, mailboxId: MailboxId): [number, Message][] => {
+  const placement = placementIn(message, mailboxId);
+  return placement === undefined ? [] : [[placement.uid, message]];
+};
 
 export class SearchHitResolver {
   constructor(private readonly deps: SearchHitResolverDeps) {}
@@ -24,7 +29,7 @@ export class SearchHitResolver {
     if (!(await this.sameUidValidity(target))) {
       return null;
     }
-    return new Map(found.map((message) => [message.uid, message]));
+    return new Map(found.flatMap((message) => hitOf(message, target.mailbox.id)));
   }
 
   private async sameUidValidity(target: SearchTarget): Promise<boolean> {

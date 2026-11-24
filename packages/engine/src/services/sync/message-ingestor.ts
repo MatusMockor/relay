@@ -1,10 +1,10 @@
-import type { Message, MessageBodyState } from '@relay/shared/domain';
+import { type Message, type MessageBodyState, placementIn } from '@relay/shared/domain';
 import type { ParsedMessage } from '../../model/parsed-message';
 import type { RawMessage, RemoteMessageMeta, RemoteMessageSummary } from '../../model/remote-mail';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { JiraClassifier } from '../../ports/jira-classifier';
 import type { MessageParser } from '../../ports/message-parser';
-import type { MessageRepository } from '../../ports/message-repository';
+import type { MessageLocation, MessageRepository } from '../../ports/message-repository';
 import type { SplitMatcher } from '../../ports/split-matcher';
 import type { ThreadResolver } from '../../ports/thread-resolver';
 import type { UnitOfWork } from '../../ports/unit-of-work';
@@ -61,7 +61,7 @@ export class MessageIngestor {
     const location = { mailboxId: target.mailbox.id, uid: remote.uid };
     const known = await this.deps.messages.findByLocation(location);
     if (known !== null) {
-      return this.refreshKnown(target, known, remote, false);
+      return this.refreshKnown(target, known, remote, null);
     }
     const parsed = await parse().catch((error: unknown) => error);
     if (!isParsed(parsed)) {
@@ -69,12 +69,7 @@ export class MessageIngestor {
     }
     const pending = await this.findPending(target, parsed);
     if (pending !== null) {
-      return this.refreshKnown(
-        target,
-        { ...pending, ...location, placements: [location] },
-        remote,
-        true,
-      );
+      return this.refreshKnown(target, pending, remote, location);
     }
     return this.create(target, remote, parsed, bodyState);
   }
@@ -133,11 +128,11 @@ export class MessageIngestor {
     target: IngestTarget,
     known: Message,
     remote: RemoteMessageMeta,
-    relocated: boolean,
+    relocated: MessageLocation | null,
   ): Promise<IngestOutcome> {
     return this.deps.unitOfWork.run(async (repositories) => {
-      if (relocated) {
-        await repositories.messages.move(known.id, { mailboxId: known.mailboxId, uid: known.uid });
+      if (relocated !== null) {
+        await repositories.messages.move(known.id, relocated);
       }
       await target.journal?.touched(repositories.pendingWork, known.threadId);
       const labelIds = await this.deps.labelsResolver.resolve(
@@ -154,7 +149,7 @@ export class MessageIngestor {
       if (labelsChanged) {
         await repositories.messages.updateLabels(known.id, labelIds);
       }
-      const message: Message = { ...known, flags, labelIds };
+      const message: Message = { ...placedAt(known, relocated), flags, labelIds };
       return { kind: 'existing', message, changed: flagsChanged || labelsChanged };
     });
   }
@@ -168,11 +163,14 @@ export class MessageIngestor {
     ]);
     return (
       candidates.find(
-        (candidate) => candidate.mailboxId === target.mailbox.id && candidate.uid === PENDING_UID,
+        (candidate) => placementIn(candidate, target.mailbox.id)?.uid === PENDING_UID,
       ) ?? null
     );
   }
 }
+
+const placedAt = (message: Message, location: MessageLocation | null): Message =>
+  location === null ? message : { ...message, ...location, placements: [location] };
 
 const isParsed = (value: unknown): value is ParsedMessage =>
   typeof value === 'object' && value !== null && !(value instanceof Error) && 'headers' in value;

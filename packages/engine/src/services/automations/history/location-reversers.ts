@@ -1,8 +1,9 @@
-import type {
-  AutomationActivityAction,
-  Message,
-  ThreadSummary,
-  UserId,
+import {
+  type AutomationActivityAction,
+  isPlacedIn,
+  type Message,
+  type ThreadSummary,
+  type UserId,
 } from '@relay/shared/domain';
 import type { MessageRepository } from '../../../ports/message-repository';
 import type { MessageActionsService } from '../../actions/message-actions-service';
@@ -16,13 +17,17 @@ const isFiledAway = (thread: ThreadSummary): boolean =>
 const cameFromInbox = (recorded: AutomationActivityAction): boolean =>
   recorded.previousState === 'inbox';
 
+const sortedList = (values: readonly string[]): string => [...values].sort().join(',');
+
+const snapshotOf = (message: Message): string =>
+  [
+    message.id,
+    sortedList(message.placements.map(({ mailboxId }) => mailboxId)),
+    sortedList(message.labelIds),
+  ].join(':');
+
 const placementOf = (messages: readonly Message[]): string =>
-  messages
-    .map(
-      (message) => `${message.id}:${message.mailboxId}:${[...message.labelIds].sort().join(',')}`,
-    )
-    .sort()
-    .join('|');
+  messages.map(snapshotOf).sort().join('|');
 
 export class ArchiveReverser implements ActivityReverser<'archive'> {
   constructor(
@@ -119,7 +124,7 @@ export class MoveToReverser implements ActivityReverser<'moveTo'> {
         (message) =>
           changed.has(message.id) &&
           (labelId === null
-            ? message.mailboxId === destination
+            ? isPlacedIn(message, destination)
             : message.labelIds.includes(labelId)),
       )
       .map(({ id }) => id);
