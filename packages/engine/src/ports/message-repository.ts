@@ -58,7 +58,6 @@ export interface MessageRepository {
   updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void>;
   addLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
   removeLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
-  move(messageId: MessageId, target: MessageLocation): Promise<void>;
   matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null>;
   place(request: PlaceRequest): Promise<PlaceOutcome>;
   movePlacement(messageId: MessageId, move: PlacementMove): Promise<void>;

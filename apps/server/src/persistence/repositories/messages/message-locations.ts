@@ -3,8 +3,6 @@ import { type MailboxId, type Message, type MessageId, PENDING_UID } from '@rela
 import { and, asc, eq, gt } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messagePlacements, messages } from '../../schema';
-import { resolvedMessageId } from '../../support/message-alias';
-import { replacePlacement } from './message-placement-writer';
 import { messageSelection } from './message-selection';
 import { toMessage } from './message.mapper';
 
@@ -41,21 +39,3 @@ export const listPlacedUids = async (db: DbExecutor, mailboxId: MailboxId): Prom
     .orderBy(asc(messagePlacements.uid));
   return rows.map((row) => row.uid);
 };
-
-export const moveMessage = (
-  db: DbExecutor,
-  messageId: MessageId,
-  target: MessageLocation,
-): Promise<void> =>
-  db.transaction(async (tx) => {
-    const moved = await tx
-      .update(messages)
-      .set({ mailboxId: target.mailboxId, uid: target.uid })
-      .where(eq(messages.id, resolvedMessageId(messageId)))
-      .returning({ id: messages.id });
-    const [row] = moved;
-    if (row === undefined) {
-      return;
-    }
-    await replacePlacement(tx, row.id, target);
-  });

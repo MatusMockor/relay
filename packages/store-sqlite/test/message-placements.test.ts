@@ -52,12 +52,16 @@ describe.each(locations)('message placements $name', ({ file }) => {
     ).toEqual([[{ mailboxId: seeded.inbox.id, uid: 8 }]]);
   });
 
-  it('rewrites the placement on move and reads locations through it', async () => {
+  it('moves the placement and reads locations through it', async () => {
     const { messages } = store.repositories;
     await messages.upsert(message('msg-1', 7), NO_HEADERS);
     await messages.upsert(message('msg-2', 9), NO_HEADERS);
 
-    await messages.move(messageId('msg-1'), { mailboxId: seeded.sent.id, uid: 0 });
+    await messages.movePlacement(messageId('msg-1'), {
+      from: seeded.inbox.id,
+      to: { mailboxId: seeded.sent.id, uid: 0 },
+      keepSource: false,
+    });
 
     expect(placementRows(store)).toEqual([
       { messageId: 'msg-1', mailboxId: seeded.sent.id, uid: 0 },
@@ -104,7 +108,11 @@ describe.each(locations)('message placements $name', ({ file }) => {
       flagged: true,
       answered: false,
     });
-    await messages.move(messageId('msg-merged'), { mailboxId: seeded.sent.id, uid: 3 });
+    await messages.movePlacement(messageId('msg-merged'), {
+      from: seeded.inbox.id,
+      to: { mailboxId: seeded.sent.id, uid: 3 },
+      keepSource: false,
+    });
 
     expect(await messages.findById(LOCAL_USER_ID, messageId('msg-merged'))).toMatchObject({
       id: 'msg-keeper',

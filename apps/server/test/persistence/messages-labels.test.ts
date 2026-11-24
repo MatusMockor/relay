@@ -158,9 +158,10 @@ describe('PgMessageRepository', () => {
       answered: false,
     });
     await context.repositories.messages.updateLabels(message.id, [own.id, foreign.id]);
-    await context.repositories.messages.move(message.id, {
-      mailboxId: seeded.mailboxes.sent.id,
-      uid: 99,
+    await context.repositories.messages.movePlacement(message.id, {
+      from: message.mailboxId,
+      to: { mailboxId: seeded.mailboxes.sent.id, uid: 99 },
+      keepSource: false,
     });
 
     await expect(

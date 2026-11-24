@@ -31,12 +31,7 @@ import { toIso } from '../../support/timestamps';
 import { toMessageHeaders } from './message-headers';
 import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
 import { resolvedMessageId } from '../../support/message-alias';
-import {
-  findAtLocation,
-  findStoredMessage,
-  listPlacedUids,
-  moveMessage,
-} from './message-locations';
+import { findAtLocation, findStoredMessage, listPlacedUids } from './message-locations';
 import { matchPlacementIn, placeMessage } from './message-placing';
 import { movePlacementRow, replacePlacement } from './message-placement-writer';
 import { writeMessageRow } from './message-row-writer';
@@ -226,10 +221,6 @@ export class PgMessageRepository implements MessageRepository {
 
   async removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
     await removeMessageLabel(this.db, messageId, labelId);
-  }
-
-  move(messageId: MessageId, target: MessageLocation): Promise<void> {
-    return moveMessage(this.db, messageId, target);
   }
 
   matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {

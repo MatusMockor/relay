@@ -177,21 +177,6 @@ export class MemoryMessageRepository implements MessageRepository {
     return this.patch(messageId, { labelIds: labelIds.filter((id) => id !== labelId) });
   }
 
-  move(messageId: MessageId, target: MessageLocation): Promise<void> {
-    const id = this.resolve(messageId);
-    const occupied = this.all().some(
-      (message) => message.id !== id && target.uid !== PENDING_UID && isPlacedAt(message, target),
-    );
-    if (occupied) {
-      return Promise.reject(new Error('Unique constraint failed: messages (mailbox_id, uid)'));
-    }
-    const message = this.db.tables.messages.get(id);
-    if (message !== undefined) {
-      this.db.tables.messages.set(id, placedAt(message, target));
-    }
-    return Promise.resolve();
-  }
-
   matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {
     return Promise.resolve(matchPlacementIn(this.db, identity));
   }

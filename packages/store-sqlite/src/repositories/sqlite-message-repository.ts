@@ -209,21 +209,6 @@ export class SqliteMessageRepository implements MessageRepository {
     });
   }
 
-  move(messageId: MessageId, target: MessageLocation): Promise<void> {
-    return this.executor.execute((db) => {
-      const id = resolveMessageId(db, messageId);
-      const moved = db
-        .update(messages)
-        .set({ mailboxId: target.mailboxId, uid: target.uid })
-        .where(eq(messages.id, id))
-        .run();
-      if (moved.changes === 0) {
-        return;
-      }
-      replacePlacement(db, id, target);
-    });
-  }
-
   matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {
     return this.executor.execute((db) => matchPlacementIn(db, identity));
   }
