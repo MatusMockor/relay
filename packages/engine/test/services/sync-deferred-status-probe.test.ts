@@ -1,3 +1,4 @@
+import type { AccountId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, ME, present, seedAccount } from '../support/fixtures';
 import { renameFakeMailbox } from '../support/mail/fake-folders';
@@ -18,7 +19,7 @@ const gmailAccount = async (engine: TestEngine) => {
   return seeded;
 };
 
-const mailboxAt = async (engine: TestEngine, accountId: string, path: string) =>
+const mailboxAt = async (engine: TestEngine, accountId: AccountId, path: string) =>
   present(await engine.repositories.mailboxes.findByPath(accountId, path));
 
 describe('deferred mailbox status probe', () => {

@@ -26,19 +26,9 @@ export const uidRuns = (uids: readonly number[]): string[] => {
   return runs.map(({ low, high }) => runOf(low, high));
 };
 
-const newestQueries = (newest: number, exists: number): SearchObject[] => {
-  if (!Number.isInteger(newest) || newest < 1 || exists === 0) {
-    return [];
-  }
-  return [{ seq: `${String(Math.max(1, exists - newest + 1))}:${String(exists)}` }];
-};
-
-export const scopeQueries = (options: UidListOptions, exists: number): SearchObject[] => {
+export const scopeQueries = (options: UidListOptions): SearchObject[] => {
   if (options.among !== undefined) {
     return chunk(uidRuns(options.among), RUNS_PER_SEARCH).map((runs) => ({ uid: runs.join(',') }));
-  }
-  if (options.newest !== undefined) {
-    return newestQueries(options.newest, exists);
   }
   if (options.range === undefined) {
     return [{ all: true }];
@@ -67,5 +57,22 @@ export const searchScope = async (
   return sortedUids(found);
 };
 
-export const existsOf = (client: Pick<ImapFlow, 'mailbox'>): number =>
+const existsOf = (client: Pick<ImapFlow, 'mailbox'>): number =>
   client.mailbox === false ? 0 : client.mailbox.exists;
+
+export const newestUids = async (
+  client: SearchClient & Pick<ImapFlow, 'mailbox'>,
+  newest: number,
+): Promise<number[]> => {
+  const exists = existsOf(client);
+  if (!Number.isInteger(newest) || newest < 1 || exists === 0) {
+    return [];
+  }
+  const from = Math.max(1, exists - newest + 1);
+  const found = await client.search({ seq: `${String(from)}:${String(exists)}` }, { uid: true });
+  if (found !== false && found.length === exists - from + 1) {
+    return sortedUids(found);
+  }
+  const all = await searchUids(client, { all: true });
+  return all.slice(Math.max(0, all.length - newest));
+};

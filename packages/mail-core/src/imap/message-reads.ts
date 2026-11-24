@@ -2,10 +2,7 @@ import type { RawMessage, UidListOptions } from '@relay/engine';
 import type { ImapConnection } from './imap-connection';
 import { labelReadingOf } from './gmail-labels';
 import { FULL_MESSAGE_QUERY, toRawMessage } from './raw-message';
-import { existsOf, scopeQueries, searchScope } from './uid-scope';
-
-const needsFreshCount = (options: UidListOptions): boolean =>
-  options.fresh === true || options.newest !== undefined;
+import { newestUids, scopeQueries, searchScope } from './uid-scope';
 
 export const listUids = (
   connection: ImapConnection,
@@ -16,14 +13,18 @@ export const listUids = (
     path,
     { operation: 'list uids', retryOnDisconnect: true },
     async (client, mailbox) => {
-      if (needsFreshCount(options)) {
+      if (options.newest !== undefined) {
         await client.noop();
-        return searchScope(client, scopeQueries(options, existsOf(client)));
+        return newestUids(client, options.newest);
+      }
+      if (options.fresh === true) {
+        await client.noop();
+        return searchScope(client, scopeQueries(options));
       }
       if (mailbox.exists === 0) {
         return [];
       }
-      return searchScope(client, scopeQueries(options, mailbox.exists));
+      return searchScope(client, scopeQueries(options));
     },
   );
 

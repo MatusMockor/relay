@@ -38,9 +38,6 @@ export class ReconcileScans {
   }
 
   fullExpungeDiffDue(mailboxId: MailboxId): boolean {
-    if (this.deps.history === null) {
-      return false;
-    }
     const since = this.fullDiffs.get(mailboxId) ?? this.watchedSince.get(mailboxId);
     if (since === undefined) {
       this.watchedSince.set(mailboxId, this.deps.clock.now().getTime());

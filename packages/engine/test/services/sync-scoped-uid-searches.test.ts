@@ -84,6 +84,31 @@ describe('sync of a large mailbox', () => {
     ]);
   });
 
+  it('runs a due full diff of an unchanged mailbox without a history store', async () => {
+    const fullExpungeDiffMs = 60 * 60_000;
+    const engine = createTestEngine({
+      sync: {
+        initialMessageLimit: 20,
+        reconcile: { newestFlagUids: 10, rotatingFlagUids: 10, fullExpungeDiffMs },
+      },
+      historyBackfills: null,
+    });
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'Archive', { id: 'kept' });
+    const sync = () => engine.services.sync.syncAccount(USER_ID, account.id);
+    await sync();
+    await sync();
+    server.uidQueries.length = 0;
+
+    await sync();
+    expect(queriesOf(server, 'Archive')).toEqual([]);
+    engine.clock.advance(fullExpungeDiffMs);
+    await sync();
+
+    const archive = await archiveOf(engine, account.id);
+    expect(queriesOf(server, 'Archive')).toEqual([{ among: storedUidsIn(engine, archive.id) }]);
+  });
+
   it('resumes an interrupted initial window from its frozen floor UID', async () => {
     const engine = createTestEngine({ sync: { batchSize: 1, initialMessageLimit: 3 } });
     const { account, server } = await seedAccount(engine);

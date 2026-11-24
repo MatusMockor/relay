@@ -99,3 +99,35 @@ describe('uidRuns', () => {
     expect(uidRuns([0, -4, 1.5])).toEqual([]);
   });
 });
+
+const rejectSequenceSearches = (searches: SearchObject[]) => (client: ImapFlow) => {
+  const search = client.search.bind(client);
+  client.search = (query, options) => {
+    searches.push(query);
+    return query.seq === undefined ? search(query, options) : Promise.resolve(false);
+  };
+};
+
+describe('ImapMailProvider.listUids newest window fallback against GreenMail', () => {
+  let harness: SummaryHarness;
+  let searches: SearchObject[];
+
+  beforeEach(async () => {
+    searches = [];
+    harness = await createSummaryHarness(rejectSequenceSearches(searches));
+  });
+
+  afterEach(async () => {
+    await harness.dispose();
+  });
+
+  it('falls back to a full search when the sequence search does not cover the window', async () => {
+    const uids = await appendMany(harness, 5);
+
+    await expect(harness.provider.listUids('INBOX', { newest: 2 })).resolves.toEqual(
+      uids.slice(-2),
+    );
+
+    expect(searches).toEqual([{ seq: '4:5' }, { all: true }]);
+  });
+});
