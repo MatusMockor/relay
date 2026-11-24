@@ -1,18 +1,18 @@
 import type { TaskPriority } from '@relay/shared/domain';
 import type { GitHubIssue } from './github-api-schemas';
 
-const PRIORITY_BY_LEVEL: Readonly<Record<string, TaskPriority>> = {
-  urgent: 'urgent',
-  critical: 'urgent',
-  p0: 'urgent',
-  high: 'high',
-  p1: 'high',
-  medium: 'medium',
-  p2: 'medium',
-  low: 'low',
-  p3: 'low',
-  p4: 'low',
-};
+const PRIORITY_BY_LEVEL: ReadonlyMap<string, TaskPriority> = new Map<string, TaskPriority>([
+  ['urgent', 'urgent'],
+  ['critical', 'urgent'],
+  ['p0', 'urgent'],
+  ['high', 'high'],
+  ['p1', 'high'],
+  ['medium', 'medium'],
+  ['p2', 'medium'],
+  ['low', 'low'],
+  ['p3', 'low'],
+  ['p4', 'low'],
+]);
 
 const PREFIXED_PRIORITY = /^priority\s*[:/-]\s*(\S+)$/;
 const BARE_PRIORITY = /^p[0-4]$/;
@@ -28,7 +28,7 @@ export const labelNamesOf = (issue: GitHubIssue): string[] =>
 const priorityOfLabel = (name: string): TaskPriority | null => {
   const label = normalized(name);
   const level = PREFIXED_PRIORITY.exec(label)?.[1] ?? (BARE_PRIORITY.test(label) ? label : null);
-  return level === null ? null : (PRIORITY_BY_LEVEL[level] ?? null);
+  return level === null ? null : (PRIORITY_BY_LEVEL.get(level) ?? null);
 };
 
 export const githubPriorityOf = (labels: readonly string[]): TaskPriority => {
