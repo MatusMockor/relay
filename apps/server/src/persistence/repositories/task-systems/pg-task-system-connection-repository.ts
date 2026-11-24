@@ -14,6 +14,13 @@ import {
   toTaskSystemConnectionRecord,
 } from './task-system-connection.mapper';
 
+const ACCOUNT_KEY = [
+  connections.userId,
+  connections.provider,
+  connections.siteUrl,
+  connections.externalAccountId,
+];
+
 const owned = (userId: UserId, id: TaskSystemConnectionId) =>
   and(eq(connections.userId, userId), eq(connections.id, id));
 
@@ -75,7 +82,7 @@ export class PgTaskSystemConnectionRepository implements TaskSystemConnectionRep
     const [row] = await this.db
       .insert(connections)
       .values(values)
-      .onConflictDoUpdate({ target: connections.id, set: changes })
+      .onConflictDoUpdate({ target: ACCOUNT_KEY, set: changes })
       .returning(PUBLIC_COLUMNS);
     if (row === undefined) {
       throw new Error(`Task system connection ${record.id} was not stored`);

@@ -47,10 +47,17 @@ export const ConnectTaskSystemInputSchema = z.discriminatedUnion('provider', [
 ]);
 export type ConnectTaskSystemInput = z.infer<typeof ConnectTaskSystemInputSchema>;
 
+export const JiraRouteSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('site') }),
+  z.object({ kind: z.literal('gateway'), cloudId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/) }),
+]);
+export type JiraRoute = z.infer<typeof JiraRouteSchema>;
+
 export const JiraCredentialsSchema = z.object({
   provider: z.literal('jira'),
   email: EmailAddressSchema,
   apiToken: z.string().min(1).max(1024),
+  route: JiraRouteSchema.optional(),
 });
 export type JiraCredentials = z.infer<typeof JiraCredentialsSchema>;
 

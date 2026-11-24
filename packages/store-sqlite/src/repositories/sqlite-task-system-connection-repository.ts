@@ -13,6 +13,13 @@ import {
 } from '../mappers/task-system-mapper';
 import { taskSystemConnections as connections } from '../schema';
 
+const ACCOUNT_KEY = [
+  connections.userId,
+  connections.provider,
+  connections.siteUrl,
+  connections.externalAccountId,
+];
+
 const owned = (userId: UserId, id: TaskSystemConnectionId) =>
   and(eq(connections.userId, userId), eq(connections.id, id));
 
@@ -67,7 +74,7 @@ export class SqliteTaskSystemConnectionRepository implements TaskSystemConnectio
         db
           .insert(connections)
           .values(row)
-          .onConflictDoUpdate({ target: connections.id, set: changes })
+          .onConflictDoUpdate({ target: ACCOUNT_KEY, set: changes })
           .returning()
           .get(),
       );

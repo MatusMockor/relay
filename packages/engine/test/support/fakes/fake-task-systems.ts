@@ -2,6 +2,7 @@ import type {
   TaskSystemConnectionId,
   TaskSystemCredentials,
   TaskSystemProvider,
+  UserId,
 } from '@relay/shared/domain';
 import type {
   RemoteExternalTask,
@@ -25,10 +26,16 @@ export class FakeTaskSystemAdapter implements TaskSystemAdapter {
   tasks: RemoteExternalTask[] = [];
   truncated = false;
   failWith: Error | null = null;
+  credentials: TaskSystemCredentials | undefined = undefined;
+  beforeAnswer: (() => Promise<void>) | null = null;
 
   verify(access: TaskSystemAccess): Promise<TaskSystemAccount> {
     this.calls.push({ kind: 'verify', access });
-    return this.answer(this.account);
+    return this.answer(
+      this.credentials === undefined
+        ? this.account
+        : { ...this.account, credentials: this.credentials },
+    );
   }
 
   listMyOpenTasks(access: TaskSystemAccess): Promise<RemoteTaskList> {
@@ -36,29 +43,51 @@ export class FakeTaskSystemAdapter implements TaskSystemAdapter {
     return this.answer({ tasks: this.tasks, truncated: this.truncated });
   }
 
-  private answer<Value>(value: Value): Promise<Value> {
-    return this.failWith === null ? Promise.resolve(value) : Promise.reject(this.failWith);
+  private async answer<Value>(value: Value): Promise<Value> {
+    await this.beforeAnswer?.();
+    if (this.failWith !== null) {
+      throw this.failWith;
+    }
+    return value;
   }
 }
 
-export class MemoryTaskSystemSecrets implements TaskSystemSecretStore {
-  readonly stored = new Map<TaskSystemConnectionId, TaskSystemCredentials>();
-  failSet: Error | null = null;
+const keyOf = (userId: UserId, connectionId: TaskSystemConnectionId): string =>
+  `${userId}/${connectionId}`;
 
-  get(connectionId: TaskSystemConnectionId): Promise<TaskSystemCredentials | null> {
-    return Promise.resolve(this.stored.get(connectionId) ?? null);
+export class MemoryTaskSystemSecrets implements TaskSystemSecretStore {
+  readonly stored = new Map<string, TaskSystemCredentials>();
+  readonly writes: string[] = [];
+  failSet: Error | null = null;
+  failDelete: Error | null = null;
+
+  of(userId: UserId, connectionId: TaskSystemConnectionId): TaskSystemCredentials | null {
+    return this.stored.get(keyOf(userId, connectionId)) ?? null;
   }
 
-  set(connectionId: TaskSystemConnectionId, credentials: TaskSystemCredentials): Promise<void> {
+  get(userId: UserId, connectionId: TaskSystemConnectionId): Promise<TaskSystemCredentials | null> {
+    return Promise.resolve(this.of(userId, connectionId));
+  }
+
+  set(
+    userId: UserId,
+    connectionId: TaskSystemConnectionId,
+    credentials: TaskSystemCredentials,
+  ): Promise<void> {
     if (this.failSet !== null) {
       return Promise.reject(this.failSet);
     }
-    this.stored.set(connectionId, credentials);
+    this.writes.push(`set ${connectionId}`);
+    this.stored.set(keyOf(userId, connectionId), credentials);
     return Promise.resolve();
   }
 
-  delete(connectionId: TaskSystemConnectionId): Promise<void> {
-    this.stored.delete(connectionId);
+  delete(userId: UserId, connectionId: TaskSystemConnectionId): Promise<void> {
+    if (this.failDelete !== null) {
+      return Promise.reject(this.failDelete);
+    }
+    this.writes.push(`delete ${connectionId}`);
+    this.stored.delete(keyOf(userId, connectionId));
     return Promise.resolve();
   }
 }

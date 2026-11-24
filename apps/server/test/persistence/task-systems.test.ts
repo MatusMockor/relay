@@ -70,6 +70,12 @@ describe('Postgres task system persistence', () => {
     expect(await repository.recordStatus(other.id, first.id, change)).toBeNull();
     expect(await repository.recordStatus(user.id, first.id, change)).toMatchObject(change);
 
+    const racer = await repository.save(
+      connectionOf(user.id, { label: 'Súbežné', createdAt: at(30), updatedAt: at(30) }),
+    );
+    expect(racer).toMatchObject({ id: first.id, label: 'Súbežné', createdAt: first.createdAt });
+    expect(await repository.list(user.id)).toHaveLength(2);
+
     expect(await repository.delete(other.id, first.id)).toBe(false);
     expect(await repository.delete(user.id, first.id)).toBe(true);
     expect(await repository.list(user.id)).toEqual([second]);
@@ -82,7 +88,7 @@ describe('Postgres task system persistence', () => {
     const cipher = new AesGcmCipher(randomBytes(32));
     const secrets = new AesGcmTaskSystemSecrets(new PgTaskSystemSecretStore(context.db), cipher);
 
-    await secrets.set(connection.id, credentials);
+    await secrets.set(user.id, connection.id, credentials);
     await repository.save({ ...connection, accountName: 'Alice' });
 
     const [row] = await context.db
@@ -90,16 +96,23 @@ describe('Postgres task system persistence', () => {
       .from(taskSystemConnections)
       .where(eq(taskSystemConnections.id, connection.id));
     expect(row?.envelope).not.toContain('jira-api-secret');
-    expect(await secrets.get(connection.id)).toEqual(credentials);
+    expect(await secrets.get(user.id, connection.id)).toEqual(credentials);
+    const other = await seedUser();
+    expect(await secrets.get(other.id, connection.id)).toBeNull();
+    await secrets.delete(other.id, connection.id);
+    expect(await secrets.get(user.id, connection.id)).toEqual(credentials);
     const foreign = new AesGcmTaskSystemSecrets(
       new PgTaskSystemSecretStore(context.db),
       new AesGcmCipher(randomBytes(32)),
     );
-    await expect(foreign.get(connection.id)).rejects.toThrow();
+    await expect(foreign.get(user.id, connection.id)).rejects.toThrow();
 
-    await secrets.delete(connection.id);
-    expect(await secrets.get(connection.id)).toBeNull();
-    await expect(secrets.set(newId('taskSystemConnection'), credentials)).rejects.toThrow(
+    await secrets.delete(user.id, connection.id);
+    expect(await secrets.get(user.id, connection.id)).toBeNull();
+    await expect(secrets.set(other.id, connection.id, credentials)).rejects.toThrow(
+      'does not exist',
+    );
+    await expect(secrets.set(user.id, newId('taskSystemConnection'), credentials)).rejects.toThrow(
       'does not exist',
     );
   });

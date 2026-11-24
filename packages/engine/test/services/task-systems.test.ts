@@ -58,7 +58,7 @@ describe('TaskSystemService', () => {
       siteUrl: INPUT.siteUrl,
       credentials: { provider: 'jira', email: INPUT.email, apiToken: INPUT.apiToken },
     });
-    expect(engine.taskSystems.secrets.stored.get(connection.id)).toEqual({
+    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)).toEqual({
       provider: 'jira',
       email: INPUT.email,
       apiToken: INPUT.apiToken,
@@ -81,7 +81,7 @@ describe('TaskSystemService', () => {
     expect(second).toMatchObject({ id: first.id, label: 'Acme Jira', createdAt: first.createdAt });
     expect(second.updatedAt).not.toBe(first.updatedAt);
     expect(await engine.services.taskSystems.list(USER_ID)).toHaveLength(1);
-    expect(engine.taskSystems.secrets.stored.get(first.id)).toMatchObject({ apiToken: 'token-2' });
+    expect(engine.taskSystems.secrets.of(USER_ID, first.id)).toMatchObject({ apiToken: 'token-2' });
   });
 
   it('stores nothing when the verification fails', async () => {
@@ -189,5 +189,82 @@ describe('TaskSystemService', () => {
     await expect(
       engine.services.taskSystems.listTasks(USER_ID, 'tsc_gone' as TaskSystemConnectionId),
     ).rejects.toThrow(NotFoundError);
+  });
+
+  it('stores the credentials the adapter settled on', async () => {
+    engine.taskSystems.jira.credentials = {
+      provider: 'jira',
+      email: INPUT.email,
+      apiToken: INPUT.apiToken,
+      route: { kind: 'gateway', cloudId: 'cloud-1' },
+    };
+
+    const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
+
+    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)?.route).toEqual({
+      kind: 'gateway',
+      cloudId: 'cloud-1',
+    });
+  });
+
+  it('keeps a failing connection failing when the new secret cannot be stored', async () => {
+    const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
+    engine.taskSystems.jira.failWith = new ReauthorizationRequiredError('Token je neplatný.');
+    await expect(engine.services.taskSystems.listTasks(USER_ID, connection.id)).rejects.toThrow();
+    engine.taskSystems.jira.failWith = null;
+    engine.taskSystems.secrets.failSet = new Error('keychain locked');
+
+    await expect(
+      engine.services.taskSystems.connect(USER_ID, { ...INPUT, apiToken: 'token-2' }),
+    ).rejects.toThrow('keychain locked');
+
+    expect(await engine.services.taskSystems.list(USER_ID)).toEqual([
+      expect.objectContaining({ id: connection.id, status: 'error' }),
+    ]);
+    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)?.apiToken).toBe('token-1');
+  });
+
+  it('settles concurrent first connects of one account on a single connection', async () => {
+    const [first, second] = await Promise.all([
+      engine.services.taskSystems.connect(USER_ID, INPUT),
+      engine.services.taskSystems.connect(USER_ID, { ...INPUT, apiToken: 'token-2' }),
+    ]);
+
+    expect(second.id).toBe(first.id);
+    expect(await engine.services.taskSystems.list(USER_ID)).toEqual([
+      expect.objectContaining({ id: first.id, status: 'ok' }),
+    ]);
+  });
+
+  it('removes the connection before its secret', async () => {
+    const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
+    engine.taskSystems.secrets.failDelete = new Error('keychain locked');
+
+    await expect(engine.services.taskSystems.disconnect(USER_ID, connection.id)).rejects.toThrow(
+      'keychain locked',
+    );
+
+    expect(await engine.services.taskSystems.list(USER_ID)).toEqual([]);
+  });
+
+  it('ignores an auth failure of a request made with replaced credentials', async () => {
+    const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
+    engine.taskSystems.jira.failWith = new ReauthorizationRequiredError('Token je neplatný.');
+    engine.taskSystems.jira.beforeAnswer = async () => {
+      engine.taskSystems.jira.beforeAnswer = null;
+      await engine.taskSystems.secrets.set(USER_ID, connection.id, {
+        provider: 'jira',
+        email: INPUT.email,
+        apiToken: 'token-2',
+      });
+    };
+
+    await expect(engine.services.taskSystems.listTasks(USER_ID, connection.id)).rejects.toThrow(
+      ForbiddenError,
+    );
+
+    expect(await engine.services.taskSystems.list(USER_ID)).toEqual([
+      expect.objectContaining({ status: 'ok', lastError: null }),
+    ]);
   });
 });

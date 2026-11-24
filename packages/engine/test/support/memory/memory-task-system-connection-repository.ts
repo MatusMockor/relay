@@ -7,6 +7,11 @@ import type {
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
+const sameAccount = (record: TaskSystemConnectionRecord, account: TaskSystemAccountRef) =>
+  record.provider === account.provider &&
+  record.siteUrl === account.siteUrl &&
+  record.externalAccountId === account.externalAccountId;
+
 const byCreation = (left: TaskSystemConnectionRecord, right: TaskSystemConnectionRecord) =>
   left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id);
 
@@ -26,18 +31,18 @@ export class MemoryTaskSystemConnectionRepository implements TaskSystemConnectio
     userId: UserId,
     account: TaskSystemAccountRef,
   ): Promise<TaskSystemConnectionRecord | null> {
-    const found = this.owned(userId).find(
-      (record) =>
-        record.provider === account.provider &&
-        record.siteUrl === account.siteUrl &&
-        record.externalAccountId === account.externalAccountId,
-    );
+    const found = this.owned(userId).find((record) => sameAccount(record, account));
     return Promise.resolve(found ?? null);
   }
 
   save(record: TaskSystemConnectionRecord): Promise<TaskSystemConnectionRecord> {
-    this.db.tables.taskSystemConnections.set(record.id, record);
-    return Promise.resolve(record);
+    const existing = this.owned(record.userId).find((stored) => sameAccount(stored, record));
+    const stored =
+      existing === undefined
+        ? record
+        : { ...record, id: existing.id, createdAt: existing.createdAt };
+    this.db.tables.taskSystemConnections.set(stored.id, stored);
+    return Promise.resolve(stored);
   }
 
   async recordStatus(

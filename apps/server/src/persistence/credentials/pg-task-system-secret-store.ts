@@ -1,24 +1,31 @@
-import type { TaskSystemConnectionId } from '@relay/shared/domain';
-import { eq } from 'drizzle-orm';
+import type { TaskSystemConnectionId, UserId } from '@relay/shared/domain';
+import { and, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../database/database';
 import { taskSystemConnections as connections } from '../schema';
+
+const owned = (userId: UserId, connectionId: TaskSystemConnectionId) =>
+  and(eq(connections.userId, userId), eq(connections.id, connectionId));
 
 export class PgTaskSystemSecretStore {
   constructor(private readonly db: DbExecutor) {}
 
-  async find(connectionId: TaskSystemConnectionId): Promise<string | null> {
+  async find(userId: UserId, connectionId: TaskSystemConnectionId): Promise<string | null> {
     const [row] = await this.db
       .select({ envelope: connections.credentialsEnvelope })
       .from(connections)
-      .where(eq(connections.id, connectionId));
+      .where(owned(userId, connectionId));
     return row?.envelope ?? null;
   }
 
-  async save(connectionId: TaskSystemConnectionId, envelope: string | null): Promise<boolean> {
+  async save(
+    userId: UserId,
+    connectionId: TaskSystemConnectionId,
+    envelope: string | null,
+  ): Promise<boolean> {
     const rows = await this.db
       .update(connections)
       .set({ credentialsEnvelope: envelope })
-      .where(eq(connections.id, connectionId))
+      .where(owned(userId, connectionId))
       .returning({ id: connections.id });
     return rows.length > 0;
   }

@@ -1,7 +1,11 @@
-import type { TaskSystemConnectionId, TaskSystemCredentials } from '@relay/shared/domain';
+import type { TaskSystemConnectionId, TaskSystemCredentials, UserId } from '@relay/shared/domain';
 
 export interface TaskSystemSecretStore {
-  get(connectionId: TaskSystemConnectionId): Promise<TaskSystemCredentials | null>;
-  set(connectionId: TaskSystemConnectionId, credentials: TaskSystemCredentials): Promise<void>;
-  delete(connectionId: TaskSystemConnectionId): Promise<void>;
+  get(userId: UserId, connectionId: TaskSystemConnectionId): Promise<TaskSystemCredentials | null>;
+  set(
+    userId: UserId,
+    connectionId: TaskSystemConnectionId,
+    credentials: TaskSystemCredentials,
+  ): Promise<void>;
+  delete(userId: UserId, connectionId: TaskSystemConnectionId): Promise<void>;
 }

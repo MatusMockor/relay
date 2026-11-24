@@ -82,6 +82,22 @@ describe('SqliteTaskSystemConnectionRepository', () => {
     expect(await repository.list(LOCAL_USER_ID)).toHaveLength(1);
   });
 
+  it('folds a second connection of the same account into the stored one', async () => {
+    const { taskSystemConnections: repository } = store.repositories;
+    await repository.save(connection());
+
+    const racer = await repository.save(
+      connection({ id: TaskSystemConnectionIdSchema.parse('tsc-9'), label: 'Súbežné' }),
+    );
+    const otherUser = await repository.save(
+      connection({ id: TaskSystemConnectionIdSchema.parse('tsc-8'), userId: OTHER_USER }),
+    );
+
+    expect(racer).toMatchObject({ id: 'tsc-1', label: 'Súbežné' });
+    expect(otherUser.id).toBe('tsc-8');
+    expect(await repository.list(LOCAL_USER_ID)).toHaveLength(1);
+  });
+
   it('records the status only for the owner', async () => {
     const { taskSystemConnections: repository } = store.repositories;
     await repository.save(connection());
