@@ -7,3 +7,7 @@ export * from './jira/jira-status';
 export * from './linear/linear-adapter';
 export * from './linear/linear-priority';
 export * from './linear/linear-status';
+export * from './github/github-issues-adapter';
+export * from './github/github-labels';
+export * from './github/github-status';
+export * from './github/github-link';
