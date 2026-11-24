@@ -17,6 +17,7 @@ export interface EmailIdResolverDeps {
 export interface ResolveStep {
   readonly cursors: CopyMergeResolveCursor[];
   readonly resolved: number;
+  readonly blocked: boolean;
 }
 
 const knownEmailIds = (remote: readonly RemoteEmailId[]): ResolvedEmailId[] =>
@@ -43,13 +44,13 @@ export class EmailIdResolver {
   ): Promise<ResolveStep> {
     const [cursor, ...rest] = cursors;
     if (cursor === undefined) {
-      return { cursors: [], resolved: 0 };
+      return { cursors: [], resolved: 0, blocked: false };
     }
     const resolved = await this.resolve(context, mailboxes, cursor);
     if (resolved === null) {
       return this.step(context, mailboxes, rest);
     }
-    return { cursors: [...resolved.cursors, ...rest], resolved: resolved.resolved };
+    return { ...resolved, cursors: [...resolved.cursors, ...rest] };
   }
 
   private async resolve(
@@ -71,11 +72,12 @@ export class EmailIdResolver {
     const uids = unresolved.map((placement) => placement.uid);
     const remote = await this.fetch(context, mailbox, state, uids);
     if (remote === null) {
-      return { cursors: [], resolved: 0 };
+      return { cursors: [{ mailboxId: mailbox.id, afterUid: 0 }], resolved: 0, blocked: true };
     }
     const resolved = await resolutions.fillEmailIds(mailbox.id, knownEmailIds(remote));
     const more = unresolved.length >= batch;
-    return { cursors: more ? [{ mailboxId: mailbox.id, afterUid: last.uid }] : [], resolved };
+    const cursors = more ? [{ mailboxId: mailbox.id, afterUid: last.uid }] : [];
+    return { cursors, resolved, blocked: false };
   }
 
   private async fetch(
@@ -90,7 +92,7 @@ export class EmailIdResolver {
       if (!(error instanceof UidValidityChangedError)) {
         throw error;
       }
-      this.deps.logger.info('Copy merge skipped a mailbox with a new UIDVALIDITY', {
+      this.deps.logger.info('Copy merge waits for a mailbox with a new UIDVALIDITY', {
         accountId: context.account.id,
         mailboxId: mailbox.id,
       });

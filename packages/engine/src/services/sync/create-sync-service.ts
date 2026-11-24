@@ -164,7 +164,6 @@ export const createSyncComponents = (
         repositories,
         unitOfWork,
         flusher,
-        rescans,
         clock,
         logger,
         options,

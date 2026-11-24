@@ -7,6 +7,7 @@ export interface CopyMergeProgress {
   conflicts: number;
   chunks: number;
   slowestChunkMs: number;
+  rescanQueued: boolean;
 }
 
 export const emptyProgress = (): CopyMergeProgress => ({
@@ -16,6 +17,7 @@ export const emptyProgress = (): CopyMergeProgress => ({
   conflicts: 0,
   chunks: 0,
   slowestChunkMs: 0,
+  rescanQueued: false,
 });
 
 export const recordChunk = (progress: CopyMergeProgress, report: MergeReport, ms: number) => {
@@ -24,6 +26,7 @@ export const recordChunk = (progress: CopyMergeProgress, report: MergeReport, ms
   progress.conflicts += report.skipped['mailbox-conflict'];
   progress.chunks += 1;
   progress.slowestChunkMs = Math.max(progress.slowestChunkMs, ms);
+  progress.rescanQueued ||= report.merged.length > 0;
 };
 
 export const madeProgress = (progress: CopyMergeProgress): boolean =>

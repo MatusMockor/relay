@@ -5,6 +5,7 @@ import type { MessageMerges } from '../../../ports/message-merges';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
 import type { ChangeFlusher } from '../change-flusher';
+import { queueLabelRescans } from '../label-rescans';
 import type { SyncContext } from '../sync-context';
 import { type CopyMergeProgress, recordChunk } from './copy-merge-progress';
 import {
@@ -16,6 +17,7 @@ import {
   stateOf,
 } from './copy-merge-state';
 import type { EmailIdResolver } from './email-id-resolver';
+import type { MergedArrivals } from './merged-arrivals';
 
 export interface CopyMergeStepsDeps {
   readonly merges: MessageMerges;
@@ -23,6 +25,7 @@ export interface CopyMergeStepsDeps {
   readonly unitOfWork: UnitOfWork;
   readonly resolver: EmailIdResolver;
   readonly flusher: ChangeFlusher;
+  readonly arrivals: MergedArrivals;
   readonly clock: Clock;
   readonly chunkMessages: number;
   readonly conflictRetryMs: number;
@@ -53,7 +56,8 @@ export class CopyMergeSteps {
     if (resolved.cursors.length === 0) {
       return this.merge(step, state);
     }
-    return this.deps.pendingWork.replace(row, state);
+    const saved = await this.deps.pendingWork.replace(row, state);
+    return resolved.blocked ? null : saved;
   }
 
   private async merge(step: CopyMergeStep, state: CopyMergeWork): Promise<CopyMergeRow | null> {
@@ -67,19 +71,24 @@ export class CopyMergeSteps {
     if (chunk.groups.length === 0) {
       return this.finishPass(row, state);
     }
-    const started = this.deps.clock.now().getTime();
+    const now = this.deps.clock.now();
     const { report, next } = await this.deps.unitOfWork.run(async (repositories) => {
       const merged = await repositories.messageMerges.merge(accountId, chunk.groups);
       for (const threadId of mergedThreads(merged)) {
         await context.journal.touched(repositories.pendingWork, threadId);
       }
+      if (merged.merged.length > 0 && !progress.rescanQueued) {
+        await queueLabelRescans(repositories, accountId, now.toISOString());
+      }
       const saved = await repositories.pendingWork.replace(row, afterChunk(state, chunk, merged));
       return { report: merged, next: saved };
     });
-    recordChunk(progress, report, this.deps.clock.now().getTime() - started);
-    if (report.merged.length > 0) {
-      await this.deps.flusher.flushThreads(context);
+    recordChunk(progress, report, this.deps.clock.now().getTime() - now.getTime());
+    if (report.merged.length === 0) {
+      return next;
     }
+    await this.deps.arrivals.canonicalize(context, report);
+    await this.deps.flusher.flushThreads(context);
     return next;
   }
 

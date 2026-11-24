@@ -60,30 +60,40 @@ describe('CopyMergeBackfill email id resolution', () => {
     expectMergeInvariants(engine);
   });
 
-  it('skips a mailbox whose UIDVALIDITY changed and leaves its rows separate', async () => {
-    const engine = createTestEngine();
-    const { account, server, pairs } = await seedLegacyDuplicates(engine, SPECS);
+  it('waits for a mailbox whose UIDVALIDITY changed until sync reconciled it', async () => {
+    const engine = createTestEngine({ ai: { oneLinersPerSync: 0 } });
+    const { account, server, inbox, pairs } = await seedLegacyDuplicates(engine, SPECS);
     await enqueueCopyMerge(engine, account.id);
-    onEmailIdFetch(server, 'Archive', () => {
-      server.mailbox('Archive').uidValidity += 1;
+    onEmailIdFetch(server, 'INBOX', () => {
+      server.mailbox('INBOX').uidValidity += 1;
     });
+    const before = sortedIds(storedMessages(engine).map((message) => message.id));
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    pairs.forEach(({ keeperId, loserId }) => {
-      expect(present(stored(engine, keeperId)).emailId).not.toBeNull();
-      expect(present(stored(engine, loserId)).emailId).toBeNull();
+    expect(sortedIds(storedMessages(engine).map((message) => message.id))).toEqual(before);
+    expect(storedMessages(engine).every((message) => message.emailId === null)).toBe(true);
+    expect(present(await copyMergeRow(engine, account.id)).payload.resolve?.[0]).toEqual({
+      mailboxId: inbox.id,
+      afterUid: 0,
     });
     expect(engine.logger.entries.map((entry) => entry.message)).toContain(
-      'Copy merge skipped a mailbox with a new UIDVALIDITY',
+      'Copy merge waits for a mailbox with a new UIDVALIDITY',
     );
-    expect(await copyMergeRow(engine, account.id)).toBeNull();
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect(sortedIds(storedMessages(engine).map((message) => message.id))).toEqual(
-      sortedIds(pairs.map((pair) => pair.keeperId)),
-    );
+    const merged = storedMessages(engine);
+    expect(merged).toHaveLength(pairs.length);
+    merged.forEach((message) => {
+      expect(message.placements).toHaveLength(2);
+    });
+    for (const { loserId } of pairs) {
+      const resolved = await engine.repositories.messages.findById(USER_ID, loserId);
+      expect(merged.map((message) => message.id)).toContain(present(resolved).id);
+      expect(present(resolved).mailboxId).toBe(inbox.id);
+    }
+    expect(engine.db.tables.messageAliases.size).toBe(pairs.length);
     expectMergeInvariants(engine);
   });
 

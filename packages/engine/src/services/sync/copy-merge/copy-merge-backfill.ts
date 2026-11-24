@@ -4,7 +4,6 @@ import type { Logger } from '../../../ports/logger';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import { labelsMessages } from '../../shared/mail-copies';
 import { errorMessage } from '../../shared/mail-provider-sessions';
-import type { LabelRescans } from '../label-rescans';
 import type { SyncBackfill } from '../sync-backfill';
 import type { SyncContext } from '../sync-context';
 import { CopyMergeBudget } from './copy-merge-budget';
@@ -15,7 +14,6 @@ import type { CopyMergeSteps } from './copy-merge-steps';
 export interface CopyMergeBackfillDeps {
   readonly pendingWork: PendingWorkRepository;
   readonly steps: CopyMergeSteps;
-  readonly rescans: LabelRescans;
   readonly clock: Clock;
   readonly logger: Logger;
   readonly sliceMs: number;
@@ -43,9 +41,7 @@ export class CopyMergeBackfill implements SyncBackfill {
     await this.guarded(context, 'Copy merge paused', () =>
       this.drive(context, mailboxes, row, progress),
     );
-    await this.guarded(context, 'Copy merge rescan failed', () =>
-      this.settle(context, progress, started),
-    );
+    this.report(context, progress, started);
   }
 
   private async drive(
@@ -64,20 +60,14 @@ export class CopyMergeBackfill implements SyncBackfill {
     }
   }
 
-  private async settle(
-    context: SyncContext,
-    progress: CopyMergeProgress,
-    started: number,
-  ): Promise<void> {
-    if (progress.merged > 0) {
-      await this.deps.rescans.mark(context.account.id);
-    }
+  private report(context: SyncContext, progress: CopyMergeProgress, started: number): void {
     if (!madeProgress(progress)) {
       return;
     }
+    const { rescanQueued: _rescanQueued, ...counts } = progress;
     this.deps.logger.info('Copy merge progress', {
       accountId: context.account.id,
-      ...progress,
+      ...counts,
       ms: this.deps.clock.now().getTime() - started,
     });
   }

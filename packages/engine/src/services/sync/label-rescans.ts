@@ -12,20 +12,27 @@ export interface LabelRescansDeps {
   readonly clock: Clock;
 }
 
+export const queueLabelRescans = async (
+  repositories: Pick<LabelRescansDeps, 'pendingWork' | 'syncStates'>,
+  accountId: AccountId,
+  createdAt: string,
+): Promise<void> => {
+  for (const state of await repositories.syncStates.listByAccount(accountId)) {
+    await repositories.pendingWork.put({
+      accountId,
+      kind: 'label-rescan',
+      ref: state.mailboxId,
+      payload: { mailboxId: state.mailboxId },
+      createdAt,
+    });
+  }
+};
+
 export class LabelRescans {
   constructor(private readonly deps: LabelRescansDeps) {}
 
-  async mark(accountId: AccountId): Promise<void> {
-    const createdAt = this.deps.clock.now().toISOString();
-    for (const state of await this.deps.syncStates.listByAccount(accountId)) {
-      await this.deps.pendingWork.put({
-        accountId,
-        kind: 'label-rescan',
-        ref: state.mailboxId,
-        payload: { mailboxId: state.mailboxId },
-        createdAt,
-      });
-    }
+  mark(accountId: AccountId): Promise<void> {
+    return queueLabelRescans(this.deps, accountId, this.deps.clock.now().toISOString());
   }
 
   async pending(accountId: AccountId): Promise<Map<MailboxId, LabelRescan>> {

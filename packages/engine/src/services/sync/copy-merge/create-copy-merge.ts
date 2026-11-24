@@ -3,17 +3,16 @@ import type { Logger } from '../../../ports/logger';
 import type { Repositories } from '../../../ports/repositories';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
 import type { ChangeFlusher } from '../change-flusher';
-import type { LabelRescans } from '../label-rescans';
 import type { SyncOptions } from '../sync-options';
 import { CopyMergeBackfill } from './copy-merge-backfill';
 import { CopyMergeSteps } from './copy-merge-steps';
 import { EmailIdResolver } from './email-id-resolver';
+import { MergedArrivals } from './merged-arrivals';
 
 export interface CopyMergeComponentsDeps {
   readonly repositories: Repositories;
   readonly unitOfWork: UnitOfWork;
   readonly flusher: ChangeFlusher;
-  readonly rescans: LabelRescans;
   readonly clock: Clock;
   readonly logger: Logger;
   readonly options: SyncOptions;
@@ -33,6 +32,7 @@ export const createCopyMergeBackfill = (deps: CopyMergeComponentsDeps): CopyMerg
     unitOfWork: deps.unitOfWork,
     resolver,
     flusher: deps.flusher,
+    arrivals: new MergedArrivals(repositories),
     clock,
     chunkMessages: options.copyMerge.chunkMessages,
     conflictRetryMs: options.reconcile.fullExpungeDiffMs,
@@ -40,7 +40,6 @@ export const createCopyMergeBackfill = (deps: CopyMergeComponentsDeps): CopyMerg
   return new CopyMergeBackfill({
     pendingWork: repositories.pendingWork,
     steps,
-    rescans: deps.rescans,
     clock,
     logger,
     sliceMs: options.copyMerge.sliceMs,
