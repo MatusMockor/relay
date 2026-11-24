@@ -1,12 +1,12 @@
 import { type PlacementCandidates, type PlacementIdentity, usesEmailIdentity } from '@relay/engine';
 import type { Message } from '@relay/shared/domain';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messages } from '../../schema';
 import { findAtLocation } from './message-locations';
 import { messageSelection } from './message-selection';
 import { toMessage } from './message.mapper';
-import { placedInRole } from './placement-conditions';
+import { keeperOrder } from './keeper-order';
 
 const byEmailId = async (
   db: DbExecutor,
@@ -17,7 +17,7 @@ const byEmailId = async (
     .select(messageSelection)
     .from(messages)
     .where(and(eq(messages.accountId, identity.accountId), eq(messages.emailId, emailId)))
-    .orderBy(desc(placedInRole('inbox')), asc(messages.id));
+    .orderBy(...keeperOrder());
   return rows.map(toMessage);
 };
 

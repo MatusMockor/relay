@@ -3,8 +3,7 @@ import type { PlacementRemoval } from '@relay/engine';
 import { and, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messagePlacements, messages } from '../../schema';
-import { resolvedMessageId } from '../../support/message-alias';
-import { idIn, lockMessages, lockMessagesWhere } from './message-row-locks';
+import { idIn, lockMessages, lockMessagesWhere, lockResolvedMessage } from './message-row-locks';
 import { retargetReplyDrafts } from '../drafts/reply-draft-retarget';
 import { refreshPrimaryMirror } from './primary-mirror';
 
@@ -82,7 +81,7 @@ export const removePlacementOf = (
   successor: MessageId | null,
 ): Promise<PlacementRemoval> =>
   db.transaction(async (tx) => {
-    const [locked] = await lockMessagesWhere(tx, eq(messages.id, resolvedMessageId(messageId)));
+    const locked = await lockResolvedMessage(tx, messageId);
     if (locked === undefined) {
       return { threadIds: [], retired: false };
     }

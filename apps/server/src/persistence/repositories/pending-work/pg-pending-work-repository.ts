@@ -14,7 +14,9 @@ import { toDate, toIso } from '../../support/timestamps';
 
 type PendingWorkRow = typeof pendingWork.$inferSelect;
 
-const toPendingWork = <Kind extends PendingWorkKind>(row: PendingWorkRow): PendingWork<Kind> => ({
+export const toPendingWork = <Kind extends PendingWorkKind>(
+  row: PendingWorkRow,
+): PendingWork<Kind> => ({
   accountId: row.accountId,
   kind: row.kind as Kind,
   ref: row.ref,
