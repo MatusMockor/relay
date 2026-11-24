@@ -14,6 +14,7 @@ const SECONDARY_LIMIT = /secondary rate limit/i;
 const isRateLimited = (response: Response, body: string): boolean =>
   response.status === 429 ||
   response.headers.get('x-ratelimit-remaining') === '0' ||
+  response.headers.get('retry-after') !== null ||
   SECONDARY_LIMIT.test(body);
 
 export const githubApiError = async (response: Response): Promise<Error> => {

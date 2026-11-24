@@ -60,6 +60,8 @@ describe('GitHubIssuesAdapter against a GitHub REST stub', () => {
     await expect(adapter.listMyOpenTasks(githubAccess())).rejects.toThrow(
       'GitHub dočasne obmedzil počet požiadaviek, skús to znova o chvíľu.',
     );
+    stub.failNext({ status: 403, headers: { 'retry-after': '30' } });
+    await expect(adapter.listMyOpenTasks(githubAccess())).rejects.toThrow(RateLimitedError);
     stub.failNext({ status: 403, body: { message: 'Resource not accessible' } });
     const denied = adapter.verify(githubAccess());
     await expect(denied).rejects.toThrow(/GitHub túto požiadavku pre tento token nepovolil/);
