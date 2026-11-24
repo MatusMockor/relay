@@ -89,7 +89,7 @@ export class TaskSystemConnector {
       id: existing?.id ?? this.deps.ids.generate('taskSystemConnection'),
       userId,
       provider: input.provider,
-      label: label ?? existing?.label ?? defaultLabelOf(account.siteUrl),
+      label: label ?? existing?.label ?? defaultLabelOf(account),
       siteUrl: account.siteUrl,
       accountName: account.accountName.slice(0, 255),
       externalAccountId: account.externalAccountId,

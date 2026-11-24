@@ -5,6 +5,7 @@ import type {
   TaskSystemAdapter,
 } from '@relay/engine';
 import type { JiraCredentials, TaskSystemProvider } from '@relay/shared/domain';
+import { credentialsOf } from '../shared/credentials';
 import { JiraApiClient, type JiraApiClientOptions } from './jira-api-client';
 import { DEFAULT_JIRA_PAGING, type JiraPaging, listMyOpenIssues } from './jira-open-issues';
 import { ATLASSIAN_API_GATEWAY, endpointOf } from './jira-route';
@@ -17,7 +18,8 @@ export interface JiraCloudAdapterOptions extends JiraApiClientOptions {
   readonly gatewayOrigin?: string;
 }
 
-const jiraCredentials = (access: TaskSystemAccess): JiraCredentials => access.credentials;
+const jiraCredentials = (access: TaskSystemAccess): JiraCredentials =>
+  credentialsOf(access, 'jira');
 
 export class JiraCloudAdapter implements TaskSystemAdapter {
   readonly provider: TaskSystemProvider = 'jira';
@@ -47,6 +49,7 @@ export class JiraCloudAdapter implements TaskSystemAdapter {
       externalAccountId: myself.accountId,
       accountName: myself.displayName ?? myself.emailAddress ?? credentials.email,
       credentials: settled,
+      defaultLabel: new URL(origin).hostname,
     };
   }
 

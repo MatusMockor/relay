@@ -19,7 +19,7 @@ export const ExternalTaskSchema = z.object({
   connectionId: TaskSystemConnectionIdSchema,
   provider: TaskSystemProviderSchema,
   externalId: z.string().min(1).max(255),
-  key: z.string().min(1).max(100),
+  key: z.string().min(1).max(200),
   title: z.string().max(1000),
   url: z.url({ protocol: /^https?$/ }).max(4096),
   status: ExternalTaskStatusSchema,

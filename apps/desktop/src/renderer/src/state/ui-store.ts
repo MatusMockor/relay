@@ -1,4 +1,11 @@
-import type { AccountId, Address, MessageId, SettingsSection, ThreadId } from '@relay/shared';
+import type {
+  AccountId,
+  Address,
+  MessageId,
+  SettingsSection,
+  TaskSystemProvider,
+  ThreadId,
+} from '@relay/shared';
 import { create } from 'zustand';
 import type { AnchorRect } from '@relay/ui';
 import { type AccountScope, type Folder, INBOX } from './folders';
@@ -28,6 +35,7 @@ export type AutomationView =
   | { readonly kind: 'detail'; readonly key: string };
 
 export interface TaskSystemConnectDraft {
+  readonly provider: TaskSystemProvider;
   readonly siteUrl: string;
   readonly label: string;
 }

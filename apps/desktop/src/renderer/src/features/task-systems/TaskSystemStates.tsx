@@ -1,6 +1,6 @@
 import type { TaskSystemConnection } from '@relay/shared';
 import { Button, FolderIcon, Icon } from '@relay/ui';
-import { openTaskSystemSettings } from './task-system-settings';
+import { openTaskSystemSettings, reconnectDraftOf } from './task-system-settings';
 
 export function TaskSystemEmpty() {
   return (
@@ -38,7 +38,7 @@ export function TaskSystemReconnect({
             <Button
               variant="primary"
               onClick={() => {
-                openTaskSystemSettings({ siteUrl: connection.siteUrl, label: connection.label });
+                openTaskSystemSettings(reconnectDraftOf(connection));
               }}
             >
               Znova pripojiť
