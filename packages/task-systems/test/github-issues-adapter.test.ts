@@ -26,21 +26,23 @@ describe('GitHubIssuesAdapter against a GitHub REST stub', () => {
       accountName: 'Alice Novák',
       defaultLabel: 'alice',
     });
+    const headers = {
+      authorization: `Bearer ${GITHUB_ALICE.token}`,
+      accept: 'application/vnd.github+json',
+      'x-github-api-version': '2022-11-28',
+    };
     expect(stub.requests).toEqual([
+      { method: 'GET', path: '/user', query: {}, headers },
       {
         method: 'GET',
-        path: '/user',
-        query: {},
-        headers: {
-          authorization: `Bearer ${GITHUB_ALICE.token}`,
-          accept: 'application/vnd.github+json',
-          'x-github-api-version': '2022-11-28',
-        },
+        path: '/issues',
+        query: { filter: 'assigned', state: 'open', per_page: '1', sort: 'updated' },
+        headers,
       },
     ]);
   });
 
-  it('maps rejected tokens to auth failures and rate limits to provider errors', async () => {
+  it('maps only 401 to rejected credentials, 403 to rate limits or access denied', async () => {
     const adapter = githubAdapterFor(stub);
 
     await expect(adapter.verify(githubAccess('wrong'))).rejects.toThrow(
@@ -54,7 +56,11 @@ describe('GitHubIssuesAdapter against a GitHub REST stub', () => {
       /obmedzil počet požiadaviek/,
     );
     stub.failNext({ status: 403, body: { message: 'Resource not accessible' } });
-    await expect(adapter.verify(githubAccess())).rejects.toThrow(ReauthorizationRequiredError);
+    const denied = adapter.verify(githubAccess());
+    await expect(denied).rejects.toThrow(/GitHub túto požiadavku pre tento token nepovolil/);
+    await expect(denied).rejects.not.toThrow(ReauthorizationRequiredError);
+    stub.failNext({ status: 429, headers: { 'retry-after': '60' } });
+    await expect(adapter.verify(githubAccess())).rejects.toThrow(/obmedzil počet požiadaviek/);
     stub.failNext({ status: 500 });
     await expect(adapter.verify(githubAccess())).rejects.toThrow('GitHub vrátil stav 500.');
   });

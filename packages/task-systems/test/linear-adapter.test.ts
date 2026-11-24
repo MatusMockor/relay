@@ -1,6 +1,7 @@
 import { type LinearStub, linearStubIssue, startLinearStub } from '@relay/config/test-infra';
 import { ProviderError, ReauthorizationRequiredError, ValidationError } from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { LinearAdapter } from '../src';
 import { LINEAR_ALICE, linearAccess, linearAdapterFor } from './support/linear';
 
 describe('LinearAdapter against a Linear GraphQL stub', () => {
@@ -27,6 +28,7 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
     expect(stub.requests).toHaveLength(1);
     expect(stub.requests[0]?.authorization).toBe(LINEAR_ALICE.apiKey);
     expect(stub.requests[0]?.query).toContain('organization { name urlKey }');
+    expect(stub.requests[0]?.query).toContain('assignedIssues(first: 1)');
   });
 
   it('treats a rejected key as an auth failure', async () => {
@@ -40,11 +42,22 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
     );
     stub.failNext({ status: 401, body: 'Unauthorized' });
     await expect(adapter.verify(linearAccess())).rejects.toThrow(ReauthorizationRequiredError);
+  });
+
+  it('treats a forbidden request as access denied, not as rejected credentials', async () => {
+    const adapter = linearAdapterFor(stub);
+
     stub.failNext({
       status: 200,
       body: { errors: [{ message: 'Forbidden', extensions: { code: 'FORBIDDEN' } }] },
     });
-    await expect(adapter.verify(linearAccess())).rejects.toThrow(ReauthorizationRequiredError);
+    const forbidden = adapter.verify(linearAccess());
+    await expect(forbidden).rejects.toThrow(ProviderError);
+    await expect(forbidden).rejects.not.toThrow(ReauthorizationRequiredError);
+    stub.failNext({ status: 403, body: 'Forbidden' });
+    await expect(adapter.listMyOpenTasks(linearAccess())).rejects.toThrow(
+      'Linear túto požiadavku pre tento API kľúč nepovolil. Skontroluj oprávnenia kľúča.',
+    );
   });
 
   it('pages through my open issues with the cursor and maps them', async () => {
@@ -110,6 +123,38 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
     expect(result.tasks.map((task) => task.key)).toEqual(['ENG-1', 'ENG-2', 'ENG-3']);
     expect(result.truncated).toBe(true);
     expect(stub.requests.at(-1)?.variables).toEqual({ first: 1, after: 'cursor-2' });
+  });
+
+  it('stops paging after the request cap or on a repeated cursor', async () => {
+    stub.pageSize = 1;
+    for (const index of [1, 2, 3, 4]) {
+      stub.issue(LINEAR_ALICE.id, linearStubIssue(`ENG-${String(index)}`));
+    }
+    const capped = new LinearAdapter({ apiUrl: stub.apiUrl, paging: { maxPages: 2 } });
+
+    expect(await capped.listMyOpenTasks(linearAccess())).toMatchObject({ truncated: true });
+    expect(stub.requests).toHaveLength(2);
+
+    const looping = {
+      status: 200,
+      body: {
+        data: {
+          viewer: {
+            assignedIssues: {
+              nodes: [linearStubIssue('ENG-9')],
+              pageInfo: { hasNextPage: true, endCursor: 'same' },
+            },
+          },
+        },
+      },
+    };
+    stub.failNext(looping);
+    stub.failNext(looping);
+    const result = await linearAdapterFor(stub).listMyOpenTasks(linearAccess());
+
+    expect(result.truncated).toBe(true);
+    expect(result.tasks.map((task) => task.key)).toEqual(['ENG-9', 'ENG-9']);
+    expect(stub.requests).toHaveLength(4);
   });
 
   it('fails on invalid responses and other GraphQL errors', async () => {

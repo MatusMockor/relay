@@ -1,5 +1,7 @@
-export const LINEAR_VIEWER_QUERY =
-  'query RelayViewer { viewer { id name email } organization { name urlKey } }';
+export const LINEAR_VIEWER_QUERY = `query RelayViewer {
+  viewer { id name email assignedIssues(first: 1) { nodes { id } } }
+  organization { name urlKey }
+}`;
 
 export const LINEAR_ASSIGNED_ISSUES_QUERY = `query RelayAssignedIssues($first: Int!, $after: String) {
   viewer {

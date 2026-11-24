@@ -100,7 +100,7 @@ export const demoSiteUrl = (raw: string): string => {
 
 const REJECTED_MESSAGES: Readonly<Record<TaskSystemProvider, string>> = {
   jira: 'Jira odmietla prihlasovacie údaje. Skontroluj e-mail a API token.',
-  linear: 'Linear odmietol API kľúč. Skontroluj, či je platný a má právo čítať.',
+  linear: 'Linear odmietol API kľúč. Skontroluj, či je platný a nevypršal.',
   github: 'GitHub odmietol token. Skontroluj, či je platný a nevypršal.',
 };
 

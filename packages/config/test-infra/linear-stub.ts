@@ -75,15 +75,21 @@ export const startLinearStub = async (): Promise<LinearStub> => {
   };
 
   const answer = (user: LinearStubUser, request: LinearStubRequest, response: ServerResponse) => {
+    if (request.query.includes('organization')) {
+      const probe = assignedIssues(user, { ...request, variables: { first: 1 } });
+      const viewer = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        assignedIssues: { nodes: probe.nodes.map((node) => ({ id: node.id })) },
+      };
+      sendJson(response, 200, { data: { viewer, organization } });
+      return;
+    }
     if (request.query.includes('assignedIssues')) {
       sendJson(response, 200, {
         data: { viewer: { assignedIssues: assignedIssues(user, request) } },
       });
-      return;
-    }
-    if (request.query.includes('organization')) {
-      const viewer = { id: user.id, name: user.name, email: user.email };
-      sendJson(response, 200, { data: { viewer, organization } });
       return;
     }
     sendJson(response, 400, { errors: [{ message: 'Unknown query' }] });

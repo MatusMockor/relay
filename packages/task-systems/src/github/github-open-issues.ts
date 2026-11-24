@@ -5,12 +5,6 @@ import type { GitHubApiClient, GitHubPage } from './github-api-client';
 import { type GitHubIssue, GitHubIssueListSchema } from './github-api-schemas';
 import { isPullRequest, toRemoteTask } from './github-issue-mapper';
 
-export interface GitHubPaging extends TaskPaging {
-  readonly maxPages: number;
-}
-
-export const DEFAULT_GITHUB_PAGING: GitHubPaging = { pageSize: 100, maxIssues: 300, maxPages: 10 };
-
 export const assignedIssuesPath = (pageSize: number): string => {
   const query = new URLSearchParams({
     filter: 'assigned',
@@ -24,7 +18,7 @@ export const assignedIssuesPath = (pageSize: number): string => {
 export const listMyOpenGitHubIssues = async (
   api: GitHubApiClient,
   credentials: GitHubCredentials,
-  paging: GitHubPaging,
+  paging: TaskPaging,
 ): Promise<RemoteTaskList> => {
   const tasks: RemoteTaskList['tasks'] = [];
   let path: string | null = assignedIssuesPath(paging.pageSize);

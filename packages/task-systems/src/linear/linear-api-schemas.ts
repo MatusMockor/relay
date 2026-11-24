@@ -24,6 +24,7 @@ export const LinearViewerSchema = z.object({
     id: z.string().min(1).max(255),
     name: text(1000).nullish(),
     email: text(320).nullish(),
+    assignedIssues: z.object({ nodes: z.array(z.object({ id: text(255) })).max(10) }),
   }),
   organization: z.object({
     name: text(1000).nullish(),
