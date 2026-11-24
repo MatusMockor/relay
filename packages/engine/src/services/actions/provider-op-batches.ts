@@ -44,11 +44,11 @@ export class ProviderOpBatches {
     const roleOf = await this.roleOf(account);
     for (const op of ops) {
       const message = await this.deps.messages.findById(account.userId, op.payload.messageId);
-      const placement = message === null ? undefined : opPlacement(op.payload, message, roleOf);
-      if (message === null || placement === undefined) {
+      if (message === null) {
         gone.push(op);
         continue;
       }
+      const placement = opPlacement(op.payload, message, roleOf);
       if (isPendingPlacement(placement)) {
         continue;
       }

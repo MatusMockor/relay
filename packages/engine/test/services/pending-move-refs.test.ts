@@ -125,4 +125,38 @@ describe('provider op refs', () => {
     const moved = present(await engine.repositories.messages.findById(USER_ID, message.id));
     expect(moved.placements.map(({ mailboxId }) => mailboxId)).toEqual([archive.id]);
   });
+
+  it('moves the current primary placement when the recorded source was relocated', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'm1', date: '2026-11-14T08:00:00.000Z' });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const message = present([...engine.db.tables.messages.values()][0]);
+    const { mailboxes } = engine.repositories;
+    const inbox = present(await mailboxes.findByPath(account.id, 'INBOX'));
+    const stale = present(placementIn(message, inbox.id));
+    await engine.services.actions.apply(USER_ID, message.threadId, { type: 'done' });
+    const archive = present(await mailboxes.findByPath(account.id, 'Archive'));
+    const relocated = present(await engine.repositories.messages.findById(USER_ID, message.id));
+    expect(relocated.placements.map(({ mailboxId }) => mailboxId)).toEqual([archive.id]);
+
+    await recordProviderOps(
+      engine.repositories.pendingWork,
+      account.id,
+      [{ messageId: message.id, change: { kind: 'move', role: 'trash' }, source: stale }],
+      TEST_NOW,
+    );
+    const pending = await PendingMoves.load(engine.repositories.pendingWork, account.id);
+    const roleOf = await roleOfIn(engine, account.id);
+    const current = present(placementIn(relocated, archive.id));
+    expect(pending.targetOf(relocated, current, roleOf)?.role).toBe('trash');
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const trash = present(await mailboxes.findByPath(account.id, 'Trash'));
+    expect(providerOps(engine)).toEqual([]);
+    expect(server.mailbox('Archive').messages.size).toBe(0);
+    expect(server.mailbox('Trash').messages.size).toBe(1);
+    const moved = present(await engine.repositories.messages.findById(USER_ID, message.id));
+    expect(moved.placements.map(({ mailboxId }) => mailboxId)).toEqual([trash.id]);
+  });
 });

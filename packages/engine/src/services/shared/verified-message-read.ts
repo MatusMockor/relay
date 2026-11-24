@@ -1,3 +1,4 @@
+import type { Message } from '@relay/shared/domain';
 import type { RawMessage } from '../../model/remote-mail';
 import type { MailProvider } from '../../ports/mail-provider';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
@@ -45,3 +46,9 @@ export const copyLocationOf = async (
   }
   return { path: mailbox.path, uid: placement.uid, uidValidity: state.uidValidity };
 };
+
+export const sameMessageId = (
+  message: Pick<Message, 'messageIdHeader'>,
+  parsed: { readonly messageIdHeader: string | null },
+): boolean =>
+  message.messageIdHeader === null || parsed.messageIdHeader === message.messageIdHeader;

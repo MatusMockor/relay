@@ -134,6 +134,25 @@ describe('placement readers', () => {
     ]);
   });
 
+  it('reads a received attachment from All Mail when the inbox UID holds another message', async () => {
+    const { engine, server, message, inbox, allMail } = await joinedWithAttachment();
+    const inboxUid = placementOf(message, inbox).uid;
+    const otherUid = deliverMail(server, 'INBOX', {
+      id: 'other',
+      headers: { 'X-Test-Attachment-1': attachmentHeader('zmluva.pdf', 'application/pdf', 'XXX') },
+    });
+    const box = server.mailbox('INBOX');
+    box.messages.set(inboxUid, { ...server.record('INBOX', otherUid), uid: inboxUid });
+    box.messages.delete(otherUid);
+    server.fetchedMessages.length = 0;
+
+    expect(await attachmentText(engine)).toBe('PDF');
+    expect(server.fetchedMessages).toEqual([
+      { path: 'INBOX', uid: inboxUid },
+      { path: 'Archive', uid: placementOf(message, allMail).uid },
+    ]);
+  });
+
   it('reads a received attachment from All Mail when the inbox placement is pending', async () => {
     const { engine, server, message, inbox, allMail } = await joinedWithAttachment();
     withPendingInbox(engine, message, inbox);

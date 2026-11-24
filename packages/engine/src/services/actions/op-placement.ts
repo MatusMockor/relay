@@ -13,19 +13,18 @@ type PlacementPicker = (
   op: ProviderOpWork,
   message: Message,
   roleOf: MailboxRoleOf,
-) => MessagePlacement | undefined;
+) => MessagePlacement;
 
 const moveSource: PlacementPicker = (op, message, roleOf) =>
-  op.source === undefined
-    ? primaryPlacement(message, roleOf)
-    : placementIn(message, op.source.mailboxId);
+  (op.source === undefined ? undefined : placementIn(message, op.source.mailboxId)) ??
+  primaryPlacement(message, roleOf);
 
 const labelCarrier: PlacementPicker = (_op, message, roleOf) => {
   const ranked = rankedPlacements(message, roleOf);
   const allMail = ranked.find(
     (placement) => !isPendingPlacement(placement) && roleOf(placement.mailboxId) === 'archive',
   );
-  return allMail ?? ranked[0];
+  return allMail ?? primaryPlacement(message, roleOf);
 };
 
 const primary: PlacementPicker = (_op, message, roleOf) => primaryPlacement(message, roleOf);
@@ -41,4 +40,4 @@ export const opPlacement = (
   op: ProviderOpWork,
   message: Message,
   roleOf: MailboxRoleOf,
-): MessagePlacement | undefined => PICKERS[op.change.kind](op, message, roleOf);
+): MessagePlacement => PICKERS[op.change.kind](op, message, roleOf);

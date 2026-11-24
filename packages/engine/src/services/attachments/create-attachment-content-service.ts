@@ -20,6 +20,7 @@ export const createAttachmentContentService = (
           locations: new PlacementLocations(deps.repositories.mailboxes),
           syncStates: deps.repositories.syncStates,
           sessions,
+          parser: deps.messageParser,
         });
   return new AttachmentContentService(deps.attachmentStore, received);
 };

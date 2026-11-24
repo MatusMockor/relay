@@ -11,6 +11,7 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentExtractor } from '../../ports/attachment-extractor';
 import type { MailProvider } from '../../ports/mail-provider';
 import type { MessageAttachmentLookup } from '../../ports/message-attachment-lookup';
+import type { MessageParser } from '../../ports/message-parser';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { PlacementLocations } from '../shared/placement-locations';
@@ -18,6 +19,7 @@ import {
   copyLocationOf,
   type RemoteCopyLocation,
   readVerifiedMessage,
+  sameMessageId,
 } from '../shared/verified-message-read';
 import { pickRemoteAttachment } from './remote-attachment-pick';
 
@@ -28,20 +30,8 @@ export interface ReceivedAttachmentReaderDeps {
   readonly locations: PlacementLocations;
   readonly syncStates: SyncStateRepository;
   readonly sessions: MailProviderSessions;
+  readonly parser: MessageParser;
 }
-
-const firstSource = async (
-  provider: MailProvider,
-  locations: readonly RemoteCopyLocation[],
-): Promise<RawMessage | null> => {
-  for (const location of locations) {
-    const raw = await readVerifiedMessage(provider, location);
-    if (raw !== null) {
-      return raw;
-    }
-  }
-  return null;
-};
 
 export class ReceivedAttachmentReader {
   constructor(private readonly deps: ReceivedAttachmentReaderDeps) {}
@@ -59,7 +49,7 @@ export class ReceivedAttachmentReader {
       return null;
     }
     const raw = await this.deps.sessions.with(account, (provider) =>
-      firstSource(provider, locations),
+      this.firstSource(provider, message, locations),
     );
     const extracted = raw === null ? null : await this.extract(message, raw.source, index, meta);
     if (extracted === null) {
@@ -70,6 +60,28 @@ export class ReceivedAttachmentReader {
       contentType: meta.contentType,
       content: extracted.content,
     };
+  }
+
+  private async firstSource(
+    provider: MailProvider,
+    message: Message,
+    locations: readonly RemoteCopyLocation[],
+  ): Promise<RawMessage | null> {
+    for (const location of locations) {
+      const raw = await readVerifiedMessage(provider, location);
+      if (raw !== null && (await this.isSameMessage(message, raw))) {
+        return raw;
+      }
+    }
+    return null;
+  }
+
+  private async isSameMessage(message: Message, raw: RawMessage): Promise<boolean> {
+    if (message.messageIdHeader === null) {
+      return true;
+    }
+    const parsed = await this.deps.parser.parse(raw.source).catch(() => null);
+    return parsed !== null && sameMessageId(message, parsed);
   }
 
   private async copyLocations(message: Message): Promise<RemoteCopyLocation[]> {

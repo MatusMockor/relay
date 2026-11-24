@@ -6,6 +6,7 @@ import {
   type Message,
   type MessageId,
   type MessagePlacement,
+  isPlacedIn,
   primaryPlacement,
 } from '@relay/shared/domain';
 import type { ProviderOpWork } from '../../model/pending-work';
@@ -17,10 +18,16 @@ export interface PendingMove {
   readonly mailboxId?: MailboxId;
 }
 
+interface SourcedMove {
+  readonly source: MailboxId;
+  readonly move: PendingMove;
+}
+
 export class PendingMoves {
   private constructor(
     private readonly sourced: ReadonlyMap<string, PendingMove>,
     private readonly legacy: ReadonlyMap<MessageId, PendingMove>,
+    private readonly sources: ReadonlyMap<MessageId, readonly SourcedMove[]>,
   ) {}
 
   static async load(
@@ -34,6 +41,7 @@ export class PendingMoves {
   private static of(ops: readonly ProviderOpWork[]): PendingMoves {
     const sourced = new Map<string, PendingMove>();
     const legacy = new Map<MessageId, PendingMove>();
+    const sources = new Map<MessageId, SourcedMove[]>();
     for (const { messageId, change, source } of ops) {
       if (change.kind !== 'move') {
         continue;
@@ -43,8 +51,12 @@ export class PendingMoves {
         continue;
       }
       sourced.set(placementKey(messageId, source.mailboxId), change);
+      sources.set(messageId, [
+        ...(sources.get(messageId) ?? []),
+        { source: source.mailboxId, move: change },
+      ]);
     }
-    return new PendingMoves(sourced, legacy);
+    return new PendingMoves(sourced, legacy, sources);
   }
 
   targetOf(
@@ -56,10 +68,18 @@ export class PendingMoves {
     if (sourced !== undefined) {
       return sourced;
     }
-    const legacy = this.legacy.get(message.id);
-    if (legacy === undefined) {
+    const unplaced = this.legacy.get(message.id) ?? this.orphanOf(message);
+    if (unplaced === undefined) {
       return undefined;
     }
-    return primaryPlacement(message, roleOf).mailboxId === placement.mailboxId ? legacy : undefined;
+    const primary = primaryPlacement(message, roleOf);
+    return primary.mailboxId === placement.mailboxId ? unplaced : undefined;
+  }
+
+  private orphanOf(message: Message): PendingMove | undefined {
+    const orphan = (this.sources.get(message.id) ?? []).find(
+      ({ source }) => !isPlacedIn(message, source),
+    );
+    return orphan?.move;
   }
 }

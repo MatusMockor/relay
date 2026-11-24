@@ -13,6 +13,7 @@ import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { summaryMessage } from './history/summary-message';
+import { withAdoptedPlacement } from './adopted-placement';
 import { recordCreated } from './ingest-effects';
 import type { IngestOutcome, IngestTarget } from './ingest-target';
 import { flagsDiffer, sameMembers } from './message-diff';
@@ -149,7 +150,7 @@ export class MessageIngestor {
       if (labelsChanged) {
         await repositories.messages.updateLabels(known.id, labelIds);
       }
-      const message: Message = { ...placedAt(known, relocated), flags, labelIds };
+      const message: Message = { ...withAdoptedPlacement(known, relocated), flags, labelIds };
       return { kind: 'existing', message, changed: flagsChanged || labelsChanged };
     });
   }
@@ -168,9 +169,6 @@ export class MessageIngestor {
     );
   }
 }
-
-const placedAt = (message: Message, location: MessageLocation | null): Message =>
-  location === null ? message : { ...message, ...location, placements: [location] };
 
 const isParsed = (value: unknown): value is ParsedMessage =>
   typeof value === 'object' && value !== null && !(value instanceof Error) && 'headers' in value;

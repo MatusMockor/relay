@@ -11,6 +11,7 @@ import {
   copyLocationOf,
   type RemoteCopyLocation,
   readVerifiedMessage,
+  sameMessageId,
 } from '../shared/verified-message-read';
 
 export type RemoteBodyOutcome =
@@ -77,7 +78,7 @@ export class RemoteBodyFetcher {
     if (parsed === null) {
       return MISSING;
     }
-    if (message.messageIdHeader !== null && parsed.messageIdHeader !== message.messageIdHeader) {
+    if (!sameMessageId(message, parsed)) {
       return MISSING;
     }
     return { kind: 'body', body: { textBody: parsed.textBody, htmlBody: parsed.htmlBody } };
