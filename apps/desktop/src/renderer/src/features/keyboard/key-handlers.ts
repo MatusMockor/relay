@@ -32,9 +32,9 @@ export const G_VIEWS: Readonly<Record<string, Folder>> = {
   k: { kind: 'view', view: 'trash' },
 };
 
-export const tabFolders = (splits: readonly SplitEntry[], hasTasks: boolean): Folder[] => [
+export const tabFolders = (splits: readonly SplitEntry[]): Folder[] => [
   { kind: 'inbox', splitId: null },
-  ...(hasTasks ? [{ kind: 'view' as const, view: 'tasks' as const }] : []),
+  { kind: 'view', view: 'tasks' },
   ...splits.map((split) => ({ kind: 'inbox' as const, splitId: split.id })),
 ];
 
