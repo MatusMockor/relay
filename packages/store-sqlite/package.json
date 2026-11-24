@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "perf:copy-merge": "RELAY_PERF=1 RELAY_PERF_SIZE=500 vitest run copy-merge.perf && RELAY_PERF=1 RELAY_PERF_SIZE=10000 vitest run copy-merge.perf && RELAY_PERF=1 RELAY_PERF_SIZE=100000 vitest run copy-merge.perf"
   },
   "dependencies": {
     "@relay/engine": "workspace:*",
