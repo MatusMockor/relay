@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { accounts } from './accounts';
 import { mailboxes } from './mailboxes';
@@ -41,9 +42,13 @@ export const messages = sqliteTable(
     bodyState: text('body_state', { enum: ['local', 'remote'] })
       .notNull()
       .default('local'),
+    jiraEffectsAt: text('jira_effects_at'),
+    inviteEffectsAt: text('invite_effects_at'),
   },
   (table) => [
-    uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
+    uniqueIndex('messages_mailbox_uid_unique')
+      .on(table.mailboxId, table.uid)
+      .where(sql`uid > 0`),
     index('messages_thread_date_idx').on(table.threadId, table.dateTs),
     index('messages_mailbox_thread_idx').on(table.mailboxId, table.threadId),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),

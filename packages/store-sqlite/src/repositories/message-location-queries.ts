@@ -1,7 +1,6 @@
 import type { MessageLocation } from '@relay/engine';
-import type { MailboxId, ThreadId } from '@relay/shared/domain';
-import { ThreadIdSchema } from '@relay/shared/domain';
-import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
+import { type MailboxId, PENDING_UID } from '@relay/shared/domain';
+import { and, asc, eq, getTableColumns, gt, inArray } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import { type MessageRow, messagePlacements, messages } from '../schema';
 import { chunked } from './chunked';
@@ -38,36 +37,7 @@ export const listPlacedUids = (db: RelayDb, mailboxId: MailboxId): number[] =>
   db
     .select({ uid: messagePlacements.uid })
     .from(messagePlacements)
-    .where(eq(messagePlacements.mailboxId, mailboxId))
+    .where(and(eq(messagePlacements.mailboxId, mailboxId), gt(messagePlacements.uid, PENDING_UID)))
     .orderBy(asc(messagePlacements.uid))
     .all()
     .map((row) => row.uid);
-
-export const deleteRowsAtUids = (
-  db: RelayDb,
-  mailboxId: MailboxId,
-  uids: readonly number[],
-): ThreadId[] => {
-  const threadIds = chunked(uids).flatMap((chunk) =>
-    db
-      .delete(messages)
-      .where(
-        inArray(
-          messages.id,
-          db
-            .select({ id: messagePlacements.messageId })
-            .from(messagePlacements)
-            .where(
-              and(
-                eq(messagePlacements.mailboxId, mailboxId),
-                inArray(messagePlacements.uid, chunk),
-              ),
-            ),
-        ),
-      )
-      .returning({ threadId: messages.threadId })
-      .all()
-      .map((row) => row.threadId),
-  );
-  return [...new Set(threadIds)].sort().map((threadId) => ThreadIdSchema.parse(threadId));
-};

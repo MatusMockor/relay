@@ -50,12 +50,18 @@ export interface StoredDraft {
   readonly draft: Draft;
 }
 
+export interface StoredEffectGates {
+  readonly jira: string | null;
+  readonly invite: string | null;
+}
+
 export class MemoryTables {
   readonly accounts = new Map<AccountId, MailAccount>();
   readonly mailboxes = new Map<MailboxId, Mailbox>();
   readonly messages = new Map<MessageId, Message>();
   readonly messageHeaders = new Map<MessageId, MessageHeaders>();
   readonly messageAliases = new Map<MessageId, MessageId>();
+  readonly messageEffects = new Map<MessageId, StoredEffectGates>();
   readonly threads = new Map<ThreadId, ThreadSummary>();
   readonly labels = new Map<LabelId, Label>();
   readonly splits = new Map<UserId, Split[]>();

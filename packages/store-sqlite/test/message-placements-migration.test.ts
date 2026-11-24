@@ -1,21 +1,14 @@
-import { AccountIdSchema, type Mailbox, MailboxIdSchema } from '@relay/shared/domain';
+import { AccountIdSchema, MailboxIdSchema } from '@relay/shared/domain';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createSqliteRepositories, migrate, openDatabase, type SqliteDatabase } from '../src';
 import { buildMailbox, messageId } from './support/fixtures';
 import { insertLegacyAccount } from './support/legacy-account';
+import { insertLegacyMailbox } from './support/legacy-mailbox';
 import { insertLegacyMessage } from './support/legacy-message';
 import { writeMigrationsBefore } from './support/partial-migrations';
 import { createTempDirectory, type TempDirectory } from './support/test-database';
 
 const ROLES = ['inbox', 'archive', 'sent', 'drafts', 'spam', 'custom'] as const;
-
-const insertMailbox = (database: SqliteDatabase, mailbox: Mailbox): void => {
-  database.sqlite
-    .prepare(
-      `insert into mailboxes (id, account_id, name, path, delimiter, role, unread_count, total_count) values (?, ?, ?, ?, '/', ?, 0, 0)`,
-    )
-    .run(mailbox.id, mailbox.accountId, mailbox.name, mailbox.path, mailbox.role);
-};
 
 const ftsHits = (database: SqliteDatabase, term: string): number =>
   database.sqlite
@@ -52,7 +45,7 @@ describe('message placements migration', () => {
       }),
     );
     mailboxes.forEach((mailbox, index) => {
-      insertMailbox(database, mailbox);
+      insertLegacyMailbox(database, mailbox);
       insertLegacyMessage(database, {
         id: `msg-${mailbox.role}`,
         userId: account.userId,

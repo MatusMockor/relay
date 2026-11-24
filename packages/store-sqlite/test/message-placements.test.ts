@@ -70,7 +70,7 @@ describe.each(locations)('message placements $name', ({ file }) => {
       uid: 0,
     });
     expect(await messages.listUids(seeded.inbox.id)).toEqual([9]);
-    expect(await messages.listUids(seeded.sent.id)).toEqual([0]);
+    expect(await messages.listUids(seeded.sent.id)).toEqual([]);
     expect(
       (await createSqliteMessageUids(store.database).findByUids(seeded.inbox.id, [7, 9])).map(
         (row) => row.id,

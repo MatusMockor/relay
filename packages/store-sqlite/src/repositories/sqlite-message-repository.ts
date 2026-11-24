@@ -4,6 +4,11 @@ import type {
   MessageRepository,
   Page,
   PageRequest,
+  PlacementIdentity,
+  PlacementMatch,
+  PlacementMove,
+  PlaceOutcome,
+  PlaceRequest,
   StoredMatchSubject,
   SubjectSearchWindow,
 } from '@relay/engine';
@@ -21,15 +26,17 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toMessageHeaders, toMessageRow } from '../mappers/message-mapper';
+import { toMessageHeaders } from '../mappers/message-mapper';
 import { type MessageRow, messageLabels, messages } from '../schema';
-import { accountOwnerOf } from './account-owner';
 import { chunked } from './chunked';
 import { listMatchSubjects } from './match-subject-query';
 import { resolveMessageId } from './message-alias-resolver';
 import { hydrateMessages } from './message-hydrator';
-import { deleteRowsAtUids, findRowsAtLocation, listPlacedUids } from './message-location-queries';
-import { replacePlacement } from './message-placement-writer';
+import { findRowsAtLocation, listPlacedUids } from './message-location-queries';
+import { matchPlacementIn, placeMessage } from './message-placing';
+import { movePlacementRow, replacePlacement } from './message-placement-writer';
+import { replaceLabels, writeMessageRow } from './message-row-writer';
+import { deleteAtUids, forgetMailboxPlacements, removePlacementOf } from './placement-removal';
 import { findThreadIdByReplyTo } from './reply-thread-query';
 
 export class SqliteMessageRepository implements MessageRepository {
@@ -158,14 +165,9 @@ export class SqliteMessageRepository implements MessageRepository {
 
   upsert(message: Message, headers: MessageHeaders): Promise<Message> {
     return this.executor.execute((db) => {
-      const row = toMessageRow(accountOwnerOf(db, message.accountId), message, headers);
-      const { id: _id, ...changes } = row;
-      db.insert(messages)
-        .values(row)
-        .onConflictDoUpdate({ target: messages.id, set: changes })
-        .run();
+      writeMessageRow(db, message, headers);
       replacePlacement(db, message.id, message);
-      this.replaceLabels(db, message.id, message.labelIds);
+      replaceLabels(db, message.id, message.labelIds);
       return { ...message, placements: [{ mailboxId: message.mailboxId, uid: message.uid }] };
     });
   }
@@ -185,7 +187,7 @@ export class SqliteMessageRepository implements MessageRepository {
 
   updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void> {
     return this.executor.execute((db) => {
-      this.replaceLabels(db, resolveMessageId(db, messageId), labelIds);
+      replaceLabels(db, resolveMessageId(db, messageId), labelIds);
     });
   }
 
@@ -222,19 +224,32 @@ export class SqliteMessageRepository implements MessageRepository {
     });
   }
 
-  deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
-    return this.executor.execute((db) => deleteRowsAtUids(db, mailboxId, uids));
+  matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {
+    return this.executor.execute((db) => matchPlacementIn(db, identity));
   }
 
-  private replaceLabels(db: RelayDb, messageId: string, labelIds: readonly string[]): void {
-    db.delete(messageLabels).where(eq(messageLabels.messageId, messageId)).run();
-    const unique = [...new Set(labelIds)];
-    if (unique.length === 0) {
-      return;
-    }
-    db.insert(messageLabels)
-      .values(unique.map((labelId) => ({ messageId, labelId })))
-      .run();
+  place(request: PlaceRequest): Promise<PlaceOutcome> {
+    return this.executor.execute((db) => placeMessage(db, request));
+  }
+
+  movePlacement(messageId: MessageId, move: PlacementMove): Promise<void> {
+    return this.executor.execute((db) => {
+      movePlacementRow(db, resolveMessageId(db, messageId), move);
+    });
+  }
+
+  removePlacement(messageId: MessageId, mailboxId: MailboxId): Promise<ThreadId[]> {
+    return this.executor.execute((db) =>
+      removePlacementOf(db, resolveMessageId(db, messageId), mailboxId),
+    );
+  }
+
+  forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]> {
+    return this.executor.execute((db) => forgetMailboxPlacements(db, mailboxId));
+  }
+
+  deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
+    return this.executor.execute((db) => deleteAtUids(db, mailboxId, uids));
   }
 
   private first(db: RelayDb, rows: MessageRow[]): Message | null {
