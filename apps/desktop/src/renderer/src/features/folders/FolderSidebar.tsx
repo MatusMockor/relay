@@ -1,6 +1,6 @@
 import { composeOverlay } from '../../state/compose-overlay';
 import { AccountSquare, FolderIcon, Icon, Kbd, Status, TooltipButton } from '@relay/ui';
-import { useLabels, useTasks } from '../../data/hooks/use-mail-queries';
+import { useLabels } from '../../data/hooks/use-mail-queries';
 import { useSessionStore } from '../../session/session-store';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { accountLike, useAccountsModel } from '../mail/use-accounts-model';
@@ -50,13 +50,11 @@ export function FolderSidebar({ width }: { readonly width: number }) {
   const model = useAccountsModel();
   const scope = useUiStore((state) => state.scope);
   const labels = useLabels();
-  const tasks = useTasks();
   const name = model.current?.displayName ?? 'Všetky účty';
   const sub = model.current?.email ?? accountCount(model.accounts.length);
   const scopedLabels = (labels.data ?? []).filter(
     (label) => scope === 'all' || label.accountId === scope,
   );
-  const openTasks = (tasks.data?.items ?? []).some((task) => task.state !== 'done');
   return (
     <nav className="fold" id="fold" aria-label="Priečinky" style={{ width }}>
       <div className="fold-bar" />
@@ -103,7 +101,7 @@ export function FolderSidebar({ width }: { readonly width: number }) {
         Napísať
         <Kbd keys={['C']} />
       </button>
-      <SystemFolders showTasks={openTasks} />
+      <SystemFolders />
       <TaskSystemFolders />
       <AccountFolders labels={scopedLabels} />
       <FolderEditHost />

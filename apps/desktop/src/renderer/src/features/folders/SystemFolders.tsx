@@ -22,13 +22,13 @@ const isOn = (folder: Folder, view: NavView): boolean => {
 const folderFor = (view: NavView): Folder =>
   view === 'inbox' ? { kind: 'inbox', splitId: null } : { kind: 'view', view };
 
-export function SystemFolders({ showTasks }: { readonly showTasks: boolean }) {
+export function SystemFolders() {
   const folder = useUiStore((state) => state.folder);
   const counts = useFolderCounts();
   const showMenu = useFolderMenu();
   return (
     <>
-      {NAV_VIEWS.filter((view) => view !== 'tasks' || showTasks).map((view) => {
+      {NAV_VIEWS.map((view) => {
         const meta = VIEW_META[view];
         const count = counts[view] ?? 0;
         const entry = folderFor(view);

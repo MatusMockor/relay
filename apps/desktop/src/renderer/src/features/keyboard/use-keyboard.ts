@@ -4,7 +4,7 @@ import { hasOpenLayer } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
-import { useSplits, useTasks } from '../../data/hooks/use-mail-queries';
+import { useSplits } from '../../data/hooks/use-mail-queries';
 import { undoLast } from '../../state/toast-store';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import { centerRect, rectOf } from '../folders/rect';
@@ -50,7 +50,6 @@ export const useKeyboard = (): void => {
   const queryClient = useQueryClient();
   const scope = useUiStore((state) => state.scope);
   const splits = splitsInScope(useSplits().data ?? [], scope);
-  const hasTasks = (useTasks().data?.items ?? []).some((task) => task.state !== 'done');
   const gAt = useRef(0);
   const priorityChord = usePriorityChord();
   const taskSystemKeys = useTaskSystemKeys();
@@ -241,7 +240,7 @@ export const useKeyboard = (): void => {
       },
       [PRIORITY_CHORD_KEY]: priorityChord.arm,
       Tab: () => {
-        selectFolder(cycleFolder(tabFolders(splits, hasTasks), ui.folder, event.shiftKey ? -1 : 1));
+        selectFolder(cycleFolder(tabFolders(splits), ui.folder, event.shiftKey ? -1 : 1));
       },
       '1': () => {
         const text = suggestionAt(detail, 0);
