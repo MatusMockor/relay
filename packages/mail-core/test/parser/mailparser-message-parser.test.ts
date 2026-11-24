@@ -150,12 +150,45 @@ describe('MailparserMessageParser', () => {
     );
   });
 
-  it('treats a single text part full of HTML as the HTML body', async () => {
+  it('treats a single text part full of HTML as the HTML body and keeps a text version', async () => {
     const message = await parseFixture('html-only-in-text.eml');
 
-    expect(message.textBody).toBeNull();
     expect(message.htmlBody).toContain('<p>Zásielka bola doručená.</p>');
+    expect(message.textBody).toBe('Zásielka bola doručená.\n\nĎakujeme, že využívate naše služby.');
     expect(message.snippet).toBe('Zásielka bola doručená. Ďakujeme, že využívate naše služby.');
+  });
+
+  it('leaves the quoted older message out of the snippet when the text part is HTML', async () => {
+    const parser = new MailparserMessageParser(
+      new FixedClock(new Date('2026-01-02T03:04:05.000Z')),
+    );
+    const markup =
+      '<html><body><div>Nová odpoveď</div><div class="gmail_quote"><div>Jana poslala v pondelok:</div><div>Stará správa</div></div></body></html>';
+    const source = new TextEncoder().encode(
+      [
+        'From: Jana <jana@klient.sk>',
+        'To: matus@relay.test',
+        'Subject: Re: Ponuka',
+        'MIME-Version: 1.0',
+        'Content-Type: multipart/alternative; boundary="alt"',
+        '',
+        '--alt',
+        'Content-Type: text/plain; charset="utf-8"',
+        '',
+        markup,
+        '--alt',
+        'Content-Type: text/html; charset="utf-8"',
+        '',
+        markup,
+        '--alt--',
+        '',
+      ].join('\r\n'),
+    );
+
+    const message = await parser.parse(source);
+
+    expect(message.snippet).toBe('Nová odpoveď');
+    expect(message.textBody).toContain('Stará správa');
   });
 });
 

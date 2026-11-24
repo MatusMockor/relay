@@ -11,9 +11,6 @@ export const normalizeBodyParts = (parts: BodyParts): BodyParts => {
   if (textBody === null || !looksLikeHtml(textBody)) {
     return parts;
   }
-  if (htmlBody === null) {
-    return { textBody: null, htmlBody: textBody };
-  }
   const converted = htmlBodyToText(textBody);
-  return { textBody: converted === '' ? null : converted, htmlBody };
+  return { textBody: converted === '' ? null : converted, htmlBody: htmlBody ?? textBody };
 };

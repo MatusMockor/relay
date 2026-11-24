@@ -32,6 +32,7 @@ describe('looksLikeHtml', () => {
     ['text starting with a link', '<https://relay.test/a> pozri prosím'],
     ['an inline tag at the start', '<b>Dôležité</b>: zajtra o 10:00'],
     ['a block tag that is never closed', '<p> je tag pre odstavec, používame ho často'],
+    ['markup followed by prose', '<div>Example</div>\nPaste this into the template'],
     ['an empty string', ''],
   ])('keeps %s as plain text', (_label, text) => {
     expect(looksLikeHtml(text)).toBe(false);

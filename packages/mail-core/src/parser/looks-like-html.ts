@@ -3,12 +3,12 @@ const DOCUMENT_START =
 
 const STRUCTURAL_START = /^<(?:head|body|table|div|p|meta|style|center)[\s>/]/i;
 
-const STRUCTURAL_CLOSE = /<\/(?:html|head|body|table|div|p)\s*>/i;
+const STRUCTURAL_END = /<\/(?:html|body|table|div|p)\s*>$/i;
 
 export const looksLikeHtml = (text: string): boolean => {
   const trimmed = text.trim();
   if (DOCUMENT_START.test(trimmed)) {
     return true;
   }
-  return STRUCTURAL_START.test(trimmed) && STRUCTURAL_CLOSE.test(trimmed);
+  return STRUCTURAL_START.test(trimmed) && STRUCTURAL_END.test(trimmed);
 };

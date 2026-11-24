@@ -41,10 +41,11 @@ export class MailparserMessageParser implements MessageParser {
       skipTextToHtml: true,
       skipImageLinks: true,
     });
-    const { textBody, htmlBody } = normalizeBodyParts({
+    const raw = {
       textBody: nonEmpty(parsed.text),
       htmlBody: parsed.html === false ? null : parsed.html,
-    });
+    };
+    const { textBody, htmlBody } = normalizeBodyParts(raw);
     return {
       messageIdHeader: firstMessageId(parsed.messageId),
       inReplyTo: firstMessageId(parsed.inReplyTo),
@@ -58,7 +59,7 @@ export class MailparserMessageParser implements MessageParser {
       date: toIsoDate(parsed.date, this.clock.now()),
       textBody,
       htmlBody,
-      snippet: buildSnippet(textBody, htmlBody),
+      snippet: buildSnippet(raw.textBody, raw.htmlBody),
       headers: toMessageHeaders(parsed.headerLines),
       attachments: parsed.attachments.map(toParsedAttachment),
       calendarParts: calendarPartsOf(parsed.attachments),
