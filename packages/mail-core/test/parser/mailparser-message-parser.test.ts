@@ -218,6 +218,12 @@ describe('buildSnippet with HTML in the text part', () => {
     expect(buildSnippet(markup, null)).toBe('Zásielka je na ceste k Vám.');
   });
 
+  it('falls back to the text part when the HTML part has no readable text', () => {
+    expect(buildSnippet('<p>Objednávka bola odoslaná.</p>', '<img src="logo.png">')).toBe(
+      'Objednávka bola odoslaná.',
+    );
+  });
+
   it('keeps plain text that only mentions tags', () => {
     expect(buildSnippet('Jan <jan@x.sk> poslal <b> tag a < b', null)).toBe(
       'Jan <jan@x.sk> poslal <b> tag a < b',

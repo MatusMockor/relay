@@ -51,8 +51,9 @@ const snippetSource = (text: string | null, html: string | null): string => {
   if (isFilled(text) && !looksLikeHtml(text)) {
     return text;
   }
-  if (isFilled(html)) {
-    return htmlToText(html);
+  const fromHtml = isFilled(html) ? htmlToText(html) : '';
+  if (fromHtml.trim() !== '') {
+    return fromHtml;
   }
   if (isFilled(text)) {
     return htmlToText(text);
