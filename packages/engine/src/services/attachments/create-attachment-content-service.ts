@@ -18,6 +18,7 @@ export const createAttachmentContentService = (
           extractor,
           accounts: deps.repositories.accounts,
           locations: new PlacementLocations(deps.repositories.mailboxes),
+          syncStates: deps.repositories.syncStates,
           sessions,
         });
   return new AttachmentContentService(deps.attachmentStore, received);

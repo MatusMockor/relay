@@ -117,6 +117,23 @@ describe('placement readers', () => {
     ]);
   });
 
+  it('reads a received attachment from All Mail when the inbox UIDVALIDITY was reset', async () => {
+    const { engine, server, message, inbox, allMail } = await joinedWithAttachment();
+    const inboxUid = placementOf(message, inbox).uid;
+    server.expunge('INBOX', inboxUid);
+    deliverMail(server, 'INBOX', { id: 'other' });
+    server.resetUidValidity('INBOX');
+    expect(server.record('INBOX', inboxUid).source).not.toEqual(
+      server.record('Archive', placementOf(message, allMail).uid).source,
+    );
+    server.fetchedMessages.length = 0;
+
+    expect(await attachmentText(engine)).toBe('PDF');
+    expect(server.fetchedMessages).toEqual([
+      { path: 'Archive', uid: placementOf(message, allMail).uid },
+    ]);
+  });
+
   it('reads a received attachment from All Mail when the inbox placement is pending', async () => {
     const { engine, server, message, inbox, allMail } = await joinedWithAttachment();
     withPendingInbox(engine, message, inbox);

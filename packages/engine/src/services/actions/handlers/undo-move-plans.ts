@@ -21,17 +21,26 @@ const targetOf = (origin: MoveOrigin): MoveTarget =>
     ? { role: origin.role }
     : { role: origin.role, mailboxId: origin.mailboxId };
 
+const movedFrom = (
+  placements: readonly LocatedMessage[],
+  origin: MoveOrigin,
+): LocatedMessage | undefined =>
+  placements.find(({ moving, placement }) => moving && placement.mailboxId === origin.mailboxId) ??
+  placements.find(({ moving }) => moving);
+
 const returnMoves = (recorded: readonly LocatedMessage[]): PlannedMove[] =>
   firstPerMessage(recorded).flatMap((first) => {
-    const target = first.moveOrigin === undefined ? null : targetOf(first.moveOrigin);
-    if (target === null) {
+    const origin = first.moveOrigin;
+    if (origin === undefined) {
       return [];
     }
+    const target = targetOf(origin);
     const placements = recorded.filter(({ message }) => message.id === first.message.id);
     if (placements.some((located) => isAt(located, target))) {
       return [];
     }
-    return [{ messageId: first.message.id, source: first.placement, ...target }];
+    const source = movedFrom(placements, origin) ?? first;
+    return [{ messageId: first.message.id, source: source.placement, ...target }];
   });
 
 const labelRemovals = (copies: MailCopies, recorded: readonly LocatedMessage[]): LabelChange[] => {

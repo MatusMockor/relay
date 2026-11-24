@@ -11,8 +11,14 @@ import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentExtractor } from '../../ports/attachment-extractor';
 import type { MailProvider } from '../../ports/mail-provider';
 import type { MessageAttachmentLookup } from '../../ports/message-attachment-lookup';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import type { LocatedPlacement, PlacementLocations } from '../shared/placement-locations';
+import type { PlacementLocations } from '../shared/placement-locations';
+import {
+  copyLocationOf,
+  type RemoteCopyLocation,
+  readVerifiedMessage,
+} from '../shared/verified-message-read';
 import { pickRemoteAttachment } from './remote-attachment-pick';
 
 export interface ReceivedAttachmentReaderDeps {
@@ -20,15 +26,16 @@ export interface ReceivedAttachmentReaderDeps {
   readonly extractor: AttachmentExtractor;
   readonly accounts: AccountRepository;
   readonly locations: PlacementLocations;
+  readonly syncStates: SyncStateRepository;
   readonly sessions: MailProviderSessions;
 }
 
 const firstSource = async (
   provider: MailProvider,
-  located: readonly LocatedPlacement[],
+  locations: readonly RemoteCopyLocation[],
 ): Promise<RawMessage | null> => {
-  for (const { placement, mailbox } of located) {
-    const raw = await provider.fetchMessage(mailbox.path, placement.uid);
+  for (const location of locations) {
+    const raw = await readVerifiedMessage(provider, location);
     if (raw !== null) {
       return raw;
     }
@@ -47,12 +54,12 @@ export class ReceivedAttachmentReader {
     const index = message.attachments.findIndex((attachment) => attachment.id === attachmentId);
     const meta = message.attachments[index];
     const account = await this.deps.accounts.findById(userId, message.accountId);
-    const located = await this.deps.locations.of(message);
-    if (meta === undefined || account === null || located.length === 0) {
+    const locations = await this.copyLocations(message);
+    if (meta === undefined || account === null || locations.length === 0) {
       return null;
     }
     const raw = await this.deps.sessions.with(account, (provider) =>
-      firstSource(provider, located),
+      firstSource(provider, locations),
     );
     const extracted = raw === null ? null : await this.extract(message, raw.source, index, meta);
     if (extracted === null) {
@@ -63,6 +70,14 @@ export class ReceivedAttachmentReader {
       contentType: meta.contentType,
       content: extracted.content,
     };
+  }
+
+  private async copyLocations(message: Message): Promise<RemoteCopyLocation[]> {
+    const located = await this.deps.locations.of(message);
+    const locations = await Promise.all(
+      located.map((placement) => copyLocationOf(this.deps.syncStates, placement)),
+    );
+    return locations.filter((location): location is RemoteCopyLocation => location !== null);
   }
 
   private async extract(

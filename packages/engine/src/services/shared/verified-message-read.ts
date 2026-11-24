@@ -1,6 +1,8 @@
 import type { RawMessage } from '../../model/remote-mail';
 import type { MailProvider } from '../../ports/mail-provider';
-import { reachable } from '../shared/provider-reachability';
+import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import type { LocatedPlacement } from './placement-locations';
+import { reachable } from './provider-reachability';
 
 export interface RemoteCopyLocation {
   readonly path: string;
@@ -31,4 +33,15 @@ export const readVerifiedMessage = async (
     }
     throw error;
   }
+};
+
+export const copyLocationOf = async (
+  syncStates: SyncStateRepository,
+  { placement, mailbox }: LocatedPlacement,
+): Promise<RemoteCopyLocation | null> => {
+  const state = await syncStates.find(mailbox.id);
+  if (state === null) {
+    return null;
+  }
+  return { path: mailbox.path, uid: placement.uid, uidValidity: state.uidValidity };
 };

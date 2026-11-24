@@ -7,7 +7,11 @@ import type { LingeringSessions } from '../shared/lingering-sessions';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import type { LocatedPlacement, PlacementLocations } from '../shared/placement-locations';
 import type { RemoteBody } from './remote-body-cache';
-import { type RemoteCopyLocation, readVerifiedMessage } from './verified-message-read';
+import {
+  copyLocationOf,
+  type RemoteCopyLocation,
+  readVerifiedMessage,
+} from '../shared/verified-message-read';
 
 export type RemoteBodyOutcome =
   | { readonly kind: 'body'; readonly body: RemoteBody }
@@ -42,13 +46,12 @@ export class RemoteBodyFetcher {
   private async fetchAt(
     account: MailAccount,
     message: Message,
-    { placement, mailbox }: LocatedPlacement,
+    located: LocatedPlacement,
   ): Promise<RemoteBodyOutcome> {
-    const state = await this.deps.syncStates.find(mailbox.id);
-    if (state === null) {
+    const location = await copyLocationOf(this.deps.syncStates, located);
+    if (location === null) {
       return MISSING;
     }
-    const location = { path: mailbox.path, uid: placement.uid, uidValidity: state.uidValidity };
     const raw = await this.read(account, location);
     if (raw === UNREACHABLE) {
       return OFFLINE;
