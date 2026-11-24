@@ -28,6 +28,7 @@ import {
 } from './fake-mailbox-admin';
 import {
   calendarHeaders,
+  emailIdOf,
   missing,
   scanFlagChanges,
   statusOf,
@@ -143,10 +144,8 @@ export class FakeMailProvider implements MailProvider {
   }
 
   fetchEmailIds(path: string, uidValidity: number, uids: readonly number[]) {
-    return this.readRecords<RemoteEmailId>(path, uidValidity, uids, ({ uid, emailId }) => ({
-      uid,
-      emailId,
-    }));
+    this.server?.emailIdFetches.push({ path, uidValidity, uids: [...uids] });
+    return this.readRecords<RemoteEmailId>(path, uidValidity, uids, emailIdOf);
   }
 
   fetchFlagChanges(path: string, sinceModseq: string, uids?: readonly number[]) {

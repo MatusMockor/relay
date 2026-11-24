@@ -206,32 +206,37 @@ Actions load the thread's messages with their placements and pick placements, no
 ### Message ids stay stable
 
 - A message's id never changes while it gains or loses placements.
-- A merge keeps one id (the keeper) and turns the others into aliases. Keeper id: an inbox placement first, then the oldest row (SQLite `seq`, Postgres lowest `id` as a deterministic tiebreak).
+- A merge keeps one id (the keeper) and turns the others into aliases. Keeper id: an inbox placement first, then the oldest row (SQLite `seq`, Postgres lowest `id` as a deterministic tiebreak). The merge and the candidate order of `place(...)` use the same keeper fragment per store, so a `place(...)` before and after a partial merge picks the same keeper.
 - Merged content: the most complete body among the group (`local` over `remote`, then the longer text), with its headers and attachment metadata.
+- Merged effect gates: the earliest non-null `jira_effects_at` and `invite_effects_at` of the group, so a merged message does not queue its Jira event or invite again.
 - Merged flags and labels: the keeper's values, overridden by any pending provider op of a group member. A flag and label rescan of the account's Gmail mailboxes is queued, so the next sync restores server truth. No OR or union of stale values.
 - Received attachment ids of losers are not kept. Forwarding copies attachments into the draft store, so only open views hold them. Each merged chunk publishes `thread.upserted` for its threads, so clients refetch detail.
 
 ### Merging existing duplicates (migration)
 
 1. Schema migration (SQL, one transaction): create `message_placements` and `message_aliases`, `INSERT ... SELECT` one placement per existing message. The `(mailbox_id, uid)` unique index on `messages` stays (slice c makes it partial, `WHERE uid > 0`). This ships in slice a, and nothing is enqueued yet.
-2. Slice d's migration enqueues one `pending_work` row `kind = 'copy-merge'` per account. The engine `CopyMergeBackfill` runs it inside the account's sync, after the mailbox passes (so the expunge diff has removed stale locations first), on desktop and server alike. The sync of an account is already serialized (desktop serial queue, server pg-boss singleton per account).
+2. Slice d's migration enqueues one `pending_work` row `kind = 'copy-merge'`, `ref = 'account'` per account (payload `{}`, which parses as a fresh pass). The engine `CopyMergeBackfill` runs it inside the account's sync, after the mailbox passes (so the expunge diff has removed stale locations first) and before the final flush and provider-op replay, as the first of the sync backfills, on desktop and server alike. The sync of an account is already serialized (desktop serial queue, server pg-boss singleton per account).
+   - Each sync spends at most `copyMerge.sliceMs` (15 s) on it and always makes one step (one resolve batch or one merge chunk). The cursor (`resolve` mailbox cursors, `afterEmailId`, the pass counters and `retryAfter`) lives in the work payload, so a stopped or failed sync resumes where the last committed step ended.
    - Accounts that are not label-based drop their work row.
    - Resolve: for messages with a null `email_id` and a positive UID, `UID FETCH <uids> (X-GM-MSGID)` per mailbox (UIDVALIDITY checked) fills `email_id`. Rows the server no longer has are left to the expunge diff, and unresolved rows stay separate.
-   - Merge: keyset over `(account_id, email_id)` with chunks bounded to 500 messages (`MessageMerges.nextGroups`). Each chunk is merged in its own transaction (`MessageMerges.merge`), and the affected threads are queued for a refresh.
+   - Merge: keyset over `(account_id, email_id)` with chunks bounded to 500 messages (`MessageMerges.nextGroups`). Each chunk is merged in its own transaction (`MessageMerges.merge`) together with the thread refresh of the affected threads and the cursor update. After each chunk the refreshed threads are published (`thread.upserted`). A run that merged anything queues a flag and label rescan of the account's mailboxes (`label-rescan`).
    - Skipped groups, left separate and counted in the report: groups that span threads (permanent), and groups with two positive UIDs in one mailbox (a stale location the reconciler removes, so a later sync merges them).
    - A group larger than the chunk is merged alone in its own transaction.
-   - It is idempotent (a group with one message is not a group) and resumable. The work row stays until a pass finds no mergeable group and no same-mailbox conflict. Then it is retired.
+   - It is idempotent (a group with one message is not a group) and resumable. The work row stays until a pass finds no mergeable group and no same-mailbox conflict. Then it is retired. A pass that merged something is followed by a verifying pass on the next sync. A pass that found only same-mailbox conflicts starts the next pass after the full expunge diff interval (`reconcile.fullExpungeDiffMs`, 6 h), not on every sync. Groups that span threads never block retirement.
 3. `MessageMerges.merge` re-reads each group under a write lock (SQLite `BEGIN IMMEDIATE`, Postgres `FOR UPDATE` on the group's rows), builds `loser_id -> keeper_id` and then, before deleting anything (Postgres cascades `automation_runs` and sets `drafts.in_reply_to_message_id` to null on delete):
    - placements: per mailbox, at most one placement survives. A positive UID wins over `PENDING_UID`, and of several pending ones the keeper's wins. The rest are deleted, then the survivors are moved to the keeper.
-   - `message_labels` and `automation_runs`: insert-or-ignore onto the keeper.
+   - `message_labels`: the keeper keeps its own labels, overridden by the pending label ops of the group members (see "Message ids stay stable"). The losers' rows go with the losers.
+   - `automation_runs`: insert-or-ignore onto the keeper.
    - `drafts.in_reply_to_message_id`, `calendar_events.message_id`, `ai_results.source_message_id` and `automation_activity.message_id`: update.
    - `ai_jobs.source_message_id`: update, except rows whose remap would collide in the active-job unique index. Those keep the loser id, which the alias resolves.
-   - Message ids inside JSON (`ai_jobs.input`, `ai_results.output`, `automation_activity.actions`, `pending_work.payload`): rewritten through typed JSON paths in rows that contain a loser id, with duplicate ids in arrays removed.
+   - Message ids inside JSON (`ai_jobs.input`, `ai_jobs.output`, `ai_results.output`, `automation_activity.actions`, `pending_work.payload`): rewritten through typed JSON paths in rows that contain a loser id, with duplicate ids in arrays removed. An `ai_jobs` row whose `source_message_id` keeps the loser id keeps its JSON too.
    - `pending_work.ref`: rewritten, with one reducer per kind on a primary key clash:
-     - `provider-op`: flag and label ops, the later `updated_at` wins (the latest user intent). A loser's move op gets the loser's placement as its source, and so its own ref, and never collides.
-     - trash, spam and move origins: the later `updated_at` wins.
-     - `message-effects`: one row, `arrival` OR-ed.
+     - `pending_work` has no `updated_at`. Every `put` rewrites `created_at`, so it is the latest recorded intent: the later `created_at` wins, the keeper's row on a tie. A re-keyed row keeps its `revision` and `created_at`, so automation undo origins (`{ messageId, revision }`) still match.
+     - `provider-op`: flag and label ops, the later `created_at` wins (the latest user intent). A loser's move op gets the loser's placement as its source, and so its own ref, and never collides.
+     - trash, spam and move origins: the later `created_at` wins.
+     - `message-effects`: one row with the keeper's payload, `arrival`, `publish` and `live` OR-ed.
      - `jira-event`, `calendar-invite`, `calendar-rebuild-part`: one row, with the keeper's payload (the content is the same message).
+     - `calendar-reply`: only `payload.messageId` is rewritten (its ref is UID-based).
    - The keeper takes the merged fields. Aliases are inserted, and older aliases of a loser are re-pointed to the keeper.
    - The losers are deleted. The FTS delete trigger and the Postgres generated column clean up search, and FTS needs no rebuild.
 

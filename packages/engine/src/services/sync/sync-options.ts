@@ -13,6 +13,12 @@ export interface ReconcileOptions {
   readonly fullExpungeDiffMs: number;
 }
 
+export interface CopyMergeOptions {
+  readonly chunkMessages: number;
+  readonly sliceMs: number;
+  readonly resolveBatch: number;
+}
+
 export interface SyncOptions {
   readonly initialWindowDays: number;
   readonly initialMessageLimit: number;
@@ -22,6 +28,7 @@ export interface SyncOptions {
   readonly batchSize: number;
   readonly history: HistoryOptions;
   readonly reconcile: ReconcileOptions;
+  readonly copyMerge: CopyMergeOptions;
   readonly firstBatchSize: number;
   readonly firstPageConversations: number;
 }
@@ -39,6 +46,12 @@ export const DEFAULT_RECONCILE_OPTIONS: ReconcileOptions = {
   fullExpungeDiffMs: 6 * 60 * 60_000,
 };
 
+export const DEFAULT_COPY_MERGE_OPTIONS: CopyMergeOptions = {
+  chunkMessages: 500,
+  sliceMs: 15_000,
+  resolveBatch: 1_000,
+};
+
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   initialWindowDays: 30,
   initialMessageLimit: 500,
@@ -48,6 +61,7 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
   batchSize: 50,
   history: DEFAULT_HISTORY_OPTIONS,
   reconcile: DEFAULT_RECONCILE_OPTIONS,
+  copyMerge: DEFAULT_COPY_MERGE_OPTIONS,
   firstBatchSize: 15,
   firstPageConversations: 25,
 };

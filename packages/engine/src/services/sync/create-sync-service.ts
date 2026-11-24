@@ -11,7 +11,8 @@ import { createMessageFetchers } from './create-message-fetchers';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
-import type { SyncBackfill } from './sync-backfill';
+import { type SyncBackfill, SyncBackfills } from './sync-backfill';
+import { createCopyMergeBackfill } from './copy-merge/create-copy-merge';
 import { GmailLabelCatalog } from './gmail-label-catalog';
 import { createHistoryBackfill, createHistoryProgress } from './history/create-history-backfill';
 import { LabelRescans } from './label-rescans';
@@ -158,7 +159,18 @@ export const createSyncComponents = (
     scans,
     initialSync: fetchers.initialSync,
     flusher,
-    backfill: shared.backfill,
+    backfill: new SyncBackfills([
+      createCopyMergeBackfill({
+        repositories,
+        unitOfWork,
+        flusher,
+        rescans,
+        clock,
+        logger,
+        options,
+      }),
+      shared.backfill,
+    ]),
     replayer: shared.replayer,
     reporter,
     arrivals: shared.arrivals,

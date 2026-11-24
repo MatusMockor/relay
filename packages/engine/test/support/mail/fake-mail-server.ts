@@ -73,6 +73,7 @@ export class FakeMailServer {
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
   readonly uidFetches: { path: string; uids: number[] }[] = [];
+  readonly emailIdFetches: { path: string; uidValidity: number; uids: number[] }[] = [];
   readonly flagScans: { path: string; uids: number[] | null }[] = [];
   readonly labelWrites: LabelWrite[] = [];
   readonly statusCalls: string[] = [];
@@ -90,6 +91,7 @@ export class FakeMailServer {
   failConnect: string | null = null;
   failOperations: string | null = null;
   failFlagWrites: string | null = null;
+  beforeFlagWrite: (() => Promise<void>) | null = null;
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;
