@@ -101,6 +101,7 @@ export class FakeMailServer {
   beforeNextConnect: (() => Promise<void>) | null = null;
   afterMove: ((sourcePath: string) => void) | null = null;
   private modseq = 1n;
+  private gmailIds = 0;
 
   constructor(options: FakeMailServerOptions = {}) {
     this.password = options.password ?? 'secret';
@@ -243,6 +244,11 @@ export class FakeMailServer {
 
   highestModseq(mailbox: FakeMailbox): bigint {
     return mailbox.highestModseq;
+  }
+
+  nextGmailId(): string {
+    this.gmailIds += 1;
+    return `generated-${String(this.gmailIds)}`;
   }
 
   bumpModseq(mailbox: FakeMailbox): bigint {

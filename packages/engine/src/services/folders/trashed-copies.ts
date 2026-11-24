@@ -69,15 +69,16 @@ export class TrashedCopies {
         continue;
       }
       const uid = moved.uidMap.get(source.uid) ?? PENDING_UID;
+      const keepSource = keepsSource(account, folder.role, trash.role);
       const twin = await this.deps.merger.twinOf(account, message, trash, uid);
       if (twin !== null) {
-        await this.deps.merger.merge(account, message, source, twin);
+        await this.deps.merger.merge(account, message, source, twin, keepSource);
         continue;
       }
       await messages.movePlacement(message.id, {
         from: folder.id,
         to: { mailboxId: trash.id, uid },
-        keepSource: keepsSource(account, folder.role, trash.role),
+        keepSource,
       });
     }
     return [...new Set(moved.messages.map((message) => message.threadId))];

@@ -21,6 +21,7 @@ import { toDate } from '../../support/timestamps';
 import { replaceDraftAttachments } from './draft-attachments-store';
 import { withDraftReferences } from './draft-references';
 import { draftSelection } from './draft-selection';
+import { retargetReplyDrafts } from './reply-draft-retarget';
 import { toDraft, toDraftInsert, toDraftUpdate } from './draft.mapper';
 
 type StoredDraftRow = typeof drafts.$inferSelect & { attachments: DraftAttachment[] };
@@ -179,10 +180,7 @@ export class PgDraftRepository implements DraftRepository {
     return rows.length > 0;
   }
 
-  async retargetReplies(from: MessageId, to: MessageId): Promise<void> {
-    await this.db
-      .update(drafts)
-      .set({ inReplyToMessageId: to })
-      .where(eq(drafts.inReplyToMessageId, from));
+  retargetReplies(from: MessageId, to: MessageId): Promise<void> {
+    return retargetReplyDrafts(this.db, from, to);
   }
 }

@@ -171,8 +171,14 @@ describe('MemoryMessageRepository placements', () => {
     expect(await messages.deleteByUids(SPAM, [0])).toEqual([]);
     expect(await messages.deleteByUids(INBOX, [5])).toEqual(['thr_msg']);
     expect(stored('msg')).toMatchObject({ mailboxId: ALL_MAIL, uid: 40 });
-    expect(await messages.removePlacement('msg' as MessageId, SPAM)).toEqual(['thr_msg']);
-    expect(await messages.removePlacement('msg' as MessageId, SPAM)).toEqual([]);
+    expect(await messages.removePlacement('msg' as MessageId, SPAM)).toEqual({
+      threadIds: ['thr_msg'],
+      retired: false,
+    });
+    expect(await messages.removePlacement('msg' as MessageId, SPAM)).toEqual({
+      threadIds: [],
+      retired: false,
+    });
     expect(await messages.forgetMailbox(ALL_MAIL)).toEqual(['thr_msg']);
     expect(stored('msg')).toBeUndefined();
     expect(db.tables.messageEffects.size).toBe(0);

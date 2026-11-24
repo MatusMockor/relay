@@ -196,6 +196,10 @@ describe.each(locations)('MessageRepository.place $name', ({ file }) => {
         keepSource: true,
       });
     }
+    await messages.upsert(
+      newMessage(seeded, 'msg-object', at(boxes.spam, 9), { emailId: 'obj-1' }),
+      NO_HEADERS,
+    );
     const generic = { labelBased: false, emailId: 'obj-1', messageIdHeader: header };
 
     const adopted = await messages.place(
@@ -213,6 +217,9 @@ describe.each(locations)('MessageRepository.place $name', ({ file }) => {
       message: { id: 'msg-old', placements: [at(boxes.inbox, 3), at(boxes.sent, 2)] },
     });
     expect(separate).toMatchObject({ kind: 'created', message: { id: 'msg-copy' } });
+    expect(await messages.findById(LOCAL_USER_ID, messageId('msg-object'))).toMatchObject({
+      placements: [at(boxes.spam, 9)],
+    });
   });
 
   it('places a new copy on the inbox keeper of legacy duplicates', async () => {

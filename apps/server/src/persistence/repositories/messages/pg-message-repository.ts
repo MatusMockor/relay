@@ -8,6 +8,7 @@ import {
   type PlacementIdentity,
   type PlacementMatch,
   type PlacementMove,
+  type PlacementRemoval,
   type PlaceOutcome,
   type PlaceRequest,
   type StoredMatchSubject,
@@ -235,8 +236,12 @@ export class PgMessageRepository implements MessageRepository {
     return this.db.transaction((tx) => movePlacementRow(tx, messageId, move));
   }
 
-  removePlacement(messageId: MessageId, mailboxId: MailboxId): Promise<ThreadId[]> {
-    return removePlacementOf(this.db, messageId, mailboxId);
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval> {
+    return removePlacementOf(this.db, messageId, mailboxId, successor ?? null);
   }
 
   forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]> {

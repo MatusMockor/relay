@@ -118,17 +118,18 @@ export class ProviderOpReplayer {
       return;
     }
     const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
+    const keepSource = keepsSource(account, mailbox.role, target.role);
     for (const { message, placement } of batch.entries) {
       const uid = uidMap.get(placement.uid) ?? PENDING_UID;
       const twin = await this.merger.twinOf(account, message, target, uid);
       if (twin !== null) {
-        await this.merger.merge(account, message, placement, twin);
+        await this.merger.merge(account, message, placement, twin, keepSource);
         continue;
       }
       await this.deps.messages.movePlacement(message.id, {
         from: placement.mailboxId,
         to: { mailboxId: target.id, uid },
-        keepSource: keepsSource(account, mailbox.role, target.role),
+        keepSource,
       });
     }
   }

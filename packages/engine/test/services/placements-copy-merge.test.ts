@@ -1,8 +1,9 @@
 import type { Mailbox, Message, MessageId } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, type MailSpec, present } from '../support/fixtures';
-import { seedGmailAccount } from '../support/gmail-move-setup';
-import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
+import { providerOps, seedGmailAccount } from '../support/gmail-move-setup';
+import { recordProviderOps } from '../../src/services/shared/provider-ops';
+import { createTestEngine, TEST_NOW, type TestEngine, USER_ID } from '../support/test-engine';
 
 const SPEC: MailSpec = { id: 'g1', subject: 'Ponuka', date: '2026-11-14T08:00:00.000Z' };
 const LEGACY_ID = 'msg_legacy_all_mail' as MessageId;
@@ -37,7 +38,7 @@ const legacyDuplicates = async (engine: TestEngine) => {
   });
   const target = await mailbox('Klienti');
   const sent = await mailbox('Sent');
-  return { account, moving: present(moving), legacy, draft, inbox, sent, target };
+  return { account, moving: present(moving), legacy, draft, inbox, allMail, sent, target };
 };
 
 const moveOrigins = (engine: TestEngine) =>
@@ -84,5 +85,41 @@ describe('merging a moved copy into a legacy duplicate', () => {
     expect((await engine.services.compose.getDraft(USER_ID, draft.id)).inReplyToMessageId).toBe(
       moving.id,
     );
+  });
+
+  it('keeps the All Mail placement on the INBOX twin when an undone move merges into it', async () => {
+    const engine = createTestEngine();
+    const { account, moving, legacy, inbox, allMail } = await legacyDuplicates(engine);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    expect(present(stored(engine, legacy)).placements).toEqual([
+      { mailboxId: allMail.id, uid: legacy.uid },
+    ]);
+    await recordProviderOps(
+      engine.repositories.pendingWork,
+      account.id,
+      [
+        {
+          messageId: legacy.id,
+          change: { kind: 'move', role: 'inbox', mailboxId: inbox.id },
+          source: { mailboxId: allMail.id, uid: legacy.uid },
+        },
+      ],
+      TEST_NOW,
+    );
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(stored(engine, legacy)).toBeUndefined();
+    expect(
+      [...present(stored(engine, moving)).placements].sort((a, b) =>
+        a.mailboxId.localeCompare(b.mailboxId),
+      ),
+    ).toEqual(
+      [
+        { mailboxId: inbox.id, uid: 1 },
+        { mailboxId: allMail.id, uid: legacy.uid },
+      ].sort((a, b) => a.mailboxId.localeCompare(b.mailboxId)),
+    );
+    expect(providerOps(engine)).toEqual([]);
   });
 });

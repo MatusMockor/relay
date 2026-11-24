@@ -4,6 +4,7 @@ import type {
   MailboxRole,
   Message,
   MessagePlacement,
+  ThreadId,
 } from '@relay/shared/domain';
 import type { MessageHeaders } from './split-match-subject';
 
@@ -53,4 +54,9 @@ export interface PlacementMove {
   readonly from: MailboxId;
   readonly to: MessagePlacement;
   readonly keepSource: boolean;
+}
+
+export interface PlacementRemoval {
+  readonly threadIds: ThreadId[];
+  readonly retired: boolean;
 }

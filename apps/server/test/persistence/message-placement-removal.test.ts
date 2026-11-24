@@ -99,11 +99,18 @@ describe('PgMessageRepository placement removal', () => {
     await messages.movePlacement(id, { from: inbox.id, to: at(spam, 0), keepSource: true });
     const alias = await aliasOf(id);
 
-    await expect(messages.removePlacement(alias, spam.id)).resolves.toEqual([placed.thread.id]);
-    await expect(messages.removePlacement(id, spam.id)).resolves.toEqual([]);
-    await expect(messages.removePlacement(id, inbox.id)).resolves.toEqual([placed.thread.id]);
+    const kept = { threadIds: [placed.thread.id], retired: false };
+    await expect(messages.removePlacement(alias, spam.id)).resolves.toEqual(kept);
+    await expect(messages.removePlacement(id, spam.id)).resolves.toEqual({
+      threadIds: [],
+      retired: false,
+    });
+    await expect(messages.removePlacement(id, inbox.id)).resolves.toEqual(kept);
     await expectMirrorParity(context.db, placed.boxes, await read(placed, id));
-    await expect(messages.removePlacement(id, allMail.id)).resolves.toEqual([placed.thread.id]);
+    await expect(messages.removePlacement(id, allMail.id)).resolves.toEqual({
+      threadIds: [placed.thread.id],
+      retired: true,
+    });
     await expect(messageCount(context.db, placed.seeded.account.id)).resolves.toBe(0);
   });
 
@@ -129,8 +136,14 @@ describe('PgMessageRepository placement removal', () => {
     await expect(messages.deleteByUids(allMail.id, [40, 41])).resolves.toEqual(
       [a.threadId, b.threadId].sort(),
     );
-    await expect(messages.removePlacement(c.id, sent.id)).resolves.toEqual([c.threadId]);
-    await expect(messages.removePlacement(d.id, sent.id)).resolves.toEqual([d.threadId]);
+    await expect(messages.removePlacement(c.id, sent.id)).resolves.toEqual({
+      threadIds: [c.threadId],
+      retired: false,
+    });
+    await expect(messages.removePlacement(d.id, sent.id)).resolves.toEqual({
+      threadIds: [d.threadId],
+      retired: false,
+    });
 
     for (const message of [a, b, c, d]) {
       await expect(storedState(context.db, message.id)).resolves.toMatchObject(at(inbox, 0));

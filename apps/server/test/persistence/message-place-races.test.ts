@@ -1,5 +1,5 @@
 import type { MessageRepository } from '@relay/engine';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished } from 'vitest';
 import { PgMessageRepository } from '../../src/persistence/repositories/messages/pg-message-repository';
 import { seedAccount } from './support/fixtures';
 import { waitForLockWaiters } from './support/lock-holder';
@@ -42,14 +42,40 @@ describe('PgMessageRepository.place races', () => {
       started(await work(new PgMessageRepository(tx)));
       await gate;
     });
-    const result = await Promise.race([ready, committed.then(() => ready)]);
+    const finished = committed.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    onTestFinished(async () => {
+      release();
+      await finished;
+    });
+    const result = await Promise.race([ready, finished.then(() => ready)]);
     return {
       result,
       commit: async () => {
         release();
-        await committed;
+        expect(await finished).toBeNull();
       },
     };
+  };
+
+  const whileHeld = async <Held, Competing>(
+    held: OpenTransaction<Held>,
+    compete: () => Promise<Competing>,
+  ): Promise<Competing> => {
+    const competing = compete();
+    const observed = competing.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    try {
+      await waitForLockWaiters(context.url);
+    } finally {
+      await held.commit();
+    }
+    expect(await observed).toBeNull();
+    return competing;
   };
 
   it('creates one message when two mailboxes deliver the same email id at once', async () => {
@@ -61,14 +87,14 @@ describe('PgMessageRepository.place races', () => {
       messages.place(placeRequest(gmailIdentity(placed, inbox, 5), inboxCopy)),
     );
 
-    const second = context.repositories.messages.place(
-      placeRequest(gmailIdentity(placed, allMail, 40), allMailCopy),
+    const second = await whileHeld(first, () =>
+      context.repositories.messages.place(
+        placeRequest(gmailIdentity(placed, allMail, 40), allMailCopy),
+      ),
     );
-    await waitForLockWaiters(context.url);
-    await first.commit();
 
     expect(first.result).toMatchObject({ kind: 'created', message: { id: inboxCopy.id } });
-    await expect(second).resolves.toMatchObject({
+    expect(second).toMatchObject({
       kind: 'attached',
       message: { id: inboxCopy.id },
     });
@@ -90,14 +116,14 @@ describe('PgMessageRepository.place races', () => {
       ),
     );
 
-    const sync = context.repositories.messages.place(
-      placeRequest(gmailIdentity(placed, sent, 31, { messageIdHeader: header }), fetched),
+    const sync = await whileHeld(recorder, () =>
+      context.repositories.messages.place(
+        placeRequest(gmailIdentity(placed, sent, 31, { messageIdHeader: header }), fetched),
+      ),
     );
-    await waitForLockWaiters(context.url);
-    await recorder.commit();
 
     expect(recorder.result).toMatchObject({ kind: 'created' });
-    await expect(sync).resolves.toMatchObject({
+    expect(sync).toMatchObject({
       kind: 'refreshed',
       message: { id: recorded.id, emailId: 'gm-1' },
     });
@@ -113,12 +139,12 @@ describe('PgMessageRepository.place races', () => {
       messages.place(placeRequest(gmailIdentity(placed, allMail, 40), null)),
     );
 
-    const expunge = context.repositories.messages.deleteByUids(inbox.id, [5]);
-    await waitForLockWaiters(context.url);
-    await attach.commit();
+    const expunge = await whileHeld(attach, () =>
+      context.repositories.messages.deleteByUids(inbox.id, [5]),
+    );
 
     expect(attach.result).toMatchObject({ kind: 'attached' });
-    await expect(expunge).resolves.toEqual([placed.thread.id]);
+    expect(expunge).toEqual([placed.thread.id]);
     await expect(placementRows(context.db, placed.seeded.account.id)).resolves.toEqual([
       { messageId: message.id, mailboxId: allMail.id, uid: 40 },
     ]);
@@ -132,14 +158,14 @@ describe('PgMessageRepository.place races', () => {
     const allMailCopy = newMessage(placed, at(allMail, 40), { emailId: 'gm-1' });
     const expunge = await openTransaction((messages) => messages.deleteByUids(inbox.id, [5]));
 
-    const attach = context.repositories.messages.place(
-      placeRequest(gmailIdentity(placed, allMail, 40), allMailCopy),
+    const attach = await whileHeld(expunge, () =>
+      context.repositories.messages.place(
+        placeRequest(gmailIdentity(placed, allMail, 40), allMailCopy),
+      ),
     );
-    await waitForLockWaiters(context.url);
-    await expunge.commit();
 
     expect(expunge.result).toEqual([placed.thread.id]);
-    await expect(attach).resolves.toMatchObject({
+    expect(attach).toMatchObject({
       kind: 'created',
       message: { id: allMailCopy.id },
     });

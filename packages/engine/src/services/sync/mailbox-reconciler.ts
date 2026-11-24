@@ -24,7 +24,11 @@ export class MailboxReconciler {
 
   async reset(context: SyncContext, mailbox: Mailbox, role: MailboxRole): Promise<void> {
     await this.deps.unitOfWork.run(async (repositories) => {
-      const threadIds = await repositories.messages.forgetMailbox(mailbox.id);
+      const { messages } = repositories;
+      const threadIds = await messages.deleteByUids(
+        mailbox.id,
+        await messages.listUids(mailbox.id),
+      );
       await context.journal.expunged(repositories.pendingWork, threadIds, role);
     });
     await this.deps.syncStates.delete(mailbox.id);

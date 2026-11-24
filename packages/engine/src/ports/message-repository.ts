@@ -3,6 +3,7 @@ import type {
   PlacementIdentity,
   PlacementMatch,
   PlacementMove,
+  PlacementRemoval,
   PlaceOutcome,
   PlaceRequest,
 } from '../model/placement-ingest';
@@ -61,7 +62,11 @@ export interface MessageRepository {
   matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null>;
   place(request: PlaceRequest): Promise<PlaceOutcome>;
   movePlacement(messageId: MessageId, move: PlacementMove): Promise<void>;
-  removePlacement(messageId: MessageId, mailboxId: MailboxId): Promise<ThreadId[]>;
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval>;
   forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]>;
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]>;
 }

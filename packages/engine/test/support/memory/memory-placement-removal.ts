@@ -6,7 +6,9 @@ import {
   PENDING_UID,
   type ThreadId,
 } from '@relay/shared/domain';
+import type { PlacementRemoval } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { retargetReplyDrafts } from './memory-reply-retarget';
 import { storePlacements } from './memory-placement-writes';
 
 type PlacementFilter = (message: Message, placement: MessagePlacement) => boolean;
@@ -54,11 +56,21 @@ export const removePlacementOf = (
   db: MemoryDatabase,
   messageId: MessageId,
   mailboxId: MailboxId,
-): ThreadId[] =>
-  dropPlacements(
+  successor: MessageId | null,
+): PlacementRemoval => {
+  const placements = db.tables.messages.get(messageId)?.placements ?? [];
+  const retired =
+    placements.some((placement) => placement.mailboxId === mailboxId) &&
+    placements.every((placement) => placement.mailboxId === mailboxId);
+  if (retired && successor !== null) {
+    retargetReplyDrafts(db, messageId, successor);
+  }
+  const threadIds = dropPlacements(
     db,
     (message, placement) => message.id === messageId && placement.mailboxId === mailboxId,
   );
+  return { threadIds, retired };
+};
 
 export const forgetMailboxPlacements = (db: MemoryDatabase, mailboxId: MailboxId): ThreadId[] =>
   dropPlacements(db, (_, placement) => placement.mailboxId === mailboxId);

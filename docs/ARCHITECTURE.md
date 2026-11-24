@@ -174,9 +174,9 @@ Effects:
 ### Expunge, UIDVALIDITY and vanished mailboxes
 
 - `deleteByUids(mailboxId, uids)` takes positive UIDs. It deletes those placements, deletes the messages left without a placement and returns the threads of both, so thread state is refreshed (a Gmail thread whose INBOX placement is gone becomes done while its All Mail placement keeps it alive, the #121 invariant).
-- `removePlacement(messageId, mailboxId)` cancels one placement, pending or not, with the same last-placement rule.
+- `removePlacement(messageId, mailboxId, successor?)` cancels one placement, pending or not, with the same last-placement rule, and reports whether that retired the message. When it does and a successor is given, reply drafts of the retired message are re-pointed to the successor under the same lock, before the row goes.
 - `forgetMailbox(mailboxId)` removes every placement of a vanished or deleted mailbox, pending ones included, through the same rule, before the mailbox row goes. So the ON DELETE CASCADE on `mailbox_id` never leaves a message without a placement. Account deletion cascades messages and placements together.
-- UIDVALIDITY change: every placement of the mailbox is dropped, as rows are today. On Gmail a message survives through its All Mail placement (when All Mail is shown in IMAP; otherwise it behaves as today), and the refetch re-attaches it by `email_id`. UID cursors of that mailbox (body repair, invite backfill, calendar rebuild) restart from 0, as today.
+- UIDVALIDITY change: every positive-UID placement of the mailbox is dropped through `deleteByUids`, as rows are today. Pending placements stay (they carry no remote UID) and the refetch adopts them by Message-ID; only `forgetMailbox` (a vanished or deleted mailbox) drops pending placements too. On Gmail a message survives through its All Mail placement (when All Mail is shown in IMAP; otherwise it behaves as today), and the refetch re-attaches it by `email_id`. UID cursors of that mailbox (body repair, invite backfill, calendar rebuild) restart from 0, as today.
 
 ### Actions on placements
 

@@ -1,6 +1,6 @@
 import type { Mailbox, Message } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { deliverMail, type MailSpec, present } from '../support/fixtures';
+import { deliverMail, type MailSpec, present, seedAccount } from '../support/fixtures';
 import { seedGmailAccount } from '../support/gmail-move-setup';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
@@ -43,7 +43,7 @@ const placeInLabel = async (engine: TestEngine, message: Message, from: Mailbox,
   expect(onlyMessage(engine).placements).toHaveLength(3);
 };
 
-describe('expunging and forgetting Gmail placements', () => {
+describe('expunging and forgetting placements', () => {
   it('keeps the message through All Mail when INBOX is expunged and deletes it with the last copy', async () => {
     const engine = createTestEngine();
     const { server, sync, allMail } = await syncedGmail(engine);
@@ -106,5 +106,24 @@ describe('expunging and forgetting Gmail placements', () => {
 
     expect(engine.db.tables.mailboxes.has(label.id)).toBe(false);
     expect(mailboxIdsOf(onlyMessage(engine))).toEqual([inbox.id, allMail.id].sort());
+  });
+
+  it('keeps a pending-only message through a UIDVALIDITY reset and adopts the refetched copy', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine, {}, { uidplus: false });
+    server.addMailbox('Projekty', 'custom');
+    deliverMail(server, 'INBOX', SPEC);
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+    const { id, threadId } = onlyMessage(engine);
+    const folder = present(await engine.repositories.mailboxes.findByPath(account.id, 'Projekty'));
+    await engine.services.actions.apply(USER_ID, threadId, { type: 'move', mailboxId: folder.id });
+    expect(onlyMessage(engine).placements).toEqual([{ mailboxId: folder.id, uid: 0 }]);
+
+    server.resetUidValidity('Projekty');
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const message = onlyMessage(engine);
+    expect(message.id).toBe(id);
+    expect(message.placements).toEqual([{ mailboxId: folder.id, uid: 1 }]);
   });
 });

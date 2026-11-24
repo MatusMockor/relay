@@ -18,6 +18,7 @@ import type {
   PlacementIdentity,
   PlacementMatch,
   PlacementMove,
+  PlacementRemoval,
   PlaceOutcome,
   PlaceRequest,
   StoredMatchSubject,
@@ -189,8 +190,14 @@ export class MemoryMessageRepository implements MessageRepository {
     return movePlacementOf(this.db, this.resolve(messageId), move);
   }
 
-  removePlacement(messageId: MessageId, mailboxId: MailboxId): Promise<ThreadId[]> {
-    return Promise.resolve(removePlacementOf(this.db, this.resolve(messageId), mailboxId));
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval> {
+    const id = this.resolve(messageId);
+    const into = successor === undefined ? null : this.resolve(successor);
+    return Promise.resolve(removePlacementOf(this.db, id, mailboxId, into));
   }
 
   forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]> {

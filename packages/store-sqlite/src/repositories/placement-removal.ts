@@ -1,9 +1,11 @@
 import { type MailboxId, PENDING_UID, type ThreadId, ThreadIdSchema } from '@relay/shared/domain';
+import type { PlacementRemoval } from '@relay/engine';
 import { and, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import { messagePlacements, messages } from '../schema';
 import { chunked } from './chunked';
 import { refreshPrimaryMirror } from './primary-mirror';
+import { retargetReplyDrafts } from './reply-draft-retarget';
 
 const UNPLACED = sql`not exists (select 1 from ${messagePlacements} where ${messagePlacements.messageId} = ${messages.id})`;
 
@@ -61,17 +63,34 @@ export const deleteAtUids = (
   );
 };
 
+const retires = (db: RelayDb, messageId: string, mailboxId: MailboxId): boolean => {
+  const mailboxIds = db
+    .select({ mailboxId: messagePlacements.mailboxId })
+    .from(messagePlacements)
+    .where(eq(messagePlacements.messageId, messageId))
+    .all()
+    .map((row) => row.mailboxId);
+  return mailboxIds.includes(mailboxId) && mailboxIds.every((id) => id === mailboxId);
+};
+
 export const removePlacementOf = (
   db: RelayDb,
   messageId: string,
   mailboxId: MailboxId,
-): ThreadId[] =>
-  sortedThreadIds(
+  successor: string | null,
+): PlacementRemoval => {
+  const retired = retires(db, messageId, mailboxId);
+  if (retired && successor !== null) {
+    retargetReplyDrafts(db, messageId, successor);
+  }
+  const threadIds = sortedThreadIds(
     dropPlacements(
       db,
       and(eq(messagePlacements.messageId, messageId), eq(messagePlacements.mailboxId, mailboxId)),
     ),
   );
+  return { threadIds, retired };
+};
 
 export const forgetMailboxPlacements = (db: RelayDb, mailboxId: MailboxId): ThreadId[] =>
   sortedThreadIds(dropPlacements(db, eq(messagePlacements.mailboxId, mailboxId)));

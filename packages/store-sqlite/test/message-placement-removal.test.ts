@@ -1,7 +1,7 @@
-import { LabelIdSchema } from '@relay/shared/domain';
+import { type Draft, DraftIdSchema, LabelIdSchema } from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LOCAL_USER_ID } from '../src';
-import { messageId, NO_HEADERS, threadId } from './support/fixtures';
+import { accountId, messageId, NO_HEADERS, threadId } from './support/fixtures';
 import {
   at,
   expectMirrorParity,
@@ -29,6 +29,21 @@ const locations = [
 ] as const;
 
 const LABEL = LabelIdSchema.parse('lbl-1');
+
+const replyDraft = (id: string, replied: string): Draft => ({
+  id: DraftIdSchema.parse(id),
+  accountId: accountId('acc-1'),
+  to: [{ name: 'Jana', email: 'jana@klient.sk' }],
+  cc: [],
+  bcc: [],
+  subject: 'Re: Ponuka',
+  body: 'Ďakujem.',
+  inReplyToThreadId: null,
+  inReplyToMessageId: messageId(replied),
+  attachments: [],
+  createdAt: '2026-11-10T10:00:00.000Z',
+  updatedAt: '2026-11-10T10:00:00.000Z',
+});
 
 describe.each(locations)('message placement removal $name', ({ file }) => {
   let directory: TempDirectory | null = null;
@@ -114,13 +129,18 @@ describe.each(locations)('message placement removal $name', ({ file }) => {
       .prepare('insert into message_aliases (alias_id, message_id) values (?, ?)')
       .run('msg-merged', 'msg-1');
 
-    expect(await messages.removePlacement(messageId('msg-merged'), boxes.spam.id)).toEqual([
-      'thr-1',
-    ]);
-    expect(await messages.removePlacement(messageId('msg-1'), boxes.spam.id)).toEqual([]);
-    expect(await messages.removePlacement(messageId('msg-1'), boxes.inbox.id)).toEqual(['thr-1']);
+    const kept = { threadIds: ['thr-1'], retired: false };
+    expect(await messages.removePlacement(messageId('msg-merged'), boxes.spam.id)).toEqual(kept);
+    expect(await messages.removePlacement(messageId('msg-1'), boxes.spam.id)).toEqual({
+      threadIds: [],
+      retired: false,
+    });
+    expect(await messages.removePlacement(messageId('msg-1'), boxes.inbox.id)).toEqual(kept);
     expectMirrorParity(store, boxes, await messages.findById(LOCAL_USER_ID, messageId('msg-1')));
-    expect(await messages.removePlacement(messageId('msg-1'), boxes.allMail.id)).toEqual(['thr-1']);
+    expect(await messages.removePlacement(messageId('msg-1'), boxes.allMail.id)).toEqual({
+      threadIds: ['thr-1'],
+      retired: true,
+    });
     expect(messageCount(store)).toBe(0);
   });
 
@@ -146,12 +166,14 @@ describe.each(locations)('message placement removal $name', ({ file }) => {
       'thr-msg-a',
       'thr-msg-b',
     ]);
-    expect(await messages.removePlacement(messageId('msg-c'), boxes.sent.id)).toEqual([
-      'thr-msg-c',
-    ]);
-    expect(await messages.removePlacement(messageId('msg-d'), boxes.sent.id)).toEqual([
-      'thr-msg-d',
-    ]);
+    expect(await messages.removePlacement(messageId('msg-c'), boxes.sent.id)).toEqual({
+      threadIds: ['thr-msg-c'],
+      retired: false,
+    });
+    expect(await messages.removePlacement(messageId('msg-d'), boxes.sent.id)).toEqual({
+      threadIds: ['thr-msg-d'],
+      retired: false,
+    });
 
     ['msg-a', 'msg-b', 'msg-c', 'msg-d'].forEach((id) => {
       expect(storedState(store, id)).toMatchObject(at(boxes.inbox, 0));
@@ -236,5 +258,25 @@ describe.each(locations)('message placement removal $name', ({ file }) => {
       keepSource: false,
     });
     expect(placementRows(store)).toHaveLength(2);
+  });
+
+  it('retargets reply drafts to the successor only when the last placement goes', async () => {
+    const messages = await gmailMessage();
+    await messages.upsert(newMessage(seeded, 'msg-2', at(boxes.sent, 3)), NO_HEADERS);
+    await store.repositories.drafts.create(LOCAL_USER_ID, replyDraft('drf-1', 'msg-1'));
+    const replied = async () =>
+      (await store.repositories.drafts.findById(LOCAL_USER_ID, DraftIdSchema.parse('drf-1')))
+        ?.inReplyToMessageId;
+
+    await messages.removePlacement(messageId('msg-1'), boxes.inbox.id, messageId('msg-2'));
+    expect(await replied()).toBe('msg-1');
+    const last = await messages.removePlacement(
+      messageId('msg-1'),
+      boxes.allMail.id,
+      messageId('msg-2'),
+    );
+
+    expect(last).toEqual({ threadIds: ['thr-1'], retired: true });
+    expect(await replied()).toBe('msg-2');
   });
 });

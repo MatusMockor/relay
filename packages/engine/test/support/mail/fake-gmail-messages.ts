@@ -31,7 +31,7 @@ export const removesEveryLabel = (role: MailboxRole): boolean =>
 const defaultEmailId = (server: FakeMailServer, source: Uint8Array): string => {
   const headers = new TextDecoder().decode(source).split('\r\n\r\n')[0] ?? '';
   const messageId = MESSAGE_ID.exec(headers)?.[1];
-  return `gm-${messageId ?? String(server.gmailMessages.size + 1)}`;
+  return `gm-${messageId ?? server.nextGmailId()}`;
 };
 
 export const gmailRecord = (

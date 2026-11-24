@@ -176,8 +176,12 @@ describe('PgMessageRepository.place', () => {
   it('keeps generic first-match adoption and never joins by email id there', async () => {
     const placed = await scene();
     const { messages } = context.repositories;
-    const { inbox, sent, allMail } = placed.boxes;
+    const { inbox, sent, allMail, spam } = placed.boxes;
     const header = '<copy@relay.test>';
+    const objectId = await seedAt(placed, at(spam, 9), {
+      emailId: 'obj-1',
+      messageIdHeader: '<object@relay.test>',
+    });
     const ids: MessageId[] = [];
     for (const [uid, date] of [
       [1, '2026-11-12T10:00:00.000Z'],
@@ -202,6 +206,9 @@ describe('PgMessageRepository.place', () => {
       message: { id: ids[1], placements: sortedPlacements([at(inbox, 3), at(sent, 2)]) },
     });
     expect(separate).toMatchObject({ kind: 'created', message: { id: copy.id } });
+    await expect(
+      context.repositories.messages.findById(placed.seeded.user.id, objectId),
+    ).resolves.toMatchObject({ placements: [at(spam, 9)] });
   });
 
   it('places a new copy on the inbox keeper of legacy duplicates', async () => {

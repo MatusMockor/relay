@@ -79,6 +79,8 @@ describe('generic IMAP copies of one Message-ID', () => {
     const inbox = mailboxes.find(({ role }) => role === 'inbox');
     const folder = mailboxes.find(({ path }) => path === folderPath);
     expect(thread?.subject).toBe(SUBJECT);
+    expect(inbox).toBeDefined();
+    expect(folder).toBeDefined();
     if (thread === undefined || inbox === undefined || folder === undefined) {
       return;
     }

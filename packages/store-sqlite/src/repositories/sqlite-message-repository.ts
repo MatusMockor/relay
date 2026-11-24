@@ -7,6 +7,7 @@ import type {
   PlacementIdentity,
   PlacementMatch,
   PlacementMove,
+  PlacementRemoval,
   PlaceOutcome,
   PlaceRequest,
   StoredMatchSubject,
@@ -223,9 +224,18 @@ export class SqliteMessageRepository implements MessageRepository {
     });
   }
 
-  removePlacement(messageId: MessageId, mailboxId: MailboxId): Promise<ThreadId[]> {
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval> {
     return this.executor.execute((db) =>
-      removePlacementOf(db, resolveMessageId(db, messageId), mailboxId),
+      removePlacementOf(
+        db,
+        resolveMessageId(db, messageId),
+        mailboxId,
+        successor === undefined ? null : resolveMessageId(db, successor),
+      ),
     );
   }
 

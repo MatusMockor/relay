@@ -133,4 +133,31 @@ describe('fake Gmail server', () => {
     expect(server.record('INBOX', 1).emailId).toBeNull();
     expect(server.record('Archive', 1).flags.seen).toBe(false);
   });
+
+  it('generates distinct email ids for mail without a Message-ID', () => {
+    const server = gmailServer();
+    const bare = (subject: string) => new TextEncoder().encode(`Subject: ${subject}\r\n\r\nText`);
+    const first = server.deliver('Archive', bare('A'));
+    const firstId = server.record('Archive', first).emailId;
+    server.expunge('Archive', first);
+
+    const second = server.deliver('Archive', bare('B'));
+
+    expect(server.record('Archive', second).emailId).not.toBe(firstId);
+  });
+
+  it('keeps label names in step with label mailbox memberships on MOVE', async () => {
+    const server = gmailServer();
+    deliverMail(server, 'INBOX', { id: 'g1' });
+
+    await move(server, 'INBOX', 1, 'Klienti');
+    expect(server.record('Archive', 1).labels).toEqual(['Klienti']);
+    await move(server, 'Klienti', 1, 'INBOX');
+    expect(server.record('Archive', 1).labels).toEqual([]);
+
+    server.partialMoves = true;
+    await move(server, 'INBOX', 2, 'Klienti').catch(() => null);
+    expect(uidsOf(server, 'INBOX')).toEqual([2]);
+    expect(server.record('Archive', 1).labels).toEqual(['Klienti']);
+  });
 });
