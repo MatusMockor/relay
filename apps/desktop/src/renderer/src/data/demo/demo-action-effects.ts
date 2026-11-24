@@ -6,6 +6,7 @@ import type {
   ThreadAction,
   ThreadSummary,
 } from '@relay/shared';
+import { placementSetOf } from './demo-message-location';
 import type { DemoMoves } from './demo-moves';
 import type { DemoThreadRecord } from './demo-state';
 
@@ -45,7 +46,7 @@ const changedOf = (action: AutomationAction, before: Snapshot, after: Snapshot):
     return idsOf(
       before.messages.filter((message) =>
         after.messages.some(
-          (moved) => moved.id === message.id && moved.mailboxId !== message.mailboxId,
+          (moved) => moved.id === message.id && placementSetOf(moved) !== placementSetOf(message),
         ),
       ),
     );

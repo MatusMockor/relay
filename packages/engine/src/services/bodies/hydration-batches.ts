@@ -1,4 +1,9 @@
-import type { MailboxId } from '@relay/shared/domain';
+import {
+  type MailboxId,
+  type MailboxRoleOf,
+  type MessageId,
+  placementRank,
+} from '@relay/shared/domain';
 import type { HydrationCandidate } from '../../ports/message-body-store';
 import type { HistoryTarget } from '../sync/history/history-mailboxes';
 
@@ -47,6 +52,30 @@ const packed = (
   return batches;
 };
 
+const preferred = (
+  candidate: HydrationCandidate,
+  kept: HydrationCandidate,
+  roleOf: MailboxRoleOf,
+): boolean => {
+  const difference = placementRank(candidate, roleOf) - placementRank(kept, roleOf);
+  return difference < 0 || (difference === 0 && candidate.mailboxId < kept.mailboxId);
+};
+
+const onePerMessage = (
+  candidates: readonly HydrationCandidate[],
+  roleOf: MailboxRoleOf,
+): HydrationCandidate[] => {
+  const best = new Map<MessageId, HydrationCandidate>();
+  candidates.forEach((candidate) => {
+    const kept = best.get(candidate.messageId);
+    if (kept !== undefined && !preferred(candidate, kept, roleOf)) {
+      return;
+    }
+    best.set(candidate.messageId, candidate);
+  });
+  return [...best.values()];
+};
+
 export const planHydration = (
   candidates: readonly HydrationCandidate[],
   targets: readonly HistoryTarget[],
@@ -55,7 +84,8 @@ export const planHydration = (
   const targetOf = new Map(targets.map((target) => [target.mailbox.id, target]));
   const byMailbox = new Map<MailboxId, HydrationCandidate[]>();
   const oversized: HydrationCandidate[] = [];
-  candidates.forEach((candidate) => {
+  const roleOf: MailboxRoleOf = (mailboxId) => targetOf.get(mailboxId)?.mailbox.role;
+  onePerMessage(candidates, roleOf).forEach((candidate) => {
     if (estimatedBytes(candidate) > limits.messageBytes) {
       oversized.push(candidate);
       return;

@@ -6,39 +6,53 @@ import {
   type UserId,
 } from '@relay/shared/domain';
 import type { AttachmentContent } from '../../model/attachment';
+import type { RawMessage } from '../../model/remote-mail';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { AttachmentExtractor } from '../../ports/attachment-extractor';
-import type { MailboxRepository } from '../../ports/mailbox-repository';
+import type { MailProvider } from '../../ports/mail-provider';
 import type { MessageAttachmentLookup } from '../../ports/message-attachment-lookup';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import { PENDING_UID } from '../shared/pending-uid';
+import type { LocatedPlacement, PlacementLocations } from '../shared/placement-locations';
 import { pickRemoteAttachment } from './remote-attachment-pick';
 
 export interface ReceivedAttachmentReaderDeps {
   readonly lookup: MessageAttachmentLookup;
   readonly extractor: AttachmentExtractor;
   readonly accounts: AccountRepository;
-  readonly mailboxes: MailboxRepository;
+  readonly locations: PlacementLocations;
   readonly sessions: MailProviderSessions;
 }
+
+const firstSource = async (
+  provider: MailProvider,
+  located: readonly LocatedPlacement[],
+): Promise<RawMessage | null> => {
+  for (const { placement, mailbox } of located) {
+    const raw = await provider.fetchMessage(mailbox.path, placement.uid);
+    if (raw !== null) {
+      return raw;
+    }
+  }
+  return null;
+};
 
 export class ReceivedAttachmentReader {
   constructor(private readonly deps: ReceivedAttachmentReaderDeps) {}
 
   async read(userId: UserId, attachmentId: AttachmentId): Promise<AttachmentContent | null> {
     const message = await this.deps.lookup.findByAttachmentId(userId, attachmentId);
-    if (message === null || message.uid === PENDING_UID) {
+    if (message === null) {
       return null;
     }
     const index = message.attachments.findIndex((attachment) => attachment.id === attachmentId);
     const meta = message.attachments[index];
     const account = await this.deps.accounts.findById(userId, message.accountId);
-    const mailbox = await this.deps.mailboxes.findById(message.mailboxId);
-    if (meta === undefined || account === null || mailbox === null) {
+    const located = await this.deps.locations.of(message);
+    if (meta === undefined || account === null || located.length === 0) {
       return null;
     }
     const raw = await this.deps.sessions.with(account, (provider) =>
-      provider.fetchMessage(mailbox.path, message.uid),
+      firstSource(provider, located),
     );
     const extracted = raw === null ? null : await this.extract(message, raw.source, index, meta);
     if (extracted === null) {

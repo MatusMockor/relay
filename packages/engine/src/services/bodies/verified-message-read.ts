@@ -2,7 +2,7 @@ import type { RawMessage } from '../../model/remote-mail';
 import type { MailProvider } from '../../ports/mail-provider';
 import { reachable } from '../shared/provider-reachability';
 
-export interface MessageLocation {
+export interface RemoteCopyLocation {
   readonly path: string;
   readonly uid: number;
   readonly uidValidity: number;
@@ -10,7 +10,7 @@ export interface MessageLocation {
 
 const readAt = async (
   provider: MailProvider,
-  location: MessageLocation,
+  location: RemoteCopyLocation,
 ): Promise<RawMessage | null> => {
   const status = await provider.status(location.path);
   if (status.uidValidity !== location.uidValidity) {
@@ -21,7 +21,7 @@ const readAt = async (
 
 export const readVerifiedMessage = async (
   provider: MailProvider,
-  location: MessageLocation,
+  location: RemoteCopyLocation,
 ): Promise<RawMessage | null> => {
   try {
     return await readAt(provider, location);

@@ -1,4 +1,10 @@
-import type { MailAccount, MailboxId, Message, UserId } from '@relay/shared/domain';
+import type {
+  MailAccount,
+  MailboxId,
+  Message,
+  MessagePlacement,
+  UserId,
+} from '@relay/shared/domain';
 import type { PendingWork } from '../../model/pending-work';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
@@ -15,19 +21,38 @@ interface HeldInvite {
   readonly message: Message | null;
 }
 
+interface HeldPosition {
+  readonly index: number;
+  readonly uid: number;
+}
+
+interface PositionedInvite {
+  readonly work: PendingWork<'calendar-invite'>;
+  readonly position: HeldPosition;
+}
+
 const UNKNOWN = Number.MAX_SAFE_INTEGER;
 
-const arrivalOrder =
-  (mailboxOrder: readonly MailboxId[]) =>
-  (left: HeldInvite, right: HeldInvite): number =>
-    rank(mailboxOrder, left) - rank(mailboxOrder, right) ||
-    (left.message?.uid ?? UNKNOWN) - (right.message?.uid ?? UNKNOWN) ||
-    left.work.createdAt.localeCompare(right.work.createdAt);
+const NOWHERE: HeldPosition = { index: UNKNOWN, uid: UNKNOWN };
 
-const rank = (mailboxOrder: readonly MailboxId[], invite: HeldInvite): number => {
-  const index = invite.message === null ? -1 : mailboxOrder.indexOf(invite.message.mailboxId);
-  return index === -1 ? UNKNOWN : index;
+const positionIn = (
+  mailboxOrder: readonly MailboxId[],
+  placement: MessagePlacement,
+): HeldPosition => {
+  const index = mailboxOrder.indexOf(placement.mailboxId);
+  return { index: index === -1 ? UNKNOWN : index, uid: placement.uid };
 };
+
+const earlier = (left: HeldPosition, right: HeldPosition): number =>
+  left.index - right.index || left.uid - right.uid;
+
+const bestHeldPlacement = (message: Message, mailboxOrder: readonly MailboxId[]): HeldPosition =>
+  message.placements
+    .map((placement) => positionIn(mailboxOrder, placement))
+    .reduce((best, next) => (earlier(next, best) < 0 ? next : best), NOWHERE);
+
+const arrivalOrder = (left: PositionedInvite, right: PositionedInvite): number =>
+  earlier(left.position, right.position) || left.work.createdAt.localeCompare(right.work.createdAt);
 
 export class HeldInviteRelease {
   constructor(private readonly deps: HeldInviteReleaseDeps) {}
@@ -52,8 +77,10 @@ export class HeldInviteRelease {
     if (orphaned.length > 0) {
       await pendingWork.remove(orphaned);
     }
-    const located = held.filter((invite) => invite.message !== null);
-    for (const { work: item } of located.sort(arrivalOrder(mailboxOrder))) {
+    const located = held.flatMap(({ work: item, message }) =>
+      message === null ? [] : [{ work: item, position: bestHeldPlacement(message, mailboxOrder) }],
+    );
+    for (const { work: item } of located.sort(arrivalOrder)) {
       const { revision: _revision, ...key } = item;
       const { held: _held, ...payload } = item.payload;
       await pendingWork.put({ ...key, payload, createdAt: queue.nextStamp() });

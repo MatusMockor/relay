@@ -1,9 +1,10 @@
-import type {
-  AutomationActivityAction,
-  AutomationActivityId,
-  AutomationUndoOutcome,
-  Mailbox,
-  Message,
+import {
+  type AutomationActivityAction,
+  type AutomationActivityId,
+  type AutomationUndoOutcome,
+  isPlacedIn,
+  type Mailbox,
+  type Message,
 } from '@relay/shared';
 import type { DemoMoves } from './demo-moves';
 import type { DemoState, DemoThreadRecord } from './demo-state';
@@ -114,7 +115,7 @@ export class DemoPlacement {
     }
     const changed = new Set<string>(entry.changed);
     return record.messages.some(
-      (message) => changed.has(message.id) && message.mailboxId === mailboxId,
+      (message) => changed.has(message.id) && isPlacedIn(message, mailboxId),
     );
   }
 
@@ -124,6 +125,10 @@ export class DemoPlacement {
         .filter((mailbox) => FOLDER_ROLES.has(mailbox.role))
         .map((mailbox) => mailbox.id),
     );
-    return record.messages.some((message) => folders.has(message.mailboxId) && matches(message));
+    return record.messages.some(
+      (message) =>
+        message.placements.some((placement) => folders.has(placement.mailboxId)) &&
+        matches(message),
+    );
   }
 }

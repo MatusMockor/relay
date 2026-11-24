@@ -1,14 +1,13 @@
 import type { MailAccount, Message } from '@relay/shared/domain';
 import type { RawMessage } from '../../model/remote-mail';
 import type { Logger } from '../../ports/logger';
-import type { MailboxRepository } from '../../ports/mailbox-repository';
 import type { MessageParser } from '../../ports/message-parser';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { LingeringSessions } from '../shared/lingering-sessions';
 import { errorMessage } from '../shared/mail-provider-sessions';
-import { PENDING_UID } from '../shared/pending-uid';
+import type { LocatedPlacement, PlacementLocations } from '../shared/placement-locations';
 import type { RemoteBody } from './remote-body-cache';
-import { type MessageLocation, readVerifiedMessage } from './verified-message-read';
+import { type RemoteCopyLocation, readVerifiedMessage } from './verified-message-read';
 
 export type RemoteBodyOutcome =
   | { readonly kind: 'body'; readonly body: RemoteBody }
@@ -17,7 +16,7 @@ export type RemoteBodyOutcome =
 
 export interface RemoteBodyFetcherDeps {
   readonly sessions: LingeringSessions;
-  readonly mailboxes: MailboxRepository;
+  readonly locations: PlacementLocations;
   readonly syncStates: SyncStateRepository;
   readonly parser: MessageParser;
   readonly logger: Logger;
@@ -31,10 +30,25 @@ export class RemoteBodyFetcher {
   constructor(private readonly deps: RemoteBodyFetcherDeps) {}
 
   async fetch(account: MailAccount, message: Message): Promise<RemoteBodyOutcome> {
-    const location = await this.locate(message);
-    if (location === null) {
+    for (const located of await this.deps.locations.of(message)) {
+      const outcome = await this.fetchAt(account, message, located);
+      if (outcome !== MISSING) {
+        return outcome;
+      }
+    }
+    return MISSING;
+  }
+
+  private async fetchAt(
+    account: MailAccount,
+    message: Message,
+    { placement, mailbox }: LocatedPlacement,
+  ): Promise<RemoteBodyOutcome> {
+    const state = await this.deps.syncStates.find(mailbox.id);
+    if (state === null) {
       return MISSING;
     }
+    const location = { path: mailbox.path, uid: placement.uid, uidValidity: state.uidValidity };
     const raw = await this.read(account, location);
     if (raw === UNREACHABLE) {
       return OFFLINE;
@@ -42,21 +56,9 @@ export class RemoteBodyFetcher {
     return raw === null ? MISSING : this.parse(raw, message);
   }
 
-  private async locate(message: Message): Promise<MessageLocation | null> {
-    if (message.uid === PENDING_UID) {
-      return null;
-    }
-    const mailbox = await this.deps.mailboxes.findById(message.mailboxId);
-    const state = mailbox === null ? null : await this.deps.syncStates.find(mailbox.id);
-    if (mailbox === null || state === null) {
-      return null;
-    }
-    return { path: mailbox.path, uid: message.uid, uidValidity: state.uidValidity };
-  }
-
   private async read(
     account: MailAccount,
-    location: MessageLocation,
+    location: RemoteCopyLocation,
   ): Promise<RawMessage | null | typeof UNREACHABLE> {
     try {
       return await this.deps.sessions.with(account, (provider) =>
