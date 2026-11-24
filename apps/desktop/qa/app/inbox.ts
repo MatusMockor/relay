@@ -17,6 +17,13 @@ export const waitForInbox = async (page: Page, minRows = 1): Promise<number> => 
   return threadRows(page).count();
 };
 
+export const waitForRowCount = (page: Page, count: number): Promise<unknown> =>
+  page.waitForFunction(
+    ({ selector, expected }) => document.querySelectorAll(selector).length === expected,
+    { selector: ROW, expected: count },
+    { timeout: LIST_TIMEOUT_MS, polling: 250 },
+  );
+
 export const waitForThreadRow = (page: Page, subject: string): Promise<void> =>
   threadRow(page, subject).waitFor({ timeout: LIST_TIMEOUT_MS });
 

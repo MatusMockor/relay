@@ -6,6 +6,7 @@ export const SCENARIOS = [
   'large-account',
   'gmail-copies',
   'gmail-large',
+  'gmail-upgrade',
 ] as const;
 
 export const ScenarioNameSchema = z.enum(SCENARIOS);

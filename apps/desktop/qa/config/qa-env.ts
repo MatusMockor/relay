@@ -13,6 +13,7 @@ const QaEnvSchema = z.object({
   QA_HEADED: flag,
   QA_VERBOSE: flag,
   QA_SESSION: z.string().optional(),
+  QA_LEGACY_APP_DIR: z.string().min(1).optional(),
   QA_SCREENSHOT_SET: z
     .string()
     .regex(/^[a-z0-9][a-z0-9-]*$/)

@@ -39,3 +39,10 @@ export const threadFacts = async (page: Page): Promise<ThreadFacts> => {
     messageElements: await view.locator('article.msg, button.m-c').count(),
   };
 };
+
+const MESSAGE_COUNT = /(\d+) mail(?:y|ov)?(?![\p{L}])/u;
+
+export const metaMessageCount = (meta: string): number | null => {
+  const match = MESSAGE_COUNT.exec(meta);
+  return match === null ? null : Number(match[1]);
+};

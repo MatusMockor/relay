@@ -16,6 +16,7 @@ import type { ElectronApplication, Page } from 'playwright';
 export interface LaunchOptions {
   readonly env?: Readonly<Record<string, string>>;
   readonly profileDir?: string;
+  readonly appDir?: string;
   readonly hostOverrides?: HostOverrides;
 }
 
@@ -40,14 +41,11 @@ export const launchApp = async (options: LaunchOptions = {}): Promise<QaApp> => 
   const home = join(profileDir, 'home');
   await mkdir(home, { recursive: true });
   const keyring = await isolatedKeyring();
+  const appDir = options.appDir ?? qaPaths.desktopDir;
   const electron = await _electron.launch({
-    executablePath: electronBinary(),
-    args: [
-      ...HEADLESS_ARGS,
-      `--user-data-dir=${join(profileDir, 'user-data')}`,
-      qaPaths.desktopDir,
-    ],
-    cwd: qaPaths.desktopDir,
+    executablePath: electronBinary(appDir),
+    args: [...HEADLESS_ARGS, `--user-data-dir=${join(profileDir, 'user-data')}`, appDir],
+    cwd: appDir,
     env: appEnvironment(home, { ...keyring, ...options.env }),
   });
   const logFile = join(profileDir, 'app.log');
