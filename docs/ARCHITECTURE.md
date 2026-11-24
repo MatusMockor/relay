@@ -129,7 +129,7 @@ Two principles keep the change safe:
 ### Tables (both stores)
 
 - `messages`: one row per logical message. `seen`, `flagged`, `answered`, `body_state`, `headers`, `attachments`, `email_id` (text, lossless X-GM-MSGID) stay here. `mailbox_id` and `uid` stay until the last slice as the **primary placement** mirror (see `placementRank` below), written only by the message repository, with their unique index unchanged. The last slice drops them.
-- New `jira_effects_at` and `invite_effects_at` on `messages` (nullable timestamps): when the Jira event and the calendar invite of the message were queued. The migration sets both on every existing row.
+- New `jira_effects_at` and `invite_effects_at` on `messages` (nullable timestamps): when the Jira event and the calendar invite of the message were queued. The migration sets each one only on existing rows whose mailbox role accepts that effect (those rows had it queued at creation). A row only in Spam or a custom folder stays eligible, so a later Inbox placement still queues its effects.
 - `message_placements (message_id, mailbox_id, uid)`:
   - `message_id` FK `messages.id` ON DELETE CASCADE, `mailbox_id` FK `mailboxes.id` ON DELETE CASCADE.
   - Primary key `(message_id, mailbox_id)`: a message is at most once in a mailbox. A pending placement is addressed by this key.
@@ -166,7 +166,7 @@ Fetching stays as today: the full source per new UID. The initial sync keeps its
 
 Effects:
 
-- Arrival (notifications, AI one-liners, live automations): a placement added in the inbox mailbox by a live incremental fetch, when the message had no inbox placement before. Adopting a pending placement that a local action created (undo, restore) is not an arrival. Refetches after a UIDVALIDITY reset and the initial sync are not live, as today. Automation claims stay keyed by message id. After the duplicate merge (slice d), a message re-inboxed on the Gmail web runs a rule at most once. Before the merge, an unmerged copy behaves as today and can run the rule again.
+- Arrival (notifications, AI one-liners, live automations): a placement added in the inbox mailbox by a live incremental fetch, when the message had no inbox placement before. Adopting a pending placement that a local action created (undo, restore) is not an arrival. Refetches after a UIDVALIDITY reset and the initial sync are not live, as today. Automation claims stay keyed by message id. After the duplicate merge (slice d), a message re-inboxed on the Gmail web runs a rule at most once. Before the merge, and for groups the merge skips (they span threads), an unmerged copy behaves as today and can run the rule again.
 - Jira events and calendar invites: any live or backlog `place(...)` (refresh, attach or create) queues each effect when its own column (`jira_effects_at`, `invite_effects_at`) is null and the placement's role accepts that effect, then sets that column. A placement whose role accepts only one effect never blocks the other. History and search summary ingest leave both null, so the first full ingest of such a message still queues them.
 - New UIDs: a message that comes back into a mailbox (restore, re-inbox on the web) gets a new UID above the mailbox's last UID, so incremental fetch finds it. Optimistic `PENDING_UID` placements are replaced by the UID sync reports; COPYUID UIDs come from the server.
 
@@ -212,7 +212,7 @@ Actions load the thread's messages with their placements and pick placements, no
 
 ### Merging existing duplicates (migration)
 
-1. Schema migration (SQL, one transaction): create `message_placements` and `message_aliases`, add `messages.jira_effects_at` and `messages.invite_effects_at` (set to now on every row), `INSERT ... SELECT` one placement per existing message. The `(mailbox_id, uid)` unique index on `messages` stays. This ships in slice a, and nothing is enqueued yet.
+1. Schema migration (SQL, one transaction): create `message_placements` and `message_aliases`, add `messages.jira_effects_at` and `messages.invite_effects_at` (set to now on rows whose mailbox role accepts the effect), `INSERT ... SELECT` one placement per existing message. The `(mailbox_id, uid)` unique index on `messages` stays. This ships in slice a, and nothing is enqueued yet.
 2. Slice d's migration enqueues one `pending_work` row `kind = 'copy-merge'` per account. The engine `CopyMergeBackfill` runs it inside the account's sync, after the mailbox passes (so the expunge diff has removed stale locations first), on desktop and server alike. The sync of an account is already serialized (desktop serial queue, server pg-boss singleton per account).
    - Accounts that are not label-based drop their work row.
    - Resolve: for messages with a null `email_id` and a positive UID, `UID FETCH <uids> (X-GM-MSGID)` per mailbox (UIDVALIDITY checked) fills `email_id`. Rows the server no longer has are left to the expunge diff, and unresolved rows stay separate.
