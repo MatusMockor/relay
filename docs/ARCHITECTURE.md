@@ -129,7 +129,7 @@ Two principles keep the change safe:
 ### Tables (both stores)
 
 - `messages`: one row per logical message. `seen`, `flagged`, `answered`, `body_state`, `headers`, `attachments`, `email_id` (text, lossless X-GM-MSGID) stay here. `mailbox_id` and `uid` stay until the last slice as the **primary placement** mirror (see `placementRank` below), written only by the message repository, with their unique index unchanged. The last slice drops them.
-- New `jira_effects_at` and `invite_effects_at` on `messages` (nullable timestamps): when the Jira event and the calendar invite of the message were queued. The migration sets each one only on existing rows whose mailbox role accepts that effect (those rows had it queued at creation). A row only in Spam or a custom folder stays eligible, so a later Inbox placement still queues its effects.
+- New `jira_effects_at` and `invite_effects_at` on `messages` (nullable timestamps): when the Jira event and the calendar invite of the message were queued. The migration sets each one only on existing rows whose mailbox role accepts that effect (those rows had it queued at creation). A row only in Spam or a custom folder stays eligible, so a later Inbox placement still queues its effects. Header-only history rows in an accepting role get their gate too, on purpose: they never queued effects, but leaving them NULL would queue a Jira event or invite for old mail on its next flag refresh.
 - `message_placements (message_id, mailbox_id, uid)`:
   - `message_id` FK `messages.id` ON DELETE CASCADE, `mailbox_id` FK `mailboxes.id` ON DELETE CASCADE.
   - Primary key `(message_id, mailbox_id)`: a message is at most once in a mailbox. A pending placement is addressed by this key.
