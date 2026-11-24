@@ -15,19 +15,39 @@ import type {
   TaskSystemSecretStore,
 } from '../../../src';
 
-export class FakeTaskSystemAdapter implements TaskSystemAdapter {
-  readonly provider: TaskSystemProvider = 'jira';
-  readonly calls: { kind: 'verify' | 'list'; access: TaskSystemAccess }[] = [];
-  account: TaskSystemAccount = {
+const ACCOUNTS: Readonly<Record<TaskSystemProvider, TaskSystemAccount>> = {
+  jira: {
     siteUrl: 'https://acme.atlassian.net',
     externalAccountId: 'acc-1',
     accountName: 'Alice Doe',
-  };
+    defaultLabel: 'acme.atlassian.net',
+  },
+  linear: {
+    siteUrl: 'https://linear.app/acme',
+    externalAccountId: 'lin-user-1',
+    accountName: 'Alice Doe',
+    defaultLabel: 'Acme',
+  },
+  github: {
+    siteUrl: 'https://github.com',
+    externalAccountId: '583231',
+    accountName: 'Alice Doe',
+    defaultLabel: 'alice',
+  },
+};
+
+export class FakeTaskSystemAdapter implements TaskSystemAdapter {
+  readonly calls: { kind: 'verify' | 'list'; access: TaskSystemAccess }[] = [];
+  account: TaskSystemAccount;
   tasks: RemoteExternalTask[] = [];
   truncated = false;
   failWith: Error | null = null;
   credentials: TaskSystemCredentials | undefined = undefined;
   beforeAnswer: (() => Promise<void>) | null = null;
+
+  constructor(readonly provider: TaskSystemProvider) {
+    this.account = ACCOUNTS[provider];
+  }
 
   verify(access: TaskSystemAccess): Promise<TaskSystemAccount> {
     this.calls.push({ kind: 'verify', access });
@@ -94,13 +114,21 @@ export class MemoryTaskSystemSecrets implements TaskSystemSecretStore {
 
 export interface TaskSystemFakes extends TaskSystemAdapters {
   readonly jira: FakeTaskSystemAdapter;
+  readonly linear: FakeTaskSystemAdapter;
+  readonly github: FakeTaskSystemAdapter;
+  readonly unsupported: Set<TaskSystemProvider>;
   readonly secrets: MemoryTaskSystemSecrets;
 }
 
 export const createTaskSystemFakes = (): TaskSystemFakes => {
-  const jira = new FakeTaskSystemAdapter();
-  const registry: TaskSystemAdapterRegistry = {
-    get: (provider) => (provider === jira.provider ? jira : null),
+  const adapters = {
+    jira: new FakeTaskSystemAdapter('jira'),
+    linear: new FakeTaskSystemAdapter('linear'),
+    github: new FakeTaskSystemAdapter('github'),
   };
-  return { jira, registry, secrets: new MemoryTaskSystemSecrets() };
+  const unsupported = new Set<TaskSystemProvider>();
+  const registry: TaskSystemAdapterRegistry = {
+    get: (provider) => (unsupported.has(provider) ? null : adapters[provider]),
+  };
+  return { ...adapters, unsupported, registry, secrets: new MemoryTaskSystemSecrets() };
 };
