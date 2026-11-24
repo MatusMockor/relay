@@ -1,5 +1,5 @@
 import { type GitHubStub, gitHubStubIssue, startGitHubStub } from '@relay/config/test-infra';
-import { ProviderError, ReauthorizationRequiredError } from '@relay/engine';
+import { ProviderError, RateLimitedError, ReauthorizationRequiredError } from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GITHUB_ALICE, githubAccess, githubAdapterFor } from './support/github';
 
@@ -52,15 +52,20 @@ describe('GitHubIssuesAdapter against a GitHub REST stub', () => {
       ReauthorizationRequiredError,
     );
     stub.failNext({ status: 403, headers: { 'x-ratelimit-remaining': '0' } });
+    await expect(adapter.listMyOpenTasks(githubAccess())).rejects.toThrow(RateLimitedError);
+    stub.failNext({
+      status: 403,
+      body: { message: 'You have exceeded a secondary rate limit. Please wait a few minutes.' },
+    });
     await expect(adapter.listMyOpenTasks(githubAccess())).rejects.toThrow(
-      /obmedzil počet požiadaviek/,
+      'GitHub dočasne obmedzil počet požiadaviek, skús to znova o chvíľu.',
     );
     stub.failNext({ status: 403, body: { message: 'Resource not accessible' } });
     const denied = adapter.verify(githubAccess());
     await expect(denied).rejects.toThrow(/GitHub túto požiadavku pre tento token nepovolil/);
     await expect(denied).rejects.not.toThrow(ReauthorizationRequiredError);
     stub.failNext({ status: 429, headers: { 'retry-after': '60' } });
-    await expect(adapter.verify(githubAccess())).rejects.toThrow(/obmedzil počet požiadaviek/);
+    await expect(adapter.verify(githubAccess())).rejects.toThrow(RateLimitedError);
     stub.failNext({ status: 500 });
     await expect(adapter.verify(githubAccess())).rejects.toThrow('GitHub vrátil stav 500.');
   });

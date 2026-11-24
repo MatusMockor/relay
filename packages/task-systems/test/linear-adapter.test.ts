@@ -1,5 +1,10 @@
 import { type LinearStub, linearStubIssue, startLinearStub } from '@relay/config/test-infra';
-import { ProviderError, ReauthorizationRequiredError, ValidationError } from '@relay/engine';
+import {
+  ProviderError,
+  RateLimitedError,
+  ReauthorizationRequiredError,
+  ValidationError,
+} from '@relay/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LinearAdapter } from '../src';
 import { LINEAR_ALICE, linearAccess, linearAdapterFor } from './support/linear';
@@ -169,7 +174,7 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
       status: 400,
       body: { errors: [{ message: 'Too many', extensions: { code: 'RATELIMITED' } }] },
     });
-    await expect(adapter.verify(linearAccess())).rejects.toThrow(/obmedzil počet požiadaviek/);
+    await expect(adapter.verify(linearAccess())).rejects.toThrow(RateLimitedError);
     stub.failNext({ status: 200, body: { errors: [{ message: 'Field "x" not found' }] } });
     await expect(adapter.verify(linearAccess())).rejects.toThrow('Linear požiadavku odmietol.');
     stub.failNext({ status: 502, body: 'Bad gateway' });

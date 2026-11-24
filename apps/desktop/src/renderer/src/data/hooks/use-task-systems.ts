@@ -1,16 +1,12 @@
 import type { ExternalTaskList, TaskSystemConnection, TaskSystemConnectionId } from '@relay/shared';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { MailClientError } from '../errors';
 import type { MailClient } from '../MailClient';
 import { useClient } from './services-context';
+import { shouldRetryTasks } from './task-system-retry';
 import { taskSystemKeys } from './task-system-keys';
 
 const TASKS_STALE_MS = 60_000;
 const TASKS_REFETCH_MS = 5 * 60_000;
-const FINAL_CODES = new Set(['forbidden', 'not_found', 'validation_failed']);
-
-const retryTasks = (failures: number, error: Error): boolean =>
-  failures < 1 && !(error instanceof MailClientError && FINAL_CODES.has(error.code));
 
 const tasksQuery = (client: MailClient, connectionId: TaskSystemConnectionId) => ({
   queryKey: taskSystemKeys.tasks(connectionId),
@@ -18,7 +14,7 @@ const tasksQuery = (client: MailClient, connectionId: TaskSystemConnectionId) =>
   staleTime: TASKS_STALE_MS,
   refetchInterval: TASKS_REFETCH_MS,
   refetchOnWindowFocus: true,
-  retry: retryTasks,
+  retry: shouldRetryTasks,
 });
 
 export const useTaskSystemConnections = () => {

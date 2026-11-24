@@ -1,4 +1,4 @@
-import { ProviderError, ReauthorizationRequiredError } from '@relay/engine';
+import { ProviderError, RateLimitedError, ReauthorizationRequiredError } from '@relay/engine';
 import type { LinearGraphQlError } from './linear-api-schemas';
 
 export const LINEAR_AUTH_REJECTED_MESSAGE =
@@ -29,7 +29,9 @@ export const linearApiError = (
     return new ProviderError(LINEAR_ACCESS_DENIED_MESSAGE);
   }
   if (status === 429 || errors.some(isRateLimited)) {
-    return new ProviderError('Linear dočasne obmedzil počet požiadaviek. Skús to neskôr.');
+    return new RateLimitedError(
+      'Linear dočasne obmedzil počet požiadaviek, skús to znova o chvíľu.',
+    );
   }
   if (status < 200 || status > 299) {
     return new ProviderError(`Linear vrátil stav ${String(status)}.`);

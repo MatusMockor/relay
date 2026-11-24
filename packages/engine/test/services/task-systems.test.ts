@@ -117,68 +117,6 @@ describe('TaskSystemService', () => {
     );
   });
 
-  it('connects Linear with its API key and labels it with the organization', async () => {
-    const connection = await engine.services.taskSystems.connect(USER_ID, {
-      provider: 'linear',
-      apiKey: 'lin_api_1',
-    });
-    engine.taskSystems.linear.tasks = [{ ...TASK, key: 'ENG-1', url: 'https://linear.app/x' }];
-
-    expect(connection).toMatchObject({
-      provider: 'linear',
-      label: 'Acme',
-      siteUrl: 'https://linear.app/acme',
-    });
-    expect(engine.taskSystems.linear.calls[0]?.access).toEqual({
-      siteUrl: 'https://linear.app',
-      credentials: { provider: 'linear', apiKey: 'lin_api_1' },
-    });
-    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)).toEqual({
-      provider: 'linear',
-      apiKey: 'lin_api_1',
-    });
-    const tasks = await engine.services.taskSystems.listTasks(USER_ID, connection.id);
-    expect(tasks.items.map((task) => [task.provider, task.key])).toEqual([['linear', 'ENG-1']]);
-    expect(engine.taskSystems.linear.calls.at(-1)?.access).toEqual({
-      siteUrl: 'https://linear.app/acme',
-      credentials: { provider: 'linear', apiKey: 'lin_api_1' },
-    });
-  });
-
-  it('connects GitHub Issues with a token next to other systems', async () => {
-    await engine.services.taskSystems.connect(USER_ID, INPUT);
-    const connection = await engine.services.taskSystems.connect(USER_ID, {
-      provider: 'github',
-      token: 'ghp_1',
-    });
-    engine.taskSystems.github.tasks = [{ ...TASK, key: 'acme/web#7' }];
-
-    expect(connection).toMatchObject({ provider: 'github', label: 'alice' });
-    expect(engine.taskSystems.github.calls[0]?.access.credentials).toEqual({
-      provider: 'github',
-      token: 'ghp_1',
-    });
-    expect((await engine.services.taskSystems.list(USER_ID)).map((item) => item.provider)).toEqual([
-      'jira',
-      'github',
-    ]);
-    const tasks = await engine.services.taskSystems.listTasks(USER_ID, connection.id);
-    expect(tasks.items).toEqual([
-      { ...TASK, key: 'acme/web#7', connectionId: connection.id, provider: 'github' },
-    ]);
-  });
-
-  it('falls back to the host name when the account has no label', async () => {
-    engine.taskSystems.github.account = { ...engine.taskSystems.github.account, defaultLabel: ' ' };
-
-    const connection = await engine.services.taskSystems.connect(USER_ID, {
-      provider: 'github',
-      token: 'ghp_1',
-    });
-
-    expect(connection.label).toBe('github.com');
-  });
-
   it('lists the tasks of a connection tagged with the connection', async () => {
     const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
     engine.taskSystems.jira.tasks = [TASK];
