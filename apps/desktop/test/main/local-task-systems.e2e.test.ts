@@ -27,7 +27,10 @@ describe('local mode task systems (SQLite + Jira stub)', () => {
     startLocalRuntime(dir, {
       cipher,
       taskSystems: createTaskSystemRegistry({
-        jira: { sitePolicy: { origin: (siteUrl) => new URL(siteUrl).origin } },
+        jira: {
+          sitePolicy: { origin: (siteUrl) => new URL(siteUrl).origin },
+          gatewayOrigin: jira.url,
+        },
       }),
     });
 

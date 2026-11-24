@@ -17,21 +17,26 @@ describe('JiraCloudAdapter against a Jira Cloud stub', () => {
   });
 
   it('verifies the account with basic auth and normalizes the site', async () => {
-    const account = await adapterFor().verify(accessFor(stub));
+    const account = await adapterFor(stub).verify(accessFor(stub));
 
     expect(account).toEqual({
       siteUrl: stub.url,
       externalAccountId: ALICE.accountId,
       accountName: ALICE.displayName,
+      credentials: { ...accessFor(stub).credentials, route: { kind: 'site' } },
     });
-    expect(stub.requests).toEqual([{ method: 'GET', path: '/rest/api/3/myself', body: null }]);
+    expect(stub.requests.map((request) => request.path)).toEqual([
+      '/rest/api/3/myself',
+      '/rest/api/3/search/jql',
+    ]);
+    expect(stub.requests[1]?.body).toMatchObject({ maxResults: 1 });
   });
 
   it('rejects wrong credentials as an auth failure', async () => {
-    await expect(adapterFor().verify(accessFor(stub, 'wrong'))).rejects.toThrow(
+    await expect(adapterFor(stub).verify(accessFor(stub, 'wrong'))).rejects.toThrow(
       ReauthorizationRequiredError,
     );
-    await expect(adapterFor().listMyOpenTasks(accessFor(stub, 'wrong'))).rejects.toThrow(
+    await expect(adapterFor(stub).listMyOpenTasks(accessFor(stub, 'wrong'))).rejects.toThrow(
       ReauthorizationRequiredError,
     );
   });
@@ -50,10 +55,10 @@ describe('JiraCloudAdapter against a Jira Cloud stub', () => {
       }),
     );
     stub.issue(ALICE.accountId, jiraStubIssue('ACME-2', { priority: { name: 'Minor' } }));
-    stub.issue(ALICE.accountId, jiraStubIssue('ACME-3', { priority: null, duedate: 'soon' }));
+    stub.issue(ALICE.accountId, jiraStubIssue('ACME-3', { priority: null, duedate: '2026-02-30' }));
     stub.issue('someone-else', jiraStubIssue('ACME-4'));
 
-    const result = await adapterFor().listMyOpenTasks(accessFor(stub));
+    const result = await adapterFor(stub).listMyOpenTasks(accessFor(stub));
 
     expect(result.truncated).toBe(false);
     expect(result.tasks.map((task) => [task.key, task.priority])).toEqual([
@@ -89,7 +94,7 @@ describe('JiraCloudAdapter against a Jira Cloud stub', () => {
       stub.issue(ALICE.accountId, jiraStubIssue(`ACME-${String(index)}`));
     }
 
-    const result = await adapterFor(3).listMyOpenTasks(accessFor(stub));
+    const result = await adapterFor(stub, 3).listMyOpenTasks(accessFor(stub));
 
     expect(result.tasks.map((task) => task.key)).toEqual(['ACME-1', 'ACME-2', 'ACME-3']);
     expect(result.truncated).toBe(true);
@@ -97,28 +102,26 @@ describe('JiraCloudAdapter against a Jira Cloud stub', () => {
 
   it('fails on an invalid response', async () => {
     stub.failNext({ status: 200, body: { issues: [{ key: 'ACME-1' }] } });
-    await expect(adapterFor().listMyOpenTasks(accessFor(stub))).rejects.toThrow(
+    await expect(adapterFor(stub).listMyOpenTasks(accessFor(stub))).rejects.toThrow(
       'Jira vrátila neplatnú odpoveď.',
     );
     stub.failNext({ status: 200, body: 'not json' });
-    await expect(adapterFor().verify(accessFor(stub))).rejects.toThrow(ProviderError);
+    await expect(adapterFor(stub).verify(accessFor(stub))).rejects.toThrow(ProviderError);
   });
 
   it('maps server failures', async () => {
     stub.failNext({ status: 429 });
-    await expect(adapterFor().listMyOpenTasks(accessFor(stub))).rejects.toThrow(ProviderError);
+    await expect(adapterFor(stub).listMyOpenTasks(accessFor(stub))).rejects.toThrow(ProviderError);
     stub.failNext({ status: 404 });
-    await expect(adapterFor().verify(accessFor(stub))).rejects.toThrow(ValidationError);
+    await expect(adapterFor(stub).verify(accessFor(stub))).rejects.toThrow(ValidationError);
     stub.failNext({ status: 403 });
-    await expect(adapterFor().verify(accessFor(stub))).rejects.toThrow(
-      ReauthorizationRequiredError,
-    );
+    await expect(adapterFor(stub).verify(accessFor(stub))).rejects.toThrow(ProviderError);
   });
 
   it('reports an unreachable site as a provider error', async () => {
     const url = stub.url;
     await stub.close();
-    const adapter = adapterFor();
+    const adapter = adapterFor(stub);
 
     await expect(adapter.verify({ ...accessFor(stub), siteUrl: url })).rejects.toThrow(
       ProviderError,

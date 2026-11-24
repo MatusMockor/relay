@@ -6,6 +6,7 @@ export interface JiraStubUser {
   readonly apiToken: string;
   readonly accountId: string;
   readonly displayName: string;
+  readonly scoped?: boolean;
 }
 
 export interface JiraStubIssue {
@@ -26,6 +27,7 @@ export interface JiraStubFailure {
 
 export interface JiraCloudStub {
   readonly url: string;
+  readonly cloudId: string;
   readonly users: JiraStubUser[];
   readonly issues: JiraStubIssue[];
   readonly requests: JiraStubRequest[];
@@ -69,6 +71,9 @@ const pageTokenOf = (body: unknown): number => {
   return typeof token === 'string' ? Number(token.replace('page-', '')) : 0;
 };
 
+const CLOUD_ID = '6d1f3e2a-0b4c-4f7e-9a51-2c8d9e0f1a2b';
+const GATEWAY_PREFIX = `/ex/jira/${CLOUD_ID}`;
+
 export const startJiraCloudStub = async (): Promise<JiraCloudStub> => {
   const users: JiraStubUser[] = [];
   const issues: JiraStubIssue[] = [];
@@ -76,9 +81,13 @@ export const startJiraCloudStub = async (): Promise<JiraCloudStub> => {
   const failures: JiraStubFailure[] = [];
   const state = { pageSize: 100 };
 
-  const userOf = (request: IncomingMessage): JiraStubUser | null => {
+  const userOf = (request: IncomingMessage, viaGateway: boolean): JiraStubUser | null => {
     const credentials = credentialsOf(request);
-    return users.find((user) => `${user.email}:${user.apiToken}` === credentials) ?? null;
+    const user = users.find((entry) => `${entry.email}:${entry.apiToken}` === credentials);
+    if (user === undefined || (user.scoped === true && !viaGateway)) {
+      return null;
+    }
+    return user;
   };
 
   const search = (user: JiraStubUser, body: unknown, response: ServerResponse): void => {
@@ -104,12 +113,18 @@ export const startJiraCloudStub = async (): Promise<JiraCloudStub> => {
       send(response, failure.status, failure.body ?? { errorMessages: ['failure'] });
       return;
     }
-    const user = userOf(request);
+    if (request.method === 'GET' && url.pathname === '/_edge/tenant_info') {
+      send(response, 200, { cloudId: CLOUD_ID });
+      return;
+    }
+    const viaGateway = url.pathname.startsWith(`${GATEWAY_PREFIX}/`);
+    const path = viaGateway ? url.pathname.slice(GATEWAY_PREFIX.length) : url.pathname;
+    const user = userOf(request, viaGateway);
     if (user === null) {
       send(response, 401, 'Client must be authenticated to access this resource.');
       return;
     }
-    if (request.method === 'GET' && url.pathname === '/rest/api/3/myself') {
+    if (request.method === 'GET' && path === '/rest/api/3/myself') {
       send(response, 200, {
         accountId: user.accountId,
         displayName: user.displayName,
@@ -118,7 +133,7 @@ export const startJiraCloudStub = async (): Promise<JiraCloudStub> => {
       });
       return;
     }
-    if (request.method === 'POST' && url.pathname === '/rest/api/3/search/jql') {
+    if (request.method === 'POST' && path === '/rest/api/3/search/jql') {
       search(user, body, response);
       return;
     }
@@ -134,6 +149,7 @@ export const startJiraCloudStub = async (): Promise<JiraCloudStub> => {
   const { port } = server.address() as AddressInfo;
   return {
     url: `http://127.0.0.1:${String(port)}`,
+    cloudId: CLOUD_ID,
     users,
     issues,
     requests,

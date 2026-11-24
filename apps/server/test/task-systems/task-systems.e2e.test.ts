@@ -33,7 +33,10 @@ describe('task systems over HTTP (Jira stub)', () => {
     );
     app = await startTestApp({
       taskSystems: createTaskSystemRegistry({
-        jira: { sitePolicy: { origin: (siteUrl) => new URL(siteUrl).origin } },
+        jira: {
+          sitePolicy: { origin: (siteUrl) => new URL(siteUrl).origin },
+          gatewayOrigin: jira.url,
+        },
       }),
     });
   });
@@ -99,6 +102,14 @@ describe('task systems over HTTP (Jira stub)', () => {
         stranger.accessToken,
       ),
     ).toMatchObject({ status: 404 });
+
+    jira.failNext({ status: 403 });
+    expect(
+      await app.api.fail(api.taskSystems.tasks, { params: { id: connection.id } }, token),
+    ).toMatchObject({ status: 502, error: { code: 'provider_error' } });
+    expect(await app.api.ok(api.taskSystems.list, {}, token)).toEqual([
+      expect.objectContaining({ id: connection.id, status: 'ok' }),
+    ]);
 
     jira.failNext({ status: 401 });
     expect(

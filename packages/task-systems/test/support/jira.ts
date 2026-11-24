@@ -16,8 +16,9 @@ export const accessFor = (stub: JiraCloudStub, apiToken = ALICE.apiToken): TaskS
   credentials: { provider: 'jira', email: ALICE.email, apiToken },
 });
 
-export const adapterFor = (maxIssues?: number) =>
+export const adapterFor = (stub: JiraCloudStub, maxIssues?: number) =>
   new JiraCloudAdapter({
     sitePolicy: loopbackPolicy,
+    gatewayOrigin: stub.url,
     ...(maxIssues === undefined ? {} : { paging: { maxIssues } }),
   });

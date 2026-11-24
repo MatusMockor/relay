@@ -9,11 +9,12 @@ export interface JiraApiClientOptions {
 }
 
 export interface JiraApiRequest {
-  readonly origin: string;
+  readonly base: string;
   readonly credentials: JiraCredentials;
   readonly method: 'GET' | 'POST';
   readonly path: string;
   readonly body?: unknown;
+  readonly forbiddenMessage?: string;
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -31,7 +32,7 @@ export class JiraApiClient {
     const response = await this.fetch(request);
     if (!response.ok) {
       await response.body?.cancel();
-      throw jiraApiError(response.status);
+      throw jiraApiError(response.status, request.forbiddenMessage);
     }
     const payload: unknown = await response.json().catch(() => null);
     const parsed = schema.safeParse(payload);
@@ -50,7 +51,7 @@ export class JiraApiClient {
     if (request.body !== undefined) {
       headers['content-type'] = 'application/json';
     }
-    return fetchFn(`${request.origin}${request.path}`, {
+    return fetchFn(`${request.base}${request.path}`, {
       method: request.method,
       headers,
       redirect: 'error',

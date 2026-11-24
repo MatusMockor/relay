@@ -1,3 +1,4 @@
+import { ExternalTaskDueDateSchema } from '@relay/shared/domain';
 import { z } from 'zod';
 
 const text = (max: number) => z.string().max(max);
@@ -8,6 +9,10 @@ export const JiraMyselfSchema = z.object({
   emailAddress: text(320).optional(),
 });
 export type JiraMyself = z.infer<typeof JiraMyselfSchema>;
+
+export const JiraTenantInfoSchema = z.object({
+  cloudId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/),
+});
 
 export const JiraIssueSchema = z.object({
   id: z.string().min(1).max(255),
@@ -22,11 +27,7 @@ export const JiraIssueSchema = z.object({
       .nullish(),
     priority: z.object({ name: text(1000).nullish() }).nullish(),
     project: z.object({ key: text(255).nullish(), name: text(1000).nullish() }).nullish(),
-    duedate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullish()
-      .catch(null),
+    duedate: ExternalTaskDueDateSchema.nullish().catch(null),
     updated: text(100).nullish(),
   }),
 });
