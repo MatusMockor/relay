@@ -24,6 +24,7 @@ describe('JiraCloudAdapter against a Jira Cloud stub', () => {
       externalAccountId: ALICE.accountId,
       accountName: ALICE.displayName,
       credentials: { ...accessFor(stub).credentials, route: { kind: 'site' } },
+      defaultLabel: '127.0.0.1',
     });
     expect(stub.requests.map((request) => request.path)).toEqual([
       '/rest/api/3/myself',

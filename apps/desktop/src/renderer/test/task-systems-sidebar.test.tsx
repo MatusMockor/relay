@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderApp, resetStores } from './support/render-app';
 import {
   ACME_JIRA,
+  ACME_LINEAR,
   resetWithSidebar,
   settingsSheet,
   sidebar,
@@ -26,6 +27,17 @@ describe('task systems in the sidebar', () => {
     expect(within(sidebar()).getByRole('button', { name: 'Pripojiť systém' })).toBeDefined();
   });
 
+  it('lists a connected Linear next to Jira with its own mark and count', async () => {
+    renderApp({ demo: () => taskSystemClient() });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    await waitFor(() => {
+      expect(sidebarItem(ACME_LINEAR)?.querySelector('.n')?.textContent).toBe('5');
+    });
+    expect(sidebarItem(ACME_LINEAR)?.querySelector('.ts-mark-linear')).not.toBeNull();
+    expect(sidebarItem(ACME_JIRA)?.querySelector('.ts-mark-jira')).not.toBeNull();
+  });
+
   it('hides the section when no task system is connected', async () => {
     renderApp({ demo: () => taskSystemClient({ connected: false }) });
     await screen.findByRole('listbox', { name: 'Konverzácie' });
@@ -42,9 +54,10 @@ describe('task systems in the sidebar', () => {
     await screen.findByRole('listbox', { name: 'Konverzácie' });
 
     await waitFor(() => {
-      expect(within(sidebar()).getByRole('img', { name: 'Chyba pripojenia' })).toBeDefined();
+      expect(within(sidebar()).getAllByRole('img', { name: 'Chyba pripojenia' })).toHaveLength(2);
     });
     expect(sidebarItem(ACME_JIRA)?.querySelector('.n')).toBeNull();
+    expect(sidebarItem(ACME_LINEAR)?.querySelector('.n')).toBeNull();
   });
 
   it('opens the connect form in settings from the sidebar', async () => {

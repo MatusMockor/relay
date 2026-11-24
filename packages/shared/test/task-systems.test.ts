@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   ConnectTaskSystemInputSchema,
   ExternalTaskSchema,
+  isCredentialsOf,
   isTaskSystemProviderAvailable,
   TaskSystemConnectionSchema,
+  TaskSystemCredentialsSchema,
 } from '../src/domain';
 
 describe('task system schemas', () => {
@@ -21,9 +23,9 @@ describe('task system schemas', () => {
       email: 'ja@firma.sk',
       apiToken: 'token',
     });
-    expect(
-      ConnectTaskSystemInputSchema.safeParse({ provider: 'linear', apiKey: 'x' }).success,
-    ).toBe(false);
+    expect(ConnectTaskSystemInputSchema.safeParse({ provider: 'asana', apiKey: 'x' }).success).toBe(
+      false,
+    );
     expect(
       ConnectTaskSystemInputSchema.safeParse({
         provider: 'jira',
@@ -32,6 +34,29 @@ describe('task system schemas', () => {
         apiToken: 'token',
       }).success,
     ).toBe(false);
+  });
+
+  it('trims the Linear and GitHub connect inputs and requires their secret', () => {
+    expect(
+      ConnectTaskSystemInputSchema.parse({ provider: 'linear', apiKey: ' lin_api_1 ' }),
+    ).toEqual({ provider: 'linear', apiKey: 'lin_api_1' });
+    expect(
+      ConnectTaskSystemInputSchema.parse({ provider: 'github', token: ' ghp_1 ', label: ' Môj ' }),
+    ).toEqual({ provider: 'github', token: 'ghp_1', label: 'Môj' });
+    expect(
+      ConnectTaskSystemInputSchema.safeParse({ provider: 'linear', apiKey: ' ' }).success,
+    ).toBe(false);
+    expect(
+      ConnectTaskSystemInputSchema.safeParse({ provider: 'github', apiKey: 'x' }).success,
+    ).toBe(false);
+  });
+
+  it('narrows stored credentials by provider', () => {
+    const credentials = TaskSystemCredentialsSchema.parse({ provider: 'github', token: 'ghp_1' });
+
+    expect(isCredentialsOf(credentials, 'github')).toBe(true);
+    expect(isCredentialsOf(credentials, 'jira')).toBe(false);
+    expect(TaskSystemCredentialsSchema.safeParse({ provider: 'linear' }).success).toBe(false);
   });
 
   it('never carries secrets in a connection', () => {
@@ -69,9 +94,9 @@ describe('task system schemas', () => {
     expect(ExternalTaskSchema.safeParse({ ...task, dueDate: '20.11.2026' }).success).toBe(false);
   });
 
-  it('offers only Jira for now', () => {
+  it('offers Jira, Linear and GitHub Issues', () => {
     expect(isTaskSystemProviderAvailable('jira')).toBe(true);
-    expect(isTaskSystemProviderAvailable('linear')).toBe(false);
-    expect(isTaskSystemProviderAvailable('github')).toBe(false);
+    expect(isTaskSystemProviderAvailable('linear')).toBe(true);
+    expect(isTaskSystemProviderAvailable('github')).toBe(true);
   });
 });

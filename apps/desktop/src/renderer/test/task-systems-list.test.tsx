@@ -137,6 +137,24 @@ describe('task system list', () => {
     expect(screen.queryByRole('listbox', { name: 'Úlohy' })).toBeNull();
   });
 
+  it('shows long GitHub keys with the repository and the issue number', async () => {
+    const client = taskSystemClient({ connected: false });
+    await client.connectTaskSystem({ provider: 'github', token: 'github_pat_1' });
+    const opened = renderWithLinks(client);
+    await openConnection('jnovak');
+
+    await waitFor(() => {
+      expect(taskKeys()).toEqual(['acme-sk/zakaznicky-portal-frontend#1287', 'acme-sk/api#342']);
+    });
+    const key = taskRows()[0]?.querySelector('.ts-key');
+    expect(key?.getAttribute('title')).toBe('acme-sk/zakaznicky-portal-frontend#1287');
+    expect(key?.querySelector('.ts-key-id')?.textContent).toBe('#1287');
+    act(() => {
+      fireEvent.click(taskRows()[0] ?? document.body);
+    });
+    expect(opened).toEqual(['https://github.com/acme-sk/zakaznicky-portal-frontend/issues/1287']);
+  });
+
   it('offers to reconnect when the token was rejected', async () => {
     renderWithLinks(taskSystemClient({ tokenRejected: true }));
     await screen.findByRole('listbox', { name: 'Konverzácie' });

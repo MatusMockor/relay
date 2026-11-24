@@ -49,7 +49,7 @@ describe('Jira access modes and denied searches', () => {
 
     const account = await adapter().verify(accessFor(stub));
 
-    expect(account.credentials?.route).toEqual({ kind: 'site' });
+    expect(account.credentials).toMatchObject({ route: { kind: 'site' } });
     expect(stub.requests.some((request) => request.path === '/_edge/tenant_info')).toBe(false);
   });
 
