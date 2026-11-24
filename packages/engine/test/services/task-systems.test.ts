@@ -110,10 +110,9 @@ describe('TaskSystemService', () => {
   });
 
   it('refuses providers without an adapter', async () => {
-    const registryless = createTestEngine();
-    Object.assign(registryless.taskSystems.jira, { provider: 'linear' });
+    engine.taskSystems.unsupported.add('jira');
 
-    await expect(registryless.services.taskSystems.connect(USER_ID, INPUT)).rejects.toThrow(
+    await expect(engine.services.taskSystems.connect(USER_ID, INPUT)).rejects.toThrow(
       ValidationError,
     );
   });
@@ -201,9 +200,8 @@ describe('TaskSystemService', () => {
 
     const connection = await engine.services.taskSystems.connect(USER_ID, INPUT);
 
-    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)?.route).toEqual({
-      kind: 'gateway',
-      cloudId: 'cloud-1',
+    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)).toMatchObject({
+      route: { kind: 'gateway', cloudId: 'cloud-1' },
     });
   });
 
@@ -221,7 +219,9 @@ describe('TaskSystemService', () => {
     expect(await engine.services.taskSystems.list(USER_ID)).toEqual([
       expect.objectContaining({ id: connection.id, status: 'error' }),
     ]);
-    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)?.apiToken).toBe('token-1');
+    expect(engine.taskSystems.secrets.of(USER_ID, connection.id)).toMatchObject({
+      apiToken: 'token-1',
+    });
   });
 
   it('settles concurrent first connects of one account on a single connection', async () => {

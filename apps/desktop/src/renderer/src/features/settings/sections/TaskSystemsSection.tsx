@@ -5,7 +5,7 @@ import { describeError } from '../../../data/errors';
 import { useDisconnectTaskSystem } from '../../../data/hooks/use-task-system-mutations';
 import { useTaskSystemConnections } from '../../../data/hooks/use-task-systems';
 import { showToast } from '../../../state/toast-store';
-import { EMPTY_CONNECT_DRAFT } from '../../task-systems/task-system-settings';
+import { EMPTY_CONNECT_DRAFT, reconnectDraftOf } from '../../task-systems/task-system-settings';
 import { SectionHeader } from '../SectionHeader';
 import { SettingsGroup } from '../SettingsGroup';
 import { ConnectTaskSystemForm } from '../task-systems/ConnectTaskSystemForm';
@@ -37,8 +37,8 @@ export function TaskSystemsSection() {
   return (
     <>
       <SectionHeader title="Task systémy">
-        Pripoj Jiru a tvoje otvorené úlohy uvidíš v bočnom paneli hneď pod poštou. Úlohy sa
-        načítavajú priamo zo systému, Relay si ich neukladá.
+        Pripoj Jiru, Linear alebo GitHub Issues a tvoje otvorené úlohy uvidíš v bočnom paneli hneď
+        pod poštou. Úlohy sa načítavajú priamo zo systému, Relay si ich neukladá.
       </SectionHeader>
       {list.length === 0 ? null : <SettingsGroup title="Pripojené systémy" />}
       {list.map((connection) => (
@@ -46,7 +46,7 @@ export function TaskSystemsSection() {
           key={connection.id}
           connection={connection}
           onReconnect={(target) => {
-            showConnectForm({ siteUrl: target.siteUrl, label: target.label });
+            showConnectForm(reconnectDraftOf(target));
           }}
           onDisconnect={setRemoving}
         />
@@ -63,7 +63,7 @@ export function TaskSystemsSection() {
         </Button>
       ) : (
         <ConnectTaskSystemForm
-          key={`${formDraft.siteUrl}|${formDraft.label}`}
+          key={`${formDraft.provider}|${formDraft.siteUrl}|${formDraft.label}`}
           draft={formDraft}
           onDone={close}
           onCancel={empty ? undefined : close}

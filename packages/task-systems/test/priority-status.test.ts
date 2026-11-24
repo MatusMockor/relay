@@ -15,6 +15,8 @@ describe('Jira priority mapping', () => {
     ['Trivial', 'low'],
     [' medium ', 'medium'],
     ['P1', 'none'],
+    ['constructor', 'none'],
+    ['__proto__', 'none'],
     ['', 'none'],
     [null, 'none'],
     [undefined, 'none'],
@@ -29,6 +31,7 @@ describe('Jira status category mapping', () => {
     ['indeterminate', 'inProgress'],
     ['done', 'done'],
     ['undefined', 'todo'],
+    ['constructor', 'todo'],
     [null, 'todo'],
   ] as const)('maps %s to %s', (key, category) => {
     expect(jiraStatusCategoryOf(key)).toBe(category);

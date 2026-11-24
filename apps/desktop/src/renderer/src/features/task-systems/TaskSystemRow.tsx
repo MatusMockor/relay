@@ -5,6 +5,7 @@ import { scrollOptionIntoView } from '../search/use-active-option-scroll';
 import { priorityTitle } from '../tasks/priority-labels';
 import { dueLabelOf } from './due-date';
 import { taskKeyOf } from './open-tasks';
+import { TaskKey } from './TaskKey';
 
 export interface TaskSystemRowProps {
   readonly task: ExternalTask;
@@ -33,7 +34,7 @@ export function TaskSystemRow({ task, selected, now, onOpen }: TaskSystemRowProp
       }}
     >
       <PriorityIcon priority={task.priority} label={priorityTitle(task.priority)} />
-      <span className="key ts-key">{task.key}</span>
+      <TaskKey value={task.key} />
       <span className="line">
         <span className="subj">{task.title}</span>
       </span>

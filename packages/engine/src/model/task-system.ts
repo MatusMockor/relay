@@ -18,6 +18,7 @@ export interface TaskSystemAccount {
   readonly externalAccountId: string;
   readonly accountName: string;
   readonly credentials?: TaskSystemCredentials;
+  readonly defaultLabel: string;
 }
 
 export type RemoteExternalTask = Omit<ExternalTask, 'connectionId' | 'provider'>;

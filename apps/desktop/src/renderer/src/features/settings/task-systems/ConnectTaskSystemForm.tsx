@@ -6,17 +6,16 @@ import { useAppContext } from '../../../data/hooks/services-context';
 import { useConnectTaskSystem } from '../../../data/hooks/use-task-system-mutations';
 import { showToast } from '../../../state/toast-store';
 import type { TaskSystemConnectDraft } from '../../../state/ui-store';
+import { parseConnectForm, serverFieldErrors } from './connect-form';
+import { PROVIDER_FIELDS } from './ConnectFields';
+import { ConnectInput } from './ConnectInput';
 import {
   type ConnectField,
   type ConnectFormErrors,
   type ConnectFormValues,
-  parseConnectForm,
-  serverFieldErrors,
-} from './connect-form';
-import { ConnectInput } from './ConnectInput';
+  PROVIDER_FORMS,
+} from './provider-forms';
 import { ProviderPicker } from './ProviderPicker';
-
-export const ATLASSIAN_TOKENS_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
 
 export interface ConnectTaskSystemFormProps {
   readonly draft: TaskSystemConnectDraft;
@@ -27,7 +26,7 @@ export interface ConnectTaskSystemFormProps {
 export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSystemFormProps) {
   const { platform } = useAppContext();
   const connect = useConnectTaskSystem();
-  const [provider, setProvider] = useState<TaskSystemProvider>('jira');
+  const [provider, setProvider] = useState<TaskSystemProvider>(draft.provider);
   const [values, setValues] = useState<ConnectFormValues>({
     siteUrl: draft.siteUrl,
     email: '',
@@ -36,6 +35,7 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
   });
   const [errors, setErrors] = useState<ConnectFormErrors>({});
   const [failure, setFailure] = useState<string | null>(null);
+  const Fields = PROVIDER_FIELDS[provider];
   const bind = (field: ConnectField) => ({
     value: values[field],
     error: errors[field],
@@ -43,6 +43,15 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
       setValues((current) => ({ ...current, [field]: event.target.value }));
     },
   });
+  const pick = (next: TaskSystemProvider) => {
+    if (connect.isPending || next === provider) {
+      return;
+    }
+    setProvider(next);
+    setValues((current) => ({ siteUrl: '', email: '', apiToken: '', label: current.label }));
+    setErrors({});
+    setFailure(null);
+  };
   const submit = () => {
     const result = parseConnectForm(provider, values);
     setFailure(null);
@@ -62,7 +71,7 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
       },
       (error: unknown) => {
         forgetToken();
-        setErrors(serverFieldErrors(error));
+        setErrors(serverFieldErrors(provider, error));
         setFailure(describeError(error));
       },
     );
@@ -77,31 +86,16 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
         submit();
       }}
     >
-      <ProviderPicker value={provider} onChange={setProvider} />
-      <ConnectInput
-        label="URL webu"
-        type="url"
-        placeholder="napr. https://firma.atlassian.net"
-        {...bind('siteUrl')}
+      <ProviderPicker value={provider} disabled={connect.isPending} onChange={pick} />
+      <Fields
+        bind={bind}
+        openExternal={(url) => {
+          platform.openExternal(url);
+        }}
       />
-      <ConnectInput label="E-mail" type="email" placeholder="ty@firma.sk" {...bind('email')} />
-      <ConnectInput label="API token" type="password" {...bind('apiToken')} />
-      <p className="ts-hint">
-        API token vytvoríš v{' '}
-        <button
-          type="button"
-          className="ts-link"
-          onClick={() => {
-            platform.openExternal(ATLASSIAN_TOKENS_URL);
-          }}
-        >
-          nastaveniach účtu Atlassian
-        </button>
-        . Relay ho uloží zašifrovaný a použije len na čítanie tvojich úloh.
-      </p>
       <ConnectInput
         label="Názov"
-        placeholder="Nepovinné, napr. Firemná Jira"
+        placeholder={PROVIDER_FORMS[provider].labelPlaceholder}
         maxLength={100}
         {...bind('label')}
       />

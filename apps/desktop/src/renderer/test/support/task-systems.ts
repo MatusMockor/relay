@@ -9,6 +9,7 @@ import { setUi } from '../../src/state/ui-store';
 import { renderApp, resetStores, storageWith } from './render-app';
 
 export const ACME_JIRA = 'Acme Jira';
+export const ACME_LINEAR = 'Acme Linear';
 
 export const resetWithSidebar = (): void => {
   resetStores();
