@@ -1,5 +1,5 @@
 import type { MailboxRole, MessageFlags } from '@relay/shared/domain';
-import type { MailboxChange, RemoteTextSearch, UidRange } from '../../../src';
+import type { MailboxChange, RemoteTextSearch, UidListOptions, UidRange } from '../../../src';
 import { present } from '../present';
 
 export interface RemoteMessageRecord {
@@ -69,6 +69,7 @@ export class FakeMailServer {
   readonly statusCalls: string[] = [];
   readonly uidListings: string[] = [];
   readonly uidSearches: UidRange[] = [];
+  readonly uidQueries: { path: string; options: UidListOptions }[] = [];
   onUidSearch: ((range: UidRange) => void) | null = null;
   failFetchUid: number | null = null;
   interruptStreamAfter: number | null = null;

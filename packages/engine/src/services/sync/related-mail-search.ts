@@ -43,6 +43,9 @@ export class RelatedMailSearch {
     const { path } = pass.mailbox;
     const { uidValidity } = pass.status;
     const found = await context.provider.searchRelated(path, uidValidity, ids);
+    if (found.length === 0) {
+      return [];
+    }
     const known = new Set([
       ...(await this.deps.messages.listUids(pass.mailbox.id)),
       ...chunk.filter((entry) => entry.pass.mailbox.id === pass.mailbox.id).map(({ uid }) => uid),

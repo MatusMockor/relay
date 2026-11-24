@@ -37,12 +37,16 @@ export interface InitialWindowDeps {
 
 type RankedEntry = WindowEntry & { readonly recent: boolean };
 
-const selectUids = (uids: readonly number[], pass: MailboxPass, limit: number): number[] => {
+const MAX_UID = 4_294_967_295;
+
+const selectUids = (context: SyncContext, pass: MailboxPass, limit: number): Promise<number[]> => {
   const frozen = pass.state?.initialWindow ?? null;
   if (frozen === null) {
-    return uids.slice(Math.max(0, uids.length - limit));
+    return context.provider.listUids(pass.mailbox.path, { newest: limit });
   }
-  return uids.filter((uid) => uid >= frozen.floorUid);
+  return context.provider.listUids(pass.mailbox.path, {
+    range: { from: Math.max(1, frozen.floorUid), to: MAX_UID },
+  });
 };
 
 const freeze = (
@@ -105,8 +109,7 @@ export const mailboxWindow = async (
   deps: InitialWindowDeps,
 ): Promise<MailboxWindow> => {
   const { path } = pass.mailbox;
-  const uids = await context.provider.listUids(path);
-  const selected = selectUids(uids, pass, limitOf(pass, deps.options));
+  const selected = await selectUids(context, pass, limitOf(pass, deps.options));
   const frozen = freeze(pass, selected, deps);
   const headers = await context.provider.fetchThreadHeaders(
     path,

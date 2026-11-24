@@ -39,14 +39,31 @@ export const summaryOf = (record: RemoteMessageRecord): RemoteMessageSummary => 
   };
 };
 
-export const uidsInRange = (uids: Iterable<number>, options: UidListOptions): number[] => {
-  const range = options.range;
-  return [...uids]
-    .filter((uid) => range === undefined || (uid >= range.from && uid <= range.to))
-    .sort((left, right) => left - right);
+const inScope = (sorted: readonly number[], options: UidListOptions): number[] => {
+  const { range, among, newest } = options;
+  if (among !== undefined) {
+    const wanted = new Set(among);
+    return sorted.filter((uid) => wanted.has(uid));
+  }
+  if (newest !== undefined) {
+    return sorted.slice(Math.max(0, sorted.length - newest));
+  }
+  return sorted.filter((uid) => range === undefined || (uid >= range.from && uid <= range.to));
 };
 
-export const recordUidSearch = (server: FakeMailServer, options: UidListOptions): void => {
+export const uidsInRange = (uids: Iterable<number>, options: UidListOptions): number[] =>
+  inScope(
+    [...uids].sort((left, right) => left - right),
+    options,
+  );
+
+export const recordUidSearch = (
+  server: FakeMailServer,
+  path: string,
+  options: UidListOptions,
+): void => {
+  server.uidListings.push(options.fresh === true ? `fresh:${path}` : path);
+  server.uidQueries.push({ path, options });
   const range = options.range;
   if (range === undefined) {
     return;

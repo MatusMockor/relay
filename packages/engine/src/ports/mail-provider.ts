@@ -22,10 +22,12 @@ export interface UidRange {
   readonly to: number;
 }
 
-export interface UidListOptions {
-  readonly fresh?: boolean;
-  readonly range?: UidRange;
-}
+export type UidScope =
+  | { readonly range?: UidRange; readonly among?: never; readonly newest?: never }
+  | { readonly among: readonly number[]; readonly range?: never; readonly newest?: never }
+  | { readonly newest: number; readonly range?: never; readonly among?: never };
+
+export type UidListOptions = { readonly fresh?: boolean } & UidScope;
 
 export interface MailProvider {
   connect(): Promise<void>;

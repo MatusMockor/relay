@@ -21,6 +21,7 @@ import { MailboxReconciler } from './mailbox-reconciler';
 import { ReconcileScans } from './reconcile-scans';
 import { MailboxRefresher } from './mailbox-refresher';
 import { MailboxStatusProbe } from './mailbox-status-probe';
+import { DeferredStatusProbe } from './deferred-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
 import { MessageLabelsResolver } from './message-labels-resolver';
@@ -112,6 +113,7 @@ export const createSyncComponents = (
     syncStates: repositories.syncStates,
     clock,
   });
+  const probe = new MailboxStatusProbe(logger);
   const refresher = new MailboxRefresher({
     mailboxes: repositories.mailboxes,
     syncStates: repositories.syncStates,
@@ -121,7 +123,7 @@ export const createSyncComponents = (
       unitOfWork,
       rescans,
     }),
-    probe: new MailboxStatusProbe(logger),
+    probe,
     catalog: new GmailLabelCatalog({ labels: repositories.labels, rescans, ids, logger }),
     events: mailboxEvents,
     ids,
@@ -142,6 +144,11 @@ export const createSyncComponents = (
     pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,
+    deferredStatuses: new DeferredStatusProbe({
+      mailboxes: repositories.mailboxes,
+      probe,
+      events: mailboxEvents,
+    }),
     rescans,
     mailboxEvents,
     mailboxSync,
