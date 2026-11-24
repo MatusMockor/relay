@@ -44,7 +44,11 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
     },
   });
   const pick = (next: TaskSystemProvider) => {
+    if (connect.isPending || next === provider) {
+      return;
+    }
     setProvider(next);
+    setValues((current) => ({ siteUrl: '', email: '', apiToken: '', label: current.label }));
     setErrors({});
     setFailure(null);
   };
@@ -82,7 +86,7 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
         submit();
       }}
     >
-      <ProviderPicker value={provider} onChange={pick} />
+      <ProviderPicker value={provider} disabled={connect.isPending} onChange={pick} />
       <Fields
         bind={bind}
         openExternal={(url) => {

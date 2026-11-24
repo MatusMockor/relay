@@ -9,10 +9,11 @@ import { ProviderMark } from '../../task-systems/ProviderMark';
 
 export interface ProviderPickerProps {
   readonly value: TaskSystemProvider;
+  readonly disabled?: boolean;
   readonly onChange: (provider: TaskSystemProvider) => void;
 }
 
-export function ProviderPicker({ value, onChange }: ProviderPickerProps) {
+export function ProviderPicker({ value, disabled = false, onChange }: ProviderPickerProps) {
   return (
     <div className="ts-providers" role="radiogroup" aria-label="Systém">
       {TASK_SYSTEM_PROVIDERS.map((provider) => {
@@ -24,7 +25,7 @@ export function ProviderPicker({ value, onChange }: ProviderPickerProps) {
             type="button"
             role="radio"
             aria-checked={on}
-            disabled={!available}
+            disabled={disabled || !available}
             tabIndex={on ? 0 : -1}
             className={cx('ts-provider', on && 'on')}
             onClick={() => {

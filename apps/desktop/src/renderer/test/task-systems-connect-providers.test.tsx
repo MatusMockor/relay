@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import type { ConnectTaskSystemInput } from '@relay/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MailClient } from '../src/data/MailClient';
 import { setUi } from '../src/state/ui-store';
@@ -109,6 +110,58 @@ describe('connecting Linear and GitHub Issues', () => {
     submit(form);
 
     expect((await within(form).findByRole('alert')).textContent).toContain('GitHub odmietol token');
+  });
+
+  it('clears the credential when switching providers and never sends the old one', async () => {
+    const base = taskSystemClient({ connected: false });
+    const sent: ConnectTaskSystemInput[] = [];
+    const client: MailClient = {
+      ...base,
+      connectTaskSystem: (input) => {
+        sent.push(input);
+        return base.connectTaskSystem(input);
+      },
+    };
+    const { form } = await openForm(client);
+
+    pick(form, 'Linear');
+    fill(form, 'API kľúč', 'lin_api_old');
+    pick(form, 'GitHub Issues');
+    expectField(form, 'Personal access token', '');
+    submit(form);
+
+    expect(within(form).getByText('Zadaj personal access token')).toBeDefined();
+    pick(form, 'Linear');
+    expectField(form, 'API kľúč', '');
+    pick(form, 'GitHub Issues');
+    fill(form, 'Personal access token', 'github_pat_new');
+    submit(form);
+
+    await within(settingsSheet()).findByRole('region', { name: 'GitHub Issues jnovak' });
+    expect(sent).toEqual([{ provider: 'github', token: 'github_pat_new' }]);
+    expect(JSON.stringify(sent)).not.toContain('lin_api_old');
+  });
+
+  it('locks the provider while the credentials are being verified', async () => {
+    const base = taskSystemClient({ connected: false });
+    const client: MailClient = {
+      ...base,
+      connectTaskSystem: () => new Promise<never>(() => undefined),
+    };
+    const { form } = await openForm(client);
+
+    pick(form, 'Linear');
+    fill(form, 'API kľúč', 'lin_api_1');
+    submit(form);
+
+    await waitFor(() => {
+      expect(within(form).getByRole('radio', { name: 'GitHub Issues' })).toHaveProperty(
+        'disabled',
+        true,
+      );
+    });
+    expect(within(form).getByRole('radio', { name: 'Linear' })).toHaveProperty('disabled', true);
+    expect(within(form).getByRole('button', { name: 'Overuje sa…' })).toBeDefined();
   });
 
   it('reconnects a failing Linear with the Linear form', async () => {
