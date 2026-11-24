@@ -104,6 +104,8 @@ describe('task systems settings', () => {
 
     const alert = await within(form).findByRole('alert');
     expect(alert.textContent).toContain('Jira odmietla prihlasovacie údaje');
+    expect(within(form).getByLabelText<HTMLInputElement>('API token').value).toBe('');
+    expect(within(form).getByLabelText<HTMLInputElement>('E-mail').value).toBe('ja@firma.sk');
   });
 
   it('connects a Jira site and adds it to the list and the sidebar', async () => {

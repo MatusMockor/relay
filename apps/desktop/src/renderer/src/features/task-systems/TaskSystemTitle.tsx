@@ -1,16 +1,15 @@
 import type { TaskSystemConnectionId } from '@relay/shared';
-import { useTaskSystemConnection, useTaskSystemTasks } from '../../data/hooks/use-task-systems';
-import { openTasksOf } from './open-tasks';
+import { visibleTasksOf } from './task-list-view';
 import { ProviderMark } from './ProviderMark';
+import { useTaskListView } from './use-task-list-view';
 
 export function TaskSystemTitle({
   connectionId,
 }: {
   readonly connectionId: TaskSystemConnectionId;
 }) {
-  const connection = useTaskSystemConnection(connectionId);
-  const tasks = useTaskSystemTasks(connectionId);
-  const count = openTasksOf(tasks.data).length;
+  const { connection, view } = useTaskListView(connectionId);
+  const count = visibleTasksOf(view).length;
   const label = connection?.label ?? 'Task systém';
   return (
     <div className="a-title">

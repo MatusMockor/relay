@@ -1,10 +1,9 @@
-import type { ExternalTaskList } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { taskSystemKeys } from '../../data/hooks/task-system-keys';
 import { useUiStore } from '../../state/ui-store';
 import { PRIORITY_CHORD_KEY } from '../tasks/priority-keys';
-import { orderedOpenTasks } from './open-tasks';
+import { visibleTasksOf } from './task-list-view';
 import { moveTaskSelection, selectedTask } from './task-selection';
+import { cachedTaskListView } from './use-task-list-view';
 import { useOpenTask } from './use-open-task';
 
 const MOVES: Readonly<Record<string, number>> = { j: 1, ArrowDown: 1, k: -1, ArrowUp: -1 };
@@ -31,14 +30,11 @@ export const useTaskSystemKeys = (): TaskSystemKeys => {
   const queryClient = useQueryClient();
   const openTask = useOpenTask();
   return (event, claim) => {
-    const { folder } = useUiStore.getState();
-    if (folder.kind !== 'taskSystem') {
+    const { folder, openThreadId } = useUiStore.getState();
+    if (folder.kind !== 'taskSystem' || openThreadId !== null) {
       return false;
     }
-    const list = queryClient.getQueryData<ExternalTaskList>(
-      taskSystemKeys.tasks(folder.connectionId),
-    );
-    const tasks = orderedOpenTasks(list);
+    const tasks = visibleTasksOf(cachedTaskListView(queryClient, folder.connectionId));
     const delta = MOVES[event.key];
     if (delta !== undefined) {
       claim(() => {

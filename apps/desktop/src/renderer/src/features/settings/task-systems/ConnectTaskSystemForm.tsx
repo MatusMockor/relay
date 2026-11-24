@@ -51,16 +51,21 @@ export function ConnectTaskSystemForm({ draft, onDone, onCancel }: ConnectTaskSy
       return;
     }
     setErrors({});
-    connect.mutate(result.input, {
-      onSuccess: (connection) => {
+    const forgetToken = () => {
+      setValues((current) => ({ ...current, apiToken: '' }));
+    };
+    void connect.connect(result.input).then(
+      (connection) => {
+        forgetToken();
         showToast(`Pripojené: ${connection.label}`);
         onDone();
       },
-      onError: (error) => {
+      (error: unknown) => {
+        forgetToken();
         setErrors(serverFieldErrors(error));
         setFailure(describeError(error));
       },
-    });
+    );
   };
   return (
     <form

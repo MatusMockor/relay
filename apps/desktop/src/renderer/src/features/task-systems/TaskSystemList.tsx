@@ -1,22 +1,23 @@
-import type { ExternalTaskList, TaskSystemConnectionId } from '@relay/shared';
-import { describeError, MailClientError } from '../../data/errors';
-import { useTaskSystemConnection, useTaskSystemTasks } from '../../data/hooks/use-task-systems';
+import type { ExternalTask, ExternalTaskList, TaskSystemConnectionId } from '@relay/shared';
 import { folderKey } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { PriorityGroupHeader } from '../tasks/PriorityGroupHeader';
-import { groupTasks, openTasksOf, taskKeyOf } from './open-tasks';
+import { groupTasks, taskKeyOf } from './open-tasks';
 import { selectedTaskKey } from './task-selection';
 import { TaskSystemRow } from './TaskSystemRow';
 import { TaskSystemEmpty, TaskSystemFailure, TaskSystemReconnect } from './TaskSystemStates';
 import { useOpenTask } from './use-open-task';
+import { useTaskListView } from './use-task-list-view';
 
-const isRejected = (error: Error | null): boolean =>
-  error instanceof MailClientError && error.code === 'forbidden';
-
-function TaskGroups({ list }: { readonly list: ExternalTaskList }) {
+function TaskGroups({
+  list,
+  tasks,
+}: {
+  readonly list: ExternalTaskList;
+  readonly tasks: readonly ExternalTask[];
+}) {
   const stored = useUiStore((state) => state.selected[folderKey(state.folder)]);
   const openTask = useOpenTask();
-  const tasks = openTasksOf(list);
   const groups = groupTasks(tasks);
   const selectedKey = selectedTaskKey(
     groups.flatMap((group) => group.items),
@@ -57,38 +58,35 @@ export function TaskSystemList({
 }: {
   readonly connectionId: TaskSystemConnectionId;
 }) {
-  const connection = useTaskSystemConnection(connectionId);
-  const tasks = useTaskSystemTasks(connectionId);
-  const broken = connection?.status === 'error' && tasks.data === undefined;
-  if (isRejected(tasks.error) || broken) {
-    const message = connection?.lastError ?? describeError(tasks.error);
+  const { connection, view, refetch } = useTaskListView(connectionId);
+  if (view.kind === 'reconnect') {
     return (
       <div className="a-list">
-        <TaskSystemReconnect connection={connection} message={message} />
+        <TaskSystemReconnect connection={connection} message={view.message} />
       </div>
     );
   }
-  if (tasks.isPending) {
+  if (view.kind === 'loading') {
     return <div className="a-list" aria-busy="true" />;
   }
-  if (tasks.isError) {
+  if (view.kind === 'failure') {
     return (
       <div className="a-list">
         <TaskSystemFailure
-          message={describeError(tasks.error)}
+          message={view.message}
           onRetry={() => {
-            void tasks.refetch();
+            void refetch();
           }}
         />
       </div>
     );
   }
-  if (openTasksOf(tasks.data).length === 0) {
+  if (view.tasks.length === 0) {
     return (
       <div className="a-list">
         <TaskSystemEmpty />
       </div>
     );
   }
-  return <TaskGroups list={tasks.data} />;
+  return <TaskGroups list={view.list} tasks={view.tasks} />;
 }
