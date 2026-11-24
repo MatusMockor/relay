@@ -88,7 +88,7 @@ describe('PgMessageRepository placements', () => {
       context.repositories.messages.findByLocation({ mailboxId: sent.id, uid: 0 }),
     ).resolves.toMatchObject({ id: first.id, placements: [{ mailboxId: sent.id, uid: 0 }] });
     await expect(context.repositories.messages.listUids(inbox.id)).resolves.toEqual([9]);
-    await expect(context.repositories.messages.listUids(sent.id)).resolves.toEqual([0]);
+    await expect(context.repositories.messages.listUids(sent.id)).resolves.toEqual([]);
   });
 
   it('deletes the messages and placements at the given uids', async () => {
