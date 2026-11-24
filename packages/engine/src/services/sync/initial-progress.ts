@@ -6,10 +6,23 @@ export interface MailboxProgress {
   readonly processed: number;
 }
 
+export interface ProgressTotals {
+  readonly processed: number;
+  readonly total: number;
+}
+
 export class InitialProgress {
   private readonly processed = new Map<MailboxId, number>();
   private readonly touched = new Set<MailboxId>();
   private readonly windows: MailboxWindow[] = [];
+  private openedCount = 0;
+
+  constructor(readonly mailboxes: number) {}
+
+  opened(): number {
+    this.openedCount += 1;
+    return this.openedCount;
+  }
 
   add(windows: readonly MailboxWindow[]): void {
     windows.forEach((window) => {
@@ -33,6 +46,16 @@ export class InitialProgress {
 
   all(): MailboxProgress[] {
     return this.of(this.windows);
+  }
+
+  totals(): ProgressTotals {
+    return this.all().reduce(
+      (sum, { window, processed }) => ({
+        processed: sum.processed + Math.min(processed, window.total),
+        total: sum.total + window.total,
+      }),
+      { processed: 0, total: 0 },
+    );
   }
 
   private of(windows: readonly MailboxWindow[]): MailboxProgress[] {

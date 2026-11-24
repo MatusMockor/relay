@@ -1,5 +1,5 @@
 import type { AccountId, AccountStatus, MailboxId, UserId } from '@relay/shared/domain';
-import type { SyncPhase } from '@relay/shared/realtime';
+import type { SyncPhase, SyncStage } from '@relay/shared/realtime';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { EngineEvents } from '../shared/engine-events';
 
@@ -8,6 +8,7 @@ export interface SyncProgress {
   readonly phase: SyncPhase;
   readonly processed: number;
   readonly total: number | null;
+  readonly stage?: SyncStage;
 }
 
 export class SyncReporter {
