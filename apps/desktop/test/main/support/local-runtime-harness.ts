@@ -1,5 +1,5 @@
 import { DefaultAiRunnerRegistry } from '@relay/ai';
-import type { AiRunnerRegistry, HistoryOptions } from '@relay/engine';
+import type { AiRunnerRegistry, HistoryOptions, TaskSystemAdapterRegistry } from '@relay/engine';
 import { SQLITE_MIGRATIONS_FOLDER } from '@relay/store-sqlite';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { RelayBridge } from '@relay/shared/ipc';
@@ -32,6 +32,7 @@ let streamSequence = 0;
 export interface LocalRuntimeHarnessOptions {
   readonly withMailTools?: boolean;
   readonly aiRunners?: AiRunnerRegistry;
+  readonly taskSystems?: TaskSystemAdapterRegistry;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly timers?: Timers;
   readonly cipher?: AesTestCipher;
@@ -55,6 +56,7 @@ export const startLocalRuntime = (
     env: options.env ?? {},
     aiRunners: options.aiRunners ?? new DefaultAiRunnerRegistry([]),
     verifyGoogleAccounts: false,
+    ...(options.taskSystems === undefined ? {} : { taskSystems: options.taskSystems }),
     allowPlaintextMail: true,
     mcpEntry:
       options.withMailTools === true

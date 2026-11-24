@@ -1,4 +1,11 @@
-import { type AiRunnerRegistry, type Clock, type HistoryOptions, type Logger } from '@relay/engine';
+import {
+  type AiRunnerRegistry,
+  type Clock,
+  type HistoryOptions,
+  type Logger,
+  type TaskSystemAdapterRegistry,
+} from '@relay/engine';
+import { createTaskSystemRegistry } from '@relay/task-systems';
 import { createCliRunnerRegistry } from '@relay/ai';
 import { engineMailToolBackend } from '@relay/mcp-mail';
 import { LOCAL_USER_ID } from '@relay/store-sqlite';
@@ -53,6 +60,7 @@ export interface LocalRuntimeInput {
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly bakedGoogleClient?: GoogleClientValues;
   readonly aiRunners?: AiRunnerRegistry;
+  readonly taskSystems?: TaskSystemAdapterRegistry;
   readonly mcpEntry?: McpEntryCommand | null;
   readonly oauthTimeoutMs?: number;
   readonly allowPlaintextMail?: boolean;
@@ -115,6 +123,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
       clock: input.clock,
       ...googleCalendarEnv(input.env).adapters,
     }),
+    taskSystems: input.taskSystems ?? createTaskSystemRegistry(),
     ...googleCalendarEnv(input.env).engine,
   });
   const { services } = engine;

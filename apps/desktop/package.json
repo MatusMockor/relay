@@ -34,6 +34,7 @@
     "@relay/mcp-mail": "workspace:*",
     "@relay/shared": "workspace:*",
     "@relay/store-sqlite": "workspace:*",
+    "@relay/task-systems": "workspace:*",
     "better-sqlite3": "13.2.0",
     "zod": "4.1.13"
   },

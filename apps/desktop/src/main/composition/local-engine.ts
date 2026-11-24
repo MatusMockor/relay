@@ -7,6 +7,7 @@ import {
   type GoogleCalendarAdapters,
   type HistoryOptions,
   type Repositories,
+  type TaskSystemAdapterRegistry,
 } from '@relay/engine';
 import {
   createSqliteAttachmentReferences,
@@ -44,6 +45,7 @@ export interface LocalEngineInput {
   readonly allowPlaintextMail: boolean;
   readonly calendarFetch?: Partial<FeedFetchOptions>;
   readonly googleCalendar: GoogleCalendarAdapters;
+  readonly taskSystems: TaskSystemAdapterRegistry;
   readonly googleSyncSeconds?: number;
   readonly historyOptions?: Partial<HistoryOptions>;
 }
@@ -94,6 +96,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     aiRunnerRegistry: input.aiRunners,
     calendar: createCalendarAdapters(infrastructure.calendarFeeds, input.calendarFetch),
     googleCalendar: input.googleCalendar,
+    taskSystems: { registry: input.taskSystems, secrets: infrastructure.taskSystemSecrets },
     eventPublisher: infrastructure.publisher,
     clock: infrastructure.clock,
     idGenerator: infrastructure.ids,
