@@ -1,5 +1,6 @@
 import type { FolderView, ThreadDetail, ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
+import { keepActiveTask } from './keep-active-task';
 import type { ThreadListParams } from '../MailClient';
 import { leavesList } from '../list-membership';
 import { queryKeys } from './query-keys';
@@ -20,11 +21,6 @@ export const restoreThreadLists = (client: QueryClient, entries: readonly ListEn
     client.setQueryData(key, data);
   });
 };
-
-const keepActiveTask = (next: ThreadSummary, listed: ThreadSummary): ThreadSummary =>
-  next.activeTask === undefined && listed.activeTask !== undefined
-    ? { ...next, activeTask: listed.activeTask }
-    : next;
 
 export const writeThreadToLists = (client: QueryClient, thread: ThreadSummary): void => {
   snapshotThreadLists(client).forEach(([key, page]) => {

@@ -57,6 +57,8 @@ describe('TaskService priorities', () => {
     expect(engine.events.ofType('task.upserted').map((event) => event.data.task.priority)).toEqual([
       'high',
     ]);
+    engine.clock.advance(1_000);
+    await engine.services.tasks.update(USER_ID, low.id, { state: 'waiting' });
     const page = await engine.services.tasks.list(USER_ID, { limit: 50 });
     expect(page.items.map((task) => task.id)).toEqual([plain.id, low.id]);
   });
