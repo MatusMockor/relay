@@ -68,11 +68,13 @@ export class MailboxRefresher {
     existing: readonly Mailbox[],
     remote: readonly RemoteMailbox[],
   ): Promise<MailboxStatuses> {
-    const validated = new Set(
-      existing.filter((mailbox) => mailbox.uidValidity !== null).map((mailbox) => mailbox.path),
-    );
-    const paths = remote.map((mailbox) => mailbox.path).filter((path) => !validated.has(path));
-    return this.deps.probe.probe(context, paths);
+    const remotePaths = new Set(remote.map((mailbox) => mailbox.path));
+    if (existing.every((mailbox) => remotePaths.has(mailbox.path))) {
+      return Promise.resolve(new Map());
+    }
+    const existingPaths = new Set(existing.map((mailbox) => mailbox.path));
+    const appeared = [...remotePaths].filter((path) => !existingPaths.has(path));
+    return this.deps.probe.probe(context, appeared);
   }
 
   private async relocate(

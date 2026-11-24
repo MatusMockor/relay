@@ -26,3 +26,13 @@ export const unchangedSince = (pass: MailboxPass): boolean => {
     state.highestModseq === pass.status.highestModseq
   );
 };
+
+export const sizeUnchanged = (pass: MailboxPass): boolean => {
+  const state = completedSyncState(pass.state);
+  return (
+    state !== null &&
+    state.uidValidity === pass.status.uidValidity &&
+    state.uidNext === pass.status.uidNext &&
+    state.messageCount === pass.status.messages
+  );
+};

@@ -9,6 +9,7 @@ import type { SplitSnapshotGuard } from '../splits/split-snapshot-guard';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
 import { completedSyncState } from './completed-sync-state';
+import type { DeferredStatusProbe } from './deferred-status-probe';
 import type { InitialSync } from './initial-sync';
 import type { LabelRescans } from './label-rescans';
 import type { MailboxEvents } from './mailbox-events';
@@ -39,6 +40,7 @@ export interface AccountSynchronizerDeps {
   readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
+  readonly deferredStatuses: DeferredStatusProbe;
   readonly rescans: LabelRescans;
   readonly mailboxEvents: MailboxEvents;
   readonly mailboxSync: MailboxSynchronizer;
@@ -166,6 +168,8 @@ export class AccountSynchronizer {
         await this.deps.rescans.done(rescan);
       }
     }
+    const opened = new Set(passes.map((pass) => pass.mailbox.id));
+    await this.deps.deferredStatuses.settle(context, mailboxes, opened);
     await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);
     await this.deps.replayer.replayPending(context.account, context.provider);

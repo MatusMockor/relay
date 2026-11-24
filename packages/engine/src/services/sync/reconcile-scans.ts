@@ -1,8 +1,8 @@
-import type { Mailbox, MailboxId } from '@relay/shared/domain';
-import type { RemoteMailboxStatus } from '../../model/remote-mail';
+import type { MailboxId } from '@relay/shared/domain';
 import type { Clock } from '../../ports/clock';
 import type { HistoryBackfillRepository } from '../../ports/history-backfill-repository';
 import { historyComplete } from './history/history-complete';
+import { type MailboxPass, sizeUnchanged } from './mailbox-pass';
 import type { ReconcileOptions } from './sync-options';
 
 export interface ReconcileScansDeps {
@@ -18,26 +18,26 @@ export class ReconcileScans {
 
   constructor(private readonly deps: ReconcileScansDeps) {}
 
-  async skipsExpungeDiff(
-    mailbox: Mailbox,
-    status: RemoteMailboxStatus,
-    localCount: number,
-  ): Promise<boolean> {
+  async skipsExpungeDiff(pass: MailboxPass, localCount: number): Promise<boolean> {
+    const { mailbox, status } = pass;
     const { history } = this.deps;
     const lastFull = this.fullDiffs.get(mailbox.id);
-    if (history === null || lastFull === undefined || localCount !== status.messages) {
+    if (lastFull === undefined) {
       return false;
     }
     if (this.elapsedSince(lastFull) >= this.deps.options.fullExpungeDiffMs) {
+      return false;
+    }
+    if (sizeUnchanged(pass)) {
+      return true;
+    }
+    if (history === null || localCount !== status.messages) {
       return false;
     }
     return historyComplete(await history.find(mailbox.id), status.uidValidity);
   }
 
   fullExpungeDiffDue(mailboxId: MailboxId): boolean {
-    if (this.deps.history === null) {
-      return false;
-    }
     const since = this.fullDiffs.get(mailboxId) ?? this.watchedSince.get(mailboxId);
     if (since === undefined) {
       this.watchedSince.set(mailboxId, this.deps.clock.now().getTime());

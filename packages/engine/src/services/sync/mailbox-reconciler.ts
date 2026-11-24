@@ -31,18 +31,29 @@ export class MailboxReconciler {
   }
 
   async expunges(context: SyncContext, pass: MailboxPass): Promise<void> {
-    const { mailbox, role, status } = pass;
+    const { mailbox, role } = pass;
     const local = await this.storedUids(mailbox);
-    if (await this.deps.scans.skipsExpungeDiff(mailbox, status, local.length)) {
+    if (await this.deps.scans.skipsExpungeDiff(pass, local.length)) {
       return;
     }
-    const remote = new Set(await context.provider.listUids(mailbox.path));
+    const remote = new Set(await this.remaining(context, mailbox, local));
     this.deps.scans.fullExpungeDiffDone(mailbox.id);
     const missing = local.filter((uid) => !remote.has(uid));
     if (missing.length === 0) {
       return;
     }
     await this.expunge(context, mailbox, role, missing);
+  }
+
+  private remaining(
+    context: SyncContext,
+    mailbox: Mailbox,
+    local: readonly number[],
+  ): Promise<number[]> {
+    if (local.length === 0) {
+      return Promise.resolve([]);
+    }
+    return context.provider.listUids(mailbox.path, { among: local });
   }
 
   private async storedUids(mailbox: Mailbox): Promise<number[]> {

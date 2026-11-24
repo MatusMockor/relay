@@ -159,8 +159,7 @@ export class FakeMailProvider implements MailProvider {
 
   listUids(mailboxPath: string, options: UidListOptions = {}): Promise<number[]> {
     return this.withMailbox(mailboxPath, (mailbox, server) => {
-      server.uidListings.push(options.fresh === true ? `fresh:${mailboxPath}` : mailboxPath);
-      recordUidSearch(server, options);
+      recordUidSearch(server, mailboxPath, options);
       return Promise.resolve(uidsInRange(mailbox.messages.keys(), options));
     });
   }

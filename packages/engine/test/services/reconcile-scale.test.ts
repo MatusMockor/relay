@@ -49,14 +49,24 @@ describe('mailbox reconciler at scale', () => {
     expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(1);
   });
 
-  it('keeps diffing every pass while the history is incomplete or unsupported', async () => {
-    const { engine, seeded } = await historySetup(false);
+  it('without a history diffs only when the mailbox size changed or the full diff is due', async () => {
+    const { engine, seeded, archive } = await historySetup(false);
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
     seeded.server.uidListings.length = 0;
 
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
+    expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(0);
 
+    const stored = storedUidsIn(engine, archive.id);
+    const gone = present(stored[3]);
+    seeded.server.expunge('Archive', gone);
+    await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
+    expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(1);
+    expect(storedUidsIn(engine, archive.id)).toEqual(stored.filter((uid) => uid !== gone));
+
+    engine.clock.advance(FULL_DIFF_MS);
+    await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
     expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(2);
   });
 
