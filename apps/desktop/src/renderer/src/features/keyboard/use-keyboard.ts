@@ -25,6 +25,8 @@ import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
 import { useStepThread } from '../shell/use-step-thread';
+import { PRIORITY_CHORD_KEY } from '../tasks/priority-keys';
+import { usePriorityChord } from '../tasks/use-priority-chord';
 import {
   cycleFolder,
   G_VIEWS,
@@ -49,6 +51,7 @@ export const useKeyboard = (): void => {
   const splits = splitsInScope(useSplits().data ?? [], scope);
   const hasTasks = (useTasks().data?.items ?? []).some((task) => task.state !== 'done');
   const gAt = useRef(0);
+  const priorityChord = usePriorityChord();
   const handler = useRef<(event: KeyboardEvent) => void>(() => undefined);
   handler.current = (event: KeyboardEvent) => {
     if (event.defaultPrevented || hasOpenLayer()) {
@@ -121,6 +124,9 @@ export const useKeyboard = (): void => {
       return;
     }
     gAt.current = 0;
+    if (priorityChord.consume(event, thread, claim)) {
+      return;
+    }
     const detail =
       ui.openThreadId === null
         ? undefined
@@ -228,6 +234,7 @@ export const useKeyboard = (): void => {
       g: () => {
         gAt.current = Date.now();
       },
+      [PRIORITY_CHORD_KEY]: priorityChord.arm,
       Tab: () => {
         selectFolder(cycleFolder(tabFolders(splits, hasTasks), ui.folder, event.shiftKey ? -1 : 1));
       },

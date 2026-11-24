@@ -53,7 +53,9 @@ describe('mail flows', () => {
     expect(main.getAttribute('aria-selected')).toBe('true');
     key('Tab');
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Úlohy/ }).getAttribute('aria-selected')).toBe('true');
+      expect(screen.getByRole('tab', { name: /Moje úlohy/ }).getAttribute('aria-selected')).toBe(
+        'true',
+      );
     });
     key('?');
     expect(screen.getByRole('dialog', { name: 'Klávesové skratky' })).toBeDefined();

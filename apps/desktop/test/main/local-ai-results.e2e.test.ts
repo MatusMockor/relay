@@ -91,11 +91,17 @@ describe('local AI results over IPC', () => {
         threadId,
         title: 'Skontrolovať faktúru',
         aiWhat: 'Skontrolovať faktúru za október do piatka.',
+        priority: 'high',
       },
     });
     const tasks = await bridge.invoke('local.tasks.list', {});
     expect(tasks.ok && tasks.data.items).toEqual([
-      expect.objectContaining({ title: 'Skontrolovať faktúru', source: 'ai', threadId }),
+      expect.objectContaining({
+        title: 'Skontrolovať faktúru',
+        source: 'ai',
+        priority: 'high',
+        threadId,
+      }),
     ]);
     expect(harness.events.some((event) => event.type === 'task.upserted')).toBe(true);
     const [call] = await claude.calls();

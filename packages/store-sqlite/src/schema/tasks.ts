@@ -13,6 +13,7 @@ export const tasks = sqliteTable(
     aiWhat: text('ai_what'),
     state: text('state').notNull(),
     source: text('source').notNull(),
+    priority: text('priority').notNull().default('none'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
     updatedTs: integer('updated_ts').notNull(),

@@ -7,36 +7,43 @@ import {
   type TaskRepository,
 } from '@relay/engine';
 import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { tasks } from '../../schema';
 import { isUniqueViolation } from '../../support/postgres-errors';
-import { decodeCursor, pageOf } from '../../support/cursor';
 import { assertOwned } from '../../support/ownership';
-import { toDate } from '../../support/timestamps';
+import { toDate, toIso } from '../../support/timestamps';
+import { decodeRankedCursor, encodeRankedCursor } from '../../support/ranked-cursor';
+import { afterTaskPosition, rankedTaskColumns, taskListOrder } from './task-list-order';
 import { toTask, toTaskInsert } from './task.mapper';
 
 export class PgTaskRepository implements TaskRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async list(userId: UserId, query: TaskQuery): Promise<Page<Task>> {
-    const cursor = decodeCursor(query.cursor);
+    const position = decodeRankedCursor(query.cursor);
     const rows = await this.db
-      .select()
+      .select(rankedTaskColumns)
       .from(tasks)
       .where(
         and(
           eq(tasks.userId, userId),
           query.state === null ? undefined : eq(tasks.state, query.state),
           query.threadId === undefined ? undefined : eq(tasks.threadId, query.threadId),
-          cursor === null
-            ? undefined
-            : sql`(${tasks.updatedAt}, ${tasks.id}) < (${cursor.t}::timestamptz, ${cursor.id})`,
+          afterTaskPosition(position),
         ),
       )
-      .orderBy(desc(tasks.updatedAt), desc(tasks.id))
+      .orderBy(...taskListOrder)
       .limit(query.limit + 1);
-    return pageOf(rows.map(toTask), query.limit, (task) => ({ t: task.updatedAt, id: task.id }));
+    const items = rows.slice(0, query.limit);
+    const last = items.at(-1);
+    return {
+      items: items.map(toTask),
+      nextCursor:
+        rows.length <= query.limit || last === undefined
+          ? null
+          : encodeRankedCursor({ rank: last.rank, t: toIso(last.updatedAt), id: last.id }),
+    };
   }
 
   async findById(userId: UserId, taskId: TaskId): Promise<Task | null> {

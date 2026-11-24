@@ -1,6 +1,7 @@
 import type { FolderView } from '@relay/shared';
 import { hasDayHeader } from '../../lib/day-groups';
 import type { ListItem } from '../mail/list-items';
+import type { PriorityOf } from '../tasks/thread-priorities';
 import { groupItems, type ListGroup } from './grouping';
 
 export type ListEntry =
@@ -32,12 +33,13 @@ export const buildListLayout = (
   items: readonly ListItem[],
   view: FolderView,
   now: Date,
+  priorityOf?: PriorityOf,
 ): ListLayout => {
   const entries: ListEntry[] = [];
   const spans: GroupSpan[] = [];
   const indexOf = new Map<string, number>();
   let position = 0;
-  groupItems(items, view, now).forEach((group, span) => {
+  groupItems(items, view, now, priorityOf).forEach((group, span) => {
     const key = `group:${group.items[0]?.key ?? group.label}`;
     const header = hasDayHeader(group);
     const first = entries.length;

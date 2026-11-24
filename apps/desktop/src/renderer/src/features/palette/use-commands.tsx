@@ -13,6 +13,8 @@ import { openSearchPalette } from '../search/search-actions';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
+import { useSetTaskPriority } from '../tasks/use-set-task-priority';
+import { priorityCommands } from './priority-commands';
 import { threadComposeCommands } from './thread-compose-commands';
 import { threadActionCommands } from './thread-action-commands';
 import { scopeCommands } from './scope-commands';
@@ -56,6 +58,7 @@ export const useCommands = (): Command[] => {
   const ctx = current?.kind === 'thread' ? current.thread.subject.slice(0, 38) : undefined;
   const thread = current?.kind === 'thread' ? current.thread : null;
   const inTasks = useUiStore((state) => viewOf(state.folder) === 'tasks');
+  const setPriority = useSetTaskPriority();
   const restoring = !inTasks && thread !== null && RESTORING_STATES.includes(thread.state);
   const settings =
     (section: 'accounts' | 'server' | 'look' | 'keys' = 'accounts', adding = false) =>
@@ -106,6 +109,7 @@ export const useCommands = (): Command[] => {
                 },
                 ...threadComposeCommands(thread.id, ctx, actions.compose),
                 ...threadActionCommands(thread, ctx, actions.thread),
+                ...(inTasks ? priorityCommands(thread, ctx, setPriority) : []),
               ]),
           {
             id: 'trash',

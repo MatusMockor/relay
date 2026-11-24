@@ -12,6 +12,7 @@ import { AiEffortSchema, AiModelIdSchema } from './ai-model-catalog';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
 import { RuleSuggestionSchema, RuleSuggestRequestSchema } from './rule-suggestion';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
+import { DEFAULT_TASK_PRIORITY, TaskPrioritySchema } from './task-priority';
 import { TimeZoneSchema } from './time-zone';
 
 export const AiRunnerKindSchema = z.enum(['claude', 'codex']);
@@ -120,6 +121,7 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     threadId: ThreadIdSchema,
     title: z.string().min(1).max(500),
     aiWhat: z.string().min(1).max(2_000),
+    priority: TaskPrioritySchema.default(DEFAULT_TASK_PRIORITY),
   }),
   z.object({
     kind: z.literal('automationTask'),

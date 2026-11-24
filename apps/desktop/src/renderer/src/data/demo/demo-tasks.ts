@@ -1,4 +1,4 @@
-import type { AiOutput, Task } from '@relay/shared';
+import { type AiOutput, compareTaskPriority, type Task } from '@relay/shared';
 import { MailClientError } from '../errors';
 import type { MailClient, TaskListParams } from '../MailClient';
 import type { DemoState } from './demo-state';
@@ -17,6 +17,7 @@ export const demoTaskFromAi = (output: AiOutput, stamp: string, sequence: number
     aiWhat: output.aiWhat,
     state: 'open',
     source: 'ai',
+    priority: output.priority,
     createdAt: stamp,
     updatedAt: stamp,
   };
@@ -32,7 +33,9 @@ export const createDemoTaskMethods = (
 ): Pick<MailClient, 'listTasks' | 'updateTask'> => ({
   listTasks: (params) =>
     Promise.resolve({
-      items: state.tasks.filter((task) => matches(task, params)),
+      items: state.tasks
+        .filter((task) => matches(task, params))
+        .sort((left, right) => compareTaskPriority(left.priority, right.priority)),
       nextCursor: null,
     }),
   updateTask: (taskId, patch) => {

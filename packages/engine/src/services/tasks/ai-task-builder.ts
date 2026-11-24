@@ -1,4 +1,11 @@
-import type { Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
+import {
+  DEFAULT_TASK_PRIORITY,
+  type Task,
+  type TaskId,
+  type TaskPriority,
+  type ThreadId,
+  type UserId,
+} from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
@@ -9,6 +16,7 @@ export interface AiTaskInput {
   readonly threadId: ThreadId | null;
   readonly title: string;
   readonly aiWhat: string | null;
+  readonly priority?: TaskPriority;
 }
 
 export class AiTaskBuilder {
@@ -35,6 +43,7 @@ export class AiTaskBuilder {
       aiWhat: input.aiWhat,
       state: 'open',
       source: 'ai',
+      priority: input.priority ?? DEFAULT_TASK_PRIORITY,
       createdAt: now,
       updatedAt: now,
     };

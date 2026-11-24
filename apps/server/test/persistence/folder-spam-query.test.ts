@@ -45,6 +45,7 @@ describe('PgThreadRepository.queryFolder spam view', () => {
       aiWhat: null,
       state: 'open',
       source: 'manual',
+      priority: 'none',
       createdAt: at(minute),
       updatedAt: at(minute),
     });

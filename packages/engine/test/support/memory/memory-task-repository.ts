@@ -1,4 +1,11 @@
-import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
+import {
+  compareTaskPriority,
+  type JiraKey,
+  type Task,
+  type TaskId,
+  type ThreadId,
+  type UserId,
+} from '@relay/shared/domain';
 import {
   ConflictError,
   type JiraTaskCreation,
@@ -19,7 +26,10 @@ export class MemoryTaskRepository implements TaskRepository {
       .filter((task) => query.state === null || task.state === query.state)
       .filter((task) => query.threadId === undefined || task.threadId === query.threadId)
       .sort(
-        (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || b.id.localeCompare(a.id),
+        (a, b) =>
+          compareTaskPriority(a.priority, b.priority) ||
+          Date.parse(b.updatedAt) - Date.parse(a.updatedAt) ||
+          b.id.localeCompare(a.id),
       );
     return Promise.resolve(offsetPage(tasks, query.cursor, query.limit));
   }

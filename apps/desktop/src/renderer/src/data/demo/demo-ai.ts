@@ -51,6 +51,7 @@ const outputFor = (state: DemoState, input: AiJobInput): AiOutput => {
       threadId: input.threadId,
       title: truncate(input.hint ?? record?.summary.subject ?? 'Úloha z pošty', TASK_TITLE_MAX),
       aiWhat: record?.aiSummary ?? record?.summary.snippet ?? 'Vybaviť podľa vlákna.',
+      priority: 'medium',
     };
   }
   if (input.kind === 'summary') {

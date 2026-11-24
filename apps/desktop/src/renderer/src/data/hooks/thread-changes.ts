@@ -1,6 +1,7 @@
 import type { ThreadId, ThreadPage, ThreadSummary } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import { leavesList } from '../list-membership';
+import { keepActiveTask } from './keep-active-task';
 import type { ThreadListParams } from '../MailClient';
 
 export type ThreadChanges = ReadonlyMap<ThreadId, ThreadSummary | null>;
@@ -40,7 +41,10 @@ export const reconcilePage = (
     if (changed === undefined) {
       return [item];
     }
-    return changed === null || leavesList(params, changed) ? [] : [changed];
+    if (changed === null || leavesList(params, changed)) {
+      return [];
+    }
+    return [keepActiveTask(changed, item)];
   });
   return { ...page, items };
 };

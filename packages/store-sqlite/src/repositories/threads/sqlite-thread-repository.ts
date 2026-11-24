@@ -10,6 +10,7 @@ import { toPage } from '../../pagination/to-page';
 import { messages, type ThreadRow, threadSplits, threads } from '../../schema';
 import { accountOwnerOf } from '../account-owner';
 import { selectFolderThreads } from './thread-folder-select';
+import { ordersByActiveTask, queryTaskFolder } from './thread-task-folder';
 import { readThreadSplits } from './thread-split-reader';
 
 export class SqliteThreadRepository implements ThreadRepository {
@@ -18,6 +19,9 @@ export class SqliteThreadRepository implements ThreadRepository {
   queryFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>> {
     return this.executor.execute((db) => {
       const limit = assertPageLimit(query.limit);
+      if (ordersByActiveTask(query)) {
+        return queryTaskFolder(db, userId, query, limit);
+      }
       const position = timeIdCursor.decode(query.cursor);
       const rows = selectFolderThreads(db, userId, query, position, limit + 1).all();
       const splitsByThread = readThreadSplits(

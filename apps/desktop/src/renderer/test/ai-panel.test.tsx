@@ -74,7 +74,9 @@ describe('AI panel', () => {
       await within(pane).findByText(/Úloha vytvorená: Skontrolovať platobnú bránu/),
     ).toBeDefined();
     const tasks = await client.listTasks({ state: 'open' });
-    expect(tasks.items[0]).toMatchObject({ title: 'Skontrolovať platobnú bránu', source: 'ai' });
+    expect(tasks.items).toContainEqual(
+      expect.objectContaining({ title: 'Skontrolovať platobnú bránu', source: 'ai' }),
+    );
   });
 
   it('does not claim a draft exists after a draft call the run never confirmed', async () => {

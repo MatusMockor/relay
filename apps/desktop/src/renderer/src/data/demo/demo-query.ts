@@ -1,4 +1,6 @@
 import {
+  activeTaskOf,
+  compareTaskThreads,
   isHeldThreadState,
   type SplitId,
   type ThreadId,
@@ -88,6 +90,14 @@ const sortFor = (view: ThreadListParams['view']) => (a: ThreadSummary, b: Thread
   return Date.parse(b.lastMessageAt) - Date.parse(a.lastMessageAt);
 };
 
+const ordersByActiveTask = (params: ThreadListParams): boolean =>
+  params.view === 'tasks' && params.everywhere !== true;
+
+const projected = (state: DemoState, params: ThreadListParams, thread: ThreadSummary) =>
+  ordersByActiveTask(params)
+    ? { ...thread, activeTask: activeTaskOf(state.tasks, thread) }
+    : thread;
+
 export const queryThreads = (state: DemoState, params: ThreadListParams): ThreadPage => {
   const items = [...state.threads.values()]
     .filter(
@@ -95,8 +105,8 @@ export const queryThreads = (state: DemoState, params: ThreadListParams): Thread
     )
     .filter((record) => inScope(state, record, params))
     .filter((record) => matchesDemoSearch(record, params))
-    .map((record) => record.summary)
-    .sort(sortFor(params.view));
+    .map((record) => projected(state, params, record.summary))
+    .sort(ordersByActiveTask(params) ? compareTaskThreads : sortFor(params.view));
   const offset = params.cursor === undefined ? 0 : Number(params.cursor);
   const limit = params.limit ?? 50;
   const page = items.slice(offset, offset + limit);

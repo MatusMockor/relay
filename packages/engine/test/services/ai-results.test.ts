@@ -43,6 +43,7 @@ describe('AI results', () => {
           threadId,
           title: 'Zaplatiť faktúru 42',
           aiWhat: 'Uhradiť do piatku.',
+          priority: 'high',
         },
       },
     ]);
@@ -60,7 +61,13 @@ describe('AI results', () => {
     });
     const tasks = await engine.services.tasks.list(USER_ID, { limit: 50 });
     expect(tasks.items).toMatchObject([
-      { threadId, title: 'Zaplatiť faktúru 42', aiWhat: 'Uhradiť do piatku.', source: 'ai' },
+      {
+        threadId,
+        title: 'Zaplatiť faktúru 42',
+        aiWhat: 'Uhradiť do piatku.',
+        source: 'ai',
+        priority: 'high',
+      },
     ]);
     expect(engine.events.ofType('task.upserted')).toHaveLength(1);
   });

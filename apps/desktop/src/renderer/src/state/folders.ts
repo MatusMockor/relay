@@ -68,11 +68,17 @@ export interface ViewMeta {
     | 'folder'
     | 'label';
   readonly g: string;
+  readonly sub?: string;
 }
 
 export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
   inbox: { label: 'Doručená pošta', icon: 'inbox', g: 'I' },
-  tasks: { label: 'Úlohy', icon: 'task', g: 'U' },
+  tasks: {
+    label: 'Moje úlohy',
+    icon: 'task',
+    g: 'U',
+    sub: 'Úlohy z mailov, z AI a ručne vytvorené, zoradené podľa priority',
+  },
   reminders: { label: 'Pripomenuté', icon: 'clock', g: 'H' },
   done: { label: 'Hotovo', icon: 'check', g: 'E' },
   archive: { label: 'Archív', icon: 'file', g: 'A' },

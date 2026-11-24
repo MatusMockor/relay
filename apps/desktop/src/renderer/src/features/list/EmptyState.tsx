@@ -19,7 +19,10 @@ const EMPTY: Readonly<Partial<Record<FolderView, readonly [string, string]>>> = 
     'Konverzácie nahlásené cez [!] a nevyžiadaná pošta zo servera sa zobrazia tu.',
   ],
   trash: ['Kôš je prázdny', 'Konverzácie zmazané cez [#] sa presunú sem.'],
-  tasks: ['Žiadne úlohy', 'Žiadna úloha z Jiry teraz nečaká na teba.'],
+  tasks: [
+    'Žiadne úlohy',
+    'Úlohy z mailov, z AI a ručne vytvorené sa tu zobrazia zoradené podľa priority.',
+  ],
   mailbox: ['Priečinok je prázdny', 'V tomto priečinku teraz nie je žiadna konverzácia.'],
   label: ['Nič s týmto štítkom', 'Žiadna konverzácia mimo Koša a Spamu nemá tento štítok.'],
 };

@@ -1,7 +1,9 @@
-import type { FolderView } from '@relay/shared';
+import { type FolderView, TASK_PRIORITIES, type TaskPriority } from '@relay/shared';
 import { describeWhen, listTimeLabel } from '../../lib/dates';
 import { type DayGroup, dayGroupOf, sameDayGroup, threadTimeLabel } from '../../lib/day-groups';
 import type { ListItem } from '../mail/list-items';
+import { PRIORITY_GROUP_LABEL } from '../tasks/priority-labels';
+import type { PriorityOf } from '../tasks/thread-priorities';
 
 const plainGroup = (label: string): DayGroup => ({ label, date: null });
 
@@ -33,9 +35,18 @@ export const timeLabelOf = (item: ListItem, view: FolderView, now: Date): string
 
 export interface ListGroup extends DayGroup {
   readonly items: ListItem[];
+  readonly priority?: TaskPriority;
 }
 
-export const groupItems = (items: readonly ListItem[], view: FolderView, now: Date): ListGroup[] =>
+export const groupByPriority = (items: readonly ListItem[], priorityOf: PriorityOf): ListGroup[] =>
+  TASK_PRIORITIES.map((priority) => ({
+    label: PRIORITY_GROUP_LABEL[priority],
+    date: null,
+    priority,
+    items: items.filter((item) => priorityOf(item) === priority),
+  })).filter((group) => group.items.length > 0);
+
+const groupByDay = (items: readonly ListItem[], view: FolderView, now: Date): ListGroup[] =>
   items.reduce<ListGroup[]>((groups, item) => {
     const group = groupOf(item, view, now);
     const last = groups.at(-1);
@@ -46,3 +57,15 @@ export const groupItems = (items: readonly ListItem[], view: FolderView, now: Da
     groups.push({ ...group, items: [item] });
     return groups;
   }, []);
+
+export const groupItems = (
+  items: readonly ListItem[],
+  view: FolderView,
+  now: Date,
+  priorityOf?: PriorityOf,
+): ListGroup[] => {
+  if (view === 'tasks' && priorityOf !== undefined) {
+    return groupByPriority(items, priorityOf);
+  }
+  return groupByDay(items, view, now);
+};

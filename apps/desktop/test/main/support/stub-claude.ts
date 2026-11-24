@@ -23,7 +23,11 @@ const answer = stdin.includes('Prepíš')
   : stdin.includes('rovno povie podstatu mailu')
     ? { text: 'Jana posiela faktúru za október.' }
     : stdin.includes('vytvor jednu úlohu')
-      ? { title: 'Skontrolovať faktúru', what: 'Skontrolovať faktúru za október do piatka.' }
+      ? {
+          title: 'Skontrolovať faktúru',
+          what: 'Skontrolovať faktúru za október do piatka.',
+          priority: 'high',
+        }
       : stdin.includes('návrh pravidla automatizácie')
         ? {
             name: 'Faktúry',
