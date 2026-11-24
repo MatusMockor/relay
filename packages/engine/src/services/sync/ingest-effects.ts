@@ -91,7 +91,7 @@ const journalPlaced = (
     return Promise.resolve();
   }
   const { role } = target.mailbox;
-  if (parsed !== null && arrivesIn(target, outcome.kind, outcome.previous)) {
+  if (parsed !== null && arrivesIn(target, outcome.kind)) {
     return journal.arrived(work, outcome.message, role, [], {
       publish: target.publish,
       live: target.live,

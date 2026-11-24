@@ -40,15 +40,15 @@ export class ProviderOpBatches {
       return [];
     }
     const batches = new Map<string, OpBatch>();
-    const gone: PendingProviderOp[] = [];
+    const settled: PendingProviderOp[] = [];
     const roleOf = await this.roleOf(account);
     for (const op of ops) {
       const message = await this.deps.messages.findById(account.userId, op.payload.messageId);
-      if (message === null) {
-        gone.push(op);
+      const placement = message === null ? null : opPlacement(op.payload, message, roleOf);
+      if (message === null || placement === null) {
+        settled.push(op);
         continue;
       }
-      const placement = opPlacement(op.payload, message, roleOf);
       if (isPendingPlacement(placement)) {
         continue;
       }
@@ -61,7 +61,7 @@ export class ProviderOpBatches {
       known.entries.push({ message, placement });
       batches.set(key, known);
     }
-    await this.deps.pendingWork.remove(gone);
+    await this.deps.pendingWork.remove(settled);
     return [...batches.values()];
   }
 

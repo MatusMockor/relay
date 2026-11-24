@@ -11,6 +11,7 @@ import {
 } from '@relay/shared/domain';
 import type { ProviderOpWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
+import { holdsMoveTarget } from './move-target-held';
 import { placementKey } from './placement-key';
 
 export interface PendingMove {
@@ -68,7 +69,7 @@ export class PendingMoves {
     if (sourced !== undefined) {
       return sourced;
     }
-    const unplaced = this.legacy.get(message.id) ?? this.orphanOf(message);
+    const unplaced = this.legacy.get(message.id) ?? this.orphanOf(message, roleOf);
     if (unplaced === undefined) {
       return undefined;
     }
@@ -76,9 +77,9 @@ export class PendingMoves {
     return primary.mailboxId === placement.mailboxId ? unplaced : undefined;
   }
 
-  private orphanOf(message: Message): PendingMove | undefined {
+  private orphanOf(message: Message, roleOf: MailboxRoleOf): PendingMove | undefined {
     const orphan = (this.sources.get(message.id) ?? []).find(
-      ({ source }) => !isPlacedIn(message, source),
+      ({ source, move }) => !isPlacedIn(message, source) && !holdsMoveTarget(message, move, roleOf),
     );
     return orphan?.move;
   }

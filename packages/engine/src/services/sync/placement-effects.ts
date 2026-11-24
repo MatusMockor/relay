@@ -1,4 +1,3 @@
-import type { MessagePlacement } from '@relay/shared/domain';
 import type { EffectGates, PlacedKind, PlacementMatch } from '../../model/placement-ingest';
 import { acceptsInvites } from '../calendar/invite-queue';
 import type { IngestTarget } from './ingest-target';
@@ -14,15 +13,8 @@ export const effectClaims = (target: IngestTarget, parsed: boolean): EffectGates
   return { jira: acceptsJiraEvents(role), invite: acceptsInvites(role) };
 };
 
-export const arrivesIn = (
-  target: IngestTarget,
-  kind: PlacedKind,
-  previous: readonly MessagePlacement[],
-): boolean =>
-  target.history !== true &&
-  target.mailbox.role === 'inbox' &&
-  kind === 'attached' &&
-  !previous.some((placement) => placement.mailboxId === target.mailbox.id);
+export const arrivesIn = (target: IngestTarget, kind: PlacedKind): boolean =>
+  target.history !== true && target.mailbox.role === 'inbox' && kind === 'attached';
 
 const opensEffects = (target: IngestTarget, gates: EffectGates): boolean => {
   const claims = effectClaims(target, true);
@@ -30,4 +22,4 @@ const opensEffects = (target: IngestTarget, gates: EffectGates): boolean => {
 };
 
 export const needsParse = (target: IngestTarget, match: PlacementMatch): boolean =>
-  opensEffects(target, match.gates) || arrivesIn(target, match.kind, match.message.placements);
+  opensEffects(target, match.gates) || arrivesIn(target, match.kind);

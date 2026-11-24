@@ -120,6 +120,29 @@ describe('message effects on placements', () => {
     expect(queuedOneLiners(engine)).toHaveLength(1);
   });
 
+  it('treats a higher INBOX UID that replaces the stored one as one new arrival', async () => {
+    const engine = createTestEngine();
+    answerOneLiners(engine);
+    const { server, sync } = await effectsSetup(engine);
+    deliverMail(server, 'INBOX', OFFER);
+    await sync();
+    await engine.services.ai.processQueued();
+    const { id, threadId } = onlyMessage(engine);
+    engine.clock.advance(60 * 60_000);
+    server.expunge('INBOX', 1);
+
+    expect(deliverMail(server, 'INBOX', OFFER)).toBe(2);
+    await sync();
+
+    const message = onlyMessage(engine);
+    expect(message.id).toBe(id);
+    expect(message.placements.map(({ uid }) => uid).sort()).toEqual([1, 2]);
+    expect(present(engine.db.tables.threads.get(threadId)).state).toBe('inbox');
+    expect(queuedOneLiners(engine)).toHaveLength(1);
+    await sync();
+    expect(queuedOneLiners(engine)).toHaveLength(1);
+  });
+
   it('adopts the pending INBOX placement of an undone message without an arrival', async () => {
     const engine = createTestEngine();
     answerOneLiners(engine);

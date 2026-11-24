@@ -74,8 +74,14 @@ export class MovedCopyMerger {
   ): Promise<void> {
     const journal = new SyncJournal(account.id, this.deps.clock);
     await this.deps.unitOfWork.run(async (repositories) => {
-      await transferOrigins(repositories.pendingWork, account.id, moving, twin);
-      await repositories.drafts.retargetReplies(moving.id, twin.id);
+      const current = await repositories.messages.findById(account.userId, moving.id);
+      const retired = (current?.placements ?? []).every(
+        ({ mailboxId }) => mailboxId === source.mailboxId,
+      );
+      if (retired) {
+        await transferOrigins(repositories.pendingWork, account.id, moving, twin);
+        await repositories.drafts.retargetReplies(moving.id, twin.id);
+      }
       await repositories.messages.removePlacement(moving.id, source.mailboxId);
       await journal.touched(repositories.pendingWork, moving.threadId);
       if (twin.threadId !== moving.threadId) {
