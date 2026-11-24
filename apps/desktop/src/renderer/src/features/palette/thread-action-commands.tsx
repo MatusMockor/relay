@@ -1,5 +1,5 @@
 import type { ThreadSummary } from '@relay/shared';
-import { FolderIcon } from '@relay/ui';
+import { FolderIcon, Icon } from '@relay/ui';
 import { setUi } from '../../state/ui-store';
 import type { ThreadCommands } from '../mail/use-thread-commands';
 import { threadSpamCommand } from './thread-spam-command';
@@ -29,6 +29,18 @@ export const threadLabelCommand = (thread: ThreadSummary, ctx: string | undefine
   },
 });
 
+export const threadRuleCommand = (thread: ThreadSummary, ctx: string | undefined): Command => ({
+  id: 'rule-from-mail',
+  label: 'Vytvoriť pravidlo z mailu…',
+  sub: ctx,
+  keys: [],
+  icon: <Icon name="bolt" />,
+  alias: 'pravidlo automatizacia filter rule automation',
+  run: () => {
+    setUi({ overlay: { kind: 'ruleFromMail', threadId: thread.id } });
+  },
+});
+
 export const threadActionCommands = (
   thread: ThreadSummary,
   ctx: string | undefined,
@@ -37,4 +49,5 @@ export const threadActionCommands = (
   threadMoveCommand(thread, ctx),
   threadLabelCommand(thread, ctx),
   ...threadSpamCommand(thread, ctx, commands),
+  threadRuleCommand(thread, ctx),
 ];

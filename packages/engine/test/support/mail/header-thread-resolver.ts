@@ -22,7 +22,12 @@ export class HeaderThreadResolver implements ThreadResolver {
     ];
     const known =
       related.length === 0 ? [] : await this.messages.findByMessageIdHeaders(accountId, related);
-    const match = known[0]?.threadId ?? (await this.bySubject(accountId, message));
+    const match =
+      known[0]?.threadId ??
+      (related.length === 0
+        ? null
+        : await this.messages.findThreadIdByReplyTo(accountId, related)) ??
+      (await this.bySubject(accountId, message));
     if (match !== null) {
       return { threadId: match, isNew: false };
     }

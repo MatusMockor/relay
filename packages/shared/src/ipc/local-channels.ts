@@ -22,6 +22,12 @@ import {
   ApplyAutomationResponseSchema,
   ReplaceAutomationsBodySchema,
 } from '../api/endpoints/automations';
+import {
+  AutomationPreviewBodySchema,
+  AutomationPreviewResponseSchema,
+} from '../api/endpoints/automation-preview';
+import { ServerSearchRequestSchema, ServerSearchResponseSchema } from '../api/endpoints/search';
+import { SplitPreviewBodySchema, SplitPreviewResponseSchema } from '../api/endpoints/split-preview';
 import { ReplaceSplitsBodySchema } from '../api/endpoints/splits';
 import { TaskListQuerySchema, TaskPageSchema, UpdateTaskBodySchema } from '../api/endpoints/tasks';
 import {
@@ -35,8 +41,10 @@ import {
 } from '../api/endpoints/threads';
 import { MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { AutomationSchema } from '../domain/automation';
+import { AutomationEntriesSchema } from '../domain/automation-entry';
 import { DraftSchema } from '../domain/draft';
+import { HistoryProgressSchema } from '../domain/history-progress';
+import { OfflineStatsSchema } from '../domain/offline-window';
 import {
   AccountIdSchema,
   AiJobIdSchema,
@@ -45,15 +53,17 @@ import {
   DraftIdSchema,
   LabelIdSchema,
   MailboxIdSchema,
+  MessageIdSchema,
   ScheduledSendIdSchema,
   TaskIdSchema,
   ThreadIdSchema,
 } from '../domain/ids';
 import { LabelSchema } from '../domain/label';
 import { MailboxSchema } from '../domain/mailbox';
+import { MessageBodyResultSchema } from '../domain/message-body';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsPatchSchema, UserSettingsSchema } from '../domain/settings';
-import { SplitSchema } from '../domain/split';
+import { SplitEntriesSchema } from '../domain/split-entry';
 import { TaskSchema } from '../domain/task';
 import { ThreadAiStateSchema, ThreadDetailSchema, ThreadSummarySchema } from '../domain/thread';
 import { ThreadActionSchema } from '../domain/thread-action';
@@ -97,6 +107,11 @@ export const localInvokeChannels = {
     UnsubscribeRequestSchema.extend({ threadId: ThreadIdSchema }),
     OkResponseSchema,
   ),
+  'local.messages.body': invokeChannel(
+    z.object({ messageId: MessageIdSchema }),
+    MessageBodyResultSchema,
+  ),
+  'local.search.server': invokeChannel(ServerSearchRequestSchema, ServerSearchResponseSchema),
   'local.ai.getJob': invokeChannel(z.object({ jobId: AiJobIdSchema }), AiJobSchema),
   'local.labels.list': invokeChannel(LabelListQuerySchema, z.array(LabelSchema)),
   'local.labels.create': invokeChannel(CreateLabelBodySchema, LabelSchema),
@@ -133,6 +148,8 @@ export const localInvokeChannels = {
     z.object({ accountId: AccountIdSchema.optional() }),
     OkResponseSchema,
   ),
+  'local.sync.history': invokeChannel(z.undefined(), z.array(HistoryProgressSchema)),
+  'local.sync.offline': invokeChannel(z.undefined(), OfflineStatsSchema),
   'local.settings.get': invokeChannel(z.undefined(), UserSettingsSchema),
   'local.settings.update': invokeChannel(UserSettingsPatchSchema, UserSettingsSchema),
   'local.tasks.list': invokeChannel(TaskListQuerySchema, TaskPageSchema),
@@ -140,14 +157,16 @@ export const localInvokeChannels = {
     z.object({ taskId: TaskIdSchema, patch: UpdateTaskBodySchema }),
     TaskSchema,
   ),
-  'local.splits.list': invokeChannel(z.undefined(), z.array(SplitSchema)),
-  'local.splits.replace': invokeChannel(ReplaceSplitsBodySchema, z.array(SplitSchema)),
-  'local.automations.list': invokeChannel(z.undefined(), z.array(AutomationSchema)),
-  'local.automations.replace': invokeChannel(
-    ReplaceAutomationsBodySchema,
-    z.array(AutomationSchema),
+  'local.splits.list': invokeChannel(z.undefined(), SplitEntriesSchema),
+  'local.splits.replace': invokeChannel(ReplaceSplitsBodySchema, SplitEntriesSchema),
+  'local.splits.preview': invokeChannel(SplitPreviewBodySchema, SplitPreviewResponseSchema),
+  'local.automations.list': invokeChannel(z.undefined(), AutomationEntriesSchema),
+  'local.automations.replace': invokeChannel(ReplaceAutomationsBodySchema, AutomationEntriesSchema),
+  'local.automations.restoreDefault': invokeChannel(z.undefined(), AutomationEntriesSchema),
+  'local.automations.preview': invokeChannel(
+    AutomationPreviewBodySchema,
+    AutomationPreviewResponseSchema,
   ),
-  'local.automations.restoreDefault': invokeChannel(z.undefined(), z.array(AutomationSchema)),
   'local.automations.apply': invokeChannel(
     z.object({ automationId: AutomationIdSchema }),
     ApplyAutomationResponseSchema,

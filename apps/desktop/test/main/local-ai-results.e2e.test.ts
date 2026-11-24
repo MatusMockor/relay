@@ -1,5 +1,10 @@
 import { CliDetector, CliLocator, createCliRunnerRegistry } from '@relay/ai';
-import { type ThreadId, ThreadIdSchema } from '@relay/shared/domain';
+import {
+  AccountIdSchema,
+  LabelIdSchema,
+  type ThreadId,
+  ThreadIdSchema,
+} from '@relay/shared/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGreenMailAccount, deliverMail, type GreenMailAccount } from './support/greenmail';
 import { type LocalRuntimeHarness, startLocalRuntime } from './support/local-runtime-harness';
@@ -86,11 +91,17 @@ describe('local AI results over IPC', () => {
         threadId,
         title: 'Skontrolovať faktúru',
         aiWhat: 'Skontrolovať faktúru za október do piatka.',
+        priority: 'high',
       },
     });
     const tasks = await bridge.invoke('local.tasks.list', {});
     expect(tasks.ok && tasks.data.items).toEqual([
-      expect.objectContaining({ title: 'Skontrolovať faktúru', source: 'ai', threadId }),
+      expect.objectContaining({
+        title: 'Skontrolovať faktúru',
+        source: 'ai',
+        priority: 'high',
+        threadId,
+      }),
     ]);
     expect(harness.events.some((event) => event.type === 'task.upserted')).toBe(true);
     const [call] = await claude.calls();
@@ -119,5 +130,57 @@ describe('local AI results over IPC', () => {
     expect(effort).toBeGreaterThanOrEqual(0);
     expect(args[model + 1]).toBe('claude-sonnet-5-5');
     expect(args[effort + 1]).toBe('high');
+  });
+
+  it('suggests a rule from a sentence with a local run and resolves the label', async () => {
+    const accountId = AccountIdSchema.parse('acc_freelance');
+    const run = await runAi(harness.bridge, {
+      input: {
+        kind: 'ruleSuggest',
+        sentence: 'faktúry od dodávateľov s prílohou daj do štítku Faktúry a archivuj',
+        accountId: null,
+        accounts: [
+          {
+            id: accountId,
+            name: 'Freelance',
+            labels: [{ id: LabelIdSchema.parse('lbl_invoices'), name: 'Faktúry' }],
+            folders: [],
+          },
+        ],
+      },
+      runner: 'claude',
+    });
+
+    expect(run.error).toBeNull();
+    expect(run.events.at(-1)).toEqual({
+      type: 'completed',
+      output: {
+        kind: 'ruleSuggest',
+        suggestion: {
+          name: 'Faktúry',
+          accountId,
+          match: 'all',
+          conditions: [{ type: 'hasAttachment' }],
+          exceptions: [],
+          actions: [{ type: 'addLabel', labelId: 'lbl_invoices' }, { type: 'archive' }],
+          understood: 'Maily s prílohou dostanú štítok Faktúry a archivujú sa.',
+          unmapped: ['od dodávateľov'],
+        },
+      },
+    });
+    const [call] = await claude.calls();
+    expect(call?.stdin).toContain('faktúry od dodávateľov');
+    expect(call?.mcpConfig).toBeNull();
+    const automations = await harness.bridge.invoke('local.automations.list');
+    expect(automations.ok && automations.data.map((rule) => rule.name)).not.toContain('Faktúry');
+  });
+
+  it('rejects a rule suggestion with an empty sentence before it reaches the CLI', async () => {
+    const run = await runAi(harness.bridge, {
+      input: { kind: 'ruleSuggest', sentence: ' ', accountId: null, accounts: [] },
+    });
+
+    expect(run.error?.code).toBe('validation_failed');
+    expect(await claude.calls()).toEqual([]);
   });
 });

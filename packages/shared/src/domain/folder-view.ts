@@ -5,6 +5,7 @@ export const FolderViewSchema = z.enum([
   'tasks',
   'reminders',
   'done',
+  'archive',
   'sent',
   'drafts',
   'scheduled',

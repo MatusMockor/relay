@@ -9,12 +9,16 @@ import { ContextMenuHost } from '../context-menu/ContextMenuHost';
 import { FolderSidebar } from '../folders/FolderSidebar';
 import { useKeyboard } from '../keyboard/use-keyboard';
 import { ThreadList } from '../list/ThreadList';
+import { useHistoryRecording } from '../history/use-history-recording';
 import { MailActionsProvider } from '../mail/MailActionsProvider';
 import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
+import { TaskSystemList } from '../task-systems/TaskSystemList';
+import { useTaskSystemFolderValidation } from '../task-systems/use-task-system-folder-validation';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
-import { useMouseBack } from './use-mouse-back';
+import { useHistoryInputs } from './use-history-inputs';
+import { useTrackpadSwipe } from './use-trackpad-swipe';
 import { OverlayHost } from './OverlayHost';
 import { useScopeValidation } from './scope-validation';
 import { TopBar } from './TopBar';
@@ -26,8 +30,10 @@ const resize = (key: 'sidebar' | 'rightPanel') => (width: number) => {
 };
 
 function Shell() {
+  useHistoryRecording();
   useKeyboard();
-  useMouseBack();
+  useHistoryInputs();
+  useTrackpadSwipe();
   const { platform } = useAppContext();
   useRealtimeSync();
   useRemoteAutomationNotifications(platform);
@@ -35,8 +41,10 @@ function Shell() {
   useNotificationNavigation();
   const commit = useLayoutPersistence();
   useScopeValidation();
+  useTaskSystemFolderValidation();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);
+  const folder = useUiStore((state) => state.folder);
   const composing = useUiStore((state) => state.overlay?.kind === 'compose');
   const settings = useUserSettings();
   useEffect(() => {
@@ -71,7 +79,13 @@ function Shell() {
       ) : null}
       <main className="a-main">
         <TopBar leftVisible={layout.leftVisible} />
-        {inThread ? <ThreadView /> : <ThreadList />}
+        {inThread ? (
+          <ThreadView />
+        ) : folder.kind === 'taskSystem' ? (
+          <TaskSystemList connectionId={folder.connectionId} />
+        ) : (
+          <ThreadList />
+        )}
       </main>
       {layout.rightPanel > 0 ? (
         <>

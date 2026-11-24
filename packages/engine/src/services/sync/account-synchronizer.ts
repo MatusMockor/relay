@@ -5,6 +5,7 @@ import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { Logger } from '../../ports/logger';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { SplitRepository } from '../../ports/split-repository';
+import type { SplitSnapshotGuard } from '../splits/split-snapshot-guard';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { ChangeFlusher } from './change-flusher';
 import { completedSyncState } from './completed-sync-state';
@@ -15,6 +16,7 @@ import { countsChanged, unchangedSince } from './mailbox-pass';
 import type { MailboxRefresher } from './mailbox-refresher';
 import { selectMailboxes } from './mailbox-selection';
 import type { MailboxPass, MailboxSynchronizer } from './mailbox-synchronizer';
+import type { ReconcileScans } from './reconcile-scans';
 import type { SyncBackfill } from './sync-backfill';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from './sync-arrivals';
 import type { SyncContext, SyncStats } from './sync-context';
@@ -33,12 +35,14 @@ export interface SyncReport {
 
 export interface AccountSynchronizerDeps {
   readonly splits: SplitRepository;
+  readonly splitGuard: SplitSnapshotGuard;
   readonly pendingWork: PendingWorkRepository;
   readonly sessions: MailProviderSessions;
   readonly refresher: MailboxRefresher;
   readonly rescans: LabelRescans;
   readonly mailboxEvents: MailboxEvents;
   readonly mailboxSync: MailboxSynchronizer;
+  readonly scans: ReconcileScans;
   readonly initialSync: InitialSync;
   readonly flusher: ChangeFlusher;
   readonly backfill: SyncBackfill;
@@ -144,7 +148,9 @@ export class AccountSynchronizer {
     const incremental = passes.filter(
       (pass) =>
         completedSyncState(pass.state) !== null &&
-        (rescans.has(pass.mailbox.id) || !unchangedSince(pass)),
+        (rescans.has(pass.mailbox.id) ||
+          !unchangedSince(pass) ||
+          this.deps.scans.fullExpungeDiffDue(pass.mailbox.id)),
     );
     const fetched = await this.fetchIncremental(context, incremental, {
       holdCalendar: await this.deps.initialSync.holdsCalendar(context, passes),
@@ -163,6 +169,7 @@ export class AccountSynchronizer {
     await this.deps.backfill.run(context, mailboxes);
     await this.deps.flusher.flush(context);
     await this.deps.replayer.replayPending(context.account, context.provider);
+    await this.deps.splitGuard.settle(context.userId, context.account.id, splits);
   }
 
   private async fetchIncremental(

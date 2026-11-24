@@ -1,10 +1,13 @@
 import {
   type ApplyAutomationResponse,
   type AutomationInput,
+  type AutomationPreviewBody,
+  type AutomationPreviewResponse,
   MAX_AUTOMATIONS,
   type ReplaceAutomationsBody,
+  replaceInputsOf,
 } from '@relay/shared/api';
-import type { Automation, AutomationId, UserId } from '@relay/shared/domain';
+import type { Automation, AutomationEntry, AutomationId, UserId } from '@relay/shared/domain';
 import { NotFoundError, ValidationError } from '../../errors';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { AutomationRepository, PresetAutomation } from '../../ports/automation-repository';
@@ -15,6 +18,10 @@ import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { assertRulePatterns } from '../splits/split-rule-validator';
 import type { AutomationBacklog } from './automation-backlog';
+import type { AutomationForwardValidator } from './automation-forward-validator';
+import { inputRules } from './automation-input';
+import type { AutomationPreview } from './automation-preview';
+import { resolveReplacement, withUnsupported } from './automation-replacement';
 import { hasJiraTasksPreset, jiraTasksPreset } from './automation-presets';
 import type { AutomationTargetValidator } from './automation-target-validator';
 
@@ -26,7 +33,9 @@ export interface AutomationServiceDeps {
   readonly ids: IdGenerator;
   readonly patterns: SplitPatternPolicy;
   readonly targets: AutomationTargetValidator;
+  readonly forwards: AutomationForwardValidator;
   readonly backlog: AutomationBacklog;
+  readonly preview: AutomationPreview;
 }
 
 export class AutomationService {
@@ -35,16 +44,20 @@ export class AutomationService {
 
   constructor(private readonly deps: AutomationServiceDeps) {}
 
-  list(userId: UserId): Promise<Automation[]> {
-    return this.serializer.run(userId, () => this.seeded(userId));
+  list(userId: UserId): Promise<AutomationEntry[]> {
+    return this.serializer.run(userId, async () => this.entries(userId, await this.seeded(userId)));
   }
 
-  replace(userId: UserId, body: ReplaceAutomationsBody): Promise<Automation[]> {
+  replace(userId: UserId, body: ReplaceAutomationsBody): Promise<AutomationEntry[]> {
     return this.serializer.run(userId, () => this.replaceNow(userId, body));
   }
 
-  restoreDefault(userId: UserId): Promise<Automation[]> {
+  restoreDefault(userId: UserId): Promise<AutomationEntry[]> {
     return this.serializer.run(userId, () => this.restoreNow(userId));
+  }
+
+  preview(userId: UserId, body: AutomationPreviewBody): Promise<AutomationPreviewResponse> {
+    return this.deps.preview.preview(userId, body);
   }
 
   applyToExisting(userId: UserId, id: AutomationId): Promise<ApplyAutomationResponse> {
@@ -60,43 +73,43 @@ export class AutomationService {
     return this.deps.backlog.apply(userId, automation);
   }
 
-  private async replaceNow(userId: UserId, body: ReplaceAutomationsBody): Promise<Automation[]> {
-    body.automations.forEach((input) => {
-      assertRulePatterns(
-        { kind: 'Automation', name: input.name, rules: input.conditions },
-        this.deps.patterns,
-      );
+  private async replaceNow(
+    userId: UserId,
+    body: ReplaceAutomationsBody,
+  ): Promise<AutomationEntry[]> {
+    const inputs = replaceInputsOf(body.automations);
+    inputs.forEach((input) => {
+      assertRulePatterns(inputRules(input), this.deps.patterns);
     });
-    await this.assertAccounts(userId, body.automations);
+    await this.assertAccounts(userId, inputs);
+    await this.deps.forwards.assert(userId, inputs);
     const current = await this.seeded(userId);
     const known = new Map(current.map((automation) => [automation.id, automation]));
-    await this.deps.targets.assert(userId, body.automations, known);
-    const automations = body.automations.map((input): Automation => {
-      if (input.id !== undefined && !known.has(input.id)) {
-        throw new ValidationError(`Unknown automation id ${input.id}`);
-      }
-      const preset = input.id === undefined ? null : (known.get(input.id)?.preset ?? null);
-      return { ...input, id: input.id ?? this.deps.ids.generate('automation'), userId, preset };
+    await this.deps.targets.assert(userId, inputs, known);
+    const { automations, keep } = resolveReplacement(body.automations, {
+      userId,
+      known,
+      unsupported: await this.deps.automations.listUnsupported(userId),
+      newId: () => this.deps.ids.generate('automation'),
     });
-    if (new Set(automations.map((automation) => automation.id)).size !== automations.length) {
-      throw new ValidationError('Automation ids must be unique');
-    }
     if (hasJiraTasksPreset(current) && !hasJiraTasksPreset(automations)) {
       await this.deps.automations.markPresetRemoved(userId, 'jiraTasks');
     }
-    return this.published(userId, await this.deps.automations.replaceAll(userId, automations));
+    await this.deps.automations.replaceAll(userId, automations, keep);
+    return this.published(userId);
   }
 
-  private async restoreNow(userId: UserId): Promise<Automation[]> {
+  private async restoreNow(userId: UserId): Promise<AutomationEntry[]> {
     const stored = await this.deps.automations.listByUser(userId);
     if (hasJiraTasksPreset(stored)) {
-      return stored;
+      return this.entries(userId, stored);
     }
-    if (stored.length >= MAX_AUTOMATIONS) {
+    const total = stored.length + (await this.deps.automations.listUnsupported(userId)).length;
+    if (total >= MAX_AUTOMATIONS) {
       throw new ValidationError(`At most ${String(MAX_AUTOMATIONS)} automations are allowed`);
     }
-    await this.deps.automations.restorePreset(await this.presetFor(userId, stored.length));
-    return this.published(userId, await this.deps.automations.listByUser(userId));
+    await this.deps.automations.restorePreset(await this.presetFor(userId, total));
+    return this.published(userId);
   }
 
   private async seeded(userId: UserId): Promise<Automation[]> {
@@ -121,7 +134,12 @@ export class AutomationService {
     );
   }
 
-  private async published(userId: UserId, automations: Automation[]): Promise<Automation[]> {
+  private async entries(userId: UserId, stored: Automation[]): Promise<AutomationEntry[]> {
+    return withUnsupported(stored, await this.deps.automations.listUnsupported(userId));
+  }
+
+  private async published(userId: UserId): Promise<AutomationEntry[]> {
+    const automations = await this.entries(userId, await this.deps.automations.listByUser(userId));
     await this.deps.events.emit(userId, 'automations.updated', { automations });
     return automations;
   }

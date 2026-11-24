@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -45,7 +46,7 @@ describe('automation data hooks on the demo client', () => {
     await waitFor(() => {
       expect(result.current.list.data).toBeDefined();
     });
-    const current = result.current.list.data ?? [];
+    const current = supportedAutomations(result.current.list.data ?? []);
     expect(current.map((item) => [item.name, item.preset])).toEqual([
       ['Jira spomenutia', null],
       ['Tibor', null],
@@ -62,7 +63,9 @@ describe('automation data hooks on the demo client', () => {
           name: 'Od Tibora',
           enabled: true,
           order: 9,
+          match: 'all',
           conditions: [{ type: 'fromAddress', address: 'tibor@efabrica.sk' }],
+          exceptions: [],
           ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: null },
           actions: [{ type: 'task' }, { type: 'archive' }],
         },
@@ -87,10 +90,12 @@ describe('automation data hooks on the demo client', () => {
 
   it('restores the removed default rule turned off', async () => {
     const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
-    const kept = (await client.listAutomations()).filter((item) => item.preset === null);
+    const kept = supportedAutomations(await client.listAutomations()).filter(
+      (item) => item.preset === null,
+    );
     await client.replaceAutomations(kept.map(toAutomationInput));
 
-    const restored = await client.restoreDefaultAutomation();
+    const restored = supportedAutomations(await client.restoreDefaultAutomation());
 
     expect(restored.map((item) => [item.name, item.preset, item.enabled, item.order])).toEqual([
       ['Jira spomenutia', null, true, 0],
@@ -98,12 +103,14 @@ describe('automation data hooks on the demo client', () => {
       ['GitLab do Projektov', null, true, 2],
       ['Jira tasky', 'jiraTasks', false, 3],
     ]);
-    expect(await client.restoreDefaultAutomation()).toEqual(restored);
+    expect(supportedAutomations(await client.restoreDefaultAutomation())).toEqual(restored);
   });
 
   it('rejects a model that does not belong to the runner', async () => {
     const client = createDemoMailClient({ now: () => NOW, aiStepMs: 0 });
-    const preset = required((await client.listAutomations()).find((item) => item.preset !== null));
+    const preset = required(
+      supportedAutomations(await client.listAutomations()).find((item) => item.preset !== null),
+    );
 
     await expect(
       client.replaceAutomations([

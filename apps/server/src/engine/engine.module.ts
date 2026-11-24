@@ -4,6 +4,7 @@ import {
   AiService,
   AttachmentContentService,
   AttachmentSweeper,
+  AutomationHistoryService,
   AutomationService,
   CalendarService,
   ComposeService,
@@ -21,6 +22,7 @@ import {
   SplitService,
   SyncService,
   TaskService,
+  TaskSystemService,
   ThreadAiPreparer,
   ThreadChecklistService,
   ThreadQueryService,
@@ -56,6 +58,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(ComposeService, 'compose'),
   service(SplitService, 'splits'),
   service(AutomationService, 'automations'),
+  service(AutomationHistoryService, 'automationHistory'),
   service(AiService, 'ai'),
   service(AttachmentContentService, 'attachments'),
   service(AttachmentSweeper, 'attachmentSweeper'),
@@ -64,6 +67,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(CalendarService, 'calendar'),
   service(FailedInvitationService, 'failedInvitations'),
   service(GoogleCalendarService, 'googleCalendar'),
+  service(TaskSystemService, 'taskSystems'),
 ];
 
 @Global()
@@ -86,6 +90,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     ComposeService,
     SplitService,
     AutomationService,
+    AutomationHistoryService,
     AiService,
     AttachmentContentService,
     AttachmentSweeper,
@@ -94,6 +99,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     CalendarService,
     FailedInvitationService,
     GoogleCalendarService,
+    TaskSystemService,
   ],
 })
 export class EngineModule {}

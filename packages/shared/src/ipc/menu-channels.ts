@@ -11,6 +11,7 @@ export const SettingsSectionSchema = z.enum([
   'labels',
   'automations',
   'jira',
+  'taskSystems',
   'sync',
   'notifications',
   'ai',
@@ -30,6 +31,7 @@ export const MenuCommandSchema = z.discriminatedUnion('command', [
   z.object({ command: z.literal('compose') }),
   z.object({ command: z.literal('select-scope'), scope: AccountScopeSchema }),
   z.object({ command: z.literal('navigate-back') }),
+  z.object({ command: z.literal('navigate-forward') }),
 ]);
 export type MenuCommand = z.infer<typeof MenuCommandSchema>;
 export type MenuCommandKind = MenuCommand['command'];

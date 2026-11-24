@@ -7,14 +7,15 @@ import {
   type TaskRepository,
 } from '@relay/engine';
 import type { JiraKey, Task, TaskId, ThreadId, UserId } from '@relay/shared/domain';
-import { and, asc, desc, eq, lt, or } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toTask, toTaskRow } from '../mappers/task-mapper';
 import { toTimestamp } from '../mappers/timestamp';
 import { assertPageLimit } from '../pagination/page-limit';
-import { timeIdCursor } from '../pagination/time-id-cursor';
+import { rankTimeIdCursor } from '../pagination/rank-time-id-cursor';
 import { toPage } from '../pagination/to-page';
 import { tasks } from '../schema';
+import { afterTaskPosition, rankedTaskColumns, taskListOrder } from './task-list-order';
 
 export class SqliteTaskRepository implements TaskRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -22,28 +23,22 @@ export class SqliteTaskRepository implements TaskRepository {
   list(userId: UserId, query: TaskQuery): Promise<Page<Task>> {
     return this.executor.execute((db) => {
       const limit = assertPageLimit(query.limit);
-      const position = timeIdCursor.decode(query.cursor);
       const rows = db
-        .select()
+        .select(rankedTaskColumns)
         .from(tasks)
         .where(
           and(
             eq(tasks.userId, userId),
             query.state === null ? undefined : eq(tasks.state, query.state),
             query.threadId === undefined ? undefined : eq(tasks.threadId, query.threadId),
-            position === null
-              ? undefined
-              : or(
-                  lt(tasks.updatedTs, position.ts),
-                  and(eq(tasks.updatedTs, position.ts), lt(tasks.id, position.id)),
-                ),
+            afterTaskPosition(rankTimeIdCursor.decode(query.cursor)),
           ),
         )
-        .orderBy(desc(tasks.updatedTs), desc(tasks.id))
+        .orderBy(...taskListOrder)
         .limit(limit + 1)
         .all();
       return toPage(rows, limit, toTask, (row) =>
-        timeIdCursor.encode({ ts: row.updatedTs, id: row.id }),
+        rankTimeIdCursor.encode({ rank: row.rank, ts: row.updatedTs, id: row.id }),
       );
     });
   }

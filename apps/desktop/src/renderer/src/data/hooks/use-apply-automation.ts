@@ -12,6 +12,7 @@ export const useApplyAutomation = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.threadLists() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allMailboxes() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.automationHistories() }),
       ]);
     },
   });

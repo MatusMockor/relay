@@ -69,6 +69,6 @@
 }
 .effs button.on {
   background: var(--accent-soft);
-  border-color: rgba(142, 162, 255, 0.45);
+  border-color: var(--accent-tint-45);
   color: var(--fg);
 }

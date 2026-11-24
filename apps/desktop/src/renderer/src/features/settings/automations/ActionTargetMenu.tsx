@@ -1,11 +1,12 @@
 import type { AccountId, AutomationAction, LabelId, MailAccount } from '@relay/shared';
 import { useState } from 'react';
 import { isGmailAccount } from './action-targets';
+import { ForwardAddressForm } from './ForwardAddressForm';
 import { LabelActionPicker } from './LabelActionPicker';
 import { MailboxActionPicker } from './MailboxActionPicker';
 import { OptionList } from './OptionList';
 
-export type TargetKind = 'moveTo' | 'addLabel';
+export type TargetKind = 'moveTo' | 'addLabel' | 'forward';
 
 export interface ActionTargetMenuProps {
   readonly kind: TargetKind;
@@ -36,6 +37,17 @@ export function ActionTargetMenu({
             setPicked(account.id);
           },
         }))}
+      />
+    );
+  }
+  if (kind === 'forward') {
+    return (
+      <ForwardAddressForm
+        account={accounts.find((account) => account.id === picked)}
+        current={current?.type === 'forward' ? current.to : null}
+        onPick={(to) => {
+          onPick({ type: 'forward', to }, picked);
+        }}
       />
     );
   }

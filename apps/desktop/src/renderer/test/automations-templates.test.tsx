@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { act, fireEvent, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoClient, settle } from './features-support';
@@ -45,7 +46,7 @@ describe('Nastavenia > Automatizácie > šablóny', () => {
     backToList(sheet);
 
     expect(ruleNames(sheet)).toHaveLength(4);
-    expect(await client.listAutomations()).toHaveLength(4);
+    expect(supportedAutomations(await client.listAutomations())).toHaveLength(4);
   });
 
   it('creates a Jira rule from the template', async () => {
@@ -104,10 +105,7 @@ describe('Nastavenia > Automatizácie > šablóny', () => {
     await settle();
 
     expect(await stored(client, 'Faktúry')).toMatchObject({
-      conditions: [
-        { type: 'subjectRegex', pattern: 'faktúra|faktura', caseSensitive: false },
-        { type: 'hasAttachment' },
-      ],
+      conditions: [{ type: 'subjectContains', value: 'faktúra' }, { type: 'hasAttachment' }],
       actions: [{ type: 'pin' }],
     });
     expect(within(sheet).queryByRole('heading', { name: 'AI' })).toBeNull();

@@ -1,0 +1,175 @@
+.spal .pal-in {
+  padding: 14px 18px;
+}
+.spal-esc {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--fg3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+}
+.spal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.spal-chip {
+  font-size: var(--fs-xs);
+  color: var(--fg3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+}
+.spal-chip:hover {
+  color: var(--fg2);
+  border-color: var(--line-hover);
+}
+.spal-chip.on {
+  color: var(--fg);
+  background: var(--sel);
+  border-color: var(--ring);
+}
+.spal-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.spal-sec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 4px;
+  font-size: var(--fs-xs);
+  font-weight: var(--w-medium);
+  color: var(--fg4);
+}
+.spal-sec svg {
+  flex: none;
+}
+.spal-sec .r {
+  margin-left: auto;
+  font-weight: var(--w-regular);
+}
+.spal-row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--fg3);
+  text-align: left;
+}
+.spal-row.on {
+  background: var(--sel);
+}
+.spal-row .w {
+  color: var(--fg2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spal-row .l {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spal-row .s {
+  color: var(--fg2);
+}
+.spal-row .n {
+  color: var(--fg4);
+  margin-left: 8px;
+}
+.spal-row .d {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-sm);
+  color: var(--fg4);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.spal mark {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--fg);
+  font-weight: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.spal-srv {
+  font-size: var(--fs-2xs);
+  color: var(--fg4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: 0 5px;
+  margin-right: 8px;
+}
+.spal-cmd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--fg2);
+  text-align: left;
+}
+.spal-cmd svg {
+  color: var(--fg4);
+  flex: none;
+}
+.spal-cmd.on {
+  background: var(--sel);
+}
+.spal-skel .sk {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--hover), var(--line), var(--hover));
+  background-size: 200% 100%;
+  animation: spal-shimmer 1.4s infinite;
+}
+.spal-spin {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spal-spin 0.8s linear infinite;
+}
+.spal-note {
+  margin: 6px 10px 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--warn-tint-6);
+  color: var(--warn);
+  font-size: var(--fs-sm);
+}
+.spal-note.quiet {
+  background: none;
+  color: var(--muted);
+  padding: 4px 0 0;
+}
+@keyframes spal-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes spal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spal-skel .sk,
+  .spal-spin {
+    animation: none;
+  }
+}

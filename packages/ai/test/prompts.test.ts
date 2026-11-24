@@ -1,5 +1,8 @@
 import {
+  AccountIdSchema,
   AutomationIdSchema,
+  LabelIdSchema,
+  MailboxIdSchema,
   MessageIdSchema,
   ThreadIdSchema,
   type AiJobInput,
@@ -18,6 +21,26 @@ const automationTask = {
   instructions: 'Presun do iného sprintu ignoruj.',
   jiraKey: 'EF-12',
 };
+const automationDraft = {
+  kind: 'automationDraft' as const,
+  threadId,
+  messageId: MessageIdSchema.parse('msg_1'),
+  automationId: AutomationIdSchema.parse('automation_1'),
+  instructions: 'Tykaj a buď stručný.',
+};
+const ruleSuggest = {
+  kind: 'ruleSuggest' as const,
+  sentence: 'faktúry s prílohou daj do štítku Faktúry a archivuj',
+  accountId: AccountIdSchema.parse('acc_work'),
+  accounts: [
+    {
+      id: AccountIdSchema.parse('acc_work'),
+      name: 'Práca',
+      labels: [{ id: LabelIdSchema.parse('lbl_secret_id'), name: 'Faktúry' }],
+      folders: [{ id: MailboxIdSchema.parse('mbx_secret_id'), name: 'Projekty / Alfa' }],
+    },
+  ],
+};
 const context: PromptContext = { language: 'sk', nonce: 'abc123', thread: threadFixture() };
 
 const inputs: AiJobInput[] = [
@@ -28,6 +51,8 @@ const inputs: AiJobInput[] = [
   { kind: 'rewrite', text: 'ahoj posielam to zajtra', instruction: 'Formálnejšie', draftId: null },
   { kind: 'createTask', threadId, hint: null },
   automationTask,
+  automationDraft,
+  ruleSuggest,
 ];
 
 describe('task prompts', () => {
@@ -177,8 +202,27 @@ describe('task prompts', () => {
         threadId,
         title: 'Poslať cenovú ponuku',
         aiWhat: 'Poslať Jane ponuku do piatku.',
+        priority: 'none',
       },
     });
+  });
+
+  it('builds an automationDraft prompt with the rule instructions and maps the reply body', () => {
+    const prompt = prepareTaskPrompt(automationDraft, context);
+
+    expect(prompt.text).toContain('Pokyny používateľa pre odpoveď (majú prednosť): Tykaj');
+    expect(prompt.text).toContain('Posudzovaná správa je správa s message_id msg_1.');
+    expect(prompt.parse('{"body":" Ahoj, pošlem to zajtra. "}')).toEqual({
+      ok: true,
+      value: {
+        kind: 'automationDraft',
+        threadId,
+        messageId: automationDraft.messageId,
+        body: 'Ahoj, pošlem to zajtra.',
+      },
+    });
+    expect(prompt.parse('{"body":""}')).toMatchObject({ ok: false });
+    expect(prompt.parse('{"body":"  \\n  "}')).toMatchObject({ ok: false });
   });
 
   it('builds an automationTask prompt with the rule instructions and maps the verdict', () => {

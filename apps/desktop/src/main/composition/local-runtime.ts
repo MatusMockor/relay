@@ -1,4 +1,11 @@
-import { type AiRunnerRegistry, type Clock, type Logger } from '@relay/engine';
+import {
+  type AiRunnerRegistry,
+  type Clock,
+  type HistoryOptions,
+  type Logger,
+  type TaskSystemAdapterRegistry,
+} from '@relay/engine';
+import { createTaskSystemRegistry } from '@relay/task-systems';
 import { createCliRunnerRegistry } from '@relay/ai';
 import { engineMailToolBackend } from '@relay/mcp-mail';
 import { LOCAL_USER_ID } from '@relay/store-sqlite';
@@ -15,6 +22,9 @@ import {
   type MailToolsEndpoint,
   type McpEntryCommand,
 } from '../ai/local-mail-tools-server';
+import type { HistoryCadence } from '../background/history/history-cadence';
+import { HistoryProgressSource } from '../background/history/history-progress-source';
+import { relayHistoryState } from '../background/history/history-state-relay';
 import { createLocalBackground, type LocalBackground } from '../background/local-background';
 import { createGoogleClientConfigSource } from '../oauth/create-google-client-config-source';
 import { GoogleLoopbackFlow } from '../oauth/google-loopback-flow';
@@ -50,11 +60,14 @@ export interface LocalRuntimeInput {
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly bakedGoogleClient?: GoogleClientValues;
   readonly aiRunners?: AiRunnerRegistry;
+  readonly taskSystems?: TaskSystemAdapterRegistry;
   readonly mcpEntry?: McpEntryCommand | null;
   readonly oauthTimeoutMs?: number;
   readonly allowPlaintextMail?: boolean;
   readonly verifyGoogleAccounts?: boolean;
   readonly serverFetch?: FetchLike;
+  readonly historyCadence?: Partial<HistoryCadence>;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export interface LocalRuntime {
@@ -66,6 +79,7 @@ export interface LocalRuntime {
   readonly ipc: Omit<MainProcessContext, 'app'>;
   readonly userSettings: () => Promise<UserSettings>;
   readonly sync: SyncTrigger;
+  readonly history: HistoryProgressSource;
   readonly mailToolsEndpoint: MailToolsEndpoint | null;
   start(): Promise<void>;
   close(): Promise<void>;
@@ -101,6 +115,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     aiRunners,
     mailTools: mailTools?.endpoint ?? null,
     allowPlaintextMail: input.allowPlaintextMail ?? false,
+    ...(input.historyOptions === undefined ? {} : { historyOptions: input.historyOptions }),
     calendarFetch: calendarFetchEnv(input.env),
     googleCalendar: createGoogleCalendarAdapters({
       configSource: googleClient,
@@ -108,6 +123,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
       clock: input.clock,
       ...googleCalendarEnv(input.env).adapters,
     }),
+    taskSystems: input.taskSystems ?? createTaskSystemRegistry(),
     ...googleCalendarEnv(input.env).engine,
   });
   const { services } = engine;
@@ -119,13 +135,30 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     syncAccount: async (accountId) => {
       await services.sync.syncAccount(LOCAL_USER_ID, accountId);
     },
+    backfillHistory: (accountId) => services.sync.backfillHistory(LOCAL_USER_ID, accountId),
+    onHistoryState: relayHistoryState({
+      progress: () => history,
+      hub: infrastructure.hub,
+      clock: input.clock,
+      logger: input.logger,
+    }),
+    ...(input.historyCadence === undefined ? {} : { historyCadence: input.historyCadence }),
     watcher: { watch: (accountId) => services.sync.watchAccount(LOCAL_USER_ID, accountId) },
-    dueJobs: createLocalDueJobs(services, aiGate),
+    dueJobs: createLocalDueJobs(services, aiGate, LOCAL_USER_ID),
+    offlineWindow: {
+      settings: infrastructure.deviceSettings,
+      evict: () => services.bodyRetention.evictDue(LOCAL_USER_ID),
+    },
     hub: infrastructure.hub,
     power: input.power,
     timers: input.timers,
+    clock: input.clock,
     logger: input.logger,
   });
+  const history = new HistoryProgressSource(
+    () => services.sync.historyProgress(LOCAL_USER_ID),
+    background.history,
+  );
   const sync = createLocalSyncTrigger(services, LOCAL_USER_ID);
   const flow = new GoogleLoopbackFlow(googleClient, input.opener, input.oauthTimeoutMs);
   const flights = new SingleFlightOAuth();
@@ -149,6 +182,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     background,
     userSettings,
     sync,
+    history,
     mailToolsEndpoint: mailTools?.endpoint ?? null,
     ipc: {
       logger: input.logger.child({ component: 'ipc' }),
@@ -166,6 +200,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
         userId: LOCAL_USER_ID,
         services,
         sync,
+        history,
         hub: infrastructure.hub,
       },
     },
@@ -176,6 +211,7 @@ export const createLocalRuntime = (input: LocalRuntimeInput): LocalRuntime => {
     close: async () => {
       await oauth.shutdown();
       await background.shutdown();
+      await services.readSessions.closeAll();
       await mailTools?.close();
       engine.close();
     },

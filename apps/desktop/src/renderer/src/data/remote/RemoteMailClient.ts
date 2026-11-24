@@ -8,13 +8,19 @@ import {
 } from '@relay/shared';
 import { EventBus } from '../event-bus';
 import type { MailClient, MailEventListener } from '../MailClient';
+import { unsupportedServerSearch } from '../server-search';
+import { outdatedPreview, replaceAutomationsChecked } from './automation-compatibility';
+import { outdatedSplitPreview, replaceSplitsChecked } from './split-compatibility';
+import { createRemoteAutomationHistory } from './remote-automation-history';
 import type { HttpApi } from './HttpApi';
 import { RealtimeConnection, type RealtimeStatus, type SocketLike } from './RealtimeConnection';
 import { RemoteAiRuns } from './RemoteAiRuns';
 import { createRemoteCalendarClient } from './remote-calendar-client';
 import { createRemoteGoogleCalendarClient } from './remote-google-calendar-client';
+import { createRemoteTaskSystemClient } from './remote-task-system-client';
 import type { CalendarClient } from '../CalendarClient';
 import type { GoogleCalendarClient } from '../GoogleCalendarClient';
+import type { TaskSystemClient } from '../TaskSystemClient';
 
 export interface RemoteMailClientOptions {
   readonly http: HttpApi;
@@ -32,11 +38,14 @@ type RemoteMailMethods = Omit<
   | 'runAi'
   | keyof CalendarClient
   | keyof GoogleCalendarClient
+  | keyof TaskSystemClient
 >;
 
 const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   listThreads: (query) => http.call(api.threads.list, { query }),
   getThread: (id: ThreadId) => http.call(api.threads.get, { params: { id } }),
+  searchServer: (request) => Promise.resolve(unsupportedServerSearch(request)),
+  getMessageBody: () => Promise.resolve({ status: 'gone' }),
   prepareThreadAi: (id, timeZone) =>
     http.call(api.threads.prepareAi, { params: { id }, query: { timeZone } }),
   requestThreadSummary: (id, timeZone) =>
@@ -70,6 +79,8 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   syncNow: async (accountId) => {
     await http.call(api.sync.now, { body: accountId === undefined ? {} : { accountId } });
   },
+  historyProgress: () => Promise.resolve([]),
+  offlineStats: () => Promise.resolve({ local: 0, remote: 0 }),
   listDrafts: () => http.call(api.compose.listDrafts, {}),
   createDraft: (body) => http.call(api.compose.createDraft, { body }),
   updateDraft: (id: DraftId, body) => http.call(api.compose.updateDraft, { params: { id }, body }),
@@ -92,13 +103,21 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
     await http.call(api.compose.cancelScheduled, { params: { id } });
   },
   listSplits: () => http.call(api.splits.list, {}),
-  replaceSplits: (splits) => http.call(api.splits.replace, { body: { splits } }),
+  replaceSplits: (splits) => replaceSplitsChecked(http, splits),
+  previewSplit: (body) =>
+    http.call(api.splits.preview, { body }).catch((error: unknown) => {
+      throw outdatedSplitPreview(error);
+    }),
   listAutomations: () => http.call(api.automations.list, {}),
-  replaceAutomations: (automations) =>
-    http.call(api.automations.replace, { body: { automations } }),
+  replaceAutomations: (automations) => replaceAutomationsChecked(http, automations),
   restoreDefaultAutomation: () => http.call(api.automations.restoreDefault, {}),
   applyAutomation: (automationId) =>
     http.call(api.automations.apply, { params: { id: automationId } }),
+  previewAutomation: (body) =>
+    http.call(api.automations.preview, { body }).catch((error: unknown) => {
+      throw outdatedPreview(error);
+    }),
+  ...createRemoteAutomationHistory(http),
   listTasks: (query) => http.call(api.tasks.list, { query }),
   updateTask: (id: TaskId, body) => http.call(api.tasks.update, { params: { id }, body }),
   updateChecklistItem: (id, body) =>
@@ -137,6 +156,7 @@ export const createRemoteMailClient = (options: RemoteMailClientOptions): MailCl
     ...remoteMethods(http),
     ...createRemoteCalendarClient(http),
     ...createRemoteGoogleCalendarClient(http),
+    ...createRemoteTaskSystemClient(http),
     runAi: (request, listener) => aiRuns.start(request, listener),
     subscribe: (listener) => bus.subscribe(listener),
     onRealtimeConnected: (listener) =>

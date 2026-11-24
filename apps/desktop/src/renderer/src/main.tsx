@@ -10,18 +10,26 @@ import { createBrowserPlatform } from './platform/BrowserPlatform';
 import { createPlatform } from './platform/ElectronPlatform';
 import { applyWindowChrome } from './platform/window-chrome';
 import { SessionController } from './session/SessionController';
+import { bootTheme } from './theme/boot-theme';
+import { createDocumentThemeController } from './theme/document-theme';
+import { rememberThemeHint } from './theme/theme-hint';
 
 const container = document.getElementById('root');
 
 if (container !== null) {
+  const theme = createDocumentThemeController();
+  theme.subscribe(() => {
+    rememberThemeHint(window.location, window.history, theme.current());
+  });
   const platform = createPlatform(getRelayBridge(), () =>
     createBrowserPlatform(undefined, openContextMenu),
   );
   applyWindowChrome(document.documentElement, platform, IS_MAC);
+  bootTheme(theme, window.location.search, platform);
   const session = new SessionController(platform);
   createRoot(container).render(
     <StrictMode>
-      <App platform={platform} session={session} />
+      <App platform={platform} session={session} theme={theme} />
     </StrictMode>,
   );
 }

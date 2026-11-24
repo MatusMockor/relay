@@ -106,6 +106,7 @@ export const createBrowserPlatform = (
       window.open(url, '_blank', 'noopener');
     },
     saveFile: saveBlobAs,
+    attachmentOpener: null,
     authorizeGoogle: googleUnavailable,
     authorizeGoogleCalendar: googleUnavailable,
     cancelGoogleAuthorization: () => Promise.resolve(),
@@ -120,6 +121,8 @@ export const createBrowserPlatform = (
     reportTray: () => undefined,
     showNotification: showBrowserNotification,
     subscribeToFullScreen: () => () => undefined,
+    subscribeToTrackpadScroll: () => () => undefined,
+    subscribeToPreviewKeys: () => () => undefined,
     showContextMenu,
   };
 };

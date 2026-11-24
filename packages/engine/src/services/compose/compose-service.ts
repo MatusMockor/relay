@@ -16,6 +16,7 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import type { AttachmentUpload } from '../../model/attachment';
+import type { OutgoingHeaders } from '../../model/outgoing-message';
 import type { Clock } from '../../ports/clock';
 import type { DraftAttachmentService } from './draft-attachment-service';
 import type { DraftSender } from './draft-sender';
@@ -93,6 +94,14 @@ export class ComposeService {
 
   sendDueScheduled(limit?: number): Promise<ScheduledSend[]> {
     return this.deps.scheduled.sendDue(limit);
+  }
+
+  async sendDraftWithHeaders(
+    userId: UserId,
+    draftId: DraftId,
+    headers: OutgoingHeaders,
+  ): Promise<void> {
+    await this.deps.draftSender.send(userId, draftId, headers);
   }
 
   async send(userId: UserId, body: SendBody): Promise<SendResponse> {

@@ -1,5 +1,6 @@
 export * from './accounts';
 export * from './ai';
+export * from './automation-activity';
 export * from './automations';
 export * from './calendar';
 export * from './drafts';
@@ -12,5 +13,6 @@ export * from './scheduled-sends';
 export * from './settings';
 export * from './splits';
 export * from './tasks';
+export * from './task-systems';
 export * from './threads';
 export * from './users';

@@ -1,5 +1,6 @@
 import type { UrlOpener } from '../platform/url-opener';
 import { isSafeExternalUrl } from './external-links';
+import { isPdfViewerUrl } from './pdf-viewer-frame';
 
 export interface FrameNavigation {
   readonly url: string;
@@ -15,7 +16,7 @@ export interface LinkRoutingContents {
 const IN_APP_FRAME_PROTOCOLS = new Set(['about:', 'blob:']);
 
 const staysInFrame = (url: string): boolean =>
-  URL.canParse(url) && IN_APP_FRAME_PROTOCOLS.has(new URL(url).protocol);
+  (URL.canParse(url) && IN_APP_FRAME_PROTOCOLS.has(new URL(url).protocol)) || isPdfViewerUrl(url);
 
 export const routeExternalLinks = (
   contents: LinkRoutingContents,

@@ -4,7 +4,7 @@ import { hasOpenLayer } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { queryKeys } from '../../data/hooks/query-keys';
-import { useSplits, useTasks } from '../../data/hooks/use-mail-queries';
+import { useSplits } from '../../data/hooks/use-mail-queries';
 import { undoLast } from '../../state/toast-store';
 import { type RightTab, setUi, useUiStore } from '../../state/ui-store';
 import { centerRect, rectOf } from '../folders/rect';
@@ -14,16 +14,20 @@ import {
   goBack,
   moveSelection,
   openRight,
-  openSearch,
   selectFolder,
   selectScope,
   toggleRight,
 } from '../mail/navigation';
 import { useOpenItem } from '../mail/use-open-item';
+import { openSearchPalette } from '../search/search-actions';
+import { isSearchShortcut } from '../search/search-shortcut';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
 import { useStepThread } from '../shell/use-step-thread';
+import { PRIORITY_CHORD_KEY } from '../tasks/priority-keys';
+import { usePriorityChord } from '../tasks/use-priority-chord';
+import { useTaskSystemKeys } from '../task-systems/use-task-system-keys';
 import {
   cycleFolder,
   G_VIEWS,
@@ -46,8 +50,9 @@ export const useKeyboard = (): void => {
   const queryClient = useQueryClient();
   const scope = useUiStore((state) => state.scope);
   const splits = splitsInScope(useSplits().data ?? [], scope);
-  const hasTasks = (useTasks().data?.items ?? []).some((task) => task.state !== 'done');
   const gAt = useRef(0);
+  const priorityChord = usePriorityChord();
+  const taskSystemKeys = useTaskSystemKeys();
   const handler = useRef<(event: KeyboardEvent) => void>(() => undefined);
   handler.current = (event: KeyboardEvent) => {
     if (event.defaultPrevented || hasOpenLayer()) {
@@ -66,6 +71,10 @@ export const useKeyboard = (): void => {
       claim(() => {
         setUi({ overlay: { kind: 'palette' } });
       });
+      return;
+    }
+    if (isSearchShortcut(event)) {
+      claim(openSearchPalette);
       return;
     }
     if (mod && event.key === ',') {
@@ -116,6 +125,12 @@ export const useKeyboard = (): void => {
       return;
     }
     gAt.current = 0;
+    if (taskSystemKeys(event, claim)) {
+      return;
+    }
+    if (priorityChord.consume(event, thread, claim)) {
+      return;
+    }
     const detail =
       ui.openThreadId === null
         ? undefined
@@ -200,7 +215,7 @@ export const useKeyboard = (): void => {
         openRight('ai');
         setTimeout(() => document.getElementById('chat-q')?.focus(), 0);
       },
-      '/': openSearch,
+      '/': openSearchPalette,
       '?': () => {
         setUi({ overlay: { kind: 'shortcuts' } });
       },
@@ -223,8 +238,9 @@ export const useKeyboard = (): void => {
       g: () => {
         gAt.current = Date.now();
       },
+      [PRIORITY_CHORD_KEY]: priorityChord.arm,
       Tab: () => {
-        selectFolder(cycleFolder(tabFolders(splits, hasTasks), ui.folder, event.shiftKey ? -1 : 1));
+        selectFolder(cycleFolder(tabFolders(splits), ui.folder, event.shiftKey ? -1 : 1));
       },
       '1': () => {
         const text = suggestionAt(detail, 0);

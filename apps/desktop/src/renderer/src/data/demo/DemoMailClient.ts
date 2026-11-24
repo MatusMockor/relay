@@ -3,21 +3,28 @@ import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
+import { DEMO_OFFLINE_STATS, DemoHistory } from './demo-history';
 import { runDemoAi } from './demo-ai';
 import { createDemoAttachments } from './demo-attachments';
 import { createDemoAutomationApply } from './demo-automation-apply';
+import { createDemoAutomationHistory } from './demo-automation-history';
 import { createDemoAutomations } from './demo-automations';
+import { createDemoSplits } from './demo-splits';
 import { createDemoCalendarClient } from './demo-calendar';
 import { createDemoLabels } from './demo-labels';
 import { demoSend, newDraftKey } from './demo-compose';
 import { dropAccountData, removeDraft, syncDraftFlags } from './demo-drafts';
 import { requestDemoSummary } from './demo-summary';
 import { createDemoTaskMethods, demoTaskFromAi } from './demo-tasks';
+import { createDemoTaskSystems, type DemoTaskSystemsOptions } from './demo-task-systems';
 import { createDemoFolders } from './demo-folders';
 import { demoMailboxesOf } from './demo-mailboxes';
 import { createDemoMarkRead } from './demo-mark-read';
+import { createDemoMessageBodies, type DemoRemoteBodies } from './demo-message-bodies';
 import { DemoMoves } from './demo-moves';
+import { DemoRuleUndo } from './demo-rule-undo';
 import { queryThreads } from './demo-query';
+import { createDemoServerSearch, type DemoServerSearchOptions } from './demo-server-search';
 import { demoUnsubscribe, demoUnsubscribeOptions } from './demo-unsubscribe';
 import type { DemoState } from './demo-state';
 import { buildDemoState } from './seed/build-state';
@@ -27,6 +34,10 @@ export interface DemoMailClientOptions {
   readonly now?: () => Date;
   readonly aiStepMs?: number;
   readonly state?: DemoState;
+  readonly serverSearch?: DemoServerSearchOptions;
+  readonly remoteBodies?: DemoRemoteBodies;
+  readonly history?: DemoHistory;
+  readonly taskSystems?: DemoTaskSystemsOptions;
 }
 
 const run = <T>(work: () => T): Promise<T> => {
@@ -51,6 +62,8 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       bus.emit(event);
     });
   };
+  const history = options.history ?? new DemoHistory();
+  history.bind(emit, now);
   const upserted = (thread: ThreadSummary): ThreadSummary => {
     emit({ type: 'thread.upserted', at: now().toISOString(), data: { thread } });
     return thread;
@@ -85,6 +98,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     kind: 'demo',
     ...createDemoCalendarClient(now),
     listThreads: (params) => Promise.resolve(queryThreads(state, params)),
+    ...createDemoServerSearch(state, options.serverSearch),
     getThread: (threadId) =>
       run(() => {
         const found = record(threadId);
@@ -96,6 +110,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
           replySuggestions: found.replySuggestions,
         };
       }),
+    ...createDemoMessageBodies(state, options.remoteBodies),
     prepareThreadAi: (threadId) =>
       run(() => {
         record(threadId);
@@ -157,6 +172,8 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
       }),
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
     syncNow: () => Promise.resolve(),
+    historyProgress: () => run(() => history.progress(state.accounts)),
+    offlineStats: () => Promise.resolve(DEMO_OFFLINE_STATS),
     listDrafts: () => Promise.resolve([...state.drafts]),
     createDraft: (content) =>
       run(() => {
@@ -187,7 +204,8 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         draftsChanged(removed?.inReplyToThreadId ?? null);
       }),
     ...createDemoAttachments(state, now),
-    ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted)),
+    ...createDemoAutomations(state, now, createDemoAutomationApply(state, moves, upserted, now)),
+    ...createDemoAutomationHistory(state, now, new DemoRuleUndo(state, moves, upserted)),
     ...createDemoFolders(state, now, emit),
     send: (body) => run(() => demoSend(state, body, now())),
     listScheduled: () =>
@@ -198,17 +216,9 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
           item.id === scheduledSendId ? { ...item, status: 'cancelled' } : item,
         );
       }),
-    listSplits: () => Promise.resolve([...state.splits]),
-    replaceSplits: (splits) =>
-      run(() => {
-        state.splits = splits.map((split, order) => ({
-          ...split,
-          id: split.id ?? demoIds.split(`n${String(order)}-${String(now().getTime())}`),
-          userId: demoIds.user,
-        }));
-        return state.splits;
-      }),
+    ...createDemoSplits(state, now),
     ...createDemoTaskMethods(state, now),
+    ...createDemoTaskSystems(now, emit, options.taskSystems),
     getSettings: () => Promise.resolve(state.settings),
     updateSettings: (patch) =>
       run(() => {

@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
+export const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
 const withoutExclusiveSplits = sql`not exists (select 1 from ${threadSplits} inner join ${splits} on ${splits.id} = ${threadSplits.splitId} where ${threadSplits.threadId} = ${threads.id} and ${splits.exclusive} = 1)`;
 
@@ -41,7 +41,9 @@ export const folderViewCondition = (input: FolderViewConditionInput): SQL | unde
     case 'inbox':
       return inboxCondition(input);
     case 'done':
-      return eq(threads.state, 'done');
+      return and(eq(threads.state, 'done'), eq(threads.markedDone, true));
+    case 'archive':
+      return and(eq(threads.state, 'done'), eq(threads.markedDone, false));
     case 'trash':
       return eq(threads.state, 'trash');
     case 'spam':

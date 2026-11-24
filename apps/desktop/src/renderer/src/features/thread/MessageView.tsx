@@ -1,11 +1,11 @@
-import type { Message } from '@relay/shared';
+import { isBodyLocal, type Message } from '@relay/shared';
 import { Avatar, Icon, IconButton } from '@relay/ui';
 import { messageTimeLabel } from '../../lib/dates';
-import { AttachmentList } from './AttachmentList';
-import { HtmlMailFrame } from './HtmlMailFrame';
+import { AttachmentList } from '../attachments/AttachmentList';
+import { MessageBody } from './MessageBody';
 import { MessageCopies } from './MessageCopies';
 import { MeAvatar } from '../shell/MeAvatar';
-import { TextBody } from './TextBody';
+import { RemoteBody } from './RemoteBody';
 
 export interface MessageViewProps {
   readonly message: Message;
@@ -57,10 +57,15 @@ export function MessageView({
           </IconButton>
         )}
       </div>
-      {message.htmlBody !== null ? (
-        <HtmlMailFrame html={message.htmlBody} title={`Obsah správy: ${message.subject}`} />
+      {isBodyLocal(message) ? (
+        <MessageBody
+          subject={message.subject}
+          snippet={message.snippet}
+          textBody={message.textBody}
+          htmlBody={message.htmlBody}
+        />
       ) : (
-        <TextBody text={message.textBody ?? message.snippet} />
+        <RemoteBody message={message} />
       )}
       <AttachmentList attachments={message.attachments} />
     </article>

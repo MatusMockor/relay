@@ -54,6 +54,9 @@ export const validateSplitRules = (
   policy: SplitPatternPolicy,
 ): void => {
   inputs.forEach((input) => {
-    assertRulePatterns({ kind: 'Split', name: input.name, rules: input.rules }, policy);
+    assertRulePatterns(
+      { kind: 'Split', name: input.name, rules: [...input.rules, ...(input.exceptions ?? [])] },
+      policy,
+    );
   });
 };

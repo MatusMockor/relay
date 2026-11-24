@@ -42,6 +42,9 @@ export const draftOf = (condition: AutomationCondition): ConditionDraft => {
   if (condition.type === 'subjectRegex') {
     return { ...EMPTY_CONDITION, type: condition.type, pattern: condition.pattern };
   }
+  if (condition.type === 'subjectContains') {
+    return { ...EMPTY_CONDITION, type: condition.type, value: condition.value };
+  }
   if (condition.type === 'header') {
     return {
       ...EMPTY_CONDITION,
@@ -85,6 +88,7 @@ const candidateOf = (draft: ConditionDraft): unknown => {
     jiraEvent: () => ({ type: 'jiraEvent', kind: draft.kind }),
     recipient: () => recipientOf(draft.field, value),
     hasAttachment: () => ({ type: 'hasAttachment' }),
+    subjectContains: () => ({ type: 'subjectContains', value }),
   };
   return shapes[draft.type]();
 };

@@ -48,6 +48,8 @@ describe('PgThreadRepository.queryFolder', () => {
       accountId: null,
       name: 'Newsletter',
       order: 0,
+      match: 'any',
+      exceptions: [],
       rules: [{ type: 'fromDomain', domain: 'news.sk' }],
       exclusive: true,
       hideTasks: false,
@@ -83,7 +85,8 @@ describe('PgThreadRepository.queryFolder', () => {
     await context.repositories.messages.updateLabels(vip.message.id, [label.id]);
     await seed('home-1', home, 3);
     await seed('newsletter', work, 4, { splitIds: [split.id] });
-    await seed('done', work, 5, { state: 'done' });
+    await seed('done', work, 5, { state: 'done', markedDone: true });
+    await seed('archived', work, 6, { state: 'done' });
     await seed('trash', work, 6, { state: 'trash' });
     await seed('later', work, 7, { state: 'reminder', remindAt: at(500) });
 
@@ -105,6 +108,7 @@ describe('PgThreadRepository.queryFolder', () => {
       aiWhat: null,
       state: 'open',
       source: 'jira',
+      priority: 'none',
       createdAt: at(9),
       updatedAt: at(9),
     });
@@ -172,7 +176,8 @@ describe('PgThreadRepository.queryFolder', () => {
   });
 
   it('serves every folder view', async () => {
-    await expect(ids(work.user.id, { view: 'done' })).resolves.toEqual(['sent', 'done']);
+    await expect(ids(work.user.id, { view: 'done' })).resolves.toEqual(['done']);
+    await expect(ids(work.user.id, { view: 'archive' })).resolves.toEqual(['sent', 'archived']);
     await expect(ids(work.user.id, { view: 'trash' })).resolves.toEqual(['trash']);
     await expect(ids(work.user.id, { view: 'reminders' })).resolves.toEqual(['later']);
     await expect(ids(work.user.id, { view: 'sent' })).resolves.toEqual(['sent']);

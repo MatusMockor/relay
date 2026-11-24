@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { supportedAutomations } from '@relay/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { demoClient, settle } from './features-support';
@@ -45,7 +46,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
       ],
       actions: [{ type: 'task' }, { type: 'notify' }, { type: 'archive' }],
     });
-    expect(within(tibor).getByText('a zároveň')).toBeDefined();
+    expect(within(tibor).getByText('a', { selector: '.au-and' })).toBeDefined();
   });
 
   it('refuses an invalid condition and keeps the rule unchanged', async () => {
@@ -105,7 +106,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
     const sheet = await openAutomations(client);
     const tibor = openRule(sheet, 'Tibor');
     expect(within(tibor).getByRole('heading', { name: 'AI' })).toBeDefined();
-    expect(within(tibor).getAllByText('AI', { selector: '.chip' })).toHaveLength(2);
+    expect(within(tibor).getAllByText('AI', { selector: '.chip' })).toHaveLength(3);
 
     click(checkbox(tibor, 'Archivovať'));
     await settle();
@@ -139,7 +140,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
     click(within(openRule(sheet, 'Tibor')).getByRole('button', { name: 'Odstrániť pravidlo' }));
     await settle();
 
-    expect((await client.listAutomations()).map((item) => item.name)).toEqual([
+    expect(supportedAutomations(await client.listAutomations()).map((item) => item.name)).toEqual([
       'Jira spomenutia',
       'GitLab do Projektov',
       'Jira tasky',
@@ -195,7 +196,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
       fireEvent.keyDown(within(draft).getByLabelText('Názov pravidla'), { key: 'Enter' });
     });
     await settle();
-    expect(await client.listAutomations()).toHaveLength(4);
+    expect(supportedAutomations(await client.listAutomations())).toHaveLength(4);
     backToList(sheet);
     expect(within(row(sheet, 'Faktúry')).getByText('Neuložené')).toBeDefined();
     expect(within(row(sheet, 'Faktúry')).queryByRole('button', { name: /^Presunúť/ })).toBeNull();

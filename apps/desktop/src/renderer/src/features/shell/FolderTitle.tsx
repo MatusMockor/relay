@@ -7,6 +7,7 @@ import { useLabels } from '../../data/hooks/use-mail-queries';
 import { VIEW_META, viewOf } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
 import { useMailActions } from '../mail/MailActionsProvider';
+import { TaskSystemTitle } from '../task-systems/TaskSystemTitle';
 
 export function FolderTitle() {
   const folder = useUiStore((state) => state.folder);
@@ -15,6 +16,9 @@ export function FolderTitle() {
   const colorOf = useLabelColor();
   const mailbox = useFolderMailbox(folder);
   const count = items.length;
+  if (folder.kind === 'taskSystem') {
+    return <TaskSystemTitle connectionId={folder.connectionId} />;
+  }
   if (folder.kind === 'label') {
     const label = labels.data?.find((item) => item.id === folder.labelId);
     return (

@@ -100,6 +100,8 @@ describe('ipc channel map', () => {
     expect(event.safeParse({ command: 'select-scope', scope: 'acc_1' }).success).toBe(true);
     expect(event.safeParse({ command: 'select-scope', scope: '' }).success).toBe(false);
     expect(event.safeParse({ command: 'select-scope' }).success).toBe(false);
+    expect(event.safeParse({ command: 'navigate-back' }).success).toBe(true);
+    expect(event.safeParse({ command: 'navigate-forward' }).success).toBe(true);
     expect(event.safeParse({ command: 'quit' }).success).toBe(false);
   });
 

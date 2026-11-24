@@ -10,6 +10,7 @@
   padding-left: 2px;
   color: var(--muted);
   font-size: var(--fs-xs);
+  font-weight: var(--w-medium);
 }
 .au-cond {
   display: flex;
@@ -35,10 +36,10 @@ input.au-in {
   flex: 1 1 180px;
 }
 .au-in:hover {
-  border-color: #2e3545;
+  border-color: var(--line-hover);
 }
 .au-in:focus {
-  border-color: rgba(142, 162, 255, 0.55);
+  border-color: var(--accent-tint-55);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .au-in::placeholder {
@@ -61,4 +62,16 @@ input.au-in {
 .au-add {
   margin: 10px 0 0 -8px;
   color: var(--accent);
+}
+.au-match {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--fg3);
+  font-size: var(--fs-sm);
+}
+.au-match .seg {
+  flex-wrap: nowrap;
 }

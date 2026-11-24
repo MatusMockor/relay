@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared';
 import { describeError } from '../../../data/errors';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
 import { useRestoreDefaultAutomation } from '../../../data/hooks/use-restore-default-automation';
@@ -14,7 +15,9 @@ export const useDefaultRule = (): DefaultRule => {
   const restoreDefault = useRestoreDefaultAutomation();
   const loaded = automations.data;
   return {
-    removed: loaded !== undefined && !loaded.some((rule) => rule.preset === 'jiraTasks'),
+    removed:
+      loaded !== undefined &&
+      !supportedAutomations(loaded).some((rule) => rule.preset === 'jiraTasks'),
     restoring: restoreDefault.isPending,
     restore: () => {
       restoreDefault.mutate(undefined, {

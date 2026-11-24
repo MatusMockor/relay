@@ -1,0 +1,1 @@
+ALTER TABLE `history_backfill` ADD `flag_scan_offset` integer DEFAULT 0 NOT NULL;

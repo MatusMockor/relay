@@ -10,6 +10,7 @@ import type { AutomationCandidateRepository } from './ports/automation-candidate
 import type { AutomationMatcher } from './ports/automation-matcher';
 import type { AutomationRepository } from './ports/automation-repository';
 import type { AutomationRunRepository } from './ports/automation-run-repository';
+import type { AutomationActivityRepository } from './ports/automation-activity-repository';
 import type { CalendarAdapters } from './ports/calendar-adapters';
 import type { CalendarEventRepository } from './ports/calendar-event-repository';
 import type { CalendarSubscriptionRepository } from './ports/calendar-subscription-repository';
@@ -32,6 +33,7 @@ import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MailboxRepository } from './ports/mailbox-repository';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
+import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
 import type { MessageParser } from './ports/message-parser';
 import type { MessageRepository } from './ports/message-repository';
 import type { PendingWorkRepository } from './ports/pending-work-repository';
@@ -43,6 +45,9 @@ import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { SplitRepository } from './ports/split-repository';
 import type { SyncStateRepository } from './ports/sync-state-repository';
 import type { TaskRepository } from './ports/task-repository';
+import type { TaskSystemAdapterRegistry } from './ports/task-system-adapter-registry';
+import type { TaskSystemConnectionRepository } from './ports/task-system-connection-repository';
+import type { TaskSystemSecretStore } from './ports/task-system-secret-store';
 import type { ThreadRepository } from './ports/thread-repository';
 import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
@@ -56,6 +61,7 @@ export const PORT_TOKENS = {
   SplitRepository: Symbol.for('relay.engine.SplitRepository'),
   AutomationRepository: Symbol.for('relay.engine.AutomationRepository'),
   AutomationRunRepository: Symbol.for('relay.engine.AutomationRunRepository'),
+  AutomationActivityRepository: Symbol.for('relay.engine.AutomationActivityRepository'),
   TaskRepository: Symbol.for('relay.engine.TaskRepository'),
   ReminderRepository: Symbol.for('relay.engine.ReminderRepository'),
   DraftRepository: Symbol.for('relay.engine.DraftRepository'),
@@ -74,7 +80,11 @@ export const PORT_TOKENS = {
   GoogleCalendarRepository: Symbol.for('relay.engine.GoogleCalendarRepository'),
   GoogleEventRepository: Symbol.for('relay.engine.GoogleEventRepository'),
   GoogleCalendarAdapters: Symbol.for('relay.engine.GoogleCalendarAdapters'),
+  TaskSystemConnectionRepository: Symbol.for('relay.engine.TaskSystemConnectionRepository'),
+  TaskSystemAdapterRegistry: Symbol.for('relay.engine.TaskSystemAdapterRegistry'),
+  TaskSystemSecretStore: Symbol.for('relay.engine.TaskSystemSecretStore'),
   MessageAttachmentLookup: Symbol.for('relay.engine.MessageAttachmentLookup'),
+  MessageBodyRepairRepository: Symbol.for('relay.engine.MessageBodyRepairRepository'),
   UnitOfWork: Symbol.for('relay.engine.UnitOfWork'),
   MailProviderFactory: Symbol.for('relay.engine.MailProviderFactory'),
   MailSender: Symbol.for('relay.engine.MailSender'),
@@ -105,6 +115,7 @@ export interface PortRegistry {
   SplitRepository: SplitRepository;
   AutomationRepository: AutomationRepository;
   AutomationRunRepository: AutomationRunRepository;
+  AutomationActivityRepository: AutomationActivityRepository;
   TaskRepository: TaskRepository;
   ReminderRepository: ReminderRepository;
   DraftRepository: DraftRepository;
@@ -123,7 +134,11 @@ export interface PortRegistry {
   GoogleCalendarRepository: GoogleCalendarRepository;
   GoogleEventRepository: GoogleEventRepository;
   GoogleCalendarAdapters: GoogleCalendarAdapters;
+  TaskSystemConnectionRepository: TaskSystemConnectionRepository;
+  TaskSystemAdapterRegistry: TaskSystemAdapterRegistry;
+  TaskSystemSecretStore: TaskSystemSecretStore;
   MessageAttachmentLookup: MessageAttachmentLookup;
+  MessageBodyRepairRepository: MessageBodyRepairRepository;
   UnitOfWork: UnitOfWork;
   MailProviderFactory: MailProviderFactory;
   MailSender: MailSender;

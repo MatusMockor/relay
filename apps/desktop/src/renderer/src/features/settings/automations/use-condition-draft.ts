@@ -1,14 +1,15 @@
 import type { AutomationCondition, AutomationConditionType } from '@relay/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { type ConditionDraft, conditionOf, draftOf } from './condition-draft';
 import { freshDraft, isBlank } from './condition-fields';
+import type { RowTracker } from './use-live-drafts';
 
 export interface ConditionDraftOptions {
   readonly id: string;
   readonly saved: AutomationCondition | null;
   readonly freshType: AutomationConditionType;
   readonly onSave: (condition: AutomationCondition) => void;
-  readonly onDirty: (id: string, dirty: boolean) => void;
+  readonly tracker: RowTracker;
 }
 
 export interface ConditionDraftState {
@@ -30,8 +31,9 @@ export const useConditionDraft = ({
   saved,
   freshType,
   onSave,
-  onDirty,
+  tracker,
 }: ConditionDraftOptions): ConditionDraftState => {
+  const { onDirty, onLive } = tracker;
   const [draft, setDraft] = useState(() => draftFor(saved, freshType));
   const [invalid, setInvalid] = useState(false);
   const [seen, setSeen] = useState(() => keyOf(saved));
@@ -42,13 +44,27 @@ export const useConditionDraft = ({
   }
   const fresh = saved === null;
   const baseline = keyOf(saved === null ? null : conditionOf(draftOf(saved)));
-  const dirty = fresh ? !isBlank(draft) : keyOf(conditionOf(draft)) !== baseline;
+  const dirty = fresh || keyOf(conditionOf(draft)) !== baseline;
+  const raw = dirty ? JSON.stringify(draft) : null;
+  const live = useMemo(
+    () => (fresh && isBlank(draft) ? undefined : conditionOf(draft)),
+    [draft, fresh],
+  );
   useEffect(() => {
-    onDirty(id, dirty);
+    onLive(id, live);
+  }, [id, live, onLive]);
+  useEffect(
+    () => () => {
+      onLive(id, undefined);
+    },
+    [id, onLive],
+  );
+  useEffect(() => {
+    onDirty(id, raw);
     return () => {
-      onDirty(id, false);
+      onDirty(id, null);
     };
-  }, [id, dirty, onDirty]);
+  }, [id, raw, onDirty]);
   const attempt = (next: ConditionDraft, strict: boolean) => {
     const condition = conditionOf(next);
     setInvalid(condition === null && strict);

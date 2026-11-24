@@ -18,6 +18,7 @@ const buildTask = (overrides: Partial<Task> = {}): Task => ({
   aiWhat: null,
   state: 'open',
   source: 'manual',
+  priority: 'none',
   createdAt: '2026-11-10T10:00:00.000Z',
   updatedAt: '2026-11-10T10:00:00.000Z',
   ...overrides,

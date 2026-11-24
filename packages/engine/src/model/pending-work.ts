@@ -33,6 +33,7 @@ export interface ThreadRefreshWork {
   readonly jiraKey: JiraKey | null;
   readonly jiraActor: string | null;
   readonly expungedFromInbox: boolean;
+  readonly quiet?: boolean;
 }
 
 export interface HeldOriginWork {
@@ -47,6 +48,7 @@ export interface MoveOriginWork {
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
   readonly held?: readonly HeldOriginWork[];
+  readonly markedDone?: boolean;
 }
 
 export interface MessageEffectsWork {
@@ -105,6 +107,11 @@ export interface CalendarBackfillWork {
   readonly afterUid: number;
 }
 
+export interface BodyRepairWork {
+  readonly mailboxId: MailboxId;
+  readonly afterUid: number;
+}
+
 export interface CalendarRebuildWork {
   readonly mailboxId: MailboxId;
   readonly afterUid: number;
@@ -146,6 +153,7 @@ export interface PendingWorkPayloads {
   readonly 'move-origin': MoveOriginWork;
   readonly 'label-rescan': LabelRescanWork;
   readonly 'keyword-purge': KeywordPurgeWork;
+  readonly 'body-repair': BodyRepairWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

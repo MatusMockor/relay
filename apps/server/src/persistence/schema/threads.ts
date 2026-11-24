@@ -36,6 +36,7 @@ export const threads = pgTable(
     jiraKey: text('jira_key').$type<JiraKey>(),
     jiraActor: text('jira_actor'),
     state: text('state').$type<ThreadState>().notNull(),
+    markedDone: boolean('marked_done').notNull().default(false),
     remindAt: timestampTz('remind_at'),
   },
   (table) => [

@@ -24,6 +24,10 @@ export class InboxQueryService {
       labelId: query.labelId ?? null,
       mailboxId: query.mailboxId ?? null,
       search: query.q ?? null,
+      searchField: query.searchField ?? null,
+      everywhere: query.everywhere ?? false,
+      hasAttachment: query.hasAttachment ?? false,
+      unread: query.unread ?? false,
       cursor: query.cursor ?? null,
       limit: query.limit,
     });
@@ -44,7 +48,10 @@ export class InboxQueryService {
     if (splitId === undefined) {
       return;
     }
-    const splits = await this.deps.splits.listByUser(userId);
+    const splits = [
+      ...(await this.deps.splits.listByUser(userId)),
+      ...(await this.deps.splits.listUnsupported(userId)),
+    ];
     if (!splits.some((split) => split.id === splitId)) {
       throw new NotFoundError('Split', splitId);
     }

@@ -67,6 +67,7 @@ export const buildThread = (overrides: Partial<ThreadSummary> = {}): ThreadSumma
   splitIds: [],
   labelIds: [],
   state: 'inbox',
+  markedDone: false,
   remindAt: null,
   hasDraft: false,
   ...overrides,

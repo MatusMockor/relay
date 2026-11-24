@@ -1,6 +1,8 @@
 import { DEFAULT_USER_SETTINGS, type MailAccount, type Split, type Task } from '@relay/shared';
-import { buildDemoAutomations } from '../demo-automations';
+import { buildDemoAutomations } from './automations';
+import { buildDemoRuleHistory } from './rule-history';
 import type { DemoState, DemoThreadRecord } from '../demo-state';
+import { buildArchive } from './build-archive';
 import { buildDrafts } from './build-drafts';
 import { buildThreadRecord } from './build-threads';
 import { DEMO_ACCOUNTS, DEMO_LABELS } from './catalog';
@@ -43,6 +45,8 @@ const buildSplits = (): Split[] => [
     accountId: demoIds.account('efa'),
     name: 'Jira',
     order: 0,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [{ type: 'jira', projectKeys: ['WEB', 'API', 'CMS'] }],
@@ -53,6 +57,8 @@ const buildSplits = (): Split[] => [
     accountId: demoIds.account('fl'),
     name: 'Klienti',
     order: 1,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [
@@ -66,6 +72,8 @@ const buildSplits = (): Split[] => [
     accountId: null,
     name: 'Ostatné',
     order: 2,
+    match: 'any',
+    exceptions: [],
     exclusive: true,
     hideTasks: false,
     rules: [
@@ -88,7 +96,8 @@ const buildTasks = (seeds: readonly DemoThread[], now: Date): Task[] =>
             title: seed.task.title,
             aiWhat: seed.task.what,
             state: seed.task.state,
-            source: 'jira' as const,
+            source: seed.task.source ?? ('jira' as const),
+            priority: seed.task.priority,
             createdAt: atTime(now, [-3, 9, 0]),
             updatedAt: atTime(now, [0, 7, 0]),
           },
@@ -118,6 +127,7 @@ export const buildDemoState = (now: Date = new Date()): DemoState => {
     accounts: buildAccounts(now),
     splits: buildSplits(),
     automations: buildDemoAutomations(),
+    ruleHistory: buildDemoRuleHistory(threads, now),
     labels: DEMO_LABELS.map((label) => ({
       id: demoIds.label(label.key),
       accountId: demoIds.account(label.acct),
@@ -128,6 +138,7 @@ export const buildDemoState = (now: Date = new Date()): DemoState => {
     })),
     mailboxes: buildDemoMailboxes(),
     threads,
+    archive: buildArchive(now),
     tasks: buildTasks(seeds, now),
     drafts,
     scheduled,

@@ -16,11 +16,16 @@ import {
   resetContextMenu,
 } from '../../src/features/context-menu/context-menu-store';
 import { setFolderEdit } from '../../src/features/folders/edit/folder-edit-store';
-import { resetBackPresses } from '../../src/features/mail/back-press-gate';
+import { forgetOffsets } from '../../src/features/list/scroll-memory';
+import { resetHistoryPresses } from '../../src/features/history/history-press-gate';
+import { resetTrackpadSwipe } from '../../src/features/shell/trackpad-swipe';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
+import { resetPriorityWrites } from '../../src/features/tasks/priority-write';
 import { resetToasts } from '../../src/state/toast-store';
+import { DEFAULT_LIST_VIEWPORT, setListViewport } from './list-geometry';
+import type { ThemeController } from '../../src/theme/theme-controller';
 import { INITIAL_UI, useUiStore } from '../../src/state/ui-store';
 
 export const memoryStorage = (
@@ -42,13 +47,17 @@ export const storageWith = (settings: Partial<DeviceSettings>) =>
 export const resetMemoryStores = (): void => {
   cleanup();
   resetLayers();
-  resetBackPresses();
+  resetHistoryPresses();
+  resetTrackpadSwipe();
   useSessionStore.setState(INITIAL_SESSION);
   useUiStore.setState(INITIAL_UI);
   useChat.setState({ turns: [], queued: null });
   resetToasts();
+  resetPriorityWrites();
   setFolderEdit(null);
   resetContextMenu();
+  forgetOffsets();
+  setListViewport(DEFAULT_LIST_VIEWPORT);
 };
 
 export const resetStores = (): void => {
@@ -71,6 +80,7 @@ export const renderApp = (
     readonly platform?: Platform;
     readonly queryClient?: QueryClient;
     readonly now?: () => Date;
+    readonly theme?: ThemeController;
   } = {},
 ): RenderedApp => {
   const platform =
@@ -86,6 +96,7 @@ export const renderApp = (
       undoSendMs={40}
       now={options.now}
       createQueryClient={() => options.queryClient ?? testQueryClient()}
+      {...(options.theme === undefined ? {} : { theme: options.theme })}
     />,
   );
   return { platform, session };

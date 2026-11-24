@@ -2,7 +2,10 @@ import type { EngineDeps } from '../../engine-deps';
 import type { ProviderOpReplayer } from '../actions/provider-op-replayer';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
-import { AccountSynchronizer } from './account-synchronizer';
+import { SplitMembershipEvaluator } from '../splits/split-membership-evaluator';
+import { SplitSnapshotGuard } from '../splits/split-snapshot-guard';
+import { AccountRunQueue } from './account-run-queue';
+import { AccountSynchronizer, type SyncReport } from './account-synchronizer';
 import { ChangeFlusher } from './change-flusher';
 import { createMessageFetchers } from './create-message-fetchers';
 import type { CalendarPartsSink } from './calendar-parts-sink';
@@ -10,16 +13,18 @@ import type { JiraTaskSink } from './jira-task-sink';
 import type { SyncArrivalListener } from './sync-arrivals';
 import type { SyncBackfill } from './sync-backfill';
 import { GmailLabelCatalog } from './gmail-label-catalog';
+import { createHistoryBackfill, createHistoryProgress } from './history/create-history-backfill';
 import { LabelRescans } from './label-rescans';
 import { MailboxEvents } from './mailbox-events';
 import { MailboxForgetter } from './mailbox-forgetter';
 import { MailboxReconciler } from './mailbox-reconciler';
+import { ReconcileScans } from './reconcile-scans';
 import { MailboxRefresher } from './mailbox-refresher';
 import { MailboxStatusProbe } from './mailbox-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
 import { MessageLabelsResolver } from './message-labels-resolver';
-import { DEFAULT_SYNC_OPTIONS } from './sync-options';
+import { DEFAULT_SYNC_OPTIONS, type SyncOptions } from './sync-options';
 import { SyncReporter } from './sync-reporter';
 import { SyncService } from './sync-service';
 
@@ -27,6 +32,8 @@ export interface SyncComponents {
   readonly service: SyncService;
   readonly ingestor: MessageIngestor;
   readonly flusher: ChangeFlusher;
+  readonly runs: AccountRunQueue<SyncReport>;
+  readonly options: SyncOptions;
 }
 
 export const createSyncComponents = (
@@ -76,11 +83,17 @@ export const createSyncComponents = (
     logger,
     options,
   });
+  const scans = new ReconcileScans({
+    history: deps.historyBackfills ?? null,
+    clock,
+    options: options.reconcile,
+  });
   const reconciler = new MailboxReconciler({
     messages: repositories.messages,
     syncStates: repositories.syncStates,
     unitOfWork,
     labelsResolver,
+    scans,
   });
   const mailboxSync = new MailboxSynchronizer({
     mailboxes: repositories.mailboxes,
@@ -115,12 +128,24 @@ export const createSyncComponents = (
   });
   const synchronizer = new AccountSynchronizer({
     splits: repositories.splits,
+    splitGuard: new SplitSnapshotGuard({
+      splits: repositories.splits,
+      evaluator: new SplitMembershipEvaluator({
+        splits: repositories.splits,
+        messages: repositories.messages,
+        threads: repositories.threads,
+        matcher: deps.splitMatcher,
+        unitOfWork,
+      }),
+      events: shared.events,
+    }),
     pendingWork: repositories.pendingWork,
     sessions: shared.sessions,
     refresher,
     rescans,
     mailboxEvents,
     mailboxSync,
+    scans,
     initialSync: fetchers.initialSync,
     flusher,
     backfill: shared.backfill,
@@ -131,12 +156,17 @@ export const createSyncComponents = (
     logger,
     options,
   });
+  const runs = new AccountRunQueue<SyncReport>();
   const service = new SyncService({
     accounts: repositories.accounts,
     mailboxes: repositories.mailboxes,
     synchronizer,
     sessions: shared.sessions,
+    history: createHistoryBackfill(deps, { ingestor, flusher, options }),
+    runs,
+    historyProgress: createHistoryProgress(deps, options),
+    events: shared.events,
     logger,
   });
-  return { service, ingestor, flusher };
+  return { service, ingestor, flusher, runs, options };
 };

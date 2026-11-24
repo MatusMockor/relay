@@ -45,7 +45,7 @@ describe('SyncService incremental sync', () => {
     deliverMail(server, 'INBOX', { id: 'm2', inReplyTo: 'm1', references: ['m1'] });
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect((await inboxThreads(engine)).map((item) => item.id)).toEqual([thread.id]);
+    expect(await inboxThreads(engine)).toMatchObject([{ id: thread.id, markedDone: false }]);
   });
 
   it('removes expunged messages and recomputes or removes their threads', async () => {
@@ -78,7 +78,7 @@ describe('SyncService incremental sync', () => {
     expect(engine.db.tables.messages.size).toBe(1);
   });
 
-  it('moves a thread to done when another client archives it', async () => {
+  it('keeps a thread archived by another client out of Done', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedAccount(engine);
     const uid = deliverMail(server, 'INBOX', { id: 'm1' });
@@ -90,8 +90,10 @@ describe('SyncService incremental sync', () => {
 
     expect(await inboxThreads(engine)).toHaveLength(0);
     const done = await engine.services.inbox.list(USER_ID, { view: 'done', limit: 50 });
-    expect(done.items).toHaveLength(1);
-    expect(done.items[0]?.messageCount).toBe(1);
+    expect(done.items).toEqual([]);
+    const archive = await engine.services.inbox.list(USER_ID, { view: 'archive', limit: 50 });
+    expect(archive.items).toHaveLength(1);
+    expect(archive.items[0]?.messageCount).toBe(1);
   });
 
   it('skips only the mailbox whose UIDVALIDITY changed during the sync and resets it next time', async () => {
@@ -190,8 +192,8 @@ describe('SyncService incremental sync', () => {
     server.expunge('INBOX', uid);
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    const done = await engine.services.inbox.list(USER_ID, { view: 'done', limit: 50 });
-    expect(done.items.map((item) => [item.id, item.aiOneLiner])).toEqual([
+    const archive = await engine.services.inbox.list(USER_ID, { view: 'archive', limit: 50 });
+    expect(archive.items.map((item) => [item.id, item.aiOneLiner])).toEqual([
       [thread.id, 'Krátke zhrnutie'],
     ]);
     expect(engine.events.ofType('thread.removed')).toHaveLength(0);

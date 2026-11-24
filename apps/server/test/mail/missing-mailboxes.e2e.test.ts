@@ -1,3 +1,4 @@
+import { supportedAutomations } from '@relay/shared/domain';
 import { randomUUID } from 'node:crypto';
 import type { GreenMailUser } from '@relay/config/test-infra';
 import { api } from '@relay/shared/api';
@@ -65,7 +66,8 @@ describe('accounts with only an INBOX on the IMAP server', () => {
   it('creates Archive, Trash and Sent on first use and mirrors the actions', async () => {
     const session = await registerUser(app.api, `inbox-only-${owner.email}`);
     const token = session.accessToken;
-    const rules = await app.api.ok(api.automations.list, {}, token);
+    const rules = supportedAutomations(await app.api.ok(api.automations.list, {}, token));
+
     await app.api.ok(
       api.automations.replace,
       { body: { automations: rules.map((rule) => ({ ...rule, enabled: true })) } },

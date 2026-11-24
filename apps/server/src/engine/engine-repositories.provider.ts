@@ -12,6 +12,7 @@ const REPOSITORY_TOKENS = {
   splits: PORT_TOKENS.SplitRepository,
   automations: PORT_TOKENS.AutomationRepository,
   automationRuns: PORT_TOKENS.AutomationRunRepository,
+  automationActivity: PORT_TOKENS.AutomationActivityRepository,
   tasks: PORT_TOKENS.TaskRepository,
   reminders: PORT_TOKENS.ReminderRepository,
   drafts: PORT_TOKENS.DraftRepository,
@@ -28,6 +29,7 @@ const REPOSITORY_TOKENS = {
   googleEvents: PORT_TOKENS.GoogleEventRepository,
   inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
   automationCandidates: PORT_TOKENS.AutomationCandidateRepository,
+  taskSystemConnections: PORT_TOKENS.TaskSystemConnectionRepository,
 } as const satisfies Record<keyof Repositories, symbol>;
 
 const KEYS = Object.keys(REPOSITORY_TOKENS) as (keyof Repositories)[];

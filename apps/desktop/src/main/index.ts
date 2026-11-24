@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url';
-import type { NotificationRequest } from '@relay/shared/ipc';
+import type { NotificationRequest, PreviewKeyEvent, TrackpadScrollEvent } from '@relay/shared/ipc';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import appIcon from '../../resources/icon.png?asset';
 import { createRemoteAiSupervisor } from './ai/remote/create-remote-ai-supervisor';
 import { ModeAwareBackground } from './background/mode-aware-background';
 import { createMainLogger } from './bootstrap/create-logger';
+import { electronAttachmentLauncher } from './bootstrap/electron-attachment-launcher';
 import { electronLocalPaths, electronPlatform } from './bootstrap/electron-platform';
 import { electronAppUpdates } from './bootstrap/electron-updates';
 import { MainWindowController } from './bootstrap/main-window-controller';
@@ -27,6 +28,8 @@ import { WindowContextMenuPresenter } from './native/context-menu-presenter';
 import { contextMenuWindow, electronWindows } from './native/context-menu-window';
 import { MenuCommandRequests } from './native/menu-command-requests';
 import { RendererView } from './native/renderer-view';
+import { electronNativeTheme, electronThemedWindows } from './native/electron-native-theme';
+import { NativeThemeSync } from './native/native-theme-sync';
 import { acquireSingleInstance } from './native/single-instance';
 import { restoreWindowState, trackWindowState } from './native/track-window-state';
 import { ThreadOpenRequests } from './native/thread-open-requests';
@@ -36,7 +39,10 @@ import { createAppDocumentPredicate } from './window/app-document';
 import { createMainWindow } from './window/create-main-window';
 import { EventHub } from './events/event-hub';
 import { FullScreenState } from './window/full-screen-state';
-import { trackBackNavigation } from './window/track-back-navigation';
+import { trackHistoryCommands } from './window/track-history-commands';
+import { trackSwipeCommands } from './window/track-swipe-commands';
+import { trackPreviewKeys } from './window/track-preview-keys';
+import { trackTrackpadScroll } from './window/track-trackpad-scroll';
 import { hardenSession } from './window/harden-session';
 
 const rendererFileUrl = new URL('../renderer/index.html', import.meta.url);
@@ -78,6 +84,8 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   const rendererView = new RendererView();
   const rendererNotifications = new EventHub<NotificationRequest>();
   const fullScreen = new FullScreenState();
+  const trackpadScroll = new EventHub<TrackpadScrollEvent>();
+  const previewKeys = new EventHub<PreviewKeyEvent>();
 
   const unregisterIpc = registerIpc(
     ipcMain,
@@ -91,12 +99,15 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       },
       ...runtime.ipc,
       attachmentPicker: new AttachmentPicker(new ElectronFileDialog(), new PickedFileReader()),
+      attachmentLauncher: await electronAttachmentLauncher(logger),
       updates: updates.service,
       threadOpens,
       menuCommands,
       rendererView,
       rendererNotifications,
       fullScreen,
+      trackpadScroll,
+      previewKeys,
       contextMenu: new WindowContextMenuPresenter(
         contextMenuWindow(electronWindows),
         electronContextMenuFactory,
@@ -104,6 +115,13 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
     }),
     createTrustedSenderPredicate(rendererUrl, rendererFileUrl.href),
   );
+
+  const themeSync = new NativeThemeSync(
+    runtime.infrastructure.deviceSettings,
+    electronNativeTheme(),
+    electronThemedWindows(),
+  );
+  await themeSync.start();
 
   const windowState = new WindowStateStore(paths.windowState);
   const windows = new MainWindowController(async () => {
@@ -115,12 +133,25 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
       opener: platform.opener,
       isAppUrl,
       platform: process.platform,
+      theme: themeSync.current(),
+      backgroundColor: themeSync.background(),
       icon: appIcon,
     });
     trackWindowState(window, windowState, logger);
     fullScreen.track(window);
-    trackBackNavigation(window, (command) => {
+    trackHistoryCommands(window, (command) => {
       menuCommands.request(command);
+    });
+    if (process.platform === 'darwin') {
+      trackSwipeCommands(window, (command) => {
+        menuCommands.request(command);
+      });
+      trackTrackpadScroll(window.webContents, (event) => {
+        trackpadScroll.publish(event);
+      });
+    }
+    trackPreviewKeys(window.webContents, (key) => {
+      previewKeys.publish({ key });
     });
     trackRendererSession(window, rendererView);
     return window;
@@ -173,6 +204,7 @@ const startApp = async (windowsRef: WindowsRef): Promise<RunningApp> => {
   return {
     stop: async () => {
       updates.stop();
+      themeSync.stop();
       unregisterIpc();
       shell.dispose();
       await Promise.all([background.stop(), remoteAi.stop()])

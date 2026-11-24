@@ -1,4 +1,11 @@
-import type { AccountId, LabelId, MailboxId, MailboxRole, MessageId } from '@relay/shared/domain';
+import type {
+  AccountId,
+  LabelId,
+  MailboxId,
+  MailboxRole,
+  MessageId,
+  MoveOriginRef,
+} from '@relay/shared/domain';
 import type { HeldOriginWork, MoveOriginWork } from '../../model/pending-work';
 import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 
@@ -9,6 +16,7 @@ export interface MoveOrigin {
   readonly mailboxId?: MailboxId;
   readonly labelId?: LabelId;
   readonly held?: readonly HeldOriginWork[];
+  readonly markedDone?: boolean;
 }
 
 export const moveOrigins = async (
@@ -26,10 +34,19 @@ export const recordMoveOrigins = async (
   kind: MoveOriginKind,
   origins: readonly MoveOriginWork[],
   createdAt: string,
-): Promise<void> => {
+): Promise<MoveOriginRef[]> => {
+  const recorded: MoveOriginRef[] = [];
   for (const origin of origins) {
-    await pendingWork.put({ accountId, kind, ref: origin.messageId, payload: origin, createdAt });
+    const stored = await pendingWork.put({
+      accountId,
+      kind,
+      ref: origin.messageId,
+      payload: origin,
+      createdAt,
+    });
+    recorded.push({ messageId: origin.messageId, revision: stored.revision });
   }
+  return recorded;
 };
 
 export const forgetMoveOrigins = async (

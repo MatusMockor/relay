@@ -2,10 +2,14 @@ import {
   DEFAULT_DEVICE_SETTINGS,
   type IpcResult,
   MenuCommandSchema,
+  PreviewKeyEventSchema,
   type RelayBridge,
+  TrackpadScrollEventSchema,
 } from '@relay/shared';
 import { MailClientError } from '../data/errors';
+import { IS_MAC } from '../lib/platform-keys';
 import { MainProcessSession } from '../data/remote/MainProcessSession';
+import { createElectronAttachmentOpener } from './electron-attachment-opener';
 import type { Platform } from './Platform';
 import { fitNotification } from './fit-notification';
 import { saveBlobAs } from './save-file';
@@ -34,6 +38,7 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
       window.open(url, '_blank', 'noopener');
     },
     saveFile: saveBlobAs,
+    attachmentOpener: createElectronAttachmentOpener(bridge, IS_MAC),
     authorizeGoogle: (input) => unwrap(bridge.invoke('oauth.google.authorize', input)),
     authorizeGoogleCalendar: (input) =>
       unwrap(bridge.invoke('oauth.google.authorizeCalendar', input)),
@@ -70,6 +75,28 @@ export const createElectronPlatform = (bridge: RelayBridge): Platform => {
       bridge.subscribe('app.window.fullScreen', {
         onEvent: (status) => {
           listener(status.fullScreen);
+        },
+        onError: () => undefined,
+      }),
+    subscribeToTrackpadScroll: (listener) =>
+      bridge.subscribe('app.window.trackpadScroll', {
+        onEvent: (event) => {
+          const parsed = TrackpadScrollEventSchema.safeParse(event);
+          if (!parsed.success) {
+            return;
+          }
+          listener(parsed.data.phase);
+        },
+        onError: () => undefined,
+      }),
+    subscribeToPreviewKeys: (listener) =>
+      bridge.subscribe('app.window.previewKey', {
+        onEvent: (event) => {
+          const parsed = PreviewKeyEventSchema.safeParse(event);
+          if (!parsed.success) {
+            return;
+          }
+          listener(parsed.data.key);
         },
         onError: () => undefined,
       }),

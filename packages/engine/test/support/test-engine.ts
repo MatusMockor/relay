@@ -2,10 +2,17 @@ import type { AiRunnerLocation, UserId } from '@relay/shared/domain';
 import {
   type ActionOptions,
   type AiOptions,
+  type BodyOptions,
   type CalendarOptions,
   createEngineServices,
   type EngineServices,
+  type HistoryBackfillRepository,
+  type MessageBodyRepairRepository,
+  type MessageBodyStore,
+  type OfflineBodyOptions,
+  type OfflineWindowPolicy,
   type Repositories,
+  type SearchOptions,
   type SettingsOptions,
   type SplitMatcher,
   type SyncOptions,
@@ -26,14 +33,19 @@ import {
 import { type CalendarFakes, createCalendarFakes } from './fakes/calendar-adapters';
 import { createGoogleCalendarFakes, type GoogleCalendarFakes } from './fakes/fake-google-calendar';
 import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
+import { createTaskSystemFakes, type TaskSystemFakes } from './fakes/fake-task-systems';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
 import { RecordingUnsubscribeSender } from './fakes/recording-unsubscribe-sender';
 import { FakeMailSender } from './mail/fake-mail-sender';
+import { HeaderAttachmentExtractor } from './mail/header-attachment-extractor';
 import { HeaderThreadResolver } from './mail/header-thread-resolver';
 import { RuleAutomationMatcher, RuleSplitMatcher } from './mail/rule-split-matcher';
 import { SimpleMessageParser } from './mail/simple-message-parser';
 import { SubjectJiraClassifier } from './mail/subject-jira-classifier';
 import { MemoryDatabase } from './memory/memory-database';
+import { MemoryHistoryBackfills } from './memory/memory-history-backfills';
+import { MemoryMessageAttachmentLookup } from './memory/memory-message-attachment-lookup';
+import { MemoryMessageBodyRepairs } from './memory/memory-message-body-repairs';
 import { createMemoryRepositories, MemoryUnitOfWork } from './memory/memory-repositories';
 
 export const TEST_NOW = '2026-11-15T10:00:00.000Z';
@@ -47,7 +59,15 @@ export interface TestEngineOptions {
   readonly settings?: SettingsOptions;
   readonly calendar?: Partial<CalendarOptions>;
   readonly actions?: Partial<ActionOptions>;
+  readonly bodies?: Partial<BodyOptions>;
+  readonly search?: Partial<SearchOptions>;
+  readonly offlineWindow?: OfflineWindowPolicy;
+  readonly receivedAttachments?: boolean;
   readonly splitMatcher?: SplitMatcher;
+  readonly messageBodyRepairs?: (db: MemoryDatabase) => MessageBodyRepairRepository;
+  readonly historyBackfills?: ((db: MemoryDatabase) => HistoryBackfillRepository) | null;
+  readonly messageBodies?: (db: MemoryDatabase) => MessageBodyStore;
+  readonly offlineBodies?: Partial<OfflineBodyOptions>;
 }
 
 export interface TestEngine {
@@ -70,6 +90,7 @@ export interface TestEngine {
   readonly claude: StubAiRunner;
   readonly calendar: CalendarFakes;
   readonly google: GoogleCalendarFakes;
+  readonly taskSystems: TaskSystemFakes;
 }
 
 export const createTestEngine = (options: TestEngineOptions = {}): TestEngine => {
@@ -95,6 +116,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
   runners.register(claude);
   const calendar = createCalendarFakes();
   const google = createGoogleCalendarFakes();
+  const taskSystems = createTaskSystemFakes();
   const services = createEngineServices({
     repositories,
     unitOfWork,
@@ -105,6 +127,11 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     attachmentStore: attachments,
     attachmentBlobs,
     messageParser: new SimpleMessageParser(),
+    messageBodyRepairs: options.messageBodyRepairs?.(db) ?? new MemoryMessageBodyRepairs(db),
+    ...historyBackfillsOf(options, db),
+    ...(options.offlineWindow === undefined ? {} : { offlineWindow: options.offlineWindow }),
+    ...receivedAttachmentsOf(options, db),
+    ...(options.messageBodies === undefined ? {} : { messageBodies: options.messageBodies(db) }),
     threadResolver: new HeaderThreadResolver(repositories.messages, ids),
     jiraClassifier: new SubjectJiraClassifier(),
     splitMatcher: options.splitMatcher ?? new RuleSplitMatcher(),
@@ -112,6 +139,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     aiRunnerRegistry: runners,
     calendar,
     googleCalendar: google,
+    taskSystems,
     eventPublisher: events,
     clock,
     idGenerator: ids,
@@ -124,6 +152,9 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
       settings: options.settings,
       calendar: options.calendar,
       actions: options.actions,
+      bodies: options.bodies,
+      search: options.search,
+      offlineBodies: options.offlineBodies,
     },
   });
   return {
@@ -146,5 +177,24 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     claude,
     calendar,
     google,
+    taskSystems,
   };
 };
+
+const historyBackfillsOf = (
+  options: TestEngineOptions,
+  db: MemoryDatabase,
+): { historyBackfills?: HistoryBackfillRepository } => {
+  if (options.historyBackfills === null) {
+    return {};
+  }
+  return { historyBackfills: options.historyBackfills?.(db) ?? new MemoryHistoryBackfills(db) };
+};
+
+const receivedAttachmentsOf = (options: TestEngineOptions, db: MemoryDatabase) =>
+  options.receivedAttachments === true
+    ? {
+        messageAttachmentLookup: new MemoryMessageAttachmentLookup(db),
+        attachmentExtractor: new HeaderAttachmentExtractor(),
+      }
+    : {};

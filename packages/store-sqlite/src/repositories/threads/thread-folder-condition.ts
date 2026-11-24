@@ -2,9 +2,12 @@ import type { ThreadFolderQuery } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
 import { and, eq, lt, not, or, type SQL, sql } from 'drizzle-orm';
 import type { TimeIdPosition } from '../../pagination/time-id-cursor';
-import { messages, splits, threadSplits, threads } from '../../schema';
-import { folderViewCondition, hasOpenTask } from './folder-view-condition';
+import { splits, threadSplits, threads } from '../../schema';
+import { folderViewCondition, hasOpenTask, notHeld } from './folder-view-condition';
 import { toFtsMatchExpression } from './fts-match-expression';
+import type { ThreadFolderPlan } from './thread-folder-plan';
+import { type PlanConditions, planConditionsOf } from './thread-folder-plan-conditions';
+import { threadMessageCondition } from './thread-message-condition';
 
 const inSplit = (splitId: string): SQL =>
   sql`exists (select 1 from ${threadSplits} where ${threadSplits.threadId} = ${threads.id} and ${threadSplits.splitId} = ${splitId})`;
@@ -20,18 +23,27 @@ const labelCondition = (labelId: string | null): SQL | undefined =>
     ? undefined
     : sql`exists (select 1 from json_each(${threads.labelIds}) where value = ${labelId})`;
 
-const mailboxCondition = (mailboxId: string | null): SQL | undefined =>
-  mailboxId === null
-    ? undefined
-    : sql`${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`;
-
-const searchCondition = (userId: UserId, search: string | null): SQL | undefined => {
-  const match = toFtsMatchExpression(search);
-  if (match === null) {
-    return undefined;
+const folderScopeCondition = (
+  query: ThreadFolderQuery,
+  conditions: PlanConditions,
+): SQL | undefined => {
+  if (query.everywhere === true) {
+    return notHeld;
   }
-  return sql`${threads.id} in (select ${messages.threadId} from messages_fts inner join ${messages} on ${messages.seq} = messages_fts.rowid where messages_fts match ${match} and ${messages.userId} = ${userId})`;
+  return and(
+    folderViewCondition({
+      view: query.view,
+      splitSelected: query.splitId !== null,
+      searching: toFtsMatchExpression(query.search) !== null,
+    }),
+    splitCondition(query.splitId),
+    labelCondition(query.labelId),
+    query.mailboxId === null ? undefined : conditions.inMailbox(query.mailboxId),
+  );
 };
+
+const unreadCondition = (unread: boolean | undefined): SQL | undefined =>
+  unread === true ? eq(threads.unread, true) : undefined;
 
 const afterCursor = (position: TimeIdPosition | null): SQL | undefined =>
   position === null
@@ -45,18 +57,14 @@ export const threadFolderCondition = (
   userId: UserId,
   query: ThreadFolderQuery,
   position: TimeIdPosition | null,
-): SQL | undefined =>
-  and(
-    eq(threads.userId, userId),
-    query.accountId === null ? undefined : eq(threads.accountId, query.accountId),
-    folderViewCondition({
-      view: query.view,
-      splitSelected: query.splitId !== null,
-      searching: toFtsMatchExpression(query.search) !== null,
-    }),
-    splitCondition(query.splitId),
-    labelCondition(query.labelId),
-    mailboxCondition(query.mailboxId),
-    searchCondition(userId, query.search),
+  plan: ThreadFolderPlan,
+): SQL | undefined => {
+  const conditions = planConditionsOf(plan);
+  return and(
+    conditions.owner(userId, query.accountId),
+    folderScopeCondition(query, conditions),
+    unreadCondition(query.unread),
+    threadMessageCondition(userId, query),
     afterCursor(position),
   );
+};

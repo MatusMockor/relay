@@ -1,6 +1,9 @@
 import { ForbiddenError } from '@relay/engine';
-import type { Automation, UserId } from '@relay/shared/domain';
+import type { Automation, MessageId, UserId } from '@relay/shared/domain';
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { toAutomationInsert } from '../../src/persistence/repositories/automations/automation.mapper';
+import { automations } from '../../src/persistence/schema';
 import { at, buildMessage, buildUser, newId, seedAccount, seedThread } from './support/fixtures';
 import { usePgTestContext } from './support/pg-test-context';
 
@@ -12,10 +15,12 @@ const buildAutomation = (userId: UserId, overrides: Partial<Automation> = {}): A
   enabled: true,
   order: 1,
   preset: null,
+  match: 'all',
   conditions: [
     { type: 'fromDomain', domain: 'efabrica.sk' },
     { type: 'jiraEvent', kind: 'assigned' },
   ],
+  exceptions: [],
   ai: { runner: 'codex', model: 'gpt-6-astra', effort: 'high', instructions: 'Iba úlohy.' },
   actions: [{ type: 'task' }, { type: 'pin' }],
   ...overrides,
@@ -39,6 +44,83 @@ describe('PgAutomationRepository', () => {
       context.repositories.automations.replaceAll(seeded.user.id, [{ ...first, enabled: false }]),
     ).resolves.toEqual([{ ...first, enabled: false }]);
     await expect(context.repositories.automations.listByUser(other.id)).resolves.toEqual([foreign]);
+  });
+
+  it('stores the match mode, exceptions and subject contains conditions', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const rule = buildAutomation(seeded.user.id, {
+      match: 'any',
+      conditions: [
+        { type: 'subjectContains', value: 'faktúra' },
+        { type: 'fromDomain', domain: 'dodavatel.sk' },
+      ],
+      exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }],
+    });
+
+    await context.repositories.automations.replaceAll(seeded.user.id, [rule]);
+    await context.repositories.automations.replaceAll(seeded.user.id, [
+      { ...rule, match: 'all', exceptions: [{ type: 'hasAttachment' }] },
+    ]);
+
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
+      { ...rule, match: 'all', exceptions: [{ type: 'hasAttachment' }] },
+    ]);
+  });
+
+  it('stores reminder, forward and AI reply draft actions', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const rule = buildAutomation(seeded.user.id, {
+      accountId: seeded.account.id,
+      actions: [
+        { type: 'draftReply' },
+        { type: 'forward', to: 'uctovnicka@firma.sk' },
+        { type: 'remind', afterDays: 7 },
+      ],
+    });
+
+    await context.repositories.automations.replaceAll(seeded.user.id, [rule]);
+
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
+      rule,
+    ]);
+  });
+
+  it('lists a rule from a newer version apart and keeps it at a new position', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const known = buildAutomation(seeded.user.id, { order: 0 });
+    await context.repositories.automations.replaceAll(seeded.user.id, [known]);
+    const newer = buildAutomation(seeded.user.id, { name: 'Preložiť', order: 1 });
+    await context.db
+      .insert(automations)
+      .values({ ...toAutomationInsert(newer), actions: sql`'[{"type":"translate"}]'::jsonb` });
+
+    expect(await context.repositories.automations.listByUser(seeded.user.id)).toEqual([known]);
+    await context.repositories.automations.replaceAll(
+      seeded.user.id,
+      [{ ...known, order: 1 }],
+      [{ id: newer.id, order: 0 }],
+    );
+
+    await expect(context.repositories.automations.listUnsupported(seeded.user.id)).resolves.toEqual(
+      [
+        {
+          kind: 'unsupported',
+          id: newer.id,
+          name: 'Preložiť',
+          enabled: true,
+          order: 0,
+          accountId: null,
+        },
+      ],
+    );
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([
+      { ...known, order: 1 },
+    ]);
+    await context.repositories.automations.replaceAll(seeded.user.id, []);
+    await expect(context.repositories.automations.listByUser(seeded.user.id)).resolves.toEqual([]);
+    await expect(
+      context.repositories.automations.listUnsupported(seeded.user.id),
+    ).resolves.toHaveLength(1);
   });
 
   it('rejects automations of another user and foreign accounts', async () => {
@@ -148,5 +230,84 @@ describe('PgAutomationCandidateRepository', () => {
       newest.message.subject,
       'Re: new',
     ]);
+  });
+
+  it('lists recent received mail of the account outside trash and spam', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { messages } = context.repositories;
+    const archived = await seedThread(context.repositories, seeded, {
+      subject: 'archived',
+      lastMessageAt: at(30),
+      state: 'done',
+    });
+    const inbox = await seedThread(
+      context.repositories,
+      seeded,
+      { subject: 'inbox', lastMessageAt: at(40) },
+      { date: at(5) },
+    );
+    await messages.upsert(
+      buildMessage(inbox.thread, seeded.mailboxes.inbox, { subject: 'Re: inbox', date: at(40) }),
+      new Map(),
+    );
+    await messages.upsert(
+      buildMessage(inbox.thread, seeded.mailboxes.sent, { subject: 'Re: sent', date: at(35) }),
+      new Map(),
+    );
+    await seedThread(context.repositories, seeded, { subject: 'old', lastMessageAt: at(5) });
+    await seedThread(context.repositories, seeded, {
+      subject: 'trash',
+      lastMessageAt: at(50),
+      state: 'trash',
+    });
+
+    const candidates = await context.repositories.automationCandidates.listRecent(
+      seeded.account.id,
+      { since: at(20), limit: 10 },
+    );
+
+    expect(candidates.map((candidate) => candidate.threadId)).toEqual([
+      inbox.thread.id,
+      archived.thread.id,
+    ]);
+    expect(candidates[0]?.messages.map((item) => item.subject.subject)).toEqual(['Re: inbox']);
+    expect(candidates[1]?.lastMessageAt).toBe(at(30));
+  });
+
+  it('keeps only the newest messages of a long thread and finds messages by id', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const long = await seedThread(
+      context.repositories,
+      seeded,
+      { subject: 'long', lastMessageAt: at(200) },
+      { date: at(0) },
+    );
+    const replies: MessageId[] = [];
+    for (let index = 1; index <= 55; index += 1) {
+      const reply = await context.repositories.messages.upsert(
+        buildMessage(long.thread, seeded.mailboxes.inbox, {
+          subject: `Re ${String(index)}`,
+          date: at(index),
+        }),
+        new Map(),
+      );
+      replies.push(reply.id);
+    }
+
+    const [candidate] = await context.repositories.automationCandidates.listInbox(
+      seeded.account.id,
+      1,
+    );
+    const found = await context.repositories.automationCandidates.findMessages(seeded.user.id, [
+      long.message.id,
+      replies[54] ?? long.message.id,
+    ]);
+
+    expect(candidate?.messages).toHaveLength(50);
+    expect(candidate?.messages[0]?.subject.subject).toBe('Re 6');
+    expect(candidate?.messages.at(-1)?.subject.subject).toBe('Re 55');
+    expect(found.map((message) => message.subject).sort()).toEqual(
+      ['Re 55', long.message.subject].sort(),
+    );
   });
 });

@@ -190,6 +190,76 @@
       "when": 1795036507542,
       "tag": "0026_removed_automation_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1795119308335,
+      "tag": "0027_message_body_repair",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1795131862390,
+      "tag": "0028_list_order_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1795134576463,
+      "tag": "0029_history_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1795140577152,
+      "tag": "0030_history_flag_scan_offset",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1795171468341,
+      "tag": "0031_marked_done",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1795187067920,
+      "tag": "0032_automation_match_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1795191979813,
+      "tag": "0033_automation_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1795206638945,
+      "tag": "0034_split_match_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1795515163578,
+      "tag": "0035_task_priority",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1795518429933,
+      "tag": "0036_task_system_connections",
+      "breakpoints": true
     }
   ]
 }

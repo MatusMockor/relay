@@ -7,7 +7,7 @@ export type TitleBarOptions = Pick<
 
 const MAC_INSET_TITLE_BAR: TitleBarOptions = {
   titleBarStyle: 'hiddenInset',
-  trafficLightPosition: { x: 16, y: 22 },
+  trafficLightPosition: { x: 16, y: 15 },
 };
 
 export const titleBarOptions = (platform: NodeJS.Platform): TitleBarOptions => {

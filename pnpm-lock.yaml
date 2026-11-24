@@ -53,6 +53,9 @@ importers:
       '@relay/store-sqlite':
         specifier: workspace:*
         version: link:../../packages/store-sqlite
+      '@relay/task-systems':
+        specifier: workspace:*
+        version: link:../../packages/task-systems
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -72,6 +75,9 @@ importers:
       '@tanstack/react-query':
         specifier: 5.90.21
         version: 5.90.21(react@19.2.9)
+      '@tanstack/react-virtual':
+        specifier: 3.14.26
+        version: 3.14.26(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
       '@testing-library/dom':
         specifier: 10.4.2
         version: 10.4.2
@@ -183,6 +189,9 @@ importers:
       '@relay/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@relay/task-systems':
+        specifier: workspace:*
+        version: link:../../packages/task-systems
       argon2:
         specifier: 0.44.0
         version: 0.44.0
@@ -383,6 +392,9 @@ importers:
       html-to-text:
         specifier: 9.0.5
         version: 9.0.5
+      iconv-lite:
+        specifier: 0.7.0
+        version: 0.7.0
       imapflow:
         specifier: 1.7.8
         version: 1.7.8
@@ -504,6 +516,34 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(jsdom@26.1.0)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/task-systems:
+    dependencies:
+      '@relay/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@relay/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 4.1.13
+        version: 4.1.13
+    devDependencies:
+      '@relay/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
       eslint:
         specifier: 9.39.5
         version: 9.39.5
@@ -1762,6 +1802,15 @@ packages:
     resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@tanstack/react-virtual@3.14.26':
+    resolution: {integrity: sha512-HUDlfsrYH6ko5xH56L62Mcl/uzT+AGVNMHFuDNqDJMdZWc1AQa2oeVKNUvZ/RWBZQ4TYtyQerFrNvLnp39h65A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@tanstack/virtual-core@3.19.11':
+    resolution: {integrity: sha512-/5iHb0RHBvj8Di59FDs4ESNm45jls33aZAi4zccVXZjc/6ZvwQP6nzEYeT6weXjTf9E6/vrp2JhYWRyO+ZP13A==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -5764,6 +5813,14 @@ snapshots:
       '@tanstack/query-core': 5.90.20
       react: 19.2.9
 
+  '@tanstack/react-virtual@3.14.26(react-dom@19.2.9(react@19.2.9))(react@19.2.9)':
+    dependencies:
+      '@tanstack/virtual-core': 3.19.11
+      react: 19.2.9
+      react-dom: 19.2.9(react@19.2.9)
+
+  '@tanstack/virtual-core@3.19.11': {}
+
   '@testing-library/dom@10.4.2':
     dependencies:
       '@babel/code-frame': 7.29.7
@@ -8182,7 +8239,7 @@ snapshots:
     dependencies:
       bytes: 3.1.2
       http-errors: 2.0.1
-      iconv-lite: 0.7.3
+      iconv-lite: 0.7.0
       unpipe: 1.0.0
 
   react-dom@19.2.9(react@19.2.9):

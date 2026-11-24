@@ -1,46 +1,26 @@
-import type { MailAccount, Mailbox, Message, Split, SplitId, UserId } from '@relay/shared/domain';
-import type { JiraClassification } from '../../model/jira';
+import type { Message, MessageBodyState } from '@relay/shared/domain';
 import type { ParsedMessage } from '../../model/parsed-message';
-import type { RawMessage } from '../../model/remote-mail';
+import type { RawMessage, RemoteMessageMeta, RemoteMessageSummary } from '../../model/remote-mail';
 import type { IdGenerator } from '../../ports/id-generator';
 import type { JiraClassifier } from '../../ports/jira-classifier';
 import type { MessageParser } from '../../ports/message-parser';
 import type { MessageRepository } from '../../ports/message-repository';
-import type { PendingWorkRepository } from '../../ports/pending-work-repository';
 import type { SplitMatcher } from '../../ports/split-matcher';
 import type { ThreadResolver } from '../../ports/thread-resolver';
 import type { UnitOfWork } from '../../ports/unit-of-work';
+import { hasFileAttachments } from '../../subjects/match-subject';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { PENDING_UID } from '../shared/pending-uid';
 import type { CalendarPartsSink } from './calendar-parts-sink';
-import { acceptsJiraEvents } from './jira-event-roles';
+import { summaryMessage } from './history/summary-message';
+import { recordCreated } from './ingest-effects';
+import type { IngestOutcome, IngestTarget } from './ingest-target';
 import { flagsDiffer, sameMembers } from './message-diff';
 import { buildMessage } from './message-builder';
 import type { MessageLabelsResolver } from './message-labels-resolver';
-import type { SyncJournal } from './sync-journal';
 import { syncedFlags } from './synced-flags';
 
-export interface IngestTarget {
-  readonly userId: UserId;
-  readonly account: MailAccount;
-  readonly mailbox: Mailbox;
-  readonly splits: readonly Split[];
-  readonly journal: SyncJournal | null;
-  readonly publish: boolean;
-  readonly live: boolean;
-  readonly holdCalendar: boolean;
-}
-
-export type IngestOutcome =
-  | { readonly kind: 'skipped'; readonly reason: string }
-  | { readonly kind: 'existing'; readonly message: Message; readonly changed: boolean }
-  | {
-      readonly kind: 'created';
-      readonly message: Message;
-      readonly parsed: ParsedMessage;
-      readonly jira: JiraClassification | null;
-      readonly splitIds: readonly SplitId[];
-    };
+export type { IngestOutcome, IngestTarget } from './ingest-target';
 
 export interface MessageIngestorDeps {
   readonly messages: MessageRepository;
@@ -54,100 +34,100 @@ export interface MessageIngestorDeps {
   readonly calendarParts: CalendarPartsSink;
 }
 
+type Parse = () => Promise<ParsedMessage>;
+
 export class MessageIngestor {
   constructor(private readonly deps: MessageIngestorDeps) {}
 
-  async ingest(target: IngestTarget, raw: RawMessage): Promise<IngestOutcome> {
-    const location = { mailboxId: target.mailbox.id, uid: raw.uid };
+  ingest(target: IngestTarget, raw: RawMessage): Promise<IngestOutcome> {
+    return this.ingestRemote(target, raw, () => this.deps.parser.parse(raw.source), 'local');
+  }
+
+  ingestSummary(target: IngestTarget, summary: RemoteMessageSummary): Promise<IngestOutcome> {
+    return this.ingestRemote(
+      { ...target, history: true },
+      summary,
+      () => summaryMessage(this.deps.parser, summary),
+      'remote',
+    );
+  }
+
+  private async ingestRemote(
+    target: IngestTarget,
+    remote: RemoteMessageMeta,
+    parse: Parse,
+    bodyState: MessageBodyState,
+  ): Promise<IngestOutcome> {
+    const location = { mailboxId: target.mailbox.id, uid: remote.uid };
     const known = await this.deps.messages.findByLocation(location);
     if (known !== null) {
-      return this.refreshKnown(target, known, raw, false);
+      return this.refreshKnown(target, known, remote, false);
     }
-    const parsed = await this.deps.parser.parse(raw.source).catch((error: unknown) => error);
+    const parsed = await parse().catch((error: unknown) => error);
     if (!isParsed(parsed)) {
       return { kind: 'skipped', reason: errorMessage(parsed) };
     }
     const pending = await this.findPending(target, parsed);
     if (pending !== null) {
-      return this.refreshKnown(target, { ...pending, ...location }, raw, true);
+      return this.refreshKnown(target, { ...pending, ...location }, remote, true);
     }
-    return this.create(target, raw, parsed);
+    return this.create(target, remote, parsed, bodyState);
   }
 
   private async create(
     target: IngestTarget,
-    raw: RawMessage,
+    remote: RemoteMessageMeta,
     parsed: ParsedMessage,
+    bodyState: MessageBodyState,
   ): Promise<IngestOutcome> {
     const resolution = await this.deps.threadResolver.resolve(target.account.id, parsed);
     const jira = await this.deps.jiraClassifier.classify(parsed);
     const splitIds = await this.deps.splitMatcher.match({
-      message: { from: parsed.from, subject: parsed.subject, headers: parsed.headers },
+      message: {
+        from: parsed.from,
+        subject: parsed.subject,
+        headers: parsed.headers,
+        to: parsed.to,
+        cc: parsed.cc,
+        hasAttachments: hasFileAttachments(parsed.attachments),
+      },
       jira,
       splits: target.splits,
     });
     const message = await this.deps.unitOfWork.run(async (repositories) => {
-      const labelIds = await this.deps.labelsResolver.resolve(repositories, target.account.id, raw);
+      const labelIds = await this.deps.labelsResolver.resolve(
+        repositories,
+        target.account.id,
+        remote,
+      );
       const built = buildMessage(
         {
           accountId: target.account.id,
           threadId: resolution.threadId,
           mailbox: target.mailbox,
-          raw,
+          raw: remote,
           parsed,
           labelIds,
+          bodyState,
         },
         this.deps.ids,
       );
       const stored = await repositories.messages.upsert(built, parsed.headers);
-      await this.journalArrival(repositories.pendingWork, target, stored, parsed, jira, splitIds);
-      await this.deps.calendarParts.queue(repositories.pendingWork, {
-        account: target.account,
-        mailboxRole: target.mailbox.role,
-        messageId: stored.id,
-        threadId: stored.threadId,
-        parts: parsed.calendarParts ?? [],
-        publish: target.publish,
-        hold: target.holdCalendar,
+      await recordCreated(repositories.pendingWork, this.deps.calendarParts, target, {
+        message: stored,
+        parsed,
+        jira,
+        splitIds,
       });
       return stored;
     });
     return { kind: 'created', message, parsed, jira, splitIds };
   }
 
-  private async journalArrival(
-    work: PendingWorkRepository,
-    target: IngestTarget,
-    message: Message,
-    parsed: ParsedMessage,
-    jira: JiraClassification | null,
-    splitIds: readonly SplitId[],
-  ): Promise<void> {
-    const { journal } = target;
-    if (journal === null) {
-      return;
-    }
-    await journal.arrived(work, message, target.mailbox.role, splitIds, {
-      publish: target.publish,
-      live: target.live,
-      headers: parsed.headers,
-      jira,
-    });
-    if (jira !== null && acceptsJiraEvents(target.mailbox.role)) {
-      await journal.jira(work, message.id, {
-        threadId: message.threadId,
-        classification: jira,
-        title: parsed.subject,
-        from: parsed.from,
-        headers: [...parsed.headers.entries()],
-      });
-    }
-  }
-
   private async refreshKnown(
     target: IngestTarget,
     known: Message,
-    raw: RawMessage,
+    remote: RemoteMessageMeta,
     relocated: boolean,
   ): Promise<IngestOutcome> {
     return this.deps.unitOfWork.run(async (repositories) => {
@@ -155,8 +135,12 @@ export class MessageIngestor {
         await repositories.messages.move(known.id, { mailboxId: known.mailboxId, uid: known.uid });
       }
       await target.journal?.touched(repositories.pendingWork, known.threadId);
-      const labelIds = await this.deps.labelsResolver.resolve(repositories, target.account.id, raw);
-      const flags = await syncedFlags(repositories.pendingWork, known, raw.flags);
+      const labelIds = await this.deps.labelsResolver.resolve(
+        repositories,
+        target.account.id,
+        remote,
+      );
+      const flags = await syncedFlags(repositories.pendingWork, known, remote.flags);
       const flagsChanged = flagsDiffer(known.flags, flags);
       const labelsChanged = !sameMembers(known.labelIds, labelIds);
       if (flagsChanged) {

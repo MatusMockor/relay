@@ -1,5 +1,6 @@
 import type { AutomationAction, Label, MailAccount, Mailbox } from '@relay/shared';
 import { moveTargetsOf } from '../../mail/move-targets';
+import { forwardLabel, remindLabel } from './action-params';
 import { ACTION_LABELS } from './automation-labels';
 
 export interface ActionTargets {
@@ -69,6 +70,12 @@ export const describeAction = (action: AutomationAction, targets: ActionTargets)
   }
   if (action.type === 'addLabel') {
     return labelView(action.labelId, targets);
+  }
+  if (action.type === 'remind') {
+    return { label: remindLabel(action.afterDays), broken: false };
+  }
+  if (action.type === 'forward') {
+    return { label: forwardLabel(action.to), broken: false };
   }
   return { label: ACTION_LABELS[action.type], broken: false };
 };

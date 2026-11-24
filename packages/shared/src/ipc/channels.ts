@@ -1,6 +1,8 @@
 import type { z } from 'zod';
 import { appInvokeChannels, appStreamChannels } from './app-channels';
 import { attachmentInvokeChannels } from './attachment-channels';
+import { attachmentOpenInvokeChannels } from './attachment-open-channels';
+import { automationHistoryInvokeChannels } from './automation-history-channels';
 import { contextMenuInvokeChannels } from './context-menu-channels';
 import { localInvokeChannels, localStreamChannels } from './local-channels';
 import { menuStreamChannels } from './menu-channels';
@@ -9,6 +11,7 @@ import { calendarInvokeChannels } from './calendar-channels';
 import { googleCalendarInvokeChannels } from './google-calendar-channels';
 import { oauthInvokeChannels } from './oauth-channels';
 import { sessionInvokeChannels } from './session-channels';
+import { taskSystemInvokeChannels } from './task-system-channels';
 import { trayInvokeChannels } from './tray-channels';
 import { updateInvokeChannels, updateStreamChannels } from './update-channels';
 import { windowStreamChannels } from './window-channels';
@@ -19,8 +22,11 @@ export const ipcInvokeChannels = {
   ...sessionInvokeChannels,
   ...calendarInvokeChannels,
   ...googleCalendarInvokeChannels,
+  ...taskSystemInvokeChannels,
   ...localInvokeChannels,
+  ...automationHistoryInvokeChannels,
   ...attachmentInvokeChannels,
+  ...attachmentOpenInvokeChannels,
   ...updateInvokeChannels,
   ...trayInvokeChannels,
   ...notificationInvokeChannels,

@@ -11,7 +11,7 @@ export const WEEKDAYS_IN = [
   'v piatok',
   'v sobotu',
 ];
-const MONTHS = [
+export const MONTHS = [
   'Január',
   'Február',
   'Marec',
@@ -89,33 +89,11 @@ export const messageTimeLabel = (iso: string, now: Date): string => {
   return `${dm(date)} ${hm(date)}`;
 };
 
-const startOfWeek = (now: Date, weeksBack = 0): number => {
+export const startOfWeek = (now: Date, weeksBack = 0): number => {
   const copy = new Date(startOfDay(now));
   const offset = (copy.getDay() + 6) % 7;
   copy.setDate(copy.getDate() - offset - weeksBack * 7);
   return copy.getTime();
-};
-
-export const dayGroupOf = (iso: string, now: Date): string => {
-  const date = new Date(iso);
-  const diff = dayDiff(date, now);
-  if (diff >= 0) {
-    return 'Dnes';
-  }
-  if (diff === -1) {
-    return 'Včera';
-  }
-  const week = startOfWeek(now);
-  if (date.getTime() >= week) {
-    return 'Tento týždeň';
-  }
-  if (date.getTime() >= startOfWeek(now, 1)) {
-    return 'Minulý týždeň';
-  }
-  const month = MONTHS[date.getMonth()] ?? '';
-  return date.getFullYear() === now.getFullYear()
-    ? month
-    : `${month} ${String(date.getFullYear())}`;
 };
 
 export interface WhenDescription {

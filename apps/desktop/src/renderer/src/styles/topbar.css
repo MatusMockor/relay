@@ -3,7 +3,7 @@
   align-items: center;
   gap: 24px;
   padding: 0 28px 0 32px;
-  height: 60px;
+  height: var(--bar-h);
   flex: none;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -13,7 +13,7 @@
   align-items: center;
   min-width: 0;
   margin-left: -10px;
-  padding: 8px 0;
+  padding: 7px 0;
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
@@ -59,7 +59,7 @@
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: -8px;
+  bottom: -7px;
   height: 2px;
   border-radius: 2px;
   background: var(--accent);
@@ -74,22 +74,18 @@
   flex: none;
 }
 .srch {
-  --srch-fill: rgba(255, 255, 255, 0.035);
-  --srch-fill-hover: rgba(255, 255, 255, 0.06);
-  --srch-chip: rgba(255, 255, 255, 0.06);
-  --srch-clear: rgba(255, 255, 255, 0.07);
   display: flex;
   flex: none;
   width: 240px;
   height: 30px;
   margin-right: 6px;
   border-radius: 9px;
-  background: var(--srch-fill);
+  background: var(--search-fill);
   color: var(--fg4);
   font-size: var(--fs-sm);
 }
 .srch:not(.open):hover {
-  background: var(--srch-fill-hover);
+  background: var(--search-fill-hover);
   color: var(--fg3);
 }
 .srch.open {
@@ -145,7 +141,7 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 5px;
-  background: var(--srch-chip);
+  background: var(--search-chip);
   color: var(--fg3);
   font: var(--w-medium) 11px/1 var(--mono);
 }
@@ -163,11 +159,11 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--srch-clear);
+  background: var(--search-clear);
   color: var(--fg3);
 }
 .srch-clear:hover {
-  background: var(--srch-chip);
+  background: var(--search-chip);
   color: var(--fg);
 }
 .me-btn {
@@ -215,6 +211,12 @@
 }
 .lt-btn {
   margin-right: -14px;
+}
+.h-nav {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  margin-right: -12px;
 }
 @container main (max-width: 700px) {
   .a-top {

@@ -10,6 +10,7 @@ import type { Clock } from './ports/clock';
 import type { ConditionalCredentialVault } from './ports/credential-vault';
 import type { EventPublisher } from './ports/event-publisher';
 import type { GoogleCalendarAdapters } from './ports/google-calendar-adapters';
+import type { HistoryBackfillRepository } from './ports/history-backfill-repository';
 import type { IdGenerator } from './ports/id-generator';
 import type { IntervalTimer } from './ports/interval-timer';
 import type { JiraClassifier } from './ports/jira-classifier';
@@ -17,14 +18,22 @@ import type { Logger } from './ports/logger';
 import type { MailProviderFactory } from './ports/mail-provider-factory';
 import type { MailSender } from './ports/mail-sender';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
+import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
+import type { MessageBodyStore } from './ports/message-body-store';
 import type { MessageParser } from './ports/message-parser';
+import type { MessageUidLookup } from './ports/message-uid-lookup';
+import type { OfflineWindowPolicy } from './ports/offline-window-policy';
 import type { Repositories } from './ports/repositories';
 import type { SplitMatcher } from './ports/split-matcher';
+import type { TaskSystemAdapters } from './ports/task-system-adapters';
 import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
 import type { UnsubscribeSender } from './ports/unsubscribe-sender';
 import type { AttachmentSweepOptions } from './services/attachments/attachment-sweep-options';
+import type { BodyOptions } from './services/bodies/body-options';
+import type { SearchOptions } from './services/search/search-options';
+import type { OfflineBodyOptions } from './services/bodies/offline-body-options';
 import type { SyncOptions } from './services/sync/sync-options';
 
 export type AiMailToolsResolver = (
@@ -62,6 +71,9 @@ export interface EngineOptions {
   readonly calendar?: Partial<CalendarOptions>;
   readonly attachments?: Partial<AttachmentSweepOptions>;
   readonly actions?: Partial<ActionOptions>;
+  readonly bodies?: Partial<BodyOptions>;
+  readonly search?: Partial<SearchOptions>;
+  readonly offlineBodies?: Partial<OfflineBodyOptions>;
 }
 
 export interface EngineDeps {
@@ -73,6 +85,11 @@ export interface EngineDeps {
   readonly attachmentStore: AttachmentStore;
   readonly attachmentBlobs: AttachmentBlobCatalog;
   readonly messageAttachmentLookup?: MessageAttachmentLookup;
+  readonly messageBodyRepairs?: MessageBodyRepairRepository;
+  readonly historyBackfills?: HistoryBackfillRepository;
+  readonly messageUids?: MessageUidLookup;
+  readonly offlineWindow?: OfflineWindowPolicy;
+  readonly messageBodies?: MessageBodyStore;
   readonly attachmentExtractor?: AttachmentExtractor;
   readonly unsubscribeSender?: UnsubscribeSender;
   readonly messageParser: MessageParser;
@@ -84,6 +101,7 @@ export interface EngineDeps {
   readonly aiRunnerRegistry: AiRunnerRegistry;
   readonly calendar: CalendarAdapters;
   readonly googleCalendar?: GoogleCalendarAdapters;
+  readonly taskSystems?: TaskSystemAdapters;
   readonly eventPublisher: EventPublisher;
   readonly clock: Clock;
   readonly idGenerator: IdGenerator;

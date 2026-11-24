@@ -6,6 +6,7 @@ import type {
   UserId,
 } from '@relay/shared/domain';
 import type { InboxArrival } from '../sync/sync-arrivals';
+import type { ActionEffect } from './action-effect';
 
 export interface AutomationActionContext {
   readonly userId: UserId;
@@ -14,7 +15,7 @@ export interface AutomationActionContext {
 }
 
 export interface AutomationActionHandler<Action extends AutomationAction = AutomationAction> {
-  run(context: AutomationActionContext, action: Action): Promise<void>;
+  run(context: AutomationActionContext, action: Action): Promise<ActionEffect>;
 }
 
 export type AutomationActionHandlers = {
@@ -25,9 +26,12 @@ export const ACTION_ORDER: readonly AutomationActionType[] = [
   'notify',
   'summary',
   'task',
+  'draftReply',
+  'forward',
   'markRead',
   'pin',
   'addLabel',
+  'remind',
   'moveTo',
   'archive',
 ];
@@ -41,7 +45,7 @@ export const runAction = (
   handlers: AutomationActionHandlers,
   context: AutomationActionContext,
   action: AutomationAction,
-): Promise<void> => {
+): Promise<ActionEffect> => {
   const handler = handlers[action.type] as AutomationActionHandler;
   return handler.run(context, action);
 };

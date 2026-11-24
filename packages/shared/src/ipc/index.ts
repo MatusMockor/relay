@@ -1,5 +1,7 @@
 export * from './app-channels';
 export * from './attachment-channels';
+export * from './attachment-open-channels';
+export * from './automation-history-channels';
 export * from './bridge';
 export * from './calendar-channels';
 export * from './channels';
@@ -12,6 +14,7 @@ export * from './notification-channels';
 export * from './oauth-channels';
 export * from './protocol';
 export * from './session-channels';
+export * from './task-system-channels';
 export * from './tray-channels';
 export * from './update-channels';
 export * from './window-channels';

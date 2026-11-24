@@ -11,7 +11,7 @@ import {
   threads,
 } from '../../schema';
 
-const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
+export const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
 const outsideExclusiveSplits = sql`not exists(
   select 1 from ${threadSplits}
@@ -55,7 +55,8 @@ const inboxFilter = (input: FolderViewFilterInput): SQL => {
 
 const FOLDER_VIEW_FILTERS: Readonly<Record<FolderView, (input: FolderViewFilterInput) => SQL>> = {
   inbox: inboxFilter,
-  done: () => sql`${threads.state} = 'done'`,
+  done: () => sql`${threads.state} = 'done' and ${threads.markedDone}`,
+  archive: () => sql`${threads.state} = 'done' and not ${threads.markedDone}`,
   trash: () => sql`${threads.state} = 'trash'`,
   spam: () => sql`${threads.state} = 'spam'`,
   reminders: () => sql`${threads.state} = 'reminder'`,

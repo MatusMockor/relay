@@ -14,6 +14,7 @@ export const toTask = (row: TaskRow): Task => ({
   aiWhat: row.aiWhat,
   state: row.state,
   source: row.source,
+  priority: row.priority,
   createdAt: toIso(row.createdAt),
   updatedAt: toIso(row.updatedAt),
 });
@@ -27,6 +28,7 @@ export const toTaskInsert = (task: Task): TaskInsert => ({
   aiWhat: task.aiWhat,
   state: task.state,
   source: task.source,
+  priority: task.priority,
   createdAt: toDate(task.createdAt),
   updatedAt: toDate(task.updatedAt),
 });

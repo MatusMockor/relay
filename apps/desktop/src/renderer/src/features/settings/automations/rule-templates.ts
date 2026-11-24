@@ -10,6 +10,16 @@ export interface RuleTemplate {
   readonly needs: AutomationConditionType | null;
 }
 
+export const BLANK_TEMPLATE: RuleTemplate = {
+  id: 'blank',
+  title: 'Prázdne pravidlo',
+  description: 'Podmienky aj akcie si nastavíš sám.',
+  name: 'Nové pravidlo',
+  conditions: [],
+  actions: [{ type: 'task' }],
+  needs: null,
+};
+
 export const RULE_TEMPLATES: readonly RuleTemplate[] = [
   {
     id: 'jira',
@@ -46,20 +56,9 @@ export const RULE_TEMPLATES: readonly RuleTemplate[] = [
     title: 'Faktúry s prílohou',
     description: 'Maily s prílohou a slovom faktúra v predmete pripne, aby ti neušli.',
     name: 'Faktúry',
-    conditions: [
-      { type: 'subjectRegex', pattern: 'faktúra|faktura', caseSensitive: false },
-      { type: 'hasAttachment' },
-    ],
+    conditions: [{ type: 'subjectContains', value: 'faktúra' }, { type: 'hasAttachment' }],
     actions: [{ type: 'pin' }],
     needs: null,
   },
-  {
-    id: 'blank',
-    title: 'Prázdne pravidlo',
-    description: 'Podmienky aj akcie si nastavíš sám.',
-    name: 'Nové pravidlo',
-    conditions: [],
-    actions: [{ type: 'task' }],
-    needs: null,
-  },
+  BLANK_TEMPLATE,
 ];

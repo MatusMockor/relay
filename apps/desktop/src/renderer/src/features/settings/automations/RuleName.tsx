@@ -1,14 +1,27 @@
 import { Field } from '@relay/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface RuleNameProps {
   readonly name: string;
   readonly disabled: boolean;
   readonly onRename: (name: string) => void;
+  readonly onDraft?: (draft: string | null) => void;
+  readonly noun?: string;
+  readonly fieldLabel?: string;
 }
 
-export function RuleName({ name, disabled, onRename }: RuleNameProps) {
+export function RuleName({
+  name,
+  disabled,
+  onRename,
+  onDraft,
+  noun = 'pravidlo',
+  fieldLabel = 'Názov pravidla',
+}: RuleNameProps) {
   const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => {
+    onDraft?.(draft);
+  }, [draft, onDraft]);
   const commit = () => {
     const next = draft?.trim() ?? '';
     setDraft(null);
@@ -21,7 +34,7 @@ export function RuleName({ name, disabled, onRename }: RuleNameProps) {
     return (
       <button
         type="button"
-        aria-label={`Premenovať pravidlo ${name}`}
+        aria-label={`Premenovať ${noun} ${name}`}
         disabled={disabled}
         onClick={() => {
           setDraft(name);
@@ -33,7 +46,7 @@ export function RuleName({ name, disabled, onRename }: RuleNameProps) {
   }
   return (
     <Field
-      label="Názov pravidla"
+      label={fieldLabel}
       value={draft}
       maxLength={100}
       autoFocus

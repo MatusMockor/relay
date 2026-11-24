@@ -26,6 +26,7 @@ const HELD_STATES: readonly ThreadState[] = ['trash', 'spam'];
 const VIEW_STATES: Partial<Record<FolderView, ThreadState>> = {
   inbox: 'inbox',
   done: 'done',
+  archive: 'done',
   trash: 'trash',
   spam: 'spam',
   reminders: 'reminder',
@@ -60,6 +61,7 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
     const items = (this.threads.get(userId) ?? []).filter(
       (thread) =>
         (state === undefined || thread.state === state) &&
+        (state !== 'done' || (thread.markedDone === true) === (query.view === 'done')) &&
         (query.accountId === null || thread.accountId === query.accountId) &&
         (query.labelId === null || thread.labelIds.includes(query.labelId)) &&
         this.inMailbox(thread, query) &&
@@ -138,6 +140,7 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
       aiWhat: input.aiWhat,
       state: 'open',
       source: 'ai',
+      priority: input.priority ?? 'none',
       createdAt: NOW,
       updatedAt: NOW,
     };

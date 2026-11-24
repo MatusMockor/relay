@@ -1,5 +1,12 @@
-import type { AiRunnerKind, Automation, AutomationInput } from '@relay/shared';
-import { useRef, useState } from 'react';
+import {
+  type AiRunnerKind,
+  type Automation,
+  type AutomationInput,
+  supportedAutomations,
+  type UnsupportedAutomation,
+  isUnsupportedAutomation,
+} from '@relay/shared';
+import { useEffect, useState } from 'react';
 import { useAutomations } from '../../../data/hooks/use-mail-queries';
 import {
   editableOf,
@@ -8,54 +15,57 @@ import {
   newRule,
   type RuleChange,
 } from './editable-rule';
+import { nextDraftKey } from './draft-key';
+import { type RuleProposals, ruleProposals, withoutKey } from './rule-ai/rule-proposals';
 import { canMove, moveRule } from './rule-order';
 import type { RuleTemplate } from './rule-templates';
+import { clearSeededRule, seededDrafts } from './seeded-rule';
 import { usePersistAutomations } from './use-persist-automations';
 
-export interface AutomationEditor {
+export interface AutomationEditor extends RuleProposals {
   readonly rules: readonly EditableRule[];
+  readonly unsupported: readonly UnsupportedAutomation[];
   readonly loading: boolean;
   readonly saving: boolean;
-  readonly editing: string | null;
-  engage(key: string | null): void;
   change(key: string, change: RuleChange): void;
+  save(key: string): void;
   remove(key: string): void;
   reorder(from: number, to: number): void;
-  addFrom(template: RuleTemplate, runner: AiRunnerKind): void;
+  addFrom(template: RuleTemplate, runner: AiRunnerKind): string;
 }
 
-const withoutKey = <Value>(map: ReadonlyMap<string, Value>, key: string): Map<string, Value> => {
-  const next = new Map(map);
-  next.delete(key);
-  return next;
-};
-
-export const useAutomationEditor = (): AutomationEditor => {
+export const useAutomationEditor = (
+  onCreated: (draftKey: string, id: string) => void,
+): AutomationEditor => {
   const automations = useAutomations();
   const { saving, persist } = usePersistAutomations();
-  const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(new Map());
-  const [editing, setEditing] = useState<string | null>(null);
-  const counter = useRef(0);
-  const saved = (automations.data ?? []).map(editableOf);
+  const [local, setLocal] = useState<ReadonlyMap<string, EditableRule>>(seededDrafts);
+  useEffect(() => {
+    clearSeededRule();
+  }, []);
+  const saved = supportedAutomations(automations.data ?? []).map(editableOf);
   const drafts = [...local.values()].filter((rule) => !rule.saved);
   const rules = [...saved.map((rule) => local.get(rule.key) ?? rule), ...drafts];
   const savedInputs = saved.map((rule) => rule.input);
 
-  const save = (inputs: AutomationInput[], settled: string) => {
+  const store = (inputs: AutomationInput[], settled: string) => {
     const known = new Set(saved.map((rule) => rule.key));
+    const revision = local.get(settled);
     persist(inputs, (stored: readonly Automation[]) => {
-      setLocal((current) => withoutKey(current, settled));
+      setLocal((current) =>
+        current.get(settled) === revision ? withoutKey(current, settled) : current,
+      );
       const created = stored.find((automation) => !known.has(automation.id));
       if (created === undefined) {
         return;
       }
-      setEditing((current) => (current === settled ? created.id : current));
+      onCreated(settled, created.id);
     });
   };
 
   const commit = (next: EditableRule) => {
     const inputs = saved.map((item) => (item.key === next.key ? next.input : item.input));
-    save(next.saved ? inputs : [...inputs, next.input], next.key);
+    store(next.saved ? inputs : [...inputs, next.input], next.key);
   };
 
   const change = (key: string, update: RuleChange) => {
@@ -64,11 +74,19 @@ export const useAutomationEditor = (): AutomationEditor => {
       return;
     }
     const next: EditableRule = { ...rule, input: { ...rule.input, ...update } };
-    if (!isComplete(next)) {
+    if (next.suggestion !== undefined || !isComplete(next)) {
       setLocal((current) => new Map(current).set(key, next));
       return;
     }
     commit(next);
+  };
+
+  const save = (key: string) => {
+    const rule = rules.find((item) => item.key === key);
+    if (rule === undefined || saving || !isComplete(rule)) {
+      return;
+    }
+    commit(rule);
   };
 
   const remove = (key: string) => {
@@ -80,7 +98,7 @@ export const useAutomationEditor = (): AutomationEditor => {
       setLocal((current) => withoutKey(current, key));
       return;
     }
-    save(
+    store(
       saved.filter((item) => item.key !== key).map((item) => item.input),
       key,
     );
@@ -94,23 +112,23 @@ export const useAutomationEditor = (): AutomationEditor => {
   };
 
   const addFrom = (template: RuleTemplate, runner: AiRunnerKind) => {
-    counter.current += 1;
-    const key = `draft-${String(counter.current)}`;
+    const key = nextDraftKey();
     const rule = newRule(key, runner, rules.length, template);
     setLocal((current) => new Map(current).set(key, rule));
-    setEditing(key);
     if (isComplete(rule) && !saving) {
       commit(rule);
     }
+    return key;
   };
 
   return {
+    ...ruleProposals(rules, setLocal),
     rules,
+    unsupported: (automations.data ?? []).filter(isUnsupportedAutomation),
     loading: automations.data === undefined,
     saving,
-    editing,
-    engage: setEditing,
     change,
+    save,
     remove,
     reorder,
     addFrom,

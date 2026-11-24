@@ -1,6 +1,6 @@
 @container side (max-width: 300px) {
   .stabs {
-    padding: 12px 10px;
+    padding: 0 10px;
     gap: 2px;
   }
   .stabs .stab {

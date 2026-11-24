@@ -23,17 +23,50 @@ export interface RemoteSyncCursor {
   readonly highestModseq: string | null;
 }
 
-export interface RawMessage {
-  readonly mailboxPath: string;
+export interface RemoteMessageMeta {
   readonly uid: number;
   readonly flags: MessageFlags;
   readonly keywords: readonly string[];
   readonly labels: readonly string[] | null;
   readonly emailId: string | null;
   readonly internalDate: string;
+}
+
+export interface RawMessage extends RemoteMessageMeta {
+  readonly mailboxPath: string;
   readonly size: number;
   readonly modseq: string | null;
   readonly source: Uint8Array;
+}
+
+export interface RemoteAttachmentMeta {
+  readonly filename: string | null;
+  readonly contentType: string;
+  readonly size: number;
+  readonly contentId: string | null;
+  readonly inline: boolean;
+}
+
+export interface RemoteMessageSummary extends RemoteMessageMeta {
+  readonly size: number;
+  readonly modseq: string | null;
+  readonly header: Uint8Array;
+  readonly snippet: string;
+  readonly attachments: readonly RemoteAttachmentMeta[];
+}
+
+export type RemoteTextSearchField = 'all' | 'from' | 'subject';
+
+export interface RemoteTextSearch {
+  readonly terms: readonly string[];
+  readonly field: RemoteTextSearchField;
+  readonly before?: Date;
+  readonly limit: number;
+}
+
+export interface RemoteTextSearchResult {
+  readonly uids: readonly number[];
+  readonly complete: boolean;
 }
 
 export interface RemoteThreadHeaders {

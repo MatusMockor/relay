@@ -11,7 +11,14 @@ import type { HeldOriginWork, MoveOriginWork } from '../../../model/pending-work
 import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin, MoveOriginKind } from '../../shared/move-origins';
 
-export type StateMoveAction = 'done' | 'undone' | 'trash' | 'restore' | 'reportSpam' | 'notSpam';
+export type StateMoveAction =
+  | 'done'
+  | 'archive'
+  | 'undone'
+  | 'trash'
+  | 'restore'
+  | 'reportSpam'
+  | 'notSpam';
 
 export interface LocatedMessage {
   readonly message: Message;
@@ -47,6 +54,7 @@ export interface LabelChange {
 
 export interface StateMovePlan {
   readonly state: ThreadState;
+  readonly markedDone?: boolean;
   readonly moves: readonly PlannedMove[];
   readonly origins: readonly OriginChanges[];
   readonly labels: readonly LabelChange[];

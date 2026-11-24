@@ -6,6 +6,7 @@ export interface GatedTcpProxy {
   openConnections(): number;
   waitForClient(): Promise<void>;
   release(): void;
+  cut(): void;
   close(): Promise<void>;
 }
 
@@ -23,6 +24,7 @@ export const startGatedTcpProxy = async (host: string, port: number): Promise<Ga
   const clients = new Set<Socket>();
   const held: Socket[] = [];
   let released = false;
+  let refusing = false;
   let arrived: () => void = () => undefined;
   const firstClient = new Promise<void>((resolve) => {
     arrived = resolve;
@@ -31,6 +33,10 @@ export const startGatedTcpProxy = async (host: string, port: number): Promise<Ga
     clients.add(client);
     client.on('close', () => clients.delete(client));
     arrived();
+    if (refusing) {
+      client.destroy();
+      return;
+    }
     if (released) {
       forward(client, host, port);
       return;
@@ -44,9 +50,14 @@ export const startGatedTcpProxy = async (host: string, port: number): Promise<Ga
     waitForClient: () => firstClient,
     release: () => {
       released = true;
+      refusing = false;
       held.splice(0).forEach((client) => {
         forward(client, host, port);
       });
+    },
+    cut: () => {
+      refusing = true;
+      clients.forEach((client) => client.destroy());
     },
     close: () =>
       new Promise((resolve) => {

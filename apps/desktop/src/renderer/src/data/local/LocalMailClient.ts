@@ -5,6 +5,7 @@ import type { MailClient } from '../MailClient';
 import { attachmentFileOf } from './attachment-file';
 import { createLocalCalendarClient } from './local-calendar-client';
 import { createLocalGoogleCalendarClient } from './local-google-calendar-client';
+import { createLocalTaskSystemClient } from './local-task-system-client';
 
 const unwrap = async <T>(result: Promise<IpcResult<T>>): Promise<T> => {
   const settled = await result;
@@ -29,8 +30,11 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     kind: 'local',
     ...createLocalCalendarClient(bridge),
     ...createLocalGoogleCalendarClient(bridge),
+    ...createLocalTaskSystemClient(bridge),
     listThreads: (query) => unwrap(bridge.invoke('local.threads.list', query)),
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
+    getMessageBody: (messageId) => unwrap(bridge.invoke('local.messages.body', { messageId })),
+    searchServer: (request) => unwrap(bridge.invoke('local.search.server', request)),
     prepareThreadAi: (threadId, timeZone) =>
       unwrap(bridge.invoke('local.threads.prepareAi', { threadId, timeZone })),
     requestThreadSummary: (threadId, timeZone) =>
@@ -62,6 +66,8 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     removeAccount: (accountId) => ignore(bridge.invoke('local.accounts.delete', { accountId })),
     testConnection: (body) => unwrap(bridge.invoke('local.accounts.testConnection', body)),
     syncNow: (accountId) => ignore(bridge.invoke('local.sync.now', { accountId })),
+    historyProgress: () => unwrap(bridge.invoke('local.sync.history')),
+    offlineStats: () => unwrap(bridge.invoke('local.sync.offline')),
     listDrafts: () => unwrap(bridge.invoke('local.drafts.list')),
     createDraft: (content) => unwrap(bridge.invoke('local.drafts.create', content)),
     updateDraft: (draftId, patch) =>
@@ -86,12 +92,20 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
       ignore(bridge.invoke('local.scheduled.cancel', { scheduledSendId })),
     listSplits: () => unwrap(bridge.invoke('local.splits.list')),
     replaceSplits: (splits) => unwrap(bridge.invoke('local.splits.replace', { splits })),
+    previewSplit: (body) => unwrap(bridge.invoke('local.splits.preview', body)),
     listAutomations: () => unwrap(bridge.invoke('local.automations.list')),
     replaceAutomations: (automations) =>
       unwrap(bridge.invoke('local.automations.replace', { automations })),
     restoreDefaultAutomation: () => unwrap(bridge.invoke('local.automations.restoreDefault')),
     applyAutomation: (automationId) =>
       unwrap(bridge.invoke('local.automations.apply', { automationId })),
+    previewAutomation: (body) => unwrap(bridge.invoke('local.automations.preview', body)),
+    automationHistory: (automationId) =>
+      unwrap(bridge.invoke('local.automations.history', { automationId })),
+    undoAutomationActivity: (automationId, activityId) =>
+      unwrap(bridge.invoke('local.automations.undoActivity', { automationId, activityId })),
+    undoAutomationSince: (automationId, since) =>
+      unwrap(bridge.invoke('local.automations.undoSince', { automationId, since })),
     listTasks: (query) => unwrap(bridge.invoke('local.tasks.list', query)),
     updateTask: (taskId, patch) => unwrap(bridge.invoke('local.tasks.update', { taskId, patch })),
     updateChecklistItem: (threadId, item) =>

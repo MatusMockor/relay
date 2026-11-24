@@ -88,9 +88,12 @@ describe('received attachments', () => {
       fireEvent.click(row ?? document.body);
     });
     const attachments = await screen.findByRole('list', { name: 'Prílohy' });
-    expect(within(attachments).getAllByRole('button')).toHaveLength(1);
+    expect(within(attachments).getAllByRole('listitem')).toHaveLength(1);
+    expect(
+      within(attachments).getByRole('button', { name: 'Zobraziť náhľad faktura-11.pdf' })
+        .textContent,
+    ).toContain('48 kB');
     const button = within(attachments).getByRole('button', { name: 'Stiahnuť faktura-11.pdf' });
-    expect(button.textContent).toContain('48 kB');
     act(() => {
       fireEvent.click(button);
     });

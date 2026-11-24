@@ -1,0 +1,1 @@
+ALTER TABLE "threads" ADD COLUMN "marked_done" boolean DEFAULT false NOT NULL;

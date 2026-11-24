@@ -111,6 +111,35 @@ describe('DeviceSettingsStore', () => {
     expect((await store.get()).activeServerUrl).toBeNull();
   });
 
+  it('loads a file written before themes existed without losing its fields', async () => {
+    const path = dir.file('device-settings.json');
+    const legacy = {
+      savedServers: [],
+      activeServerUrl: null,
+      mode: 'local',
+      panelWidths: { sidebar: 300, list: 420, rightPanel: 320 },
+      selectedAccountId: null,
+    };
+    await writeFile(path, JSON.stringify(legacy));
+
+    expect(await new DeviceSettingsStore(path).get()).toEqual({
+      ...legacy,
+      theme: 'dark',
+      offlineWindow: '6m',
+    });
+  });
+
+  it('persists the chosen theme and keeps it across other updates', async () => {
+    const path = dir.file('device-settings.json');
+    const store = new DeviceSettingsStore(path);
+    await store.update({ theme: 'paper' });
+    await store.update({ mode: 'local' });
+
+    const reloaded = await new DeviceSettingsStore(path).get();
+    expect(reloaded.theme).toBe('paper');
+    expect(reloaded.mode).toBe('local');
+  });
+
   it('falls back to defaults when the file is corrupt', async () => {
     const path = dir.file('device-settings.json');
     await writeFile(path, '{ not json');

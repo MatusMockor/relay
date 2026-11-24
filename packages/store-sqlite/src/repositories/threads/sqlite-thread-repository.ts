@@ -1,6 +1,6 @@
 import type { Page, ThreadFolderQuery, ThreadRepository, ThreadStateChange } from '@relay/engine';
 import type { AccountId, ThreadId, ThreadSummary, UserId } from '@relay/shared/domain';
-import { and, desc, eq, type SQL } from 'drizzle-orm';
+import { and, eq, type SQL } from 'drizzle-orm';
 import type { RelayDb } from '../../database/sqlite-database';
 import type { SqliteExecutor } from '../../executor/sqlite-executor';
 import { toThreadRow, toThreadSummary } from '../../mappers/thread-mapper';
@@ -9,7 +9,8 @@ import { timeIdCursor } from '../../pagination/time-id-cursor';
 import { toPage } from '../../pagination/to-page';
 import { messages, type ThreadRow, threadSplits, threads } from '../../schema';
 import { accountOwnerOf } from '../account-owner';
-import { threadFolderCondition } from './thread-folder-condition';
+import { selectFolderThreads } from './thread-folder-select';
+import { ordersByActiveTask, queryTaskFolder } from './thread-task-folder';
 import { readThreadSplits } from './thread-split-reader';
 
 export class SqliteThreadRepository implements ThreadRepository {
@@ -18,14 +19,11 @@ export class SqliteThreadRepository implements ThreadRepository {
   queryFolder(userId: UserId, query: ThreadFolderQuery): Promise<Page<ThreadSummary>> {
     return this.executor.execute((db) => {
       const limit = assertPageLimit(query.limit);
+      if (ordersByActiveTask(query)) {
+        return queryTaskFolder(db, userId, query, limit);
+      }
       const position = timeIdCursor.decode(query.cursor);
-      const rows = db
-        .select()
-        .from(threads)
-        .where(threadFolderCondition(userId, query, position))
-        .orderBy(desc(threads.lastMessageTs), desc(threads.id))
-        .limit(limit + 1)
-        .all();
+      const rows = selectFolderThreads(db, userId, query, position, limit + 1).all();
       const splitsByThread = readThreadSplits(
         db,
         rows.slice(0, limit).map((row) => row.id),
@@ -78,7 +76,7 @@ export class SqliteThreadRepository implements ThreadRepository {
   ): Promise<ThreadSummary | null> {
     return this.executor.execute((db) => {
       const owned = and(eq(threads.userId, userId), eq(threads.id, threadId));
-      db.update(threads).set({ state: change.state, remindAt: change.remindAt }).where(owned).run();
+      db.update(threads).set(change).where(owned).run();
       return this.findWhere(db, owned);
     });
   }

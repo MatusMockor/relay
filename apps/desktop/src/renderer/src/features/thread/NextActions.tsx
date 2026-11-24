@@ -1,7 +1,8 @@
 import type { ThreadDetail } from '@relay/shared';
 import { Kbd, Spark } from '@relay/ui';
 import { useUserSettings } from '../../data/hooks/use-mail-queries';
-import { setUi } from '../../state/ui-store';
+import { viewOf } from '../../state/folders';
+import { setUi, useUiStore } from '../../state/ui-store';
 import { centerRect } from '../folders/rect';
 import { threadItem } from '../mail/list-items';
 import { useMailActions } from '../mail/MailActionsProvider';
@@ -15,6 +16,7 @@ export interface NextActionsProps {
 export function NextActions({ detail, pending }: NextActionsProps) {
   const actions = useMailActions();
   const settings = useUserSettings();
+  const inTasks = useUiStore((state) => viewOf(state.folder) === 'tasks');
   const { thread } = detail;
   const bot = isAutomated(thread.participants[0]);
   const suggestions =
@@ -34,7 +36,7 @@ export function NextActions({ detail, pending }: NextActionsProps) {
         }}
       >
         <Kbd keys={['E']} />
-        Hotovo
+        {!inTasks && thread.state === 'done' ? 'Vrátiť do Doručenej pošty' : 'Hotovo'}
       </button>
       <button
         type="button"

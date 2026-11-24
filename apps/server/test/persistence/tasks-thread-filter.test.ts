@@ -12,6 +12,7 @@ const buildTask = (userId: UserId, overrides: Partial<Task> = {}): Task => ({
   aiWhat: null,
   state: 'open',
   source: 'manual',
+  priority: 'none',
   createdAt: at(0),
   updatedAt: at(0),
   ...overrides,

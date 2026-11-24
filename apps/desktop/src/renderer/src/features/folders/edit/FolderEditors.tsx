@@ -1,12 +1,9 @@
 import type { AccountId, Mailbox } from '@relay/shared';
 import { FOLDER_COPY } from './folder-copy';
-import { type FolderKind, type FolderTarget, setFolderEdit } from './folder-edit-store';
+import type { FolderKind, FolderTarget } from './folder-edit-store';
 import { FolderNameInput } from './FolderNameInput';
 import { useFolderActions } from './use-folder-actions';
-
-const close = () => {
-  setFolderEdit(null);
-};
+import { useOwnEditClose } from './use-own-edit-close';
 
 export function RenameEditor({
   target,
@@ -16,6 +13,7 @@ export function RenameEditor({
   readonly depth: number;
 }) {
   const actions = useFolderActions();
+  const close = useOwnEditClose();
   return (
     <FolderNameInput
       initial={target.name}
@@ -39,6 +37,7 @@ export function CreateEditor({
   readonly depth: number;
 }) {
   const actions = useFolderActions();
+  const close = useOwnEditClose();
   const copy = FOLDER_COPY[kind];
   return (
     <FolderNameInput

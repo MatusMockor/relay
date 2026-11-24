@@ -86,6 +86,7 @@ export const undoMove: StateMovePlanner = (messages, thread, copies) => {
       ),
       moves,
     ),
+    markedDone: recorded.some(({ moveOrigin }) => moveOrigin?.markedDone === true) || undefined,
     origins: [
       {
         kind: 'move-origin',

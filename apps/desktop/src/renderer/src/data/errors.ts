@@ -14,6 +14,9 @@ export class MailClientError extends Error {
   }
 }
 
+export const isNotFound = (error: unknown): boolean =>
+  error instanceof MailClientError && error.code === 'not_found';
+
 export const describeError = (error: unknown): string => {
   if (error instanceof MailClientError) {
     return error.message;

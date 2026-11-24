@@ -23,10 +23,12 @@ const buildAutomation = (overrides: Partial<Automation> = {}): Automation => ({
   enabled: true,
   order: 1,
   preset: null,
+  match: 'all',
   conditions: [
     { type: 'fromAddress', address: 'tibor@efabrica.sk' },
     { type: 'jiraEvent', kind: 'mention' },
   ],
+  exceptions: [],
   ai: { runner: 'codex', model: 'gpt-6-luna', effort: 'low', instructions: 'Iba ak niečo chce.' },
   actions: [{ type: 'task' }, { type: 'notify' }],
   ...overrides,
@@ -91,6 +93,80 @@ describe('SqliteAutomationRepository', () => {
     expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([
       buildAutomation({ accountId: work.account.id, actions }),
     ]);
+  });
+
+  it('keeps a rule from a newer version out of the rules it runs and preserves it on replace', async () => {
+    const rule = buildAutomation({ id: automationId('automation-known') });
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+    store.database.sqlite
+      .prepare(
+        `insert into automations (id, user_id, account_id, name, enabled, position, preset, match, conditions, exceptions, ai, actions)
+         values (?, ?, null, ?, 1, 4, null, 'all', ?, '[]', ?, ?)`,
+      )
+      .run(
+        'automation-newer',
+        LOCAL_USER_ID,
+        'Preložiť',
+        JSON.stringify([{ type: 'fromDomain', domain: 'firma.de' }]),
+        JSON.stringify(rule.ai),
+        JSON.stringify([{ type: 'translate', language: 'de' }]),
+      );
+    const newer = {
+      kind: 'unsupported',
+      id: automationId('automation-newer'),
+      name: 'Preložiť',
+      enabled: true,
+      order: 4,
+      accountId: null,
+    };
+
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([rule]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([newer]);
+    await store.repositories.automations.replaceAll(
+      LOCAL_USER_ID,
+      [],
+      [{ id: newer.id, order: 0 }],
+    );
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+    expect(await store.repositories.automations.listUnsupported(LOCAL_USER_ID)).toEqual([
+      { ...newer, order: 0 },
+    ]);
+  });
+
+  it('stores reminder, forward and AI reply draft actions', async () => {
+    const actions: Automation['actions'] = [
+      { type: 'draftReply' },
+      { type: 'forward', to: 'uctovnicka@firma.sk' },
+      { type: 'remind', afterDays: 7 },
+    ];
+
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [
+      buildAutomation({ accountId: work.account.id, actions }),
+    ]);
+
+    expect((await store.repositories.automations.listByUser(LOCAL_USER_ID))[0]?.actions).toEqual(
+      actions,
+    );
+  });
+
+  it('stores the match mode, exceptions and subject contains conditions', async () => {
+    const rule = buildAutomation({
+      accountId: work.account.id,
+      match: 'any',
+      conditions: [
+        { type: 'subjectContains', value: 'faktúra' },
+        { type: 'fromDomain', domain: 'dodavatel.sk' },
+      ],
+      exceptions: [{ type: 'fromAddress', address: 'noreply@firma.sk' }, { type: 'hasAttachment' }],
+    });
+
+    await store.repositories.automations.replaceAll(LOCAL_USER_ID, [rule]);
+
+    expect(await store.repositories.automations.listByUser(LOCAL_USER_ID)).toEqual([rule]);
   });
 
   it('creates a preset only once per user', async () => {

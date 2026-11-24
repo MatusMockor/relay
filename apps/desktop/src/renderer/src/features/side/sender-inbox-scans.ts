@@ -1,10 +1,10 @@
-import type { Split, ThreadSummary } from '@relay/shared';
+import type { SplitEntry, ThreadSummary } from '@relay/shared';
 import type { ThreadScanParams } from '../../data/hooks/thread-scan';
 
-const hidesInboxTasks = (splits: readonly Split[]): boolean =>
+const hidesInboxTasks = (splits: readonly SplitEntry[]): boolean =>
   splits.some((split) => split.exclusive && split.hideTasks);
 
-export const senderInboxScans = (splits: readonly Split[]): ThreadScanParams[] => [
+export const senderInboxScans = (splits: readonly SplitEntry[]): ThreadScanParams[] => [
   { view: 'inbox' },
   ...splits
     .filter((split) => split.exclusive)

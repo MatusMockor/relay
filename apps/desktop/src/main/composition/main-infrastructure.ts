@@ -10,6 +10,7 @@ import type { SecretStore } from '../secure/secret-store';
 import { SecretStoreCalendarFeedSecrets } from '../secure/secret-store-calendar-feed-secrets';
 import { SecretStoreCredentialVault } from '../secure/secret-store-credential-vault';
 import { SecretStoreGoogleCalendarCredentials } from '../secure/secret-store-google-calendar-credentials';
+import { SecretStoreTaskSystemSecrets } from '../secure/secret-store-task-system-secrets';
 import { DeviceSettingsStore } from '../settings/device-settings-store';
 import type { LocalPaths } from './local-paths';
 
@@ -31,6 +32,7 @@ export interface MainInfrastructure {
   readonly vault: SecretStoreCredentialVault;
   readonly calendarFeeds: SecretStoreCalendarFeedSecrets;
   readonly googleCalendarCredentials: SecretStoreGoogleCalendarCredentials;
+  readonly taskSystemSecrets: SecretStoreTaskSystemSecrets;
   readonly deviceSettings: DeviceSettingsStore;
 }
 
@@ -51,6 +53,9 @@ export const createMainInfrastructure = (input: MainInfrastructureInput): MainIn
     ),
     googleCalendarCredentials: new SecretStoreGoogleCalendarCredentials(
       new NamespacedSecretStore(secrets, 'google-calendar'),
+    ),
+    taskSystemSecrets: new SecretStoreTaskSystemSecrets(
+      new NamespacedSecretStore(secrets, 'task-systems'),
     ),
     deviceSettings: new DeviceSettingsStore(input.paths.deviceSettings),
   };

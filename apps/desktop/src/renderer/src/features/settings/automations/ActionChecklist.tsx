@@ -4,16 +4,21 @@ import {
   conflictOf,
   pickedTarget,
   replaceAction,
+  replaceNoteOf,
   toggleSimple,
   withoutAction,
 } from './action-choices';
-import { actionKey, type ActionTargets, describeAction, moveChoiceLabel } from './action-targets';
+import { FORWARD_IDLE_LABEL } from './action-params';
+import { type ActionTargets, describeAction, moveChoiceLabel } from './action-targets';
 import { ActionTargetPopover, type TargetPicking } from './ActionTargetPopover';
 import type { TargetKind } from './ActionTargetMenu';
 import { AI_ACTIONS, ACTION_LABELS, SIMPLE_ACTIONS } from './automation-labels';
 import { CheckRow } from './CheckRow';
 import type { RuleChange } from './editable-rule';
+import { ForwardRow } from './ForwardRow';
+import { LabelActionRows } from './LabelActionRows';
 import { MoveTarget } from './MoveTarget';
+import { RemindRow } from './RemindRow';
 
 export interface ActionChecklistProps {
   readonly actions: readonly AutomationAction[];
@@ -26,6 +31,13 @@ export interface ActionChecklistProps {
 
 const isMove = (action: AutomationAction): action is AutomationActionOf<'moveTo'> =>
   action.type === 'moveTo';
+
+const popoverTitle = (kind: TargetKind, moveLabel: string): string => {
+  if (kind === 'moveTo') {
+    return moveLabel;
+  }
+  return kind === 'forward' ? FORWARD_IDLE_LABEL : 'Pridať štítok';
+};
 
 export function ActionChecklist({
   actions,
@@ -50,31 +62,27 @@ export function ActionChecklist({
     };
   return (
     <section className="au-sec" aria-labelledby="au-what">
-      <h3 id="au-what">Čo spraviť</h3>
+      <h3 id="au-what">Potom</h3>
       <div className="au-acts">
-        {SIMPLE_ACTIONS.map((type) => {
-          const checked = actions.some((action) => action.type === type);
-          return (
-            <CheckRow
-              key={type}
-              label={ACTION_LABELS[type]}
-              ai={AI_ACTIONS.includes(type)}
-              checked={checked}
-              note={!checked && conflictOf(actions, type) !== null ? 'Nahradí presun' : null}
-              disabled={disabled}
-              onToggle={() => {
-                apply(toggleSimple(actions, type));
-              }}
-            />
-          );
-        })}
+        {SIMPLE_ACTIONS.map((type) => (
+          <CheckRow
+            key={type}
+            label={ACTION_LABELS[type]}
+            ai={AI_ACTIONS.includes(type)}
+            checked={actions.some((action) => action.type === type)}
+            note={replaceNoteOf(actions, type)}
+            disabled={disabled}
+            onToggle={() => {
+              apply(toggleSimple(actions, type));
+            }}
+          />
+        ))}
+        <RemindRow actions={actions} disabled={disabled} onApply={apply} />
         <CheckRow
           label={moveLabel}
           checked={move !== null}
           broken={move !== null && describeAction(move, targets).broken}
-          note={
-            move === null && conflictOf(actions, 'moveTo') !== null ? 'Nahradí archiváciu' : null
-          }
+          note={move === null ? replaceNoteOf(actions, 'moveTo') : null}
           disabled={disabled}
           onToggle={(event) => {
             if (move === null) {
@@ -93,35 +101,24 @@ export function ActionChecklist({
             />
           )}
         </CheckRow>
-        {actions.map((action) => {
-          if (action.type !== 'addLabel') {
-            return null;
-          }
-          const view = describeAction(action, targets);
-          return (
-            <CheckRow
-              key={actionKey(action)}
-              label={view.label}
-              broken={view.broken}
-              checked
-              disabled={disabled}
-              onToggle={() => {
-                apply(withoutAction(actions, action));
-              }}
-            />
-          );
-        })}
-        <CheckRow
-          label="Pridať štítok"
-          checked={false}
+        <LabelActionRows
+          actions={actions}
+          targets={targets}
           disabled={disabled}
-          onToggle={pick('addLabel', null)}
+          onApply={apply}
+          onAdd={pick('addLabel', null)}
+        />
+        <ForwardRow
+          actions={actions}
+          disabled={disabled}
+          onApply={apply}
+          onPick={(current) => pick('forward', current)}
         />
       </div>
       {picking === null ? null : (
         <ActionTargetPopover
           picking={picking}
-          title={picking.kind === 'moveTo' ? moveLabel : 'Pridať štítok'}
+          title={popoverTitle(picking.kind, moveLabel)}
           actions={actions}
           accountId={accountId}
           accounts={accounts}
@@ -132,7 +129,11 @@ export function ActionChecklist({
             setPicking(null);
             onChange(
               pickedTarget(
-                replaceAction(actions, picking.current ?? conflictOf(actions, 'moveTo'), action),
+                replaceAction(
+                  actions,
+                  picking.current ?? conflictOf(actions, picking.kind),
+                  action,
+                ),
                 picked,
                 accountId,
               ),

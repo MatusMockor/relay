@@ -8,10 +8,13 @@ import { NAV_VIEWS, VIEW_META, viewOf } from '../../state/folders';
 import { setUi, useUiStore } from '../../state/ui-store';
 import { centerRect } from '../folders/rect';
 import { useMailActions } from '../mail/MailActionsProvider';
-import { openRight, openSearch, selectFolder, toggleRight } from '../mail/navigation';
+import { openRight, selectFolder, toggleRight } from '../mail/navigation';
+import { openSearchPalette } from '../search/search-actions';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { splitGKey, splitsInScope } from '../shell/SplitTabs';
 import { useLayout } from '../shell/use-layout';
+import { useSetTaskPriority } from '../tasks/use-set-task-priority';
+import { priorityCommands } from './priority-commands';
 import { threadComposeCommands } from './thread-compose-commands';
 import { threadActionCommands } from './thread-action-commands';
 import { scopeCommands } from './scope-commands';
@@ -55,6 +58,7 @@ export const useCommands = (): Command[] => {
   const ctx = current?.kind === 'thread' ? current.thread.subject.slice(0, 38) : undefined;
   const thread = current?.kind === 'thread' ? current.thread : null;
   const inTasks = useUiStore((state) => viewOf(state.folder) === 'tasks');
+  const setPriority = useSetTaskPriority();
   const restoring = !inTasks && thread !== null && RESTORING_STATES.includes(thread.state);
   const settings =
     (section: 'accounts' | 'server' | 'look' | 'keys' = 'accounts', adding = false) =>
@@ -105,6 +109,7 @@ export const useCommands = (): Command[] => {
                 },
                 ...threadComposeCommands(thread.id, ctx, actions.compose),
                 ...threadActionCommands(thread, ctx, actions.thread),
+                ...(inTasks ? priorityCommands(thread, ctx, setPriority) : []),
               ]),
           {
             id: 'trash',
@@ -237,11 +242,11 @@ export const useCommands = (): Command[] => {
     },
     {
       id: 'search',
-      label: 'Hľadať v zozname',
-      keys: ['/'],
+      label: 'Hľadať v pošte',
+      keys: [`${MOD}F`],
       icon: <Icon name="search" />,
-      alias: 'search filter',
-      run: openSearch,
+      alias: 'search filter hladat zoznam',
+      run: openSearchPalette,
     },
     {
       id: 'reset-widths',

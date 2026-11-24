@@ -2,6 +2,7 @@ import type { AccountId, Address, MessageId, SettingsSection, ThreadId } from '@
 import { create } from 'zustand';
 import type { AnchorRect } from '@relay/ui';
 import { type AccountScope, type Folder, INBOX } from './folders';
+import type { SearchFilters } from './search-filters';
 
 export type RightTab = 'contact' | 'ai' | 'calendar';
 export type { SettingsSection };
@@ -21,14 +22,35 @@ export interface ComposeInit {
   readonly forward?: { readonly messageId: MessageId; readonly attachmentCount: number };
 }
 
+export type AutomationView =
+  | { readonly kind: 'list' }
+  | { readonly kind: 'templates' }
+  | { readonly kind: 'detail'; readonly key: string };
+
+export interface TaskSystemConnectDraft {
+  readonly siteUrl: string;
+  readonly label: string;
+}
+
+export interface SettingsOverlay {
+  readonly kind: 'settings';
+  readonly section: SettingsSection;
+  readonly adding: boolean;
+  readonly automation?: AutomationView;
+  readonly split?: string;
+  readonly connect?: TaskSystemConnectDraft;
+}
+
 export type OverlayState =
   | { readonly kind: 'palette' }
+  | { readonly kind: 'search' }
   | { readonly kind: 'shortcuts' }
-  | { readonly kind: 'settings'; readonly section: SettingsSection; readonly adding: boolean }
+  | SettingsOverlay
   | { readonly kind: 'compose'; readonly init: ComposeInit; readonly scope: AccountScope }
   | { readonly kind: 'remind'; readonly threadId: ThreadId; readonly anchor: AnchorRect }
   | { readonly kind: 'move'; readonly threadId: ThreadId }
   | { readonly kind: 'labels'; readonly threadId: ThreadId }
+  | { readonly kind: 'ruleFromMail'; readonly threadId: ThreadId }
   | { readonly kind: 'accounts'; readonly anchor: AnchorRect };
 
 export interface ReplyState {
@@ -47,6 +69,7 @@ export interface UiState {
   readonly selected: Readonly<Record<string, string>>;
   readonly searchOpen: boolean;
   readonly query: string;
+  readonly searchFilters: SearchFilters | null;
   readonly leftUser: boolean | null;
   readonly rightOpen: boolean;
   readonly rightTab: RightTab;
@@ -65,6 +88,7 @@ export const INITIAL_UI: UiState = {
   selected: {},
   searchOpen: false,
   query: '',
+  searchFilters: null,
   leftUser: null,
   rightOpen: true,
   rightTab: 'contact',
@@ -83,6 +107,13 @@ export const toggleCollapsed = (key: string): void => {
     const { [key]: wasCollapsed = false, ...rest } = state.collapsed;
     return { collapsed: wasCollapsed ? rest : { ...rest, [key]: true } };
   });
+};
+
+export const expandCollapsed = (key: string): void => {
+  if (useUiStore.getState().collapsed[key] !== true) {
+    return;
+  }
+  toggleCollapsed(key);
 };
 
 export const setUi = (patch: Partial<UiState> | ((state: UiState) => Partial<UiState>)): void => {

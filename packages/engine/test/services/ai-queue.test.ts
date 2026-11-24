@@ -144,7 +144,13 @@ describe('persistent AI queue', () => {
     engine.claude.respondWith(() => [
       {
         type: 'completed',
-        output: { kind: 'createTask', threadId, title: 'Zaplatiť', aiWhat: 'Do piatku.' },
+        output: {
+          kind: 'createTask',
+          threadId,
+          title: 'Zaplatiť',
+          aiWhat: 'Do piatku.',
+          priority: 'none',
+        },
       },
     ]);
     const job = await engine.services.ai.createJob(USER_ID, {
@@ -174,7 +180,13 @@ describe('persistent AI queue', () => {
       return [
         {
           type: 'completed',
-          output: { kind: 'createTask', threadId, title: 'Zaplatiť', aiWhat: 'Do piatku.' },
+          output: {
+            kind: 'createTask',
+            threadId,
+            title: 'Zaplatiť',
+            aiWhat: 'Do piatku.',
+            priority: 'none',
+          },
         },
       ];
     });

@@ -119,6 +119,7 @@ describe('guarded Postgres writes', () => {
       aiWhat: null,
       state: 'open',
       source: 'manual',
+      priority: 'none',
       createdAt: at(0),
       updatedAt: at(0),
     };

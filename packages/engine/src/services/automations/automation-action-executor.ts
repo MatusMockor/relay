@@ -1,6 +1,7 @@
-import type { AutomationAction, AutomationActionType } from '@relay/shared/domain';
+import type { AutomationAction, AutomationActivityAction } from '@relay/shared/domain';
 import type { Logger } from '../../ports/logger';
 import { errorMessage } from '../shared/mail-provider-sessions';
+import { refusalReasonOf } from './automation-action-refusal';
 import {
   type AutomationActionContext,
   type AutomationActionHandlers,
@@ -17,19 +18,39 @@ export class AutomationActionExecutor {
   async execute(
     context: AutomationActionContext,
     actions: readonly AutomationAction[],
-  ): Promise<AutomationActionType[]> {
-    const failed: AutomationActionType[] = [];
+  ): Promise<AutomationActivityAction[]> {
+    const outcomes: AutomationActivityAction[] = [];
     for (const action of orderedActions(actions)) {
-      await runAction(this.handlers, context, action).catch((error: unknown) => {
-        failed.push(action.type);
-        this.logger.warn('An automation action failed', {
-          automationId: context.automation.id,
-          action: action.type,
-          messageId: context.arrival.message.id,
-          error: errorMessage(error),
-        });
-      });
+      outcomes.push(await this.run(context, action));
     }
-    return failed;
+    return outcomes;
+  }
+
+  private async run(
+    context: AutomationActionContext,
+    action: AutomationAction,
+  ): Promise<AutomationActivityAction> {
+    try {
+      const effect = await runAction(this.handlers, context, action);
+      return { action, outcome: 'ok', ...effect, undo: null, reason: null };
+    } catch (error: unknown) {
+      this.logger.warn('An automation action failed', {
+        automationId: context.automation.id,
+        action: action.type,
+        messageId: context.arrival.message.id,
+        error: errorMessage(error),
+      });
+      return {
+        action,
+        outcome: 'failed',
+        changed: [],
+        previousState: null,
+        origins: [],
+        labelled: [],
+        reminder: null,
+        undo: null,
+        reason: refusalReasonOf(error) ?? null,
+      };
+    }
   }
 }

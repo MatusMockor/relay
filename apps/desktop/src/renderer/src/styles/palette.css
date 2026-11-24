@@ -22,10 +22,6 @@
   color: var(--fg);
   font-size: var(--fs-lg);
 }
-.pal-in:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
 .pal-in input::placeholder {
   color: var(--muted);
 }

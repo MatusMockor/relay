@@ -1,4 +1,5 @@
 import type { AccountRepository } from './account-repository';
+import type { AutomationActivityRepository } from './automation-activity-repository';
 import type { AiJobRepository } from './ai-job-repository';
 import type { AiResultRepository } from './ai-result-repository';
 import type { AutomationCandidateRepository } from './automation-candidate-repository';
@@ -23,6 +24,7 @@ import type { SettingsRepository } from './settings-repository';
 import type { SplitRepository } from './split-repository';
 import type { SyncStateRepository } from './sync-state-repository';
 import type { TaskRepository } from './task-repository';
+import type { TaskSystemConnectionRepository } from './task-system-connection-repository';
 import type { ThreadRepository } from './thread-repository';
 
 export interface Repositories {
@@ -34,6 +36,7 @@ export interface Repositories {
   readonly splits: SplitRepository;
   readonly automations: AutomationRepository;
   readonly automationRuns: AutomationRunRepository;
+  readonly automationActivity: AutomationActivityRepository;
   readonly automationCandidates: AutomationCandidateRepository;
   readonly tasks: TaskRepository;
   readonly reminders: ReminderRepository;
@@ -50,4 +53,5 @@ export interface Repositories {
   readonly googleCalendars: GoogleCalendarRepository;
   readonly googleEvents: GoogleEventRepository;
   readonly inviteCandidates: InviteCandidateRepository;
+  readonly taskSystemConnections: TaskSystemConnectionRepository;
 }

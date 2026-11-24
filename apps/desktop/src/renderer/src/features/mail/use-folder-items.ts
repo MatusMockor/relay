@@ -1,24 +1,42 @@
 import { useMemo } from 'react';
 import { useDrafts, useScheduled, useThreadList } from '../../data/hooks/use-mail-queries';
-import { listParamsOf, usesThreadList } from '../../state/folders';
+import {
+  type ListPaging,
+  NO_PAGING,
+  useThreadListPaging,
+} from '../../data/hooks/use-thread-list-paging';
+import { usesThreadList } from '../../state/folders';
 import { useUiStore } from '../../state/ui-store';
+import { orderTaskItems, priorityOfItem } from '../tasks/thread-priorities';
+import { usePendingPriorities } from '../tasks/use-pending-priorities';
 import { draftItems, type ListItem, scheduledItems, threadItem } from './list-items';
+import { useListParams } from './use-list-params';
 
 export interface FolderItems {
   readonly items: readonly ListItem[];
   readonly loading: boolean;
+  readonly paging: ListPaging;
+  readonly placeholder: boolean;
 }
 
 export const useFolderItems = (): FolderItems => {
   const folder = useUiStore((state) => state.folder);
   const scope = useUiStore((state) => state.scope);
-  const query = useUiStore((state) => state.query);
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
-  const threads = useThreadList(listParamsOf(folder, scope, query), usesThreadList(folder));
+  const isTasks = folder.kind === 'view' && folder.view === 'tasks';
+  const isTaskSystem = folder.kind === 'taskSystem';
+  const pending = usePendingPriorities();
+  const params = useListParams();
+  const threads = useThreadList(params, usesThreadList(folder));
+  const threadPaging = useThreadListPaging(
+    params,
+    threads.isPlaceholderData ? undefined : threads.data,
+  );
+  const paging = usesThreadList(folder) ? threadPaging : NO_PAGING;
   const drafts = useDrafts();
   const scheduled = useScheduled();
-  return useMemo(() => {
+  const listed = useMemo(() => {
     const inScope = (item: ListItem) =>
       scope === 'all' ||
       (item.kind === 'thread'
@@ -26,6 +44,9 @@ export const useFolderItems = (): FolderItems => {
         : item.kind === 'draft'
           ? item.draft.accountId
           : item.scheduled.accountId) === scope;
+    if (isTaskSystem) {
+      return { items: [], loading: false };
+    }
     if (isDrafts) {
       return {
         items: draftItems(drafts.data ?? [], scheduled.data ?? []).filter(inScope),
@@ -38,8 +59,15 @@ export const useFolderItems = (): FolderItems => {
         loading: scheduled.isPending,
       };
     }
-    return { items: (threads.data?.items ?? []).map(threadItem), loading: threads.isPending };
+    const items = (threads.data?.items ?? []).map(threadItem);
+    return {
+      items: isTasks ? orderTaskItems(items, priorityOfItem(pending)) : items,
+      loading: threads.isPending,
+    };
   }, [
+    isTaskSystem,
+    isTasks,
+    pending,
     isDrafts,
     isScheduled,
     drafts.data,
@@ -50,4 +78,6 @@ export const useFolderItems = (): FolderItems => {
     threads.isPending,
     scope,
   ]);
+  const placeholder = usesThreadList(folder) && threads.isPlaceholderData;
+  return { ...listed, paging, placeholder };
 };

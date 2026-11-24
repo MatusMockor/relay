@@ -1,4 +1,11 @@
-import type { AccountId, FolderView, LabelId, MailboxId, SplitId } from '@relay/shared/domain';
+import type {
+  AccountId,
+  FolderView,
+  LabelId,
+  MailboxId,
+  SplitId,
+  ThreadSearchField,
+} from '@relay/shared/domain';
 import type { PageRequest } from './page';
 
 export interface ThreadFolderQuery extends PageRequest {
@@ -8,4 +15,8 @@ export interface ThreadFolderQuery extends PageRequest {
   readonly labelId: LabelId | null;
   readonly mailboxId: MailboxId | null;
   readonly search: string | null;
+  readonly searchField?: ThreadSearchField | null;
+  readonly everywhere?: boolean;
+  readonly hasAttachment?: boolean;
+  readonly unread?: boolean;
 }

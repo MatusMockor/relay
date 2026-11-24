@@ -2,6 +2,7 @@ import type { EndpointDefinition } from './endpoint';
 import { accountsEndpoints, oauthEndpoints } from './endpoints/accounts';
 import { aiEndpoints } from './endpoints/ai';
 import { attachmentsEndpoints } from './endpoints/attachments';
+import { automationHistoryEndpoints } from './endpoints/automation-history';
 import { automationsEndpoints } from './endpoints/automations';
 import { authEndpoints } from './endpoints/auth';
 import { calendarEndpoints } from './endpoints/calendar';
@@ -15,6 +16,7 @@ import { labelsEndpoints } from './endpoints/labels';
 import { settingsEndpoints } from './endpoints/settings';
 import { splitsEndpoints } from './endpoints/splits';
 import { syncEndpoints } from './endpoints/sync';
+import { taskSystemsEndpoints } from './endpoints/task-systems';
 import { tasksEndpoints } from './endpoints/tasks';
 import { threadsEndpoints } from './endpoints/threads';
 
@@ -31,8 +33,10 @@ export const api = {
   attachments: attachmentsEndpoints,
   draftAttachments: draftAttachmentsEndpoints,
   tasks: tasksEndpoints,
+  taskSystems: taskSystemsEndpoints,
   splits: splitsEndpoints,
   automations: automationsEndpoints,
+  automationHistory: automationHistoryEndpoints,
   settings: settingsEndpoints,
   sync: syncEndpoints,
   ai: aiEndpoints,

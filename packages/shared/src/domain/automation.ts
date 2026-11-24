@@ -3,46 +3,26 @@ import { AiRunnerKindSchema } from './ai';
 import { AutomationActionsSchema } from './automation-action';
 import { AiEffortSchema, AiModelIdSchema, refineAiModelChoice } from './ai-model-catalog';
 import { AccountIdSchema, AutomationIdSchema, UserIdSchema } from './ids';
-import { JiraEventKindSchema } from './jira-event';
 import {
-  FromAddressRuleSchema,
-  FromDomainRuleSchema,
-  HeaderRuleSchema,
-  JiraRuleSchema,
-  SubjectRegexRuleSchema,
-} from './split';
+  AutomationConditionSchema,
+  AutomationMatchModeSchema,
+  MAX_AUTOMATION_CONDITIONS,
+} from './automation-condition';
 
-export const JiraEventConditionSchema = z.object({
-  type: z.literal('jiraEvent'),
-  kind: JiraEventKindSchema,
-});
-
-export const RecipientFieldSchema = z.enum(['to', 'cc', 'any']);
-export type RecipientField = z.infer<typeof RecipientFieldSchema>;
-
-export const RecipientConditionSchema = z.object({
-  type: z.literal('recipient'),
-  field: RecipientFieldSchema,
-  match: z.enum(['address', 'domain']),
-  value: z.string().trim().min(1).max(255),
-});
-
-export const HasAttachmentConditionSchema = z.object({
-  type: z.literal('hasAttachment'),
-});
-
-export const AutomationConditionSchema = z.discriminatedUnion('type', [
-  FromDomainRuleSchema,
-  FromAddressRuleSchema,
-  SubjectRegexRuleSchema,
-  HeaderRuleSchema,
-  JiraRuleSchema,
-  JiraEventConditionSchema,
-  RecipientConditionSchema,
+export {
+  AutomationConditionSchema,
+  type AutomationCondition,
+  type AutomationConditionType,
+  AutomationMatchModeSchema,
+  type AutomationMatchMode,
   HasAttachmentConditionSchema,
-]);
-export type AutomationCondition = z.infer<typeof AutomationConditionSchema>;
-export type AutomationConditionType = AutomationCondition['type'];
+  JiraEventConditionSchema,
+  MAX_AUTOMATION_CONDITIONS,
+  RecipientConditionSchema,
+  type RecipientField,
+  RecipientFieldSchema,
+  SubjectContainsConditionSchema,
+} from './automation-condition';
 
 export const AutomationPresetSchema = z.enum(['jiraTasks']);
 export type AutomationPreset = z.infer<typeof AutomationPresetSchema>;
@@ -65,7 +45,9 @@ export const AutomationSchema = z.object({
   enabled: z.boolean(),
   order: z.number().int().nonnegative(),
   preset: AutomationPresetSchema.nullable(),
-  conditions: z.array(AutomationConditionSchema).min(1).max(20),
+  match: AutomationMatchModeSchema.default('all'),
+  conditions: z.array(AutomationConditionSchema).min(1).max(MAX_AUTOMATION_CONDITIONS),
+  exceptions: z.array(AutomationConditionSchema).max(MAX_AUTOMATION_CONDITIONS).default([]),
   ai: AutomationAiSchema,
   actions: AutomationActionsSchema,
 });

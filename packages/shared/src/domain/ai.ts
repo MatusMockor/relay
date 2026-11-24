@@ -10,7 +10,9 @@ import {
 } from './ids';
 import { AiEffortSchema, AiModelIdSchema } from './ai-model-catalog';
 import { IsoDateTimeSchema, JiraKeySchema } from './primitives';
+import { RuleSuggestionSchema, RuleSuggestRequestSchema } from './rule-suggestion';
 import { ChecklistItemSchema, ReplySuggestionSchema } from './thread';
+import { DEFAULT_TASK_PRIORITY, TaskPrioritySchema } from './task-priority';
 import { TimeZoneSchema } from './time-zone';
 
 export const AiRunnerKindSchema = z.enum(['claude', 'codex']);
@@ -27,6 +29,8 @@ export const AiTaskKindSchema = z.enum([
   'rewrite',
   'createTask',
   'automationTask',
+  'automationDraft',
+  'ruleSuggest',
 ]);
 export type AiTaskKind = z.infer<typeof AiTaskKindSchema>;
 
@@ -86,6 +90,15 @@ export const AiJobInputSchema = z.discriminatedUnion('kind', [
     jiraKey: JiraKeySchema.nullable(),
     timeZone: JobTimeZoneSchema,
   }),
+  z.object({
+    kind: z.literal('automationDraft'),
+    threadId: ThreadIdSchema,
+    messageId: MessageIdSchema,
+    automationId: AutomationIdSchema,
+    instructions: z.string().min(1).max(2_000).nullable(),
+    timeZone: JobTimeZoneSchema,
+  }),
+  RuleSuggestRequestSchema.extend({ kind: z.literal('ruleSuggest') }),
 ]);
 export type AiJobInput = z.infer<typeof AiJobInputSchema>;
 
@@ -108,6 +121,7 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     threadId: ThreadIdSchema,
     title: z.string().min(1).max(500),
     aiWhat: z.string().min(1).max(2_000),
+    priority: TaskPrioritySchema.default(DEFAULT_TASK_PRIORITY),
   }),
   z.object({
     kind: z.literal('automationTask'),
@@ -116,6 +130,13 @@ export const AiOutputSchema = z.discriminatedUnion('kind', [
     title: z.string().max(500),
     description: z.string().max(2_000),
   }),
+  z.object({
+    kind: z.literal('automationDraft'),
+    threadId: ThreadIdSchema,
+    messageId: MessageIdSchema,
+    body: z.string().min(1).max(10_000),
+  }),
+  z.object({ kind: z.literal('ruleSuggest'), suggestion: RuleSuggestionSchema }),
 ]);
 export type AiOutput = z.infer<typeof AiOutputSchema>;
 export type AiOutputOf<K extends AiTaskKind> = Extract<AiOutput, { kind: K }>;

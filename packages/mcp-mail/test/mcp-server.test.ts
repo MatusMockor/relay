@@ -30,6 +30,7 @@ const TaskViewSchema = z.object({
   title: z.string(),
   what: z.string().nullable(),
   state: z.string(),
+  priority: z.string(),
 });
 const DraftViewSchema = z.object({
   draftId: z.string(),
@@ -50,7 +51,7 @@ describe('relay mail MCP server', () => {
         htmlBody: '<p>Ahoj&nbsp;<b>Jana</b></p><script>x()</script>',
       }),
     ]);
-    mail.addThread(USER_A, thread('thr_2', { subject: 'Obed', state: 'done' }));
+    mail.addThread(USER_A, thread('thr_2', { subject: 'Obed', state: 'done', markedDone: true }));
     mail.addThread(USER_B, thread('thr_9', { subject: 'Faktúra cudzia' }));
     mail.tasks.push(
       task('tsk_a', USER_A),
@@ -184,6 +185,7 @@ describe('relay mail MCP server', () => {
       .parse(await callJson(connected.client, 'list_tasks', { state: 'open' }));
 
     expect(page.tasks.map((item) => item.taskId)).toEqual(['tsk_a']);
+    expect(page.tasks[0]?.priority).toBe('none');
   });
 
   it('creates a task linked to a thread', async () => {
@@ -192,6 +194,7 @@ describe('relay mail MCP server', () => {
         title: 'Zaplatiť faktúru',
         threadId: 'thr_1',
         what: 'Do piatku.',
+        priority: 'high',
       }),
     );
 
@@ -199,12 +202,27 @@ describe('relay mail MCP server', () => {
       threadId: 'thr_1',
       title: 'Zaplatiť faktúru',
       what: 'Do piatku.',
+      priority: 'high',
     });
     expect(mail.tasks.at(-1)).toMatchObject({
       userId: USER_A,
       source: 'ai',
       title: 'Zaplatiť faktúru',
+      priority: 'high',
     });
+  });
+
+  it('creates a task without a priority as none and rejects an unknown priority', async () => {
+    const created = TaskViewSchema.parse(
+      await callJson(connected.client, 'create_task', { title: 'Zavolať Jane' }),
+    );
+    const invalid = await connected.client.callTool({
+      name: 'create_task',
+      arguments: { title: 'Zavolať Jane', priority: 'asap' },
+    });
+
+    expect(created.priority).toBe('none');
+    expect(invalid.isError).toBe(true);
   });
 
   it('creates a draft without sending it', async () => {

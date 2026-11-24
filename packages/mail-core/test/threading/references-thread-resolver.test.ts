@@ -13,6 +13,7 @@ interface IndexedMessage {
   readonly accountId: AccountId;
   readonly threadId: ThreadId;
   readonly messageId: string;
+  readonly inReplyTo?: string;
   readonly subject: string;
   readonly date: string;
 }
@@ -24,6 +25,14 @@ class InMemoryThreadLookup implements ThreadLookup {
     const match = messageIds
       .map((id) => this.messages.find((m) => m.accountId === accountId && m.messageId === id))
       .find((message) => message !== undefined);
+    return Promise.resolve(match?.threadId ?? null);
+  }
+
+  findByReplyTo(accountId: AccountId, messageIds: readonly string[]): Promise<ThreadId | null> {
+    const match = this.messages.find(
+      (m) =>
+        m.accountId === accountId && m.inReplyTo !== undefined && messageIds.includes(m.inReplyTo),
+    );
     return Promise.resolve(match?.threadId ?? null);
   }
 
@@ -53,6 +62,14 @@ const existing: IndexedMessage[] = [
     threadId: 'thread_b' as ThreadId,
     messageId: '<other@x>',
     subject: 'Rozpočet 2027',
+    date: '2026-11-12T10:00:00Z',
+  },
+  {
+    accountId,
+    threadId: 'thread_d' as ThreadId,
+    messageId: '<child@x>',
+    inReplyTo: '<late-parent@x>',
+    subject: 'Re: Ponuka',
     date: '2026-11-12T10:00:00Z',
   },
   {
@@ -91,6 +108,29 @@ describe('ReferencesThreadResolver', () => {
 
     expect(await resolver().resolve(accountId, message)).toEqual({
       threadId: 'thread_a',
+      isNew: false,
+    });
+  });
+
+  it('joins the thread of a stored reply when its parent arrives later', async () => {
+    const message = parsedMessage({ messageIdHeader: '<late-parent@x>', subject: 'Ponuka' });
+
+    expect(await resolver().resolve(accountId, message)).toEqual({
+      threadId: 'thread_d',
+      isNew: false,
+    });
+  });
+
+  it('joins a sibling reply that answers the same missing parent', async () => {
+    const message = parsedMessage({
+      messageIdHeader: '<sibling@x>',
+      inReplyTo: '<late-parent@x>',
+      references: ['<late-parent@x>'],
+      subject: 'Iná téma',
+    });
+
+    expect(await resolver().resolve(accountId, message)).toEqual({
+      threadId: 'thread_d',
       isNew: false,
     });
   });

@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { AccountStatusSchema, MailAccountSchema } from '../domain/account';
 import { AiJobSchema } from '../domain/ai';
-import { AutomationSchema } from '../domain/automation';
+import { AutomationEntriesSchema } from '../domain/automation-entry';
 import { CalendarSourceKindSchema } from '../domain/calendar-event';
 import { DraftSchema } from '../domain/draft';
+import { HistoryProgressSchema } from '../domain/history-progress';
 import { LabelSchema } from '../domain/label';
 import { MailboxSchema } from '../domain/mailbox';
 import {
@@ -11,13 +12,14 @@ import {
   AutomationIdSchema,
   DraftIdSchema,
   MailboxIdSchema,
+  TaskSystemConnectionIdSchema,
   ThreadIdSchema,
 } from '../domain/ids';
 import { MessageSchema } from '../domain/message';
 import { IsoDateTimeSchema } from '../domain/primitives';
 import { ScheduledSendSchema } from '../domain/scheduled-send';
 import { UserSettingsSchema } from '../domain/settings';
-import { SplitSchema } from '../domain/split';
+import { SplitEntriesSchema } from '../domain/split-entry';
 import { TaskSchema } from '../domain/task';
 import { ThreadSummarySchema } from '../domain/thread';
 
@@ -35,6 +37,11 @@ export const ThreadUpsertedEventSchema = event(
 export const ThreadRemovedEventSchema = event(
   'thread.removed',
   z.object({ threadId: ThreadIdSchema, accountId: AccountIdSchema }),
+);
+
+export const ThreadsChangedEventSchema = event(
+  'threads.changed',
+  z.object({ accountId: AccountIdSchema, count: z.number().int().nonnegative() }),
 );
 
 export const MessageUpsertedEventSchema = event(
@@ -72,6 +79,8 @@ export const SyncProgressEventSchema = event(
   }),
 );
 
+export const SyncHistoryEventSchema = event('sync.history', HistoryProgressSchema);
+
 export const AccountUpsertedEventSchema = event(
   'account.upserted',
   z.object({ account: MailAccountSchema }),
@@ -93,12 +102,12 @@ export const ScheduledSendUpsertedEventSchema = event(
 
 export const SplitsUpdatedEventSchema = event(
   'splits.updated',
-  z.object({ splits: z.array(SplitSchema) }),
+  z.object({ splits: SplitEntriesSchema }),
 );
 
 export const AutomationsUpdatedEventSchema = event(
   'automations.updated',
-  z.object({ automations: z.array(AutomationSchema) }),
+  z.object({ automations: AutomationEntriesSchema }),
 );
 
 export const AutomationNotifiedEventSchema = event(
@@ -127,15 +136,22 @@ export const LabelsUpdatedEventSchema = event(
   z.object({ accountId: AccountIdSchema, labels: z.array(LabelSchema) }),
 );
 
+export const TaskSystemsUpdatedEventSchema = event(
+  'taskSystems.updated',
+  z.object({ connectionId: TaskSystemConnectionIdSchema }),
+);
+
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
+  ThreadsChangedEventSchema,
   MessageUpsertedEventSchema,
   TaskUpsertedEventSchema,
   AccountStatusEventSchema,
   AiJobUpdatedEventSchema,
   SettingsUpdatedEventSchema,
   SyncProgressEventSchema,
+  SyncHistoryEventSchema,
   AccountUpsertedEventSchema,
   AccountRemovedEventSchema,
   DraftUpsertedEventSchema,
@@ -147,6 +163,7 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   CalendarUpdatedEventSchema,
   MailboxesUpdatedEventSchema,
   LabelsUpdatedEventSchema,
+  TaskSystemsUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
 export type RealtimeEventType = RealtimeEvent['type'];

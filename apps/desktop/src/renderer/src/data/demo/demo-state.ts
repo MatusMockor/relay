@@ -1,5 +1,6 @@
 import type {
   Automation,
+  AutomationActivity,
   ChecklistItem,
   Draft,
   Label,
@@ -26,9 +27,11 @@ export interface DemoState {
   accounts: MailAccount[];
   splits: Split[];
   automations: Automation[];
+  ruleHistory: AutomationActivity[];
   labels: Label[];
   mailboxes: Mailbox[];
   threads: Map<string, DemoThreadRecord>;
+  archive: Map<string, DemoThreadRecord>;
   tasks: Task[];
   drafts: Draft[];
   scheduled: ScheduledSend[];

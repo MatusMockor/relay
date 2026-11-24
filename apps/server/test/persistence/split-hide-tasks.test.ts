@@ -41,6 +41,7 @@ describe('PgThreadRepository split that hides threads in tasks', () => {
       aiWhat: null,
       state,
       source: 'jira',
+      priority: 'none',
       createdAt: at(1),
       updatedAt: at(1),
     });
@@ -53,6 +54,8 @@ describe('PgThreadRepository split that hides threads in tasks', () => {
       accountId: null,
       name: 'Moje Jira tasky',
       order: 0,
+      match: 'any',
+      exceptions: [],
       rules: [{ type: 'jira', projectKeys: [] }],
       exclusive: true,
       hideTasks: false,

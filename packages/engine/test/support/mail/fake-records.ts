@@ -73,3 +73,13 @@ export const statusOf = (server: FakeMailServer, mailbox: FakeMailbox): RemoteMa
     unseen: records.filter((record) => !record.flags.seen).length,
   };
 };
+
+export const scanFlagChanges = (
+  { server, mailbox }: { readonly server: FakeMailServer; readonly mailbox: FakeMailbox },
+  path: string,
+  sinceModseq: string,
+  uids: readonly number[] | undefined,
+): RemoteFlagChange[] => {
+  server.flagScans.push({ path, uids: uids === undefined ? null : [...uids] });
+  return flagChangesOf(mailbox, BigInt(sinceModseq), uids);
+};

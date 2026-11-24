@@ -13,6 +13,7 @@ import type { SplitRepository } from '../../ports/split-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
 import { sameMembers } from '../sync/message-diff';
+import { threadJira } from './thread-jira';
 
 const PAGE_SIZE = 200;
 
@@ -29,6 +30,9 @@ export class SplitMembershipEvaluator {
 
   async evaluate(userId: UserId, accountId: AccountId): Promise<ThreadSummary[]> {
     const splits = await this.deps.splits.listForAccount(userId, accountId);
+    const unsupported = new Set(
+      (await this.deps.splits.listUnsupported(userId)).map((split) => split.id),
+    );
     const threads = new Map<ThreadId, ThreadSummary | null>();
     const membership = new Map<ThreadId, Set<SplitId>>();
     let cursor: string | null = null;
@@ -44,7 +48,9 @@ export class SplitMembershipEvaluator {
           jira: jiraOf(thread),
           splits,
         });
-        const members = membership.get(item.threadId) ?? new Set<SplitId>();
+        const members =
+          membership.get(item.threadId) ??
+          new Set((thread?.splitIds ?? []).filter((splitId) => unsupported.has(splitId)));
         matched.forEach((splitId) => members.add(splitId));
         membership.set(item.threadId, members);
       }
@@ -95,7 +101,7 @@ export class SplitMembershipEvaluator {
 }
 
 const jiraOf = (thread: ThreadSummary | null): JiraClassification | null =>
-  thread?.jiraKey == null ? null : { jiraKey: thread.jiraKey, eventKind: 'other', actor: null };
+  threadJira(thread?.jiraKey);
 
 const sameSplits = (current: readonly Split[], evaluated: readonly Split[]): boolean =>
   JSON.stringify(current) === JSON.stringify(evaluated);

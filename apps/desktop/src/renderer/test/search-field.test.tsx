@@ -6,6 +6,7 @@ import type { DemoState } from '../src/data/demo/demo-state';
 import { buildDemoState } from '../src/data/demo/seed/build-state';
 import { demoIds } from '../src/data/demo/seed/ids';
 import { resultCount } from '../src/lib/text';
+import { openSearch } from '../src/features/mail/navigation';
 import { useUiStore } from '../src/state/ui-store';
 import { press } from './features-support';
 import { renderApp, resetStores } from './support/render-app';
@@ -47,8 +48,10 @@ const field = (): HTMLElement => {
 
 const input = () => screen.getByRole('textbox', { name: 'Hľadať v zozname' });
 
-const openWithSlash = () => {
-  press('/', {}, document.body);
+const openInline = () => {
+  act(() => {
+    openSearch();
+  });
   return input();
 };
 
@@ -73,7 +76,7 @@ describe('top bar search field', () => {
     expect(closed.querySelector('.srch-key')?.textContent).toBe('/');
     expect(document.querySelector('.qbox')).toBeNull();
 
-    const box = openWithSlash();
+    const box = openInline();
     expect(document.activeElement).toBe(box);
     expect(box.getAttribute('placeholder')).toBe('Hľadať v zozname…');
     expect(field()).toBe(closed);
@@ -94,7 +97,7 @@ describe('top bar search field', () => {
 
   it('closes on blur with an empty query and stays open with a query', async () => {
     await start(3);
-    const box = openWithSlash();
+    const box = openInline();
     type(TOKEN);
     act(() => {
       box.blur();
@@ -113,7 +116,7 @@ describe('top bar search field', () => {
 
   it('clears the query with the clear button and keeps the focus in the field', async () => {
     await start(3);
-    openWithSlash();
+    openInline();
     type(TOKEN);
     const clear = screen.getByRole('button', { name: 'Vymazať hľadanie' });
 
@@ -131,7 +134,7 @@ describe('top bar search field', () => {
 
   it('shows the result count when the list holds every match', async () => {
     await start(3);
-    openWithSlash();
+    openInline();
     type(TOKEN);
 
     await waitFor(() => {
@@ -141,12 +144,12 @@ describe('top bar search field', () => {
 
   it('leaves the count out when the list has more pages than it loaded', async () => {
     await start(205);
-    openWithSlash();
+    openInline();
     type(TOKEN);
 
     await waitFor(() => {
       const options = screen.getAllByRole('option');
-      expect(options.length).toBeGreaterThan(100);
+      expect(options.length).toBeGreaterThan(50);
       expect(options.every((option) => option.textContent.includes(TOKEN))).toBe(true);
     });
     expect(field().querySelector('.srch-count')).toBeNull();

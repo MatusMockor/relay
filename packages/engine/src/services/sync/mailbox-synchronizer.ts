@@ -51,7 +51,7 @@ export class MailboxSynchronizer {
     if (state === null) {
       return;
     }
-    await this.deps.reconciler.expunges(context, pass.mailbox, pass.role);
+    await this.deps.reconciler.expunges(context, pass);
     await this.deps.reconciler.flagChanges(context, pass, state, rescanLabels);
     const current = await this.deps.syncStates.find(pass.mailbox.id);
     if (current === null) {

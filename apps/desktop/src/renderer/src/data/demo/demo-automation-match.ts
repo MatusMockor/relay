@@ -1,4 +1,13 @@
-import type { Address, AutomationCondition, Message } from '@relay/shared';
+import {
+  type Address,
+  type AutomationCondition,
+  type AutomationConditionType,
+  type AutomationCriteria,
+  matchesCriteria,
+  type Message,
+  subjectContains,
+} from '@relay/shared';
+import { demoHeaderValues } from './demo-message-headers';
 import type { DemoThreadRecord } from './demo-state';
 
 const inDomain = (email: string, domain: string): boolean => {
@@ -25,7 +34,20 @@ const safeTest = (pattern: string, value: string): boolean => {
   }
 };
 
-const matchesCondition = (condition: AutomationCondition, message: Message): boolean => {
+const matchesJira = (projectKeys: readonly string[], jiraKey: string | null): boolean =>
+  jiraKey !== null &&
+  (projectKeys.length === 0 || projectKeys.includes(jiraKey.split('-')[0] ?? ''));
+
+export const DEMO_UNSUPPORTED_EXCEPTIONS: readonly AutomationConditionType[] = [
+  'jiraEvent',
+  'header',
+];
+
+const matchesCondition = (
+  condition: AutomationCondition,
+  message: Message,
+  jiraKey: string | null,
+): boolean => {
   const sender = message.from?.email.toLowerCase() ?? '';
   switch (condition.type) {
     case 'fromAddress':
@@ -42,15 +64,25 @@ const matchesCondition = (condition: AutomationCondition, message: Message): boo
       );
     case 'hasAttachment':
       return message.attachments.some((attachment) => !attachment.inline);
-    default:
+    case 'subjectContains':
+      return subjectContains(message.subject, condition.value);
+    case 'jira':
+      return matchesJira(condition.projectKeys, jiraKey);
+    case 'header':
+      return demoHeaderValues(message, condition.name).some((value) =>
+        safeTest(condition.pattern, value),
+      );
+    case 'jiraEvent':
       return false;
   }
 };
 
-export const demoRuleMatches = (
-  conditions: readonly AutomationCondition[],
-  record: DemoThreadRecord,
+export const demoMessageMatches = (
+  criteria: AutomationCriteria,
+  message: Message,
+  jiraKey: string | null,
 ): boolean =>
-  record.messages.some((message) =>
-    conditions.every((condition) => matchesCondition(condition, message)),
-  );
+  matchesCriteria(criteria, (condition) => matchesCondition(condition, message, jiraKey));
+
+export const demoRuleMatches = (criteria: AutomationCriteria, record: DemoThreadRecord): boolean =>
+  record.messages.some((message) => demoMessageMatches(criteria, message, record.summary.jiraKey));

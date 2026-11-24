@@ -1,11 +1,19 @@
 import type { Automation } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
-import { enableJiraTasks, JIRA, jobsOf, sync, syncedSetup } from '../support/automations';
+import {
+  enableJiraTasks,
+  JIRA,
+  jobsOf,
+  sync,
+  syncedSetup,
+  listRules,
+  replaceRules,
+} from '../support/automations';
 import { deliverMail, seedAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const preset = async (engine: TestEngine): Promise<Automation> => {
-  const automations = await engine.services.automations.list(USER_ID);
+  const automations = await listRules(engine, USER_ID);
   const found = automations.find((automation) => automation.preset === 'jiraTasks');
   expect(found).toBeDefined();
   return found ?? (automations[0] as Automation);
@@ -13,7 +21,7 @@ const preset = async (engine: TestEngine): Promise<Automation> => {
 
 const updatePreset = async (engine: TestEngine, change: Partial<Automation>): Promise<void> => {
   const current = await preset(engine);
-  await engine.services.automations.replace(USER_ID, {
+  await replaceRules(engine, USER_ID, {
     automations: [{ ...current, enabled: true, ...change }],
   });
 };
@@ -25,8 +33,8 @@ describe('default Jira tasks automation', () => {
   it('is seeded once, turned off, with the existing Jira behavior', async () => {
     const engine = createTestEngine();
 
-    const first = await engine.services.automations.list(USER_ID);
-    const second = await engine.services.automations.list(USER_ID);
+    const first = await listRules(engine, USER_ID);
+    const second = await listRules(engine, USER_ID);
 
     expect(second).toEqual(first);
     expect(first).toEqual([
@@ -51,7 +59,7 @@ describe('default Jira tasks automation', () => {
       headers: { 'X-Jira-Event': 'assigned' },
     });
     await sync(setup);
-    expect(await setup.engine.services.automations.list(USER_ID)).toEqual([
+    expect(await listRules(setup.engine, USER_ID)).toEqual([
       expect.objectContaining({ preset: 'jiraTasks', enabled: false }),
     ]);
     deliverMail(setup.server, 'INBOX', {
@@ -200,12 +208,12 @@ describe('default Jira tasks automation', () => {
     const { account } = await seedAccount(engine);
     const current = await preset(engine);
 
-    const saved = await engine.services.automations.replace(USER_ID, {
+    const saved = await replaceRules(engine, USER_ID, {
       automations: [{ ...current, accountId: account.id }],
     });
 
     expect(saved).toEqual([{ ...current, accountId: account.id }]);
-    expect(await engine.services.automations.list(USER_ID)).toEqual(saved);
+    expect(await listRules(engine, USER_ID)).toEqual(saved);
   });
 
   it('only creates Jira tasks for mail on the account it is scoped to', async () => {

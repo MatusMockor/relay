@@ -59,6 +59,7 @@ const taskUpserted: RealtimeEvent = {
       aiWhat: null,
       state: 'open',
       source: 'manual',
+      priority: 'none',
       createdAt: '2026-11-15T08:00:00.000Z',
       updatedAt: '2026-11-15T08:00:00.000Z',
     },

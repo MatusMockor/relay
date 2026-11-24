@@ -113,6 +113,83 @@ describe('MailparserMessageParser', () => {
       { name: null, email: 'bob@relay.test' },
     ]);
   });
+
+  it('decodes a quoted-printable iso-8859-2 text part', async () => {
+    const parser = new MailparserMessageParser(
+      new FixedClock(new Date('2026-01-02T03:04:05.000Z')),
+    );
+    const source = new TextEncoder().encode(
+      [
+        'From: Jana <jana@klient.sk>',
+        'To: matus@relay.test',
+        'Subject: Faktura',
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="iso-8859-2"',
+        'Content-Transfer-Encoding: quoted-printable',
+        '',
+        'Dobr=FD de=F2, posielam fakt=FAru. =C8au, =B9=BB=BE',
+        '',
+      ].join('\r\n'),
+    );
+
+    const message = await parser.parse(source);
+
+    expect(message.textBody).toBe('Dobrý deň, posielam faktúru. Čau, šťž\n');
+    expect(message.snippet).toBe('Dobrý deň, posielam faktúru. Čau, šťž');
+  });
+
+  it('replaces raw HTML in the text part of an alternative mail with readable text', async () => {
+    const message = await parseFixture('geis-html-in-text.eml');
+
+    expect(message.snippet).toBe(
+      'Zásielka je na ceste k Vám. Číslo zásielky: 12345678. Doručenie očakávajte zajtra.',
+    );
+    expect(message.htmlBody).toContain('<!DOCTYPE html>');
+    expect(message.textBody).toBe(
+      'Zásielka je na ceste k Vám. Číslo zásielky: 12345678.\n\nDoručenie očakávajte zajtra.',
+    );
+  });
+
+  it('treats a single text part full of HTML as the HTML body and keeps a text version', async () => {
+    const message = await parseFixture('html-only-in-text.eml');
+
+    expect(message.htmlBody).toContain('<p>Zásielka bola doručená.</p>');
+    expect(message.textBody).toBe('Zásielka bola doručená.\n\nĎakujeme, že využívate naše služby.');
+    expect(message.snippet).toBe('Zásielka bola doručená. Ďakujeme, že využívate naše služby.');
+  });
+
+  it('leaves the quoted older message out of the snippet when the text part is HTML', async () => {
+    const parser = new MailparserMessageParser(
+      new FixedClock(new Date('2026-01-02T03:04:05.000Z')),
+    );
+    const markup =
+      '<html><body><div>Nová odpoveď</div><div class="gmail_quote"><div>Jana poslala v pondelok:</div><div>Stará správa</div></div></body></html>';
+    const source = new TextEncoder().encode(
+      [
+        'From: Jana <jana@klient.sk>',
+        'To: matus@relay.test',
+        'Subject: Re: Ponuka',
+        'MIME-Version: 1.0',
+        'Content-Type: multipart/alternative; boundary="alt"',
+        '',
+        '--alt',
+        'Content-Type: text/plain; charset="utf-8"',
+        '',
+        markup,
+        '--alt',
+        'Content-Type: text/html; charset="utf-8"',
+        '',
+        markup,
+        '--alt--',
+        '',
+      ].join('\r\n'),
+    );
+
+    const message = await parser.parse(source);
+
+    expect(message.snippet).toBe('Nová odpoveď');
+    expect(message.textBody).toContain('Stará správa');
+  });
 });
 
 describe('buildSnippet', () => {
@@ -124,6 +201,33 @@ describe('buildSnippet', () => {
     expect(snippet.endsWith('slovo…')).toBe(true);
     expect(buildSnippet('Ahoj\n> citácia\nkoniec', null)).toBe('Ahoj koniec');
     expect(buildSnippet('', '<p>Len <b>HTML</b></p>')).toBe('Len HTML');
+  });
+});
+
+describe('buildSnippet with HTML in the text part', () => {
+  const markup =
+    '<!DOCTYPE html>\n<html lang="sk" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head><style>body { color: #333; }</style></head>\n<body><p>Zásielka je na ceste k Vám.</p></body></html>';
+
+  it('prefers the HTML part over markup in the text part', () => {
+    expect(buildSnippet(markup, '<p>Zásielka je na ceste k Vám (HTML).</p>')).toBe(
+      'Zásielka je na ceste k Vám (HTML).',
+    );
+  });
+
+  it('converts the markup when there is no HTML part', () => {
+    expect(buildSnippet(markup, null)).toBe('Zásielka je na ceste k Vám.');
+  });
+
+  it('falls back to the text part when the HTML part has no readable text', () => {
+    expect(buildSnippet('<p>Objednávka bola odoslaná.</p>', '<img src="logo.png">')).toBe(
+      'Objednávka bola odoslaná.',
+    );
+  });
+
+  it('keeps plain text that only mentions tags', () => {
+    expect(buildSnippet('Jan <jan@x.sk> poslal <b> tag a < b', null)).toBe(
+      'Jan <jan@x.sk> poslal <b> tag a < b',
+    );
   });
 });
 

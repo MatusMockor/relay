@@ -1,7 +1,7 @@
 import type { AiJobInput, DraftId, MessageId, ThreadId } from '@relay/shared/domain';
 
 export const threadIdOf = (input: AiJobInput): ThreadId | null => {
-  if (input.kind === 'rewrite') {
+  if (input.kind === 'rewrite' || input.kind === 'ruleSuggest') {
     return null;
   }
   return input.threadId;

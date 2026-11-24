@@ -17,6 +17,8 @@ const jiraSplit = (hideTasks: boolean): Split => ({
   order: 0,
   exclusive: true,
   hideTasks,
+  match: 'any',
+  exceptions: [],
   rules: [{ type: 'jira', projectKeys: [] }],
 });
 
@@ -29,6 +31,7 @@ const jiraTask = (state: Task['state']): Task => ({
   aiWhat: null,
   state,
   source: 'jira',
+  priority: 'none',
   createdAt: '2026-11-10T10:00:00.000Z',
   updatedAt: '2026-11-10T10:00:00.000Z',
 });

@@ -1,56 +1,73 @@
+import type { RuleSuggestion } from '@relay/shared';
 import { Button } from '@relay/ui';
-import { useState } from 'react';
 import { useUserSettings } from '../../../data/hooks/use-mail-queries';
 import { useAccountsModel } from '../../mail/use-accounts-model';
 import { AutomationDetail } from '../automations/AutomationDetail';
 import { AutomationList } from '../automations/AutomationList';
+import { DescribeRule } from '../automations/DescribeRule';
+import { useStagedCleanup } from '../automations/rule-ai/use-staged-cleanup';
+import {
+  renameAutomationDetail,
+  showAutomationView,
+  useAutomationView,
+} from '../automations/automation-view';
 import { RuleTemplates } from '../automations/RuleTemplates';
 import { useAutomationEditor } from '../automations/use-automation-editor';
 import { useDefaultRule } from '../automations/use-default-rule';
 import { SettingRow } from '../SettingRow';
 import { SectionHeader } from '../SectionHeader';
 
-type View =
-  | { readonly kind: 'list' }
-  | { readonly kind: 'detail' }
-  | { readonly kind: 'templates' };
-
-const LIST: View = { kind: 'list' };
-
 export function AutomationsSection() {
-  const editor = useAutomationEditor();
+  const editor = useAutomationEditor(renameAutomationDetail);
   const defaultRule = useDefaultRule();
   const settings = useUserSettings();
   const { accounts } = useAccountsModel();
-  const [view, setView] = useState<View>(LIST);
+  const view = useAutomationView();
   const locked = editor.saving || editor.loading || defaultRule.restoring;
-  const opened = editor.rules.find((rule) => rule.key === editor.editing);
+  const opened =
+    view.kind === 'detail' ? editor.rules.find((rule) => rule.key === view.key) : undefined;
+  useStagedCleanup(editor.rules, opened?.key ?? null, editor.discard);
+  const runner = settings.data?.ai.defaultRunner ?? 'claude';
   const showList = () => {
-    editor.engage(null);
-    setView(LIST);
+    showAutomationView({ kind: 'list' });
+  };
+  const addProposed = (suggestion: RuleSuggestion, sentence: string) => {
+    const key = editor.addProposed(runner, suggestion, sentence);
+    showAutomationView({ kind: 'detail', key });
   };
   if (view.kind === 'templates') {
     return (
       <RuleTemplates
+        accounts={accounts}
         disabled={locked}
         onBack={showList}
         onPick={(template) => {
-          editor.addFrom(template, settings.data?.ai.defaultRunner ?? 'claude');
-          setView({ kind: 'detail' });
+          const key = editor.addFrom(template, runner);
+          showAutomationView({ kind: 'detail', key });
         }}
+        onSuggest={addProposed}
       />
     );
   }
-  if (view.kind === 'detail' && opened !== undefined) {
+  if (opened !== undefined) {
     return (
       <AutomationDetail
-        key={opened.key}
+        key={`${opened.key}#${String(opened.suggestion?.id ?? 0)}`}
         rule={opened}
         accounts={accounts}
         disabled={locked}
         onBack={showList}
         onChange={(change) => {
           editor.change(opened.key, change);
+        }}
+        onSave={() => {
+          editor.save(opened.key);
+        }}
+        onPropose={(suggestion, sentence) => {
+          editor.propose(opened.key, suggestion, sentence);
+        }}
+        onDiscard={() => {
+          editor.discard(opened.key);
         }}
         onRemove={() => {
           editor.remove(opened.key);
@@ -64,25 +81,21 @@ export function AutomationsSection() {
       <SectionHeader title="Automatizácie">
         Keď príde mail, ktorý spĺňa podmienky, Relay spraví zvolené akcie.
       </SectionHeader>
-      <div className="au-bar">
-        <span>Pravidlá sa vyhodnocujú zhora nadol. Poradie zmeníš potiahnutím.</span>
-        <Button
-          variant="primary"
-          disabled={locked}
-          onClick={() => {
-            setView({ kind: 'templates' });
-          }}
-        >
-          + Nové pravidlo
-        </Button>
-      </div>
+      <DescribeRule
+        accounts={accounts}
+        disabled={locked}
+        onNew={() => {
+          showAutomationView({ kind: 'templates' });
+        }}
+        onSuggest={addProposed}
+      />
       <AutomationList
         rules={editor.rules}
+        unsupported={editor.unsupported}
         accounts={accounts}
         disabled={locked}
         onOpen={(key) => {
-          editor.engage(key);
-          setView({ kind: 'detail' });
+          showAutomationView({ kind: 'detail', key });
         }}
         onToggle={(key, enabled) => {
           editor.change(key, { enabled });

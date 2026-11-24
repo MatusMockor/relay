@@ -28,6 +28,8 @@ import { SettingsModule } from './settings/settings.module';
 import { AutomationsModule } from './automations/automations.module';
 import { SplitsModule } from './splits/splits.module';
 import { SyncModule } from './sync/sync.module';
+import { TaskSystemAdaptersModule } from './task-systems/task-system-adapters.module';
+import { TaskSystemsModule } from './task-systems/task-systems.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ThreadsModule } from './threads/threads.module';
 
@@ -46,6 +48,7 @@ export class AppModule {
         AiRuntimeModule,
         CalendarAdaptersModule,
         GoogleCalendarAdaptersModule,
+        TaskSystemAdaptersModule,
         EngineModule,
         JobsModule,
         AuthModule,
@@ -66,6 +69,7 @@ export class AppModule {
         SyncModule,
         CalendarModule,
         GoogleCalendarModule,
+        TaskSystemsModule,
       ],
     };
   }

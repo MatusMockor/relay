@@ -58,7 +58,11 @@ export { SmtpMailSender, type SmtpMailSenderOptions } from './smtp/smtp-mail-sen
 export { DEFAULT_SMTP_TIMEOUTS, type SmtpTimeouts } from './smtp/smtp-transport';
 export { composeMime, type ComposedMime } from './smtp/compose-mime';
 
-export { extractAttachment, type ExtractedAttachment } from './parser/extract-attachment';
+export {
+  extractAttachment,
+  extractAttachments,
+  type ExtractedAttachment,
+} from './parser/extract-attachment';
 export { MailparserAttachmentExtractor } from './parser/mailparser-attachment-extractor';
 export { MailparserMessageParser } from './parser/mailparser-message-parser';
 export {

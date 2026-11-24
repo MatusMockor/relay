@@ -35,6 +35,7 @@ export class FakeMailSender implements MailSender {
       body: message.text,
       inReplyTo: message.inReplyTo,
       references: message.references,
+      headers: message.headers,
     });
     const recipients = [...message.to, ...message.cc, ...message.bcc].map(
       (address) => address.email,

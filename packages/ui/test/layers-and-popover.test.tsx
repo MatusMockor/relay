@@ -1,6 +1,14 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Overlay, Popover, ResizeHandle, resetLayers } from '../src';
+import {
+  openLayerCount,
+  Overlay,
+  Popover,
+  pushLayer,
+  ResizeHandle,
+  resetLayers,
+  subscribeToLayers,
+} from '../src';
 
 afterEach(() => {
   cleanup();
@@ -56,6 +64,23 @@ describe('Layer order', () => {
     fireEvent.keyDown(document.body, { key: 'Escape' });
 
     expect(closed).toEqual(['palette']);
+  });
+
+  it('counts every open layer including nested popovers', () => {
+    const { rerender, unmount } = render(<Overlay onClose={() => undefined}>nastavenia</Overlay>);
+    expect(openLayerCount()).toBe(1);
+
+    rerender(
+      <Overlay onClose={() => undefined}>
+        <Popover anchor={ANCHOR} label="Výber" onClose={() => undefined}>
+          obsah
+        </Popover>
+      </Overlay>,
+    );
+    expect(openLayerCount()).toBe(2);
+
+    unmount();
+    expect(openLayerCount()).toBe(0);
   });
 });
 
@@ -185,5 +210,20 @@ describe('ResizeHandle drag cleanup', () => {
     unmount();
 
     expect(document.body.classList.contains('rz-drag')).toBe(false);
+  });
+});
+
+describe('Layer subscriptions', () => {
+  it('tells subscribers when a layer opens or closes', () => {
+    const counts: number[] = [];
+    const unsubscribe = subscribeToLayers(() => {
+      counts.push(openLayerCount());
+    });
+    const close = pushLayer(() => undefined);
+    close();
+    close();
+    unsubscribe();
+    pushLayer(() => undefined);
+    expect(counts).toEqual([1, 0]);
   });
 });

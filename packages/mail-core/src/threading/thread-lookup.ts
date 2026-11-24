@@ -8,5 +8,6 @@ export interface SubjectWindow {
 
 export interface ThreadLookup {
   findByMessageIds(accountId: AccountId, messageIds: readonly string[]): Promise<ThreadId | null>;
+  findByReplyTo(accountId: AccountId, messageIds: readonly string[]): Promise<ThreadId | null>;
   findBySubject(accountId: AccountId, window: SubjectWindow): Promise<ThreadId | null>;
 }

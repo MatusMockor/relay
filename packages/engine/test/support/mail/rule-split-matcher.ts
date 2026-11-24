@@ -1,4 +1,10 @@
-import type { AutomationCondition, SplitId } from '@relay/shared/domain';
+import {
+  type AutomationCondition,
+  matchesCriteria,
+  type SplitId,
+  splitCriteria,
+  subjectContains,
+} from '@relay/shared/domain';
 import type {
   AutomationMatcher,
   AutomationMatchInput,
@@ -47,6 +53,8 @@ const matchesCondition = (
       );
     case 'hasAttachment':
       return message.hasAttachments === true;
+    case 'subjectContains':
+      return subjectContains(message.subject, rule.value);
   }
 };
 
@@ -55,7 +63,9 @@ export class RuleSplitMatcher implements SplitMatcher {
     return Promise.resolve(
       input.splits
         .filter((split) =>
-          split.rules.some((rule) => matchesCondition(rule, input.message, input.jira)),
+          matchesCriteria(splitCriteria(split), (rule) =>
+            matchesCondition(rule, input.message, input.jira),
+          ),
         )
         .map((split) => split.id),
     );
@@ -65,7 +75,9 @@ export class RuleSplitMatcher implements SplitMatcher {
 export class RuleAutomationMatcher implements AutomationMatcher {
   matches(input: AutomationMatchInput): Promise<boolean> {
     return Promise.resolve(
-      input.conditions.every((condition) => matchesCondition(condition, input.message, input.jira)),
+      matchesCriteria(input.criteria, (condition) =>
+        matchesCondition(condition, input.message, input.jira),
+      ),
     );
   }
 }

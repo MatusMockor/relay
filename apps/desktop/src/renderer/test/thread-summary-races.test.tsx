@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { type ThreadDetail, type ThreadSummary } from '@relay/shared';
+import { type ThreadAiState, type ThreadDetail, type ThreadSummary } from '@relay/shared';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { queryKeys } from '../src/data/hooks/query-keys';
@@ -63,6 +64,15 @@ describe('a requested thread summary stays pending', () => {
     expect(screen.queryByRole('button', { name: SUMMARY_ASK })).toBeNull();
   };
 
+  const jobRunning = async (queryClient: QueryClient, thread: ThreadSummary) => {
+    const key = queryKeys.threadAi(thread.id, thread.lastMessageAt);
+    await waitFor(() => {
+      expect(queryClient.isMutating()).toBe(0);
+      expect(queryClient.getQueryState(key)?.fetchStatus).toBe('idle');
+      expect(queryClient.getQueryData<ThreadAiState>(key)?.pending).toContain('summary');
+    });
+  };
+
   const finish = (served: { detail: ThreadDetail }, thread: ThreadSummary) => {
     served.detail = serverDetail(thread, [], { aiSummary: SUMMARY });
     act(() => {
@@ -116,6 +126,7 @@ describe('a requested thread summary stays pending', () => {
 
     await openFirstThread(server, [thread], queryClient);
     await askForSummary();
+    await jobRunning(queryClient, thread);
     await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.threadAiAll() }));
     expect(requestCount(server, 'threads.prepareAi')).toBe(2);
 

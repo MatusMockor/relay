@@ -1,17 +1,32 @@
-import type { RealtimeEvent, ThreadDetail } from '@relay/shared';
+import type { AccountId, RealtimeEvent, ThreadDetail } from '@relay/shared';
 import type { QueryClient } from '@tanstack/react-query';
 import { applyAiJobUpdate } from './ai-job-cache';
 import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
+import { throttleByKey } from './keyed-throttle';
 import { queryKeys } from './query-keys';
+import { taskSystemKeys } from './task-system-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
+import { recordThreadChange } from './thread-changes';
 
 const invalidate = (client: QueryClient, key: readonly unknown[]) => {
   invalidateBatched(client, key);
 };
 
+const invalidateAccountThreads = (client: QueryClient, accountId: AccountId) => {
+  client
+    .getQueriesData<ThreadDetail>({ queryKey: queryKeys.threadDetails() })
+    .forEach(([key, detail]) => {
+      if (detail?.thread.accountId !== accountId) {
+        return;
+      }
+      invalidate(client, key);
+    });
+};
+
 export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): void => {
   if (event.type === 'thread.upserted') {
+    recordThreadChange(client, event.data.thread.id, event.data.thread);
     writeThreadToLists(client, event.data.thread);
     client.setQueryData<ThreadDetail>(queryKeys.thread(event.data.thread.id), (detail) =>
       detail === undefined ? detail : { ...detail, thread: event.data.thread },
@@ -21,6 +36,21 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   }
   if (event.type === 'thread.removed') {
     removeThreadFromLists(client, event.data.threadId);
+    invalidate(client, queryKeys.thread(event.data.threadId));
+    return;
+  }
+  if (event.type === 'threads.changed') {
+    const { accountId } = event.data;
+    throttleByKey(client, `threads.changed:${accountId}`, () => {
+      invalidate(client, queryKeys.threadLists());
+      invalidateAccountThreads(client, accountId);
+      invalidate(client, queryKeys.offlineStats());
+    });
+    return;
+  }
+  if (event.type === 'sync.history') {
+    invalidate(client, queryKeys.historyProgress());
+    invalidate(client, queryKeys.offlineStats());
     return;
   }
   if (event.type === 'message.upserted') {
@@ -52,6 +82,11 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     invalidate(client, queryKeys.labels());
     return;
   }
+  if (event.type === 'taskSystems.updated') {
+    invalidate(client, taskSystemKeys.connections());
+    invalidate(client, taskSystemKeys.tasks(event.data.connectionId));
+    return;
+  }
   if (event.type === 'calendar.updated') {
     invalidate(client, calendarKeys.all());
     return;
@@ -75,10 +110,14 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     event.type === 'account.status'
   ) {
     invalidate(client, queryKeys.accounts());
+    if (event.type !== 'account.status') {
+      invalidate(client, queryKeys.historyProgress());
+    }
     if (event.type === 'account.removed') {
       invalidate(client, queryKeys.allMailboxes());
       invalidate(client, calendarKeys.all());
       invalidate(client, queryKeys.threadLists());
+      invalidateAccountThreads(client, event.data.accountId);
     }
   }
 };

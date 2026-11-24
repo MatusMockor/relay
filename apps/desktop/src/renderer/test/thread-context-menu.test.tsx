@@ -6,7 +6,13 @@ import { present } from './support/present';
 import { renderApp, resetStores } from './support/render-app';
 import { serverThread } from './support/thread-fixtures';
 
-const INBOX_ITEMS = ['Označiť ako prečítané', 'Hotovo', 'Pripomenúť…', 'Presunúť do koša'];
+const INBOX_ITEMS = [
+  'Označiť ako prečítané',
+  'Hotovo',
+  'Pripomenúť…',
+  'Presunúť do koša',
+  'Vytvoriť pravidlo z mailu…',
+];
 
 const key = (value: string) => {
   act(() => {
@@ -60,7 +66,7 @@ describe('thread row context menu', () => {
     expect(notPrevented).toBe(false);
     expect(rowBySubject(subject).getAttribute('aria-selected')).toBe('true');
     expect(menuLabels()).toEqual(INBOX_ITEMS);
-    expect(screen.getByRole('menu').querySelectorAll('.sepl')).toHaveLength(1);
+    expect(screen.getByRole('menu').querySelectorAll('.sepl')).toHaveLength(2);
     expect(screen.queryByRole('heading', { level: 1, name: subject })).toBeNull();
   });
 
@@ -153,24 +159,37 @@ describe('thread menu items', () => {
       'remind:Pripomenúť…',
       '---',
       'trash:Presunúť do koša',
+      '---',
+      'rule:Vytvoriť pravidlo z mailu…',
     ]);
     expect(labels('done')).toEqual([
       'unread:Označiť ako neprečítané',
       'done:Vrátiť do Doručenej pošty',
       '---',
       'trash:Presunúť do koša',
+      '---',
+      'rule:Vytvoriť pravidlo z mailu…',
     ]);
-    expect(labels('trash')).toEqual(['unread:Označiť ako neprečítané', 'done:Obnoviť']);
+    expect(labels('trash')).toEqual([
+      'unread:Označiť ako neprečítané',
+      'done:Obnoviť',
+      '---',
+      'rule:Vytvoriť pravidlo z mailu…',
+    ]);
     expect(labels('spam')).toEqual([
       'unread:Označiť ako neprečítané',
       'spam:Nie je spam',
       '---',
       'trash:Presunúť do koša',
+      '---',
+      'rule:Vytvoriť pravidlo z mailu…',
     ]);
     expect(labels('sent')).toEqual([
       'unread:Označiť ako neprečítané',
       '---',
       'trash:Presunúť do koša',
+      '---',
+      'rule:Vytvoriť pravidlo z mailu…',
     ]);
     expect(labels('tasks')).toEqual(labels('reminders'));
   });

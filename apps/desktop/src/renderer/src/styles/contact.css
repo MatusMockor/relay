@@ -109,7 +109,7 @@
   z-index: 51;
   box-shadow:
     -1px 0 0 var(--line),
-    -12px 0 32px rgba(0, 0, 0, 0.35);
+    var(--shadow-side);
 }
 .app.composing .ov.mid {
   padding-left: calc(var(--fold-w, 0px) + 16px);

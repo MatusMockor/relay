@@ -10,13 +10,24 @@ import type { AttachmentContentService } from './services/attachments/attachment
 import type { AttachmentSweeper } from './services/attachments/attachment-sweeper';
 import { createAttachmentSweeper } from './services/attachments/create-attachment-sweeper';
 import { createAttachmentContentService } from './services/attachments/create-attachment-content-service';
+import {
+  bodyOptionsOf,
+  createMessageBodyService,
+} from './services/bodies/create-message-body-service';
+import type { MessageBodyService } from './services/bodies/message-body-service';
+import type { BodyRetention } from './services/bodies/body-retention';
+import { createBodyRetention, createOfflineStats } from './services/bodies/create-offline-bodies';
+import type { OfflineStatsReader } from './services/bodies/offline-stats-reader';
 import type { CalendarService } from './services/calendar/calendar-service';
 import { createCalendarComponents } from './services/calendar/create-calendar-service';
 import { createInviteComponents } from './services/calendar/create-invite-components';
 import type { FailedInvitationService } from './services/calendar/failed-invitation-service';
 import { createAiComponents } from './services/ai/create-ai-service';
 import type { AutomationService } from './services/automations/automation-service';
+import type { AutomationHistoryService } from './services/automations/history/automation-history-service';
 import { createAutomationComponents } from './services/automations/create-automation-components';
+import { ComposeMailForwarder } from './services/automations/forward/compose-mail-forwarder';
+import { DeferredMailForwarder } from './services/automations/forward/mail-forwarder';
 import { createGoogleCalendarComponents } from './services/google-calendar/create-google-calendar-service';
 import type { GoogleCalendarService } from './services/google-calendar/google-calendar-service';
 import type { ComposeService } from './services/compose/compose-service';
@@ -29,21 +40,28 @@ import { LabelQueryService } from './services/inbox/label-query-service';
 import { createLabelService } from './services/labels/create-label-service';
 import type { LabelService } from './services/labels/label-service';
 import { ReminderService } from './services/reminders/reminder-service';
+import { createServerSearchService } from './services/search/create-server-search-service';
+import type { ServerSearchService } from './services/search/server-search-service';
 import { SettingsService } from './services/settings/settings-service';
 import { EngineEvents } from './services/shared/engine-events';
+import { LingeringSessions } from './services/shared/lingering-sessions';
 import { MailProviderSessions } from './services/shared/mail-provider-sessions';
 import { RoleMailboxEnsurer } from './services/shared/role-mailbox-ensurer';
+import { systemIntervalTimer } from './services/shared/system-interval-timer';
 import {
   DEFAULT_USER_SETTINGS_POLICY,
   UserSettingsReader,
 } from './services/shared/user-settings-reader';
-import { SplitMembershipEvaluator } from './services/splits/split-membership-evaluator';
-import { PERMISSIVE_PATTERN_POLICY } from './services/splits/split-rule-validator';
-import { SplitService } from './services/splits/split-service';
+import { createSplitService } from './services/splits/create-split-service';
+import type { SplitService } from './services/splits/split-service';
+import { createBodyRepairBackfills } from './services/sync/body-repair/create-body-repair';
 import { CompositeArrivalListener } from './services/sync/composite-arrival-listener';
 import { createSyncComponents } from './services/sync/create-sync-service';
+import { SyncBackfills } from './services/sync/sync-backfill';
 import type { SyncService } from './services/sync/sync-service';
 import { TaskService } from './services/tasks/task-service';
+import { createTaskSystemService } from './services/task-systems/create-task-system-service';
+import type { TaskSystemService } from './services/task-systems/task-system-service';
 import { ThreadAiPreparer } from './services/threads/thread-ai-preparer';
 import { ThreadChecklistService } from './services/threads/thread-checklist-service';
 import { ThreadQueryService } from './services/threads/thread-query-service';
@@ -67,19 +85,32 @@ export interface EngineServices {
   readonly sync: SyncService;
   readonly compose: ComposeService;
   readonly attachments: AttachmentContentService;
+  readonly bodies: MessageBodyService;
+  readonly readSessions: LingeringSessions;
+  readonly search: ServerSearchService;
   readonly attachmentSweeper: AttachmentSweeper;
+  readonly bodyRetention: BodyRetention;
+  readonly offlineStats: OfflineStatsReader;
   readonly splits: SplitService;
   readonly automations: AutomationService;
+  readonly automationHistory: AutomationHistoryService;
   readonly ai: AiService;
   readonly calendar: CalendarService;
   readonly failedInvitations: FailedInvitationService;
   readonly googleCalendar: GoogleCalendarService;
+  readonly taskSystems: TaskSystemService;
 }
 
 export const createEngineServices = (deps: EngineDeps): EngineServices => {
   const { repositories, unitOfWork, clock, idGenerator: ids } = deps;
   const events = new EngineEvents(deps.eventPublisher, clock);
   const sessions = new MailProviderSessions(deps.mailProviderFactory, deps.credentialVault);
+  const readSessions = new LingeringSessions({
+    sessions,
+    clock,
+    timer: deps.intervalTimer ?? systemIntervalTimer,
+    idleMs: bodyOptionsOf(deps).sessionIdleMs,
+  });
   const userSettings = new UserSettingsReader(repositories.settings, {
     defaults: deps.options.settings?.defaults ?? DEFAULT_USER_SETTINGS_POLICY.defaults,
     pinnedAiLocation: deps.options.settings?.pinnedAiLocation ?? null,
@@ -133,17 +164,19 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     readMarker: actions,
   });
   const ai = createAiComponents(deps, { events, threads, settings: userSettings });
+  const forwarder = new DeferredMailForwarder();
   const automations = createAutomationComponents(deps, {
     events,
     settings: userSettings,
     actions,
     factory: ai.factory,
     tasks,
+    forwarder,
   });
   const invites = createInviteComponents(deps, events);
   const sync = createSyncComponents(deps, {
     calendarParts: invites.sink,
-    backfill: invites.backfill,
+    backfill: new SyncBackfills([invites.backfill, ...createBodyRepairBackfills(deps, events)]),
     events,
     sessions,
     tasks: automations.jiraTasks,
@@ -168,8 +201,18 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   );
   const attachments = createAttachmentContentService(deps, sessions);
   const attachmentSweeper = createAttachmentSweeper(deps);
+  const compose = createComposeService(deps, {
+    events,
+    sessions,
+    ingestor: sync.ingestor,
+    roleMailboxes,
+    attachmentContent: attachments,
+    attachmentSweeper,
+  });
+  const bodies = createMessageBodyService(deps, readSessions);
+  forwarder.bind(new ComposeMailForwarder(compose, bodies, deps.logger));
   return {
-    accounts: createAccountService(deps, { events, attachmentSweeper }),
+    accounts: createAccountService(deps, { events, attachmentSweeper, readSessions }),
     settings: new SettingsService({
       settings: repositories.settings,
       reader: userSettings,
@@ -203,34 +246,21 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     reminders,
     tasks,
     sync: sync.service,
-    compose: createComposeService(deps, {
-      events,
-      sessions,
-      ingestor: sync.ingestor,
-      roleMailboxes,
-      attachmentContent: attachments,
-      attachmentSweeper,
-    }),
+    compose,
     attachments,
+    bodies,
+    readSessions,
+    search: createServerSearchService(deps, readSessions, sync),
     attachmentSweeper,
-    splits: new SplitService({
-      splits: repositories.splits,
-      accounts: repositories.accounts,
-      evaluator: new SplitMembershipEvaluator({
-        splits: repositories.splits,
-        messages: repositories.messages,
-        threads: repositories.threads,
-        matcher: deps.splitMatcher,
-        unitOfWork,
-      }),
-      events,
-      ids,
-      patterns: deps.splitPatternPolicy ?? PERMISSIVE_PATTERN_POLICY,
-    }),
+    bodyRetention: createBodyRetention(deps, events),
+    offlineStats: createOfflineStats(deps),
+    splits: createSplitService(deps, events),
     automations: automations.service,
+    automationHistory: automations.history,
     ai: ai.service,
     calendar,
     failedInvitations: invites.failed,
     googleCalendar: google.service,
+    taskSystems: createTaskSystemService(deps, events),
   };
 };

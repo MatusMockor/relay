@@ -91,7 +91,7 @@
   flex: none;
 }
 .lbl-swatch.auto {
-  background: conic-gradient(#e6d15a, #ef6b6b, #d77ae8, #5fc4d9, #a3cf5a, #e6d15a);
+  background: var(--hue-wheel);
 }
 .lbl-swatch.on {
   box-shadow:

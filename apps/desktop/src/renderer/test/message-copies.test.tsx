@@ -79,8 +79,8 @@ describe('message copies in the thread view', () => {
 
   it('shows the Bcc of the demo onboarding reply the user sent', async () => {
     const client = demoClient();
-    const done = await client.listThreads({ view: 'done' });
-    const onboarding = done.items.find((item) => item.subject === 'Re: Onboarding checklist');
+    const sent = await client.listThreads({ view: 'sent' });
+    const onboarding = sent.items.find((item) => item.subject === 'Re: Onboarding checklist');
     expect(onboarding).toBeDefined();
     renderApp({ demo: () => client });
     await screen.findByRole('listbox', { name: 'Konverzácie' });

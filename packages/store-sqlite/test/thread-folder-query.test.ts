@@ -119,7 +119,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
 
   it('maps thread states to the inbox, done, trash and reminders views', async () => {
     await addThread(store, work, 't-inbox');
-    await addThread(store, work, 't-done', { state: 'done' });
+    await addThread(store, work, 't-done', { state: 'done', markedDone: true });
+    await addThread(store, work, 't-archived', { state: 'done' });
     await addThread(store, work, 't-trash', { state: 'trash' });
     await addThread(store, work, 't-reminder', {
       state: 'reminder',
@@ -128,6 +129,7 @@ describe('SqliteThreadRepository.queryFolder', () => {
 
     expect(await folderIds(store, { view: 'inbox' })).toEqual(['t-inbox']);
     expect(await folderIds(store, { view: 'done' })).toEqual(['t-done']);
+    expect(await folderIds(store, { view: 'archive' })).toEqual(['t-archived']);
     expect(await folderIds(store, { view: 'trash' })).toEqual(['t-trash']);
     expect(await folderIds(store, { view: 'reminders' })).toEqual(['t-reminder']);
   });
@@ -147,6 +149,7 @@ describe('SqliteThreadRepository.queryFolder', () => {
       title: 'Zaplatiť faktúru',
       aiWhat: null,
       source: 'manual' as const,
+      priority: 'none' as const,
       createdAt: '2026-11-10T10:00:00.000Z',
       updatedAt: '2026-11-10T10:00:00.000Z',
     };
@@ -220,6 +223,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 0,
         exclusive: true,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'jira', projectKeys: [] }],
       },
       {
@@ -230,6 +235,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 1,
         exclusive: false,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'fromDomain', domain: 'klient.sk' }],
       },
     ]);
@@ -253,6 +260,8 @@ describe('SqliteThreadRepository.queryFolder', () => {
         order: 0,
         exclusive: true,
         hideTasks: false,
+        match: 'any',
+        exceptions: [],
         rules: [{ type: 'jira', projectKeys: [] }],
       },
     ]);

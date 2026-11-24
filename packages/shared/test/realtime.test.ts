@@ -19,10 +19,13 @@ describe('realtime protocol', () => {
       'scheduledSend.upserted',
       'settings.updated',
       'splits.updated',
+      'sync.history',
       'sync.progress',
       'task.upserted',
+      'taskSystems.updated',
       'thread.removed',
       'thread.upserted',
+      'threads.changed',
     ]);
   });
 

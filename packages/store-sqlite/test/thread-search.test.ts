@@ -83,6 +83,7 @@ describe('SqliteThreadRepository.queryFolder full-text search', () => {
   it('combines search with the folder filters', async () => {
     await store.repositories.threads.updateState(LOCAL_USER_ID, threadId('t-invoice'), {
       state: 'done',
+      markedDone: true,
       remindAt: null,
     });
     expect(await folderIds(store, { search: 'faktura' })).toEqual([]);

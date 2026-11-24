@@ -50,7 +50,11 @@ export class ReminderService implements ReminderScheduler {
         firedAt: null,
         createdAt: existing?.createdAt ?? now.toISOString(),
       });
-      return repositories.threads.updateState(userId, threadId, { state: 'reminder', remindAt });
+      return repositories.threads.updateState(userId, threadId, {
+        state: 'reminder',
+        markedDone: false,
+        remindAt,
+      });
     });
     return this.publish(userId, threadId, thread);
   }
@@ -63,7 +67,11 @@ export class ReminderService implements ReminderScheduler {
         await repositories.reminders.delete(userId, existing.id);
       }
       const state = current.state === 'reminder' ? 'inbox' : current.state;
-      return repositories.threads.updateState(userId, threadId, { state, remindAt: null });
+      return repositories.threads.updateState(userId, threadId, {
+        state,
+        markedDone: state === 'inbox' ? false : undefined,
+        remindAt: null,
+      });
     });
     return this.publish(userId, threadId, thread);
   }
@@ -99,6 +107,7 @@ export class ReminderService implements ReminderScheduler {
       const state = isHeldThreadState(thread.state) ? thread.state : 'inbox';
       return repositories.threads.updateState(reminder.userId, reminder.threadId, {
         state,
+        markedDone: state === 'inbox' ? false : undefined,
         remindAt: null,
       });
     });

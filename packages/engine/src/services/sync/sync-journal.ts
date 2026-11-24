@@ -20,10 +20,15 @@ export interface ArrivalEffects {
   readonly jira: JiraClassification | null;
 }
 
+export interface SyncJournalOptions {
+  readonly quiet: boolean;
+}
+
 export class SyncJournal {
   constructor(
     private readonly accountId: AccountId,
     private readonly clock: Clock,
+    private readonly options: SyncJournalOptions = { quiet: false },
   ) {}
 
   async arrived(
@@ -33,7 +38,7 @@ export class SyncJournal {
     splitIds: readonly SplitId[],
     effects: ArrivalEffects,
   ): Promise<void> {
-    await this.thread(work, message.threadId, { arrivedIn: [role], addSplitIds: splitIds });
+    await this.filed(work, message, role, splitIds);
     const arrival = role === 'inbox';
     if (!effects.publish && !arrival) {
       return;
@@ -53,6 +58,15 @@ export class SyncJournal {
       },
       createdAt: this.now(),
     });
+  }
+
+  filed(
+    work: PendingWorkRepository,
+    message: Message,
+    role: MailboxRole,
+    splitIds: readonly SplitId[],
+  ): Promise<void> {
+    return this.thread(work, message.threadId, { arrivedIn: [role], addSplitIds: splitIds });
   }
 
   async jira(work: PendingWorkRepository, messageId: MessageId, event: JiraEventWork) {
@@ -86,9 +100,13 @@ export class SyncJournal {
   ): Promise<void> {
     const key = { accountId: this.accountId, kind: 'thread-refresh' as const, ref: threadId };
     const stored = await work.find(key);
+    const { quiet } = this.options;
     await work.put({
       ...key,
-      payload: mergeThreadWork(stored?.payload ?? emptyThreadWork(threadId), change),
+      payload: mergeThreadWork(stored?.payload ?? emptyThreadWork(threadId, quiet), {
+        ...change,
+        quiet,
+      }),
       createdAt: stored?.createdAt ?? this.now(),
     });
   }

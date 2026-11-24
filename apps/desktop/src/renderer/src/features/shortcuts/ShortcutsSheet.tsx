@@ -13,14 +13,15 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Otvoriť konverzáciu', ['↵']],
       ['Ďalší split', ['Tab']],
       ['Predchádzajúci split', ['⇧', 'Tab']],
-      ['Hľadať v zozname', ['/']],
+      ['Hľadať v pošte', [`${MOD}F`, '/']],
+      ['Všetky výsledky v zozname', [`${MOD}↵`]],
     ],
   ],
   [
     'Akcie',
     [
       ['Hotovo', ['E']],
-      ['Vrátiť z Hotovo, Spamu alebo Koša', ['E']],
+      ['Vrátiť z Hotovo, Archívu, Spamu alebo Koša', ['E']],
       ['Pripomenúť', ['H']],
       ['Presunúť do priečinka alebo štítka', ['V']],
       ['Štítok', ['L']],
@@ -30,6 +31,16 @@ export const SHORTCUT_GROUPS: readonly (readonly [
       ['Do koša', ['#']],
       ['Nahlásiť spam / Nie je spam', ['!']],
       ['Vrátiť poslednú akciu', ['Z']],
+    ],
+  ],
+  [
+    'Moje úlohy',
+    [
+      ['Priorita: Urgentná', ['P', '1']],
+      ['Priorita: Vysoká', ['P', '2']],
+      ['Priorita: Stredná', ['P', '3']],
+      ['Priorita: Nízka', ['P', '4']],
+      ['Priorita: Bez priority', ['P', '0']],
     ],
   ],
   [
@@ -65,9 +76,10 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     'Prejsť na',
     [
       ['Dôležité', ['G', 'I']],
-      ['Úlohy', ['G', 'U']],
+      ['Moje úlohy', ['G', 'U']],
       ['Pripomenuté', ['G', 'H']],
       ['Hotovo', ['G', 'E']],
+      ['Archív', ['G', 'A']],
       ['Odoslané', ['G', 'T']],
       ['Koncepty', ['G', 'D']],
       ['Naplánované', ['G', 'N']],
@@ -91,6 +103,8 @@ export const SHORTCUT_GROUPS: readonly (readonly [
     [
       ['Príkazy', [`${MOD}K`]],
       ['Nastavenia', [`${MOD},`]],
+      ['Späť', [`${MOD}[`]],
+      ['Dopredu', [`${MOD}]`]],
       ['Klávesové skratky', ['?']],
     ],
   ],

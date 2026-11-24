@@ -9,6 +9,8 @@ import { selectScope } from '../mail/navigation';
 import { useAccountsModel } from '../mail/use-accounts-model';
 import { CommandPalette } from '../palette/CommandPalette';
 import { ReminderHost } from '../reminders/ReminderHost';
+import { RuleFromMailHost } from '../rule-from-mail/RuleFromMailHost';
+import { SearchPalette } from '../search/SearchPalette';
 import { SettingsSheet } from '../settings/SettingsSheet';
 import { ShortcutsSheet } from '../shortcuts/ShortcutsSheet';
 import { useThreadList } from '../../data/hooks/use-mail-queries';
@@ -52,6 +54,7 @@ export function OverlayHost() {
   return (
     <>
       {overlay?.kind === 'palette' ? <CommandPalette /> : null}
+      {overlay?.kind === 'search' ? <SearchPalette /> : null}
       {overlay?.kind === 'shortcuts' ? <ShortcutsSheet /> : null}
       {overlay?.kind === 'settings' ? (
         <SettingsSheet section={overlay.section} adding={overlay.adding} />
@@ -60,6 +63,7 @@ export function OverlayHost() {
       <ReminderHost />
       <MoveHost />
       <LabelHost />
+      <RuleFromMailHost />
       <AccountsPopover />
       {toast === null ? null : (
         <Toast key={toast.id} message={toast.message} onUndo={toast.undo ? undoLast : undefined} />

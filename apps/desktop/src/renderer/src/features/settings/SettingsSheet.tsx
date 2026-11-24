@@ -16,8 +16,10 @@ import { NotificationsSection } from './sections/NotificationsSection';
 import { ServerSection } from './sections/ServerSection';
 import { SplitsSection } from './sections/SplitsSection';
 import { SyncSection } from './sections/SyncSection';
+import { TaskSystemsSection } from './sections/TaskSystemsSection';
 import { SETTINGS_PANEL_ID, SettingsNav, settingsTabId } from './SettingsNav';
 import { useHeaderClearance } from './use-header-clearance';
+import { useSettingsFocus } from './use-settings-focus';
 
 const render = (section: SettingsSection, adding: boolean): ReactNode => {
   const map: Record<SettingsSection, () => ReactNode> = {
@@ -29,6 +31,7 @@ const render = (section: SettingsSection, adding: boolean): ReactNode => {
     labels: () => <LabelsSection />,
     automations: () => <AutomationsSection />,
     jira: () => <JiraSection />,
+    taskSystems: () => <TaskSystemsSection />,
     sync: () => <SyncSection />,
     notifications: () => <NotificationsSection />,
     ai: () => <AiSection />,
@@ -49,6 +52,7 @@ export function SettingsSheet({
 }) {
   const main = useRef<HTMLDivElement>(null);
   useHeaderClearance(main, `${section}:${String(adding)}`);
+  useSettingsFocus(section);
   const go = (next: SettingsSection) => {
     setUi({ overlay: { kind: 'settings', section: next, adding: false } });
   };

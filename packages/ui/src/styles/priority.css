@@ -1,0 +1,21 @@
+.prio {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.prio-box {
+  fill: var(--bad);
+}
+.prio-mark {
+  fill: var(--bg);
+}
+.prio-bar {
+  fill: var(--line);
+}
+.prio-bar.on {
+  fill: var(--fg2);
+}
+.prio-dash {
+  fill: var(--muted);
+}

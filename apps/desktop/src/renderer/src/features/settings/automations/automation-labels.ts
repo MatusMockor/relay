@@ -5,10 +5,12 @@ import type {
   RecipientField,
   SimpleAutomationActionType,
 } from '@relay/shared';
+import { isNewsletterHeader } from './newsletter-condition';
 
 export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>> = {
   summary: 'AI zhrnutie',
   task: 'Vytvoriť úlohu',
+  draftReply: 'Pripraviť odpoveď cez AI',
   notify: 'Notifikácia',
   markRead: 'Označiť ako prečítané',
   pin: 'Pripnúť',
@@ -18,13 +20,14 @@ export const ACTION_LABELS: Readonly<Record<SimpleAutomationActionType, string>>
 export const SIMPLE_ACTIONS: readonly SimpleAutomationActionType[] = [
   'summary',
   'task',
+  'draftReply',
   'notify',
   'markRead',
   'pin',
   'archive',
 ];
 
-export const AI_ACTIONS: readonly SimpleAutomationActionType[] = ['summary', 'task'];
+export const AI_ACTIONS: readonly SimpleAutomationActionType[] = ['summary', 'task', 'draftReply'];
 
 export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
   mention: 'Spomenutie',
@@ -37,7 +40,8 @@ export const JIRA_EVENT_LABELS: Readonly<Record<JiraEventKind, string>> = {
 export const CONDITION_TYPE_LABELS: Readonly<Record<AutomationConditionType, string>> = {
   fromAddress: 'Od adresy',
   fromDomain: 'Z domény',
-  subjectRegex: 'Predmet',
+  subjectContains: 'Predmet obsahuje',
+  subjectRegex: 'Predmet (regulárny výraz)',
   header: 'Hlavička',
   jira: 'Jira projekt',
   jiraEvent: 'Jira udalosť',
@@ -64,8 +68,14 @@ export const describeCondition = (condition: AutomationCondition): string => {
   if (condition.type === 'fromDomain') {
     return `z domény ${condition.domain}`;
   }
+  if (condition.type === 'subjectContains') {
+    return `predmet obsahuje ${condition.value}`;
+  }
   if (condition.type === 'subjectRegex') {
-    return `predmet obsahuje ${condition.pattern}`;
+    return `predmet zodpovedá ${condition.pattern}`;
+  }
+  if (isNewsletterHeader(condition)) {
+    return 'newsletter';
   }
   if (condition.type === 'header') {
     return `${condition.name} obsahuje ${condition.pattern}`;

@@ -6,6 +6,7 @@ import type { Clock } from '../../ports/clock';
 import { matchSubjectOf } from '../../subjects/match-subject';
 import type { InboxArrival, SyncArrivalBatch, SyncArrivalListener } from '../sync/sync-arrivals';
 import type { AutomationActionExecutor } from './automation-action-executor';
+import type { AutomationActivityRecorder } from './history/automation-activity-recorder';
 import { appliesToAccount } from './automation-presets';
 
 export interface AutomationRunnerDeps {
@@ -13,6 +14,7 @@ export interface AutomationRunnerDeps {
   readonly runs: AutomationRunRepository;
   readonly matcher: AutomationMatcher;
   readonly executor: AutomationActionExecutor;
+  readonly recorder: AutomationActivityRecorder;
   readonly clock: Clock;
 }
 
@@ -46,7 +48,7 @@ export class AutomationRunner implements SyncArrivalListener {
     const matches = await this.deps.matcher.matches({
       message: matchSubjectOf(message, arrival.headers),
       jira: arrival.jira,
-      conditions: automation.conditions,
+      criteria: automation,
     });
     if (!matches) {
       return;
@@ -60,6 +62,8 @@ export class AutomationRunner implements SyncArrivalListener {
     if (!claimed) {
       return;
     }
-    await this.deps.executor.execute({ userId, automation, arrival }, automation.actions);
+    const context = { userId, automation, arrival };
+    const outcomes = await this.deps.executor.execute(context, automation.actions);
+    await this.deps.recorder.record(context, 'live', outcomes);
   }
 }

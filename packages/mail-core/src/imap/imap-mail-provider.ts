@@ -10,13 +10,17 @@ import type {
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
+  RemoteMessageSummary,
   RemoteSyncCursor,
+  RemoteTextSearch,
+  RemoteTextSearchResult,
   RemoteThreadHeaders,
   UidListOptions,
 } from '@relay/engine';
 import type { MessageFlags } from '@relay/shared/domain';
 import { fetchFlagChanges } from './fetch-flag-changes';
 import { fetchSince } from './fetch-since';
+import { fetchSummaries } from './fetch-summaries';
 import { fetchThreadHeaders } from './fetch-thread-headers';
 import { fetchUids } from './fetch-uids';
 import { DEFAULT_IDLE_OPTIONS, IdleWatcher, type IdleWatcherOptions } from './idle-watcher';
@@ -33,6 +37,7 @@ import { fetchMessage, listUids } from './message-reads';
 import { purgeKeyword, storeKeywords } from './keyword-writes';
 import { appendMessage, moveMessages, setFlags } from './message-writes';
 import { searchRelated } from './search-related';
+import { searchText } from './search-text';
 import { requireBatchSize } from './uid-batches';
 
 export interface ImapMailProviderOptions {
@@ -101,6 +106,14 @@ export class ImapMailProvider implements MailProvider {
     return fetchThreadHeaders(this.connection, mailboxPath, uidValidity, uids, this.fetchBatchSize);
   }
 
+  fetchSummaries(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteMessageSummary[]> {
+    return fetchSummaries(this.connection, mailboxPath, uidValidity, uids);
+  }
+
   async *fetchFlagChanges(
     mailboxPath: string,
     sinceModseq: string,
@@ -119,6 +132,14 @@ export class ImapMailProvider implements MailProvider {
     messageIds: readonly string[],
   ): Promise<number[]> {
     return searchRelated(this.connection, mailboxPath, uidValidity, messageIds);
+  }
+
+  searchText(
+    mailboxPath: string,
+    uidValidity: number,
+    query: RemoteTextSearch,
+  ): Promise<RemoteTextSearchResult> {
+    return searchText(this.connection, mailboxPath, uidValidity, query);
   }
 
   fetchMessage(mailboxPath: string, uid: number): Promise<RawMessage | null> {

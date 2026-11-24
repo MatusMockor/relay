@@ -115,4 +115,25 @@ describe('external links from the renderer', () => {
     expect(contents.frameNavigate('about:blank', true)).toBe(true);
     expect(browser.opened).toEqual([]);
   });
+
+  it('lets an attachment frame host the built-in PDF viewer and nothing else from extensions', () => {
+    const { contents, browser } = setup();
+    expect(contents.frameNavigate('blob:file:///7931e073-18b6-497d', false)).toBe(false);
+    expect(
+      contents.frameNavigate(
+        'chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html',
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      contents.frameNavigate(
+        'chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html',
+        true,
+      ),
+    ).toBe(true);
+    expect(contents.frameNavigate('chrome-extension://otherextension/index.html', false)).toBe(
+      true,
+    );
+    expect(browser.opened).toEqual([]);
+  });
 });

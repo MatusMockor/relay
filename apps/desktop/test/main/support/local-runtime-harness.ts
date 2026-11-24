@@ -1,5 +1,5 @@
 import { DefaultAiRunnerRegistry } from '@relay/ai';
-import type { AiRunnerRegistry } from '@relay/engine';
+import type { AiRunnerRegistry, HistoryOptions, TaskSystemAdapterRegistry } from '@relay/engine';
 import { SQLITE_MIGRATIONS_FOLDER } from '@relay/store-sqlite';
 import type { RealtimeEvent } from '@relay/shared/realtime';
 import type { RelayBridge } from '@relay/shared/ipc';
@@ -8,7 +8,8 @@ import type { IpcRouters } from '../../../src/main/ipc/register-ipc';
 import { resolveLocalPaths } from '../../../src/main/composition/local-paths';
 import { createLocalRuntime, type LocalRuntime } from '../../../src/main/composition/local-runtime';
 import { systemClock } from '../../../src/main/infra/system-clock';
-import { systemTimers } from '../../../src/main/platform/timers';
+import type { HistoryCadence } from '../../../src/main/background/history/history-cadence';
+import { systemTimers, type Timers } from '../../../src/main/platform/timers';
 import { createRelayBridge } from '../../../src/preload/create-bridge';
 import { AesTestCipher } from './aes-test-cipher';
 import { InMemoryIpc } from '../in-memory-ipc';
@@ -31,7 +32,12 @@ let streamSequence = 0;
 export interface LocalRuntimeHarnessOptions {
   readonly withMailTools?: boolean;
   readonly aiRunners?: AiRunnerRegistry;
+  readonly taskSystems?: TaskSystemAdapterRegistry;
   readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly timers?: Timers;
+  readonly cipher?: AesTestCipher;
+  readonly historyCadence?: Partial<HistoryCadence>;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export const startLocalRuntime = (
@@ -41,20 +47,23 @@ export const startLocalRuntime = (
   const testLogger = createTestLogger();
   const runtime = createLocalRuntime({
     paths: resolveLocalPaths(dir.path, SQLITE_MIGRATIONS_FOLDER),
-    cipher: new AesTestCipher(),
+    cipher: options.cipher ?? new AesTestCipher(),
     power: new TestPowerEvents(),
     opener: new StubBrowser('approve'),
-    timers: systemTimers,
+    timers: options.timers ?? systemTimers,
     clock: systemClock,
     logger: testLogger.logger,
     env: options.env ?? {},
     aiRunners: options.aiRunners ?? new DefaultAiRunnerRegistry([]),
     verifyGoogleAccounts: false,
+    ...(options.taskSystems === undefined ? {} : { taskSystems: options.taskSystems }),
     allowPlaintextMail: true,
     mcpEntry:
       options.withMailTools === true
         ? { command: process.execPath, args: ['relay-mail-mcp.js'], env: { RELAY_TEST: '1' } }
         : null,
+    ...(options.historyCadence === undefined ? {} : { historyCadence: options.historyCadence }),
+    ...(options.historyOptions === undefined ? {} : { historyOptions: options.historyOptions }),
   });
   const routers = composeIpc({
     app: {

@@ -16,6 +16,8 @@ const applyPatch = (current: DeviceSettings, patch: DeviceSettingsPatch): Device
   panelWidths: { ...current.panelWidths, ...patch.panelWidths },
   selectedAccountId:
     patch.selectedAccountId === undefined ? current.selectedAccountId : patch.selectedAccountId,
+  theme: patch.theme ?? current.theme,
+  offlineWindow: patch.offlineWindow ?? current.offlineWindow,
 });
 
 export class DeviceSettingsStore {

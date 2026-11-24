@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { MailboxIdSchema } from '@relay/shared';
+import { MailboxIdSchema, supportedAutomations } from '@relay/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { toAutomationInput } from '../src/data/hooks/use-replace-automations';
@@ -69,7 +69,7 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       { type: 'task' },
       { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
     ]);
-    expect(within(mentions).getByText('Nahradí presun')).toBeDefined();
+    expect(within(mentions).getAllByText('Nahradí presun')).toHaveLength(2);
     expect(checkbox(mentions, 'Pridať štítok')).toHaveProperty('disabled', false);
     expect(moveTarget(mentions)).toBe('Projekty / Alfa');
   });
@@ -126,7 +126,8 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
 
   it('warns about a folder that no longer exists', async () => {
     const client = demoClient();
-    const rules = await client.listAutomations();
+    const rules = supportedAutomations(await client.listAutomations());
+
     await client.replaceAutomations(
       rules.map((rule) =>
         rule.name === 'GitLab do Projektov'
@@ -182,7 +183,8 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
 
   it('swaps archiving and moving in one change', async () => {
     const client = demoClient();
-    const rules = await client.listAutomations();
+    const rules = supportedAutomations(await client.listAutomations());
+
     await client.replaceAutomations(
       rules.map((rule) =>
         rule.name === 'GitLab do Projektov'
@@ -195,7 +197,7 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
     const moveBox = checkbox(gitlab, 'Presunúť do priečinka');
 
     expect(moveBox).toHaveProperty('disabled', false);
-    expect(within(gitlab).getByText('Nahradí archiváciu')).toBeDefined();
+    expect(within(gitlab).getAllByText('Nahradí archiváciu')).toHaveLength(2);
     click(moveBox);
     const picker = await within(popover('Presunúť do priečinka')).findByRole('group', {
       name: 'Presunúť do priečinka',
@@ -207,7 +209,7 @@ describe('Nastavenia > Automatizácie > presun a štítky', () => {
       { type: 'moveTo', mailboxId: 'mbx-efa-alfa' },
     ]);
     expect(checkbox(gitlab, 'Archivovať')).toHaveProperty('disabled', false);
-    expect(within(gitlab).getByText('Nahradí presun')).toBeDefined();
+    expect(within(gitlab).getAllByText('Nahradí presun')).toHaveLength(2);
     click(checkbox(gitlab, 'Archivovať'));
     await settle();
 

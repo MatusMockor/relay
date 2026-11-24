@@ -1,4 +1,11 @@
-import type { AccountId, FolderView, LabelId, MailboxId, SplitId } from '@relay/shared';
+import type {
+  AccountId,
+  FolderView,
+  LabelId,
+  MailboxId,
+  SplitId,
+  TaskSystemConnectionId,
+} from '@relay/shared';
 import type { ThreadListParams } from '../data/MailClient';
 
 export type AccountScope = AccountId | 'all';
@@ -9,9 +16,21 @@ export type Folder =
   | { readonly kind: 'inbox'; readonly splitId: SplitId | null }
   | { readonly kind: 'view'; readonly view: SecondaryView }
   | { readonly kind: 'label'; readonly labelId: LabelId }
-  | { readonly kind: 'mailbox'; readonly mailboxId: MailboxId; readonly accountId: AccountId };
+  | { readonly kind: 'mailbox'; readonly mailboxId: MailboxId; readonly accountId: AccountId }
+  | { readonly kind: 'taskSystem'; readonly connectionId: TaskSystemConnectionId };
 
-export const INBOX: Folder = { kind: 'inbox', splitId: null };
+export type MailFolder = Exclude<Folder, { readonly kind: 'taskSystem' }>;
+
+export const INBOX: MailFolder = { kind: 'inbox', splitId: null };
+
+export const isMailFolder = (folder: Folder): folder is MailFolder => folder.kind !== 'taskSystem';
+
+export const mailFolderOf = (folder: Folder): MailFolder => (isMailFolder(folder) ? folder : INBOX);
+
+export const taskSystemFolder = (connectionId: TaskSystemConnectionId): Folder => ({
+  kind: 'taskSystem',
+  connectionId,
+});
 
 export const folderKey = (folder: Folder): string => {
   if (folder.kind === 'inbox') {
@@ -20,25 +39,34 @@ export const folderKey = (folder: Folder): string => {
   if (folder.kind === 'mailbox') {
     return `mailbox:${folder.mailboxId}`;
   }
+  if (folder.kind === 'taskSystem') {
+    return `taskSystem:${folder.connectionId}`;
+  }
   return folder.kind === 'view' ? `view:${folder.view}` : `label:${folder.labelId}`;
 };
 
 export const sameFolder = (a: Folder, b: Folder): boolean => folderKey(a) === folderKey(b);
 
 export const viewOf = (folder: Folder): FolderView => {
-  if (folder.kind === 'view') {
-    return folder.view;
+  const mail = mailFolderOf(folder);
+  if (mail.kind === 'view') {
+    return mail.view;
   }
-  return folder.kind === 'inbox' ? 'inbox' : folder.kind;
+  return mail.kind === 'inbox' ? 'inbox' : mail.kind;
 };
 
-export const usesThreadList = (folder: Folder): boolean =>
-  folder.kind !== 'view' || (folder.view !== 'drafts' && folder.view !== 'scheduled');
+export const usesThreadList = (folder: Folder): boolean => {
+  if (folder.kind === 'taskSystem') {
+    return false;
+  }
+  return folder.kind !== 'view' || (folder.view !== 'drafts' && folder.view !== 'scheduled');
+};
 
 export const isAccountFolder = (folder: Folder): boolean =>
   folder.kind === 'label' || folder.kind === 'mailbox';
 
-export const listParamsOf = (folder: Folder, scope: AccountScope, q: string): ThreadListParams => {
+export const listParamsOf = (target: Folder, scope: AccountScope, q: string): ThreadListParams => {
+  const folder = mailFolderOf(target);
   const base = {
     view: viewOf(folder),
     accountId: scope === 'all' ? undefined : scope,
@@ -68,13 +96,20 @@ export interface ViewMeta {
     | 'folder'
     | 'label';
   readonly g: string;
+  readonly sub?: string;
 }
 
 export const VIEW_META: Readonly<Record<FolderView, ViewMeta>> = {
   inbox: { label: 'Doručená pošta', icon: 'inbox', g: 'I' },
-  tasks: { label: 'Úlohy', icon: 'task', g: 'U' },
+  tasks: {
+    label: 'Moje úlohy',
+    icon: 'task',
+    g: 'U',
+    sub: 'Úlohy z mailov, z AI a ručne vytvorené, zoradené podľa priority',
+  },
   reminders: { label: 'Pripomenuté', icon: 'clock', g: 'H' },
   done: { label: 'Hotovo', icon: 'check', g: 'E' },
+  archive: { label: 'Archív', icon: 'file', g: 'A' },
   sent: { label: 'Odoslané', icon: 'send', g: 'T' },
   drafts: { label: 'Koncepty', icon: 'file', g: 'D' },
   scheduled: { label: 'Naplánované', icon: 'calendar', g: 'N' },
@@ -89,6 +124,7 @@ export const NAV_VIEWS: readonly NavView[] = [
   'tasks',
   'reminders',
   'done',
+  'archive',
   'sent',
   'drafts',
   'scheduled',

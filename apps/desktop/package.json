@@ -1,7 +1,7 @@
 {
   "name": "@relay/desktop",
   "productName": "Relay",
-  "version": "0.1.11",
+  "version": "0.1.23",
   "description": "Desktop mail and calendar client with an AI assistant",
   "author": {
     "name": "Matúš Močkor",
@@ -34,6 +34,7 @@
     "@relay/mcp-mail": "workspace:*",
     "@relay/shared": "workspace:*",
     "@relay/store-sqlite": "workspace:*",
+    "@relay/task-systems": "workspace:*",
     "better-sqlite3": "13.2.0",
     "zod": "4.1.13"
   },
@@ -42,6 +43,7 @@
     "@relay/config": "workspace:*",
     "@relay/ui": "workspace:*",
     "@tanstack/react-query": "5.90.21",
+    "@tanstack/react-virtual": "3.14.26",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@types/node": "22.20.5",

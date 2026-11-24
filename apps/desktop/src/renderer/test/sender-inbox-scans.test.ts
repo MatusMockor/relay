@@ -10,7 +10,9 @@ const split = (key: string, flags: Pick<Split, 'exclusive' | 'hideTasks'>): Spli
   accountId: null,
   name: key,
   order: 0,
+  match: 'any',
   rules: [],
+  exceptions: [],
   ...flags,
 });
 

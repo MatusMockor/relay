@@ -1,10 +1,13 @@
-import type { Split, ThreadDetail } from '@relay/shared';
+import type { SplitEntry, ThreadDetail } from '@relay/shared';
 import { type Folder, folderKey, MAIN_TAB_LABEL } from '../../state/folders';
 import type { AccountScope } from '../../state/folders';
 import { ALL_ACCOUNTS_DIGIT } from '../folders/account-shortcut';
 
+const isElement = (target: EventTarget | null): target is HTMLElement =>
+  target !== null && 'tagName' in target;
+
 export const isTyping = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
+  if (!isElement(target)) {
     return false;
   }
   return (
@@ -20,6 +23,7 @@ export const G_VIEWS: Readonly<Record<string, Folder>> = {
   u: { kind: 'view', view: 'tasks' },
   h: { kind: 'view', view: 'reminders' },
   e: { kind: 'view', view: 'done' },
+  a: { kind: 'view', view: 'archive' },
   t: { kind: 'view', view: 'sent' },
   s: { kind: 'view', view: 'sent' },
   d: { kind: 'view', view: 'drafts' },
@@ -28,9 +32,9 @@ export const G_VIEWS: Readonly<Record<string, Folder>> = {
   k: { kind: 'view', view: 'trash' },
 };
 
-export const tabFolders = (splits: readonly Split[], hasTasks: boolean): Folder[] => [
+export const tabFolders = (splits: readonly SplitEntry[]): Folder[] => [
   { kind: 'inbox', splitId: null },
-  ...(hasTasks ? [{ kind: 'view' as const, view: 'tasks' as const }] : []),
+  { kind: 'view', view: 'tasks' },
   ...splits.map((split) => ({ kind: 'inbox' as const, splitId: split.id })),
 ];
 

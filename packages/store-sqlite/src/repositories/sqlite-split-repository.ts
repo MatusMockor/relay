@@ -1,45 +1,58 @@
-import type { SplitRepository } from '@relay/engine';
-import type { AccountId, Split, UserId } from '@relay/shared/domain';
-import { and, asc, eq, inArray, isNull, notInArray, or } from 'drizzle-orm';
+import type { KeptSplit, SplitRepository } from '@relay/engine';
+import {
+  type AccountId,
+  isUnsupportedSplit,
+  type Split,
+  type SplitEntry,
+  supportedSplits,
+  type UnsupportedSplit,
+  type UserId,
+} from '@relay/shared/domain';
+import { and, asc, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toSplit, toSplitRow } from '../mappers/split-mapper';
+import { toSplitEntry, toSplitRow } from '../mappers/split-mapper';
 import { splits, threadSplits } from '../schema';
 
 export class SqliteSplitRepository implements SplitRepository {
   constructor(private readonly executor: SqliteExecutor) {}
 
   listByUser(userId: UserId): Promise<Split[]> {
-    return this.executor.execute((db) => this.listOwned(db, userId));
+    return this.executor.execute((db) => supportedSplits(this.listOwned(db, userId)));
+  }
+
+  listUnsupported(userId: UserId): Promise<UnsupportedSplit[]> {
+    return this.executor.execute((db) => this.listOwned(db, userId).filter(isUnsupportedSplit));
   }
 
   listForAccount(userId: UserId, accountId: AccountId): Promise<Split[]> {
     return this.executor.execute((db) =>
-      db
-        .select()
-        .from(splits)
-        .where(
+      supportedSplits(
+        this.listWhere(
+          db,
           and(
             eq(splits.userId, userId),
             or(isNull(splits.accountId), eq(splits.accountId, accountId)),
           ),
-        )
-        .orderBy(asc(splits.position), asc(splits.id))
-        .all()
-        .map(toSplit),
+        ),
+      ),
     );
   }
 
-  replaceAll(userId: UserId, items: readonly Split[]): Promise<Split[]> {
+  replaceAll(
+    userId: UserId,
+    items: readonly Split[],
+    keep: readonly KeptSplit[] = [],
+  ): Promise<Split[]> {
     return this.executor.execute((db) => {
-      const keepIds = items.map((split) => split.id);
-      const removed = db
-        .delete(splits)
-        .where(and(eq(splits.userId, userId), notInArray(splits.id, keepIds)))
-        .returning({ id: splits.id })
-        .all()
-        .map((row) => row.id);
+      const keepIds = new Set([...items.map((split) => split.id), ...keep.map(({ id }) => id)]);
+      const removed = supportedSplits(this.listOwned(db, userId))
+        .map((split) => split.id)
+        .filter((id) => !keepIds.has(id));
       if (removed.length > 0) {
+        db.delete(splits)
+          .where(and(eq(splits.userId, userId), inArray(splits.id, removed)))
+          .run();
         db.delete(threadSplits).where(inArray(threadSplits.splitId, removed)).run();
       }
       items.forEach((split) => {
@@ -49,17 +62,27 @@ export class SqliteSplitRepository implements SplitRepository {
           .onConflictDoUpdate({ target: splits.id, set: changes })
           .run();
       });
-      return this.listOwned(db, userId);
+      keep.forEach(({ id, order }) => {
+        db.update(splits)
+          .set({ position: order })
+          .where(and(eq(splits.userId, userId), eq(splits.id, id)))
+          .run();
+      });
+      return supportedSplits(this.listOwned(db, userId));
     });
   }
 
-  private listOwned(db: RelayDb, userId: UserId): Split[] {
+  private listOwned(db: RelayDb, userId: UserId): SplitEntry[] {
+    return this.listWhere(db, eq(splits.userId, userId));
+  }
+
+  private listWhere(db: RelayDb, where: SQL | undefined): SplitEntry[] {
     return db
       .select()
       .from(splits)
-      .where(eq(splits.userId, userId))
+      .where(where)
       .orderBy(asc(splits.position), asc(splits.id))
       .all()
-      .map(toSplit);
+      .map(toSplitEntry);
   }
 }

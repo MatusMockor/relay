@@ -2,13 +2,20 @@ import {
   type AiMailToolsEndpoint,
   type AiRunnerRegistry,
   createEngineServices,
+  DEFAULT_HISTORY_OPTIONS,
   type EngineServices,
   type GoogleCalendarAdapters,
+  type HistoryOptions,
   type Repositories,
+  type TaskSystemAdapterRegistry,
 } from '@relay/engine';
 import {
   createSqliteAttachmentReferences,
+  createSqliteHistoryBackfills,
   createSqliteMessageAttachmentLookup,
+  createSqliteMessageBodies,
+  createSqliteMessageBodyRepairs,
+  createSqliteMessageUids,
   createSqliteRepositories,
   migrate,
   openDatabase,
@@ -17,11 +24,13 @@ import {
 } from '@relay/store-sqlite';
 import type { FeedFetchOptions } from '@relay/calendar';
 import {
+  buildSnippet,
   HttpsUnsubscribeSender,
   isUnsafeRegex,
   MailparserAttachmentExtractor,
 } from '@relay/mail-core';
 import type { GoogleClientConfigSource } from '../oauth/google-client-config-source';
+import { DeviceOfflineWindow } from '../settings/device-offline-window';
 import { FileAttachmentBlobCatalog } from '../storage/file-attachment-blob-catalog';
 import { FileAttachmentStore } from '../storage/file-attachment-store';
 import { createCalendarAdapters } from './calendar-adapters';
@@ -36,7 +45,9 @@ export interface LocalEngineInput {
   readonly allowPlaintextMail: boolean;
   readonly calendarFetch?: Partial<FeedFetchOptions>;
   readonly googleCalendar: GoogleCalendarAdapters;
+  readonly taskSystems: TaskSystemAdapterRegistry;
   readonly googleSyncSeconds?: number;
+  readonly historyOptions?: Partial<HistoryOptions>;
 }
 
 export interface LocalEngine {
@@ -50,7 +61,10 @@ export interface LocalEngine {
 export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
   const { infrastructure } = input;
   const database = openDatabase(infrastructure.paths.database);
-  migrate(database, { migrationsFolder: infrastructure.paths.migrations });
+  migrate(database, {
+    migrationsFolder: infrastructure.paths.migrations,
+    snippetBuilder: buildSnippet,
+  });
   const repositories = createSqliteRepositories(database);
   const mail = createMailAdapters({
     vault: infrastructure.vault,
@@ -66,6 +80,11 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     ...mail,
     splitPatternPolicy: { isUnsafe: isUnsafeRegex },
     messageAttachmentLookup: createSqliteMessageAttachmentLookup(database),
+    messageBodyRepairs: createSqliteMessageBodyRepairs(database),
+    historyBackfills: createSqliteHistoryBackfills(database),
+    messageUids: createSqliteMessageUids(database),
+    messageBodies: createSqliteMessageBodies(database),
+    offlineWindow: new DeviceOfflineWindow(infrastructure.deviceSettings, infrastructure.clock),
     attachmentExtractor: new MailparserAttachmentExtractor(),
     unsubscribeSender: new HttpsUnsubscribeSender(),
     credentialVault: infrastructure.vault,
@@ -77,6 +96,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
     aiRunnerRegistry: input.aiRunners,
     calendar: createCalendarAdapters(infrastructure.calendarFeeds, input.calendarFetch),
     googleCalendar: input.googleCalendar,
+    taskSystems: { registry: input.taskSystems, secrets: infrastructure.taskSystemSecrets },
     eventPublisher: infrastructure.publisher,
     clock: infrastructure.clock,
     idGenerator: infrastructure.ids,
@@ -85,6 +105,9 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
       aiRunnerLocation: 'local',
       settings: { pinnedAiLocation: 'local' },
       ai: { mailTools: input.mailTools },
+      ...(input.historyOptions === undefined
+        ? {}
+        : { sync: { history: { ...DEFAULT_HISTORY_OPTIONS, ...input.historyOptions } } }),
       ...(input.googleSyncSeconds === undefined
         ? {}
         : { calendar: { googleSyncSeconds: input.googleSyncSeconds } }),

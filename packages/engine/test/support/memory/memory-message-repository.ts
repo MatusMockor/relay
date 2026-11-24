@@ -94,6 +94,21 @@ export class MemoryMessageRepository implements MessageRepository {
     return Promise.resolve(match?.threadId ?? null);
   }
 
+  findThreadIdByReplyTo(
+    accountId: AccountId,
+    messageIds: readonly string[],
+  ): Promise<ThreadId | null> {
+    const match = this.all()
+      .filter(
+        (message) =>
+          message.accountId === accountId &&
+          message.inReplyTo !== null &&
+          messageIds.includes(message.inReplyTo),
+      )
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0];
+    return Promise.resolve(match?.threadId ?? null);
+  }
+
   listThreadIdsByLabel(labelId: LabelId): Promise<ThreadId[]> {
     const threadIds = this.all()
       .filter((message) => message.labelIds.includes(labelId))

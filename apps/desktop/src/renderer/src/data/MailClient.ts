@@ -5,9 +5,13 @@ import type {
   AiJobId,
   ApplyAutomationResponse,
   AttachmentId,
-  Automation,
+  AutomationEntry,
+  AutomationActivityId,
+  AutomationHistoryResponse,
   AutomationId,
-  AutomationInput,
+  AutomationReplaceItem,
+  AutomationPreviewBody,
+  AutomationPreviewResponse,
   ChecklistResponse,
   CreateFolderBody,
   AiRunnerInfo,
@@ -19,6 +23,8 @@ import type {
   DraftAttachmentsForwarded,
   DraftContent,
   DraftId,
+  HistoryProgress,
+  OfflineStats,
   Label,
   LabelId,
   MailAccount,
@@ -26,15 +32,20 @@ import type {
   MailboxId,
   MarkFolderReadBody,
   MarkFolderReadResponse,
+  MessageBodyResult,
   MessageId,
   Draft,
   RealtimeEvent,
   ScheduledSend,
   ScheduledSendId,
   SendBody,
+  ServerSearchRequest,
+  ServerSearchResponse,
   SendResponse,
-  Split,
-  SplitInput,
+  SplitEntry,
+  SplitPreviewBody,
+  SplitPreviewResponse,
+  SplitReplaceItem,
   Task,
   TaskId,
   TaskListQuery,
@@ -48,6 +59,8 @@ import type {
   ThreadListQuery,
   ThreadPage,
   ThreadSummary,
+  UndoAutomationActivityResponse,
+  UndoAutomationSinceResponse,
   UpdateAccountBody,
   UpdateChecklistItemBody,
   UpdateDraftBody,
@@ -62,6 +75,7 @@ import type {
 
 import type { CalendarClient } from './CalendarClient';
 import type { GoogleCalendarClient } from './GoogleCalendarClient';
+import type { TaskSystemClient } from './TaskSystemClient';
 
 export type MailClientKind = 'remote' | 'local' | 'demo';
 
@@ -89,6 +103,7 @@ export type Unsubscribe = () => void;
 export interface ThreadReader {
   listThreads(params: ThreadListParams): Promise<ThreadPage>;
   getThread(threadId: ThreadId): Promise<ThreadDetail>;
+  getMessageBody(messageId: MessageId): Promise<MessageBodyResult>;
   prepareThreadAi(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   requestThreadSummary(threadId: ThreadId, timeZone: string): Promise<ThreadAiState>;
   applyThreadAction(threadId: ThreadId, action: ThreadAction): Promise<ThreadSummary>;
@@ -99,6 +114,10 @@ export interface ThreadReader {
   downloadAttachment(attachmentId: AttachmentId): Promise<AttachmentFile>;
 }
 
+export interface ServerSearcher {
+  searchServer(request: ServerSearchRequest): Promise<ServerSearchResponse>;
+}
+
 export interface AccountManager {
   listAccounts(): Promise<MailAccount[]>;
   createAccount(body: CreateAccountBody): Promise<MailAccount>;
@@ -107,6 +126,8 @@ export interface AccountManager {
   testConnection(body: TestConnectionBody): Promise<TestConnectionResponse>;
   listMailboxes(accountId: AccountId): Promise<Mailbox[]>;
   syncNow(accountId?: AccountId): Promise<void>;
+  historyProgress(): Promise<HistoryProgress[]>;
+  offlineStats(): Promise<OfflineStats>;
 }
 
 export interface FolderManager {
@@ -129,15 +150,26 @@ export interface Composer {
 }
 
 export interface Organizer {
-  listSplits(): Promise<Split[]>;
-  replaceSplits(splits: SplitInput[]): Promise<Split[]>;
+  listSplits(): Promise<SplitEntry[]>;
+  replaceSplits(splits: SplitReplaceItem[]): Promise<SplitEntry[]>;
+  previewSplit(body: SplitPreviewBody): Promise<SplitPreviewResponse>;
   createLabel(body: CreateLabelBody): Promise<Label>;
   updateLabel(labelId: LabelId, patch: UpdateLabelBody): Promise<Label>;
   deleteLabel(labelId: LabelId): Promise<void>;
-  listAutomations(): Promise<Automation[]>;
-  replaceAutomations(automations: AutomationInput[]): Promise<Automation[]>;
-  restoreDefaultAutomation(): Promise<Automation[]>;
+  listAutomations(): Promise<AutomationEntry[]>;
+  replaceAutomations(automations: AutomationReplaceItem[]): Promise<AutomationEntry[]>;
+  restoreDefaultAutomation(): Promise<AutomationEntry[]>;
   applyAutomation(automationId: AutomationId): Promise<ApplyAutomationResponse>;
+  previewAutomation(body: AutomationPreviewBody): Promise<AutomationPreviewResponse>;
+  automationHistory(automationId: AutomationId): Promise<AutomationHistoryResponse>;
+  undoAutomationActivity(
+    automationId: AutomationId,
+    activityId: AutomationActivityId,
+  ): Promise<UndoAutomationActivityResponse>;
+  undoAutomationSince(
+    automationId: AutomationId,
+    since: string,
+  ): Promise<UndoAutomationSinceResponse>;
   listTasks(params: TaskListParams): Promise<TaskPage>;
   updateTask(taskId: TaskId, patch: UpdateTaskBody): Promise<Task>;
   updateChecklistItem(
@@ -156,13 +188,15 @@ export interface AiAssistant {
 
 export interface MailClient
   extends ThreadReader,
+    ServerSearcher,
     AccountManager,
     FolderManager,
     Composer,
     Organizer,
     AiAssistant,
     CalendarClient,
-    GoogleCalendarClient {
+    GoogleCalendarClient,
+    TaskSystemClient {
   readonly kind: MailClientKind;
   subscribe(listener: MailEventListener): Unsubscribe;
   onRealtimeConnected(listener: () => void): Unsubscribe;

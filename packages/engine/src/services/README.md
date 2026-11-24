@@ -30,7 +30,7 @@ Ports: `ThreadRepository`, `MessageRepository`, `AiResultRepository`, `DraftRepo
 
 ### `MessageActionsService`
 
-`ThreadAction` commands: done (archive), undone, trash, restore, read/unread, add/remove label. Updates local state first, mirrors the change to the provider (move / flags / keywords), publishes `thread.upserted`.
+`ThreadAction` commands: done (mark complete and archive), archive, undone, trash, restore, read/unread, add/remove label. Updates local state first, mirrors the change to the provider (move / flags / keywords), publishes `thread.upserted`.
 
 Ports: `ThreadRepository`, `MessageRepository`, `MailboxRepository`, `LabelRepository`, `AccountRepository`, `UnitOfWork`, `MailProviderFactory`, `CredentialVault`, `EventPublisher`, `Clock`
 
@@ -51,6 +51,12 @@ Ports: `DraftRepository`, `AttachmentStore`, `ScheduledSendRepository`, `Account
 Task list and updates; create or update tasks from Jira classifications (one task per Jira key) and from AI output; publish `task.upserted`.
 
 Ports: `TaskRepository`, `ThreadRepository`, `EventPublisher`, `Clock`, `IdGenerator`
+
+### `TaskSystemService`
+
+Connections to external task systems (Jira Cloud today): connect verifies the credentials through the provider's adapter before anything is stored, list, disconnect (secret first, then the row) and the live list of the user's open tickets; a rejected token marks the connection `error`; publishes `taskSystems.updated`.
+
+Ports: `TaskSystemConnectionRepository`, `TaskSystemAdapterRegistry`, `TaskSystemSecretStore`, `EventPublisher`, `Clock`, `IdGenerator`
 
 ### `SplitService`
 

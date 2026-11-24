@@ -1,5 +1,5 @@
 import type { MailboxRole, MessageFlags } from '@relay/shared/domain';
-import type { MailboxChange } from '../../../src';
+import type { MailboxChange, RemoteTextSearch, UidRange } from '../../../src';
 import { present } from '../present';
 
 export interface RemoteMessageRecord {
@@ -63,12 +63,16 @@ export class FakeMailServer {
   readonly fetchedMessages: { path: string; uid: number }[] = [];
   readonly fetchedCalendarParts: { path: string; uid: number }[] = [];
   readonly streamedMessages: { path: string; uid: number }[] = [];
+  readonly uidFetches: { path: string; uids: number[] }[] = [];
   readonly flagScans: { path: string; uids: number[] | null }[] = [];
   readonly labelWrites: LabelWrite[] = [];
   readonly statusCalls: string[] = [];
   readonly uidListings: string[] = [];
+  readonly uidSearches: UidRange[] = [];
+  onUidSearch: ((range: UidRange) => void) | null = null;
   failFetchUid: number | null = null;
   interruptStreamAfter: number | null = null;
+  interruptStreamError: Error | null = null;
   afterNextList: (() => Promise<void>) | null = null;
   readonly listeners = new Set<(change: MailboxChange) => void>();
   connections = 0;
@@ -79,8 +83,12 @@ export class FakeMailServer {
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;
+  readonly textSearches: { path: string; query: RemoteTextSearch }[] = [];
+  beforeTextSearch: ((path: string) => Promise<void>) | null = null;
+  rejectTextSearch = false;
   failKeywordPurge: string | null = null;
   beforeNextFetch: ((path: string) => void) | null = null;
+  beforeNextConnect: (() => Promise<void>) | null = null;
   afterMove: ((sourcePath: string) => void) | null = null;
   private modseq = 1n;
 

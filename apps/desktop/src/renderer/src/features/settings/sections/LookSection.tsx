@@ -9,6 +9,9 @@ import { SettingRow } from '../SettingRow';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
 import { SettingsGroup } from '../SettingsGroup';
+import { ThemePicker } from '../theme/ThemePicker';
+import { themeDescription } from '../theme/theme-options';
+import { useThemeChoice } from '../theme/use-theme-choice';
 
 export function LookSection() {
   const settings = useUserSettings();
@@ -16,12 +19,18 @@ export function LookSection() {
   const layout = useLayout();
   const { rightOpen, rightTab } = useUiStore();
   const { platform } = useAppContext();
+  const [theme, chooseTheme] = useThemeChoice();
   const density = settings.data?.density ?? 'normal';
   return (
     <>
       <SectionHeader title="Vzhľad">
-        Ako hustý je zoznam a ktoré panely vidíš. Rozloženie panelov platí len pre toto zariadenie.
+        Farebná téma, ako hustý je zoznam a ktoré panely vidíš. Téma a rozloženie panelov platia len
+        pre toto zariadenie.
       </SectionHeader>
+      <SettingsGroup title="Téma" />
+      <SettingRow title="Farebná téma" description={themeDescription(theme)} stacked>
+        <ThemePicker label="Farebná téma" value={theme} onChange={chooseTheme} />
+      </SettingRow>
       <SettingsGroup title="Zoznam" />
       <SettingRow
         title="Hustota zoznamu"

@@ -1,3 +1,5 @@
+import type { TaskPriority } from '@relay/shared';
+
 export type DemoAccountKey = 'efa' | 'os' | 'fl';
 export type DemoSplitKey = 'jira' | 'other' | 'clients';
 export type DemoLabelKey =
@@ -37,6 +39,7 @@ export interface DemoThread {
   readonly sum?: string;
   readonly list?: readonly string[];
   readonly sugs?: readonly (readonly [label: string, body: string])[];
+  readonly markedDone?: boolean;
   readonly state?: 'inbox' | 'done' | 'trash' | 'spam' | 'reminder';
   readonly remindAt?: DemoAt;
   readonly labels?: readonly DemoLabelKey[];
@@ -46,5 +49,7 @@ export interface DemoThread {
     readonly title: string;
     readonly what: string;
     readonly state: 'open' | 'waiting';
+    readonly priority: TaskPriority;
+    readonly source?: 'ai' | 'manual';
   };
 }

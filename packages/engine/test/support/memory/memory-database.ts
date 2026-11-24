@@ -24,19 +24,25 @@ import type {
   Split,
   Task,
   TaskId,
+  TaskSystemConnectionId,
   ThreadId,
   ThreadSummary,
   UserId,
   UserSettings,
+  UnsupportedAutomation,
+  UnsupportedSplit,
 } from '@relay/shared/domain';
 import type {
+  AutomationActivityRecord,
   CalendarSubscriptionRecord,
   GoogleCalendarRecord,
   GoogleConnectionRecord,
+  HistoryCursor,
   MailboxSyncState,
   MessageHeaders,
   PendingWork,
   StoredCalendarEvent,
+  TaskSystemConnectionRecord,
 } from '../../../src';
 
 export interface StoredDraft {
@@ -52,8 +58,11 @@ export class MemoryTables {
   readonly threads = new Map<ThreadId, ThreadSummary>();
   readonly labels = new Map<LabelId, Label>();
   readonly splits = new Map<UserId, Split[]>();
+  readonly unsupportedSplits = new Map<UserId, UnsupportedSplit[]>();
   readonly automations = new Map<UserId, Automation[]>();
+  readonly unsupportedAutomations = new Map<UserId, UnsupportedAutomation[]>();
   readonly automationRuns = new Set<string>();
+  readonly automationActivity: AutomationActivityRecord[] = [];
   readonly removedPresets = new Set<string>();
   readonly tasks = new Map<TaskId, Task>();
   readonly reminders = new Map<ReminderId, Reminder>();
@@ -69,12 +78,15 @@ export class MemoryTables {
   readonly aiJobLeases = new Map<AiJobId, { owner: string; leaseUntil: string }>();
   readonly unindexedAiJobs = new Set<AiJobId>();
   readonly syncStates = new Map<MailboxId, MailboxSyncState>();
+  readonly historyCursors = new Map<MailboxId, HistoryCursor>();
+  readonly historyFlagOffsets = new Map<MailboxId, number>();
   readonly pendingWork = new Map<string, PendingWork>();
   readonly calendarEvents = new Map<CalendarEventId, StoredCalendarEvent>();
   readonly calendarSubscriptions = new Map<CalendarSubscriptionId, CalendarSubscriptionRecord>();
   readonly googleConnections = new Map<CalendarConnectionId, GoogleConnectionRecord>();
   readonly googleCalendars = new Map<GoogleCalendarId, GoogleCalendarRecord>();
   readonly googleEventRefs = new Map<CalendarEventId, { remoteId: string; etag: string }>();
+  readonly taskSystemConnections = new Map<TaskSystemConnectionId, TaskSystemConnectionRecord>();
 }
 
 export class MemoryDatabase {

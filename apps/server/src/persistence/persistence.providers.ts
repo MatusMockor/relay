@@ -14,6 +14,8 @@ import { AesGcmGoogleCalendarCredentials } from './credentials/aes-gcm-google-ca
 import { PgAccountCredentialStore } from './credentials/pg-account-credential-store';
 import { PgCalendarFeedSecretStore } from './credentials/pg-calendar-feed-secret-store';
 import { PgGoogleCalendarCredentialStore } from './credentials/pg-google-calendar-credential-store';
+import { AesGcmTaskSystemSecrets } from './credentials/aes-gcm-task-system-secrets';
+import { PgTaskSystemSecretStore } from './credentials/pg-task-system-secret-store';
 import type { DbExecutor } from './database/database';
 import { openPostgresConnection, type PostgresConnection } from './database/postgres-connection';
 import { runMigrations } from './migrations/migration-runner';
@@ -81,6 +83,7 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   splits: PORT_TOKENS.SplitRepository,
   automations: PORT_TOKENS.AutomationRepository,
   automationRuns: PORT_TOKENS.AutomationRunRepository,
+  automationActivity: PORT_TOKENS.AutomationActivityRepository,
   tasks: PORT_TOKENS.TaskRepository,
   reminders: PORT_TOKENS.ReminderRepository,
   drafts: PORT_TOKENS.DraftRepository,
@@ -96,6 +99,7 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   googleCalendars: PORT_TOKENS.GoogleCalendarRepository,
   googleEvents: PORT_TOKENS.GoogleEventRepository,
   inviteCandidates: PORT_TOKENS.InviteCandidateRepository,
+  taskSystemConnections: PORT_TOKENS.TaskSystemConnectionRepository,
   automationCandidates: PORT_TOKENS.AutomationCandidateRepository,
   users: SERVER_PORT_TOKENS.UserRepository,
   devices: SERVER_PORT_TOKENS.DeviceRepository,
@@ -164,6 +168,15 @@ export const persistenceProviders: Provider[] = [
       ),
   },
   {
+    provide: PORT_TOKENS.TaskSystemSecretStore,
+    inject: [DRIZZLE_DB, PERSISTENCE_CONFIG],
+    useFactory: (db: DbExecutor, config: PersistenceConfig) =>
+      new AesGcmTaskSystemSecrets(
+        new PgTaskSystemSecretStore(db),
+        new AesGcmCipher(config.credentialsKey),
+      ),
+  },
+  {
     provide: PORT_TOKENS.AttachmentStore,
     inject: [DRIZZLE_DB],
     useFactory: (db: DbExecutor) => new PgAttachmentStore(db),
@@ -190,6 +203,7 @@ export const PERSISTENCE_EXPORTS = [
   PORT_TOKENS.CredentialVault,
   CALENDAR_FEED_SECRETS,
   GOOGLE_CALENDAR_CREDENTIALS,
+  PORT_TOKENS.TaskSystemSecretStore,
   PORT_TOKENS.AttachmentStore,
   PORT_TOKENS.AttachmentBlobCatalog,
   PORT_TOKENS.MessageAttachmentLookup,

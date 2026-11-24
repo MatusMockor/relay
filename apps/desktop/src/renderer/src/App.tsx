@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   type AppContextValue,
   AppContextProvider,
   ServicesProvider,
 } from './data/hooks/services-context';
+import { withLocalNetworkMode } from './data/local-network-mode';
 import { resetContextMenu } from './features/context-menu/context-menu-store';
 import { sendQueue } from './features/mail/send-queue';
 import { AppShell } from './features/shell/AppShell';
@@ -14,9 +15,13 @@ import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { MenuCommandListener } from './features/updates/MenuCommandListener';
 import { UpdatePrompt } from './features/updates/UpdatePrompt';
 import { useSessionStore } from './session/session-store';
+import { createDocumentThemeController } from './theme/document-theme';
+import { ThemeProvider } from './theme/theme-context';
+import type { ThemeController } from './theme/theme-controller';
 
 export interface AppProps extends AppContextValue {
   readonly createQueryClient?: () => QueryClient;
+  readonly theme?: ThemeController;
 }
 
 interface QueryClientSlot {
@@ -36,7 +41,7 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   const created = useRef(0);
   const owner = services ?? slots;
   const slot = slots.current.get(owner) ?? {
-    client: createQueryClient(),
+    client: withLocalNetworkMode(createQueryClient(), services),
     key: (created.current += 1),
   };
   slots.current.set(owner, slot);
@@ -70,7 +75,8 @@ function Root({ createQueryClient }: { readonly createQueryClient: () => QueryCl
   );
 }
 
-export function App({ createQueryClient = defaultQueryClient, ...context }: AppProps) {
+export function App({ createQueryClient = defaultQueryClient, theme, ...context }: AppProps) {
+  const [controller] = useState(() => theme ?? createDocumentThemeController());
   useScopePersistence();
   useEffect(
     () =>
@@ -89,9 +95,11 @@ export function App({ createQueryClient = defaultQueryClient, ...context }: AppP
   }, [context.session]);
   return (
     <AppContextProvider value={context}>
-      <Root createQueryClient={createQueryClient} />
-      <UpdatePrompt />
-      <MenuCommandListener />
+      <ThemeProvider controller={controller}>
+        <Root createQueryClient={createQueryClient} />
+        <UpdatePrompt />
+        <MenuCommandListener />
+      </ThemeProvider>
     </AppContextProvider>
   );
 }

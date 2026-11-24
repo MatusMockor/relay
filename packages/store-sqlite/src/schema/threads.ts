@@ -21,6 +21,7 @@ export const threads = sqliteTable(
     jiraActor: text('jira_actor'),
     labelIds: text('label_ids', { mode: 'json' }).notNull(),
     state: text('state').notNull(),
+    markedDone: integer('marked_done', { mode: 'boolean' }).notNull().default(false),
     remindAt: text('remind_at'),
     hasDraft: integer('has_draft', { mode: 'boolean' }).notNull(),
   },
@@ -37,6 +38,8 @@ export const threads = sqliteTable(
       table.lastMessageTs,
       table.id,
     ),
+    index('threads_user_order_idx').on(table.userId, table.lastMessageTs, table.id),
+    index('threads_account_order_idx').on(table.accountId, table.lastMessageTs, table.id),
   ],
 );
 

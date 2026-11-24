@@ -2,6 +2,7 @@ import type {
   AccountId,
   Automation,
   AutomationCondition,
+  AutomationCriteria,
   MessageId,
   ThreadId,
   UserId,
@@ -13,7 +14,7 @@ import type {
 } from '../../ports/automation-candidate-repository';
 import type { AutomationMatcher } from '../../ports/automation-matcher';
 import type { JiraClassifier } from '../../ports/jira-classifier';
-import type { MessageRepository } from '../../ports/message-repository';
+import { CANDIDATE_MESSAGE_BATCH } from './recent-candidates';
 import { classifyStored } from './stored-jira-classification';
 
 export interface BacklogMatch {
@@ -25,14 +26,25 @@ export interface BacklogMatch {
 
 export interface AutomationBacklogMatcherDeps {
   readonly candidates: AutomationCandidateRepository;
-  readonly messages: MessageRepository;
   readonly matcher: AutomationMatcher;
   readonly classifier: JiraClassifier;
 }
 
 const JIRA_CONDITIONS: readonly AutomationCondition['type'][] = ['jira', 'jiraEvent'];
 
-const NO_JIRA = new Map<MessageId, JiraClassification | null>();
+export type JiraByMessage = ReadonlyMap<MessageId, JiraClassification | null>;
+
+const NO_JIRA: JiraByMessage = new Map();
+
+export const usesJira = (criteria: AutomationCriteria): boolean =>
+  [...criteria.conditions, ...criteria.exceptions].some((condition) =>
+    JIRA_CONDITIONS.includes(condition.type),
+  );
+
+const batchesOf = <Item>(items: readonly Item[], size: number): Item[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
+    items.slice(index * size, (index + 1) * size),
+  );
 
 export class AutomationBacklogMatcher {
   constructor(private readonly deps: AutomationBacklogMatcherDeps) {}
@@ -43,18 +55,26 @@ export class AutomationBacklogMatcher {
     automation: Automation,
     limit: number,
   ): Promise<BacklogMatch[]> {
-    const usesJira = automation.conditions.some((condition) =>
-      JIRA_CONDITIONS.includes(condition.type),
-    );
+    const candidates = await this.deps.candidates.listInbox(accountId, limit);
+    return this.match(userId, accountId, candidates, automation);
+  }
+
+  async match(
+    userId: UserId,
+    accountId: AccountId,
+    candidates: readonly InboxCandidate[],
+    criteria: AutomationCriteria,
+    known?: JiraByMessage,
+  ): Promise<BacklogMatch[]> {
+    const jira = known ?? (usesJira(criteria) ? await this.jiraOf(userId, candidates) : NO_JIRA);
     const matches: BacklogMatch[] = [];
-    for (const candidate of await this.deps.candidates.listInbox(accountId, limit)) {
-      const jira = usesJira ? await this.jiraOf(userId, candidate) : NO_JIRA;
+    for (const candidate of candidates) {
       const messageIds: MessageId[] = [];
       for (const { messageId, subject } of candidate.messages) {
         const matched = await this.deps.matcher.matches({
           message: subject,
           jira: jira.get(messageId) ?? null,
-          conditions: automation.conditions,
+          criteria,
         });
         if (matched) {
           messageIds.push(messageId);
@@ -72,21 +92,24 @@ export class AutomationBacklogMatcher {
     return matches;
   }
 
-  private async jiraOf(
-    userId: UserId,
-    candidate: InboxCandidate,
-  ): Promise<Map<MessageId, JiraClassification | null>> {
-    if (candidate.jiraKey === null) {
-      return NO_JIRA;
+  async jiraOf(userId: UserId, candidates: readonly InboxCandidate[]): Promise<JiraByMessage> {
+    const subjects = candidates
+      .filter((candidate) => candidate.jiraKey !== null)
+      .flatMap((candidate) => candidate.messages);
+    const headers = new Map(subjects.map((item) => [item.messageId, item.subject.headers]));
+    const classified = new Map<MessageId, JiraClassification | null>();
+    const ids = subjects.map((item) => item.messageId);
+    for (const batch of batchesOf(ids, CANDIDATE_MESSAGE_BATCH)) {
+      const stored = await this.deps.candidates.findMessages(userId, batch);
+      const results = await classifyStored(
+        this.deps.classifier,
+        stored,
+        (messageId) => headers.get(messageId) ?? new Map<string, string[]>(),
+      );
+      results.forEach((classification, messageId) => {
+        classified.set(messageId, classification);
+      });
     }
-    const headers = new Map(
-      candidate.messages.map((item) => [item.messageId, item.subject.headers]),
-    );
-    const stored = await this.deps.messages.listByThread(userId, candidate.threadId);
-    return classifyStored(
-      this.deps.classifier,
-      stored,
-      (messageId) => headers.get(messageId) ?? new Map<string, string[]>(),
-    );
+    return classified;
   }
 }
