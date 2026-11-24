@@ -2,9 +2,8 @@ import type { MessageLocation, PlacementMove } from '@relay/engine';
 import type { MessageId } from '@relay/shared/domain';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
-import { messagePlacements, messages } from '../../schema';
-import { resolvedMessageId } from '../../support/message-alias';
-import { lockMessagesWhere } from './message-row-locks';
+import { messagePlacements } from '../../schema';
+import { lockResolvedMessage } from './message-row-locks';
 import { refreshPrimaryMirror } from './primary-mirror';
 
 export const upsertPlacement = async (
@@ -42,7 +41,7 @@ export const movePlacementRow = async (
   messageId: MessageId,
   move: PlacementMove,
 ): Promise<void> => {
-  const [id] = await lockMessagesWhere(db, eq(messages.id, resolvedMessageId(messageId)));
+  const id = await lockResolvedMessage(db, messageId);
   if (id === undefined) {
     return;
   }

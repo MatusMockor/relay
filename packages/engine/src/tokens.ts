@@ -17,6 +17,7 @@ import type { CalendarSubscriptionRepository } from './ports/calendar-subscripti
 import type { Clock } from './ports/clock';
 import type { CredentialVault } from './ports/credential-vault';
 import type { DraftRepository } from './ports/draft-repository';
+import type { EmailIdResolutions } from './ports/email-id-resolutions';
 import type { EventPublisher } from './ports/event-publisher';
 import type { GoogleCalendarAdapters } from './ports/google-calendar-adapters';
 import type {
@@ -35,6 +36,7 @@ import type { MailboxRepository } from './ports/mailbox-repository';
 import type { MessageAttachmentLookup } from './ports/message-attachment-lookup';
 import type { MessageBodyRepairRepository } from './ports/message-body-repair-repository';
 import type { MessageParser } from './ports/message-parser';
+import type { MessageMerges } from './ports/message-merges';
 import type { MessageRepository } from './ports/message-repository';
 import type { PendingWorkRepository } from './ports/pending-work-repository';
 import type { ReminderRepository } from './ports/reminder-repository';
@@ -56,6 +58,8 @@ export const PORT_TOKENS = {
   AccountRepository: Symbol.for('relay.engine.AccountRepository'),
   MailboxRepository: Symbol.for('relay.engine.MailboxRepository'),
   MessageRepository: Symbol.for('relay.engine.MessageRepository'),
+  MessageMerges: Symbol.for('relay.engine.MessageMerges'),
+  EmailIdResolutions: Symbol.for('relay.engine.EmailIdResolutions'),
   ThreadRepository: Symbol.for('relay.engine.ThreadRepository'),
   LabelRepository: Symbol.for('relay.engine.LabelRepository'),
   SplitRepository: Symbol.for('relay.engine.SplitRepository'),
@@ -110,6 +114,8 @@ export interface PortRegistry {
   AccountRepository: AccountRepository;
   MailboxRepository: MailboxRepository;
   MessageRepository: MessageRepository;
+  MessageMerges: MessageMerges;
+  EmailIdResolutions: EmailIdResolutions;
   ThreadRepository: ThreadRepository;
   LabelRepository: LabelRepository;
   SplitRepository: SplitRepository;

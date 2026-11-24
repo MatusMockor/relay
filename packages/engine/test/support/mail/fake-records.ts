@@ -1,6 +1,7 @@
 import type { MailboxRole } from '@relay/shared/domain';
 import type {
   RawMessage,
+  RemoteEmailId,
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
@@ -18,6 +19,11 @@ export const toRaw = (path: string, record: RemoteMessageRecord): RawMessage => 
   size: record.source.byteLength,
   modseq: record.modseq.toString(),
   source: new Uint8Array(record.source),
+});
+
+export const emailIdOf = ({ uid, emailId }: RemoteMessageRecord): RemoteEmailId => ({
+  uid,
+  emailId,
 });
 
 const CALENDAR_HEADER = /^X-Test-Calendar:\s*(.+)$/gim;

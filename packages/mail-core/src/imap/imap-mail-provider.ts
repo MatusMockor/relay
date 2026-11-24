@@ -7,6 +7,7 @@ import type {
   MailProvider,
   MoveResult,
   RawMessage,
+  RemoteEmailId,
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
@@ -18,6 +19,7 @@ import type {
   UidListOptions,
 } from '@relay/engine';
 import type { MessageFlags } from '@relay/shared/domain';
+import { fetchEmailIds } from './fetch-email-ids';
 import { fetchFlagChanges } from './fetch-flag-changes';
 import { fetchSince } from './fetch-since';
 import { fetchSummaries } from './fetch-summaries';
@@ -122,6 +124,14 @@ export class ImapMailProvider implements MailProvider {
     uids: readonly number[],
   ): Promise<RemoteMessageSummary[]> {
     return fetchSummaries(this.connection, mailboxPath, uidValidity, uids);
+  }
+
+  fetchEmailIds(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteEmailId[]> {
+    return fetchEmailIds(this.connection, mailboxPath, uidValidity, uids);
   }
 
   async *fetchFlagChanges(

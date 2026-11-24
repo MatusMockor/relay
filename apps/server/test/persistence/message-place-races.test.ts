@@ -1,8 +1,12 @@
 import type { MessageRepository } from '@relay/engine';
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PgMessageRepository } from '../../src/persistence/repositories/messages/pg-message-repository';
 import { seedAccount } from './support/fixtures';
-import { waitForLockWaiters } from './support/lock-holder';
+import {
+  type HeldTransaction,
+  holdTransaction,
+  whileHeld as whileHeldBy,
+} from './support/held-transaction';
 import { usePgTestContext } from './support/pg-test-context';
 import {
   at,
@@ -16,71 +20,19 @@ import {
   seedPlacementScene,
 } from './support/place-fixtures';
 
-interface OpenTransaction<Result> {
-  readonly result: Result;
-  commit(): Promise<void>;
-}
-
 describe('PgMessageRepository.place races', () => {
   const context = usePgTestContext();
 
   const scene = async (): Promise<PlacementScene> =>
     seedPlacementScene(context.repositories, await seedAccount(context.repositories));
 
-  const openTransaction = async <Result>(
-    work: (messages: MessageRepository) => Promise<Result>,
-  ): Promise<OpenTransaction<Result>> => {
-    let release = (): void => undefined;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let started = (_result: Result): void => undefined;
-    const ready = new Promise<Result>((resolve) => {
-      started = resolve;
-    });
-    const committed = context.db.transaction(async (tx) => {
-      started(await work(new PgMessageRepository(tx)));
-      await gate;
-    });
-    const finished = committed.then(
-      () => null,
-      (error: unknown) => error,
-    );
-    onTestFinished(async () => {
-      release();
-      await finished;
-    });
-    const failedEarly = finished.then((error) => {
-      expect(error).toBeNull();
-      return ready;
-    });
-    const result = await Promise.race([ready, failedEarly]);
-    return {
-      result,
-      commit: async () => {
-        release();
-        expect(await finished).toBeNull();
-      },
-    };
-  };
+  const openTransaction = <Result>(work: (messages: MessageRepository) => Promise<Result>) =>
+    holdTransaction(context.db, (tx) => work(new PgMessageRepository(tx)));
 
-  const whileHeld = async <Held, Competing>(
-    held: OpenTransaction<Held>,
+  const whileHeld = <Held, Competing>(
+    held: HeldTransaction<Held>,
     compete: () => Promise<Competing>,
-  ): Promise<Competing> => {
-    const competing = compete();
-    const observed = competing.then(
-      () => null,
-      (error: unknown) => error,
-    );
-    try {
-      await waitForLockWaiters(context.url);
-    } finally {
-      await held.commit();
-    }
-    expect(await observed).toBeNull();
-    return competing;
-  };
+  ): Promise<Competing> => whileHeldBy(context.url, held, compete);
 
   it('creates one message when two mailboxes deliver the same email id at once', async () => {
     const placed = await scene();

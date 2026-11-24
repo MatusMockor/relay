@@ -32,6 +32,11 @@ export interface RemoteMessageMeta {
   readonly internalDate: string;
 }
 
+export interface RemoteEmailId {
+  readonly uid: number;
+  readonly emailId: string | null;
+}
+
 export interface RawMessage extends RemoteMessageMeta {
   readonly mailboxPath: string;
   readonly size: number;

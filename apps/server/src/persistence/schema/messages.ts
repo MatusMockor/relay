@@ -76,6 +76,9 @@ export const messages = pgTable(
     index('messages_thread_idx').on(table.threadId, table.date),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
     index('messages_account_email_idx').on(table.accountId, table.emailId),
+    index('messages_account_email_bytes_idx')
+      .on(table.accountId, sql`${table.emailId} collate "C"`)
+      .where(sql`email_id is not null`),
     index('messages_user_idx').on(table.userId),
     index('messages_search_idx').using('gin', table.searchVector),
     index('messages_account_subject_hash_idx').on(

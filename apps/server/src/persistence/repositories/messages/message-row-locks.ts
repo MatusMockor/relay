@@ -1,7 +1,8 @@
 import type { MessageId } from '@relay/shared/domain';
-import { asc, type SQL, sql } from 'drizzle-orm';
+import { asc, eq, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messages } from '../../schema';
+import { resolvedMessageId } from '../../support/message-alias';
 
 export const lockMessagesWhere = async (db: DbExecutor, condition: SQL): Promise<MessageId[]> => {
   const rows = await db
@@ -18,3 +19,15 @@ export const idIn = (ids: readonly string[]): SQL =>
 
 export const lockMessages = (db: DbExecutor, ids: readonly string[]): Promise<MessageId[]> =>
   ids.length === 0 ? Promise.resolve([]) : lockMessagesWhere(db, idIn(ids));
+
+export const lockResolvedMessage = async (
+  db: DbExecutor,
+  messageId: MessageId,
+): Promise<MessageId | undefined> => {
+  const [locked] = await lockMessagesWhere(db, eq(messages.id, resolvedMessageId(messageId)));
+  if (locked !== undefined) {
+    return locked;
+  }
+  const [merged] = await lockMessagesWhere(db, eq(messages.id, resolvedMessageId(messageId)));
+  return merged;
+};

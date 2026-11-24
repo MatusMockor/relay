@@ -19,7 +19,7 @@ export const pickMoveTarget = async (page: Page, target: string): Promise<void> 
   await dialog.waitFor({ state: 'detached' });
 };
 
-export const searchMail = async (page: Page, query: string): Promise<void> => {
+const typeSearch = async (page: Page, query: string): Promise<void> => {
   await page.keyboard.press('/');
   const input = page.getByRole('combobox', { name: /Hľadať/ });
   await input.waitFor();
@@ -29,5 +29,18 @@ export const searchMail = async (page: Page, query: string): Promise<void> => {
     .locator('[role="option"]')
     .first()
     .waitFor();
-  await page.keyboard.press('Control+Enter');
+};
+
+export const showAllResults = (page: Page): Promise<void> => page.keyboard.press('Control+Enter');
+
+export const searchHits = async (page: Page, query: string): Promise<string[]> => {
+  await typeSearch(page, query);
+  const local = page.locator('[role="group"][aria-label="Maily"][aria-busy="false"]');
+  await local.waitFor();
+  return (await local.locator('.spal-row .s').allInnerTexts()).map((text) => text.trim());
+};
+
+export const searchMail = async (page: Page, query: string): Promise<void> => {
+  await typeSearch(page, query);
+  await showAllResults(page);
 };

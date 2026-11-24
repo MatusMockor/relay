@@ -5,6 +5,7 @@ export * from './ai-model-catalog';
 export * from './app-links';
 export * from './calendar-event';
 export * from './calendar-subscription';
+export * from './copy-merge-work';
 export * from './google-calendar';
 export * from './attachment-file';
 export * from './attachment-external-open';

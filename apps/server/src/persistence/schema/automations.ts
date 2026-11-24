@@ -71,7 +71,10 @@ export const automationRuns = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestampTz('created_at').notNull(),
   },
-  (table) => [primaryKey({ columns: [table.automationId, table.messageId] })],
+  (table) => [
+    primaryKey({ columns: [table.automationId, table.messageId] }),
+    index('automation_runs_message_idx').on(table.messageId),
+  ],
 );
 
 export const removedAutomationPresets = pgTable(

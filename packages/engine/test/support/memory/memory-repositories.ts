@@ -21,6 +21,7 @@ import { MemoryAutomationCandidateRepository } from './memory-automation-candida
 import { MemoryInviteCandidateRepository } from './memory-invite-candidate-repository';
 import { MemoryLabelRepository } from './memory-label-repository';
 import { MemoryMailboxRepository } from './memory-mailbox-repository';
+import { MemoryEmailIdResolutions, MemoryMessageMerges } from './memory-message-merges';
 import { MemoryMessageRepository } from './memory-message-repository';
 import { MemoryPendingWorkRepository } from './memory-pending-work-repository';
 import { MemoryReminderRepository } from './memory-reminder-repository';
@@ -40,6 +41,8 @@ export const createMemoryRepositories = (db: MemoryDatabase): Repositories => ({
   accounts: new MemoryAccountRepository(db),
   mailboxes: new MemoryMailboxRepository(db),
   messages: new MemoryMessageRepository(db),
+  messageMerges: new MemoryMessageMerges(db),
+  emailIdResolutions: new MemoryEmailIdResolutions(db),
   threads: new MemoryThreadRepository(db),
   labels: new MemoryLabelRepository(db),
   splits: new MemorySplitRepository(db),

@@ -22,6 +22,12 @@ export class ScreenshotBook {
     return new ScreenshotBook(page, await freshScenarioDir(scenario));
   }
 
+  forPage(page: Page): ScreenshotBook {
+    const book = new ScreenshotBook(page, this.dir);
+    book.taken = this.taken;
+    return book;
+  }
+
   async take(name: string): Promise<string> {
     this.taken += 1;
     const file = join(this.dir, `${String(this.taken).padStart(2, '0')}-${slugOf(name)}.png`);

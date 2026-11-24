@@ -9,6 +9,7 @@ import {
   type RawMessage,
   type RemoteFlagChange,
   type RemoteMailbox,
+  type RemoteEmailId,
   type RemoteMailboxStatus,
   type RemoteMessageSummary,
   type RemoteSyncCursor,
@@ -27,6 +28,7 @@ import {
 } from './fake-mailbox-admin';
 import {
   calendarHeaders,
+  emailIdOf,
   missing,
   scanFlagChanges,
   statusOf,
@@ -139,6 +141,11 @@ export class FakeMailProvider implements MailProvider {
 
   fetchSummaries(path: string, uidValidity: number, uids: readonly number[]) {
     return this.readRecords<RemoteMessageSummary>(path, uidValidity, uids, summaryOf);
+  }
+
+  fetchEmailIds(path: string, uidValidity: number, uids: readonly number[]) {
+    this.server?.emailIdFetches.push({ path, uidValidity, uids: [...uids] });
+    return this.readRecords<RemoteEmailId>(path, uidValidity, uids, emailIdOf);
   }
 
   fetchFlagChanges(path: string, sinceModseq: string, uids?: readonly number[]) {

@@ -57,6 +57,7 @@ export const drafts = pgTable(
   (table) => [
     index('drafts_user_idx').on(table.userId, table.updatedAt.desc()),
     index('drafts_thread_idx').on(table.inReplyToThreadId),
+    index('drafts_reply_message_idx').on(table.inReplyToMessageId),
   ],
 );
 

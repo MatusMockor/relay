@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "perf:copy-merge": "for size in 500 10000 100000; do RELAY_PERF=1 RELAY_PERF_SIZE=$size vitest run copy-merge.perf || exit 1; done",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

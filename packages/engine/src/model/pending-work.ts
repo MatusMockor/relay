@@ -2,6 +2,7 @@ import type {
   AccountId,
   Address,
   CalendarAttendee,
+  CopyMergeWork,
   DraftId,
   JiraKey,
   LabelId,
@@ -157,6 +158,7 @@ export interface PendingWorkPayloads {
   readonly 'label-rescan': LabelRescanWork;
   readonly 'keyword-purge': KeywordPurgeWork;
   readonly 'body-repair': BodyRepairWork;
+  readonly 'copy-merge': CopyMergeWork;
 }
 
 export type PendingWorkKind = keyof PendingWorkPayloads;

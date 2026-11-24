@@ -26,10 +26,14 @@ export const messagePlacements = pgTable(
   ],
 );
 
-export const messageAliases = pgTable('message_aliases', {
-  aliasId: text('alias_id').$type<MessageId>().primaryKey(),
-  messageId: text('message_id')
-    .$type<MessageId>()
-    .notNull()
-    .references(() => messages.id, { onDelete: 'cascade' }),
-});
+export const messageAliases = pgTable(
+  'message_aliases',
+  {
+    aliasId: text('alias_id').$type<MessageId>().primaryKey(),
+    messageId: text('message_id')
+      .$type<MessageId>()
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+  },
+  (table) => [index('message_aliases_message_idx').on(table.messageId)],
+);

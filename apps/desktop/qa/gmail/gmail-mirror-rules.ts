@@ -91,11 +91,15 @@ export const onAppended = (server: IMAPServer, msgid: string, path: string, uid:
   syncLabels(server, msgid);
 };
 
+const removedFromAllMail = (copies: readonly MessageCopy[], path: string): boolean =>
+  isAllMail(path) && !copies.some((copy) => isAllMail(copy.mailbox.path));
+
 export const onExpunged = (server: IMAPServer, msgid: string, path: string): void => {
-  if (isAllMail(path)) {
+  const copies = copiesOf(server, msgid);
+  if (removedFromAllMail(copies, path)) {
     expunge(
       server,
-      copiesOf(server, msgid).filter((copy) => isLabelFolder(copy.mailbox.path)),
+      copies.filter((copy) => isLabelFolder(copy.mailbox.path)),
     );
   }
   syncLabels(server, msgid);

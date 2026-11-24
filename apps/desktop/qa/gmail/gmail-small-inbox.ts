@@ -23,6 +23,12 @@ export const GMAIL_SMALL_THREADS: readonly GmailThreadSpec[] = [
   { subject: 'Faktúra za hosting 11/2026', messages: 1, placement: 'inbox' },
 ];
 
+export const GMAIL_SMALL_SUBJECTS = {
+  hosting: 'Faktúra za hosting 11/2026',
+  labelled: 'Ponuka pre klienta Alfa',
+  self: 'Poznámka pre seba: prístupy k VPN',
+} as const;
+
 const FOLDERS: Readonly<Record<GmailPlacement, readonly string[]>> = {
   inbox: [GMAIL.inbox],
   label: [GMAIL.inbox, CLIENT_LABEL],

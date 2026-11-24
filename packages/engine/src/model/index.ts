@@ -7,6 +7,7 @@ export type * from './jira';
 export type * from './outgoing-message';
 export type * from './page';
 export type * from './parsed-message';
+export type * from './message-merge';
 export type * from './placement-ingest';
 export type * from './pending-work';
 export type * from './remote-mail';

@@ -78,6 +78,8 @@ const REPOSITORY_TOKENS: Readonly<Record<keyof ServerRepositories, symbol>> = {
   accounts: PORT_TOKENS.AccountRepository,
   mailboxes: PORT_TOKENS.MailboxRepository,
   messages: PORT_TOKENS.MessageRepository,
+  messageMerges: PORT_TOKENS.MessageMerges,
+  emailIdResolutions: PORT_TOKENS.EmailIdResolutions,
   threads: PORT_TOKENS.ThreadRepository,
   labels: PORT_TOKENS.LabelRepository,
   splits: PORT_TOKENS.SplitRepository,

@@ -15,12 +15,13 @@ export interface KeywordMutation {
   readonly remove: readonly string[];
 }
 
-export const writeFlags = (
+export const writeFlags = async (
   server: FakeMailServer,
   path: string,
   uids: readonly number[],
   mutation: FlagMutation,
 ): Promise<void> => {
+  await server.beforeFlagWrite?.();
   if (server.failFlagWrites !== null) {
     return Promise.reject(new Error(server.failFlagWrites));
   }

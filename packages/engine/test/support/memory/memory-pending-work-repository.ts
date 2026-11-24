@@ -10,7 +10,8 @@ import type {
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
 
-const keyOf = (key: PendingWorkKey): string => JSON.stringify([key.accountId, key.kind, key.ref]);
+export const pendingWorkKeyOf = (key: PendingWorkKey): string =>
+  JSON.stringify([key.accountId, key.kind, key.ref]);
 
 export class MemoryPendingWorkRepository implements PendingWorkRepository {
   failPut: string | null = null;
@@ -29,7 +30,7 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
     if (this.failPutAfter !== null) {
       this.failPutAfter -= 1;
     }
-    const key = keyOf(work);
+    const key = pendingWorkKeyOf(work);
     const stored: PendingWork<Kind> = { ...structuredClone(work), revision: randomUUID() };
     this.db.tables.pendingWork.set(key, stored);
     return Promise.resolve(stored);
@@ -39,7 +40,7 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
     work: PendingWork<Kind>,
     payload: PendingWorkPayloads[Kind],
   ): Promise<PendingWork<Kind> | null> {
-    const key = keyOf(work);
+    const key = pendingWorkKeyOf(work);
     if (this.db.tables.pendingWork.get(key)?.revision !== work.revision) {
       return Promise.resolve(null);
     }
@@ -53,7 +54,7 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
   }
 
   find<Kind extends PendingWorkKind>(key: PendingWorkKey<Kind>): Promise<PendingWork<Kind> | null> {
-    const stored = this.db.tables.pendingWork.get(keyOf(key));
+    const stored = this.db.tables.pendingWork.get(pendingWorkKeyOf(key));
     return Promise.resolve(stored === undefined ? null : (stored as PendingWork<Kind>));
   }
 
@@ -79,7 +80,7 @@ export class MemoryPendingWorkRepository implements PendingWorkRepository {
 
   remove(works: readonly PendingWork[]): Promise<number> {
     const removed = works.filter((work) => {
-      const key = keyOf(work);
+      const key = pendingWorkKeyOf(work);
       if (this.db.tables.pendingWork.get(key)?.revision !== work.revision) {
         return false;
       }

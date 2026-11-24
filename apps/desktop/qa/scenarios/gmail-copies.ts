@@ -1,51 +1,23 @@
 import assert from 'node:assert/strict';
 import { runAction } from '../app/actions';
-import { listedSubjects, waitForInbox } from '../app/inbox';
+import { waitForInbox } from '../app/inbox';
 import { openSidebarFolder } from '../app/sidebar';
-import { closeThread, openThread, threadFacts } from '../app/thread-view';
+import { closeThread, openThread } from '../app/thread-view';
 import { CLIENT_LABEL, GMAIL } from '../gmail/gmail-layout';
-import { gmailSmallInbox, gmailSmallMessageId, threadsPlaced } from '../gmail/gmail-small-inbox';
-import type { GmailScenarioContext } from './gmail-scenario';
+import {
+  GMAIL_SMALL_SUBJECTS,
+  gmailSmallInbox,
+  gmailSmallMessageId,
+} from '../gmail/gmail-small-inbox';
 import { exactly, expectListed, expectServer, including } from './gmail-expect';
+import { observer } from './gmail-observer';
 import { addGmailAccount } from './gmail-onboard';
 import { runGmailScenario } from './gmail-scenario';
+import { SMALL_INBOX_THREADS, waitForFullSync } from './gmail-small-sync';
 import { stepRecorder } from './scenario-steps';
 
-const HOSTING = 'Faktúra za hosting 11/2026';
-const LABELLED = 'Ponuka pre klienta Alfa';
-const SELF = 'Poznámka pre seba: prístupy k VPN';
+const { hosting: HOSTING, labelled: LABELLED, self: SELF } = GMAIL_SMALL_SUBJECTS;
 const HOSTING_ID = gmailSmallMessageId(HOSTING);
-const ARCHIVED = threadsPlaced('archived')[0] ?? '';
-
-const inboxThreads = [
-  ...threadsPlaced('inbox'),
-  ...threadsPlaced('label'),
-  ...threadsPlaced('self'),
-];
-
-const observer = (context: GmailScenarioContext) => ({
-  list: async (label: string) => {
-    const subjects = await listedSubjects(context.page);
-    context.step(`${label} lists ${String(subjects.length)} rows: ${subjects.join(' | ')}`);
-  },
-  thread: async (subject: string, shot: string) => {
-    await openThread(context.page, subject);
-    const facts = await threadFacts(context.page);
-    context.step(
-      `thread "${facts.title}": meta "${facts.meta}", ${String(facts.messageElements)} message elements`,
-    );
-    await context.screenshot(shot);
-  },
-});
-
-const waitForFullSync = async (context: GmailScenarioContext): Promise<void> => {
-  await runAction(context.page, { kind: 'goto', view: 'archive' });
-  await expectListed(context, 'Archív (All Mail synced)', ARCHIVED, true);
-  await openSidebarFolder(context.page, CLIENT_LABEL);
-  await expectListed(context, `${CLIENT_LABEL} (label synced)`, LABELLED, true);
-  await runAction(context.page, { kind: 'goto', view: 'inbox' });
-  await waitForInbox(context.page, inboxThreads.length);
-};
 
 await runGmailScenario({
   name: 'gmail-copies',
@@ -55,7 +27,7 @@ await runGmailScenario({
     const look = observer(context);
     const steps = stepRecorder(context);
     await addGmailAccount(context);
-    await waitForInbox(page, inboxThreads.length);
+    await waitForInbox(page, SMALL_INBOX_THREADS.length);
     await waitForFullSync(context);
     await look.list('inbox');
     await expectServer(context, HOSTING_ID, 'seeding', exactly(GMAIL.inbox, GMAIL.allMail));

@@ -6,6 +6,7 @@ import type {
   MailboxChange,
   MoveResult,
   RawMessage,
+  RemoteEmailId,
   RemoteFlagChange,
   RemoteMailbox,
   RemoteMailboxStatus,
@@ -52,6 +53,11 @@ export interface MailProvider {
     uidValidity: number,
     uids: readonly number[],
   ): Promise<RemoteMessageSummary[]>;
+  fetchEmailIds(
+    mailboxPath: string,
+    uidValidity: number,
+    uids: readonly number[],
+  ): Promise<RemoteEmailId[]>;
   fetchFlagChanges(
     mailboxPath: string,
     sinceModseq: string,
