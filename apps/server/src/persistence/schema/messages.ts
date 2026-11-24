@@ -65,10 +65,14 @@ export const messages = pgTable(
     answered: boolean('answered').notNull(),
     attachments: jsonb('attachments').$type<AttachmentMeta[]>().notNull(),
     headers: jsonb('headers').$type<StoredHeaders>().notNull(),
+    jiraEffectsAt: timestampTz('jira_effects_at'),
+    inviteEffectsAt: timestampTz('invite_effects_at'),
     searchVector: tsvector('search_vector').generatedAlwaysAs(searchDocument),
   },
   (table) => [
-    uniqueIndex('messages_mailbox_uid_unique').on(table.mailboxId, table.uid),
+    uniqueIndex('messages_mailbox_uid_unique')
+      .on(table.mailboxId, table.uid)
+      .where(sql`uid > 0`),
     index('messages_thread_idx').on(table.threadId, table.date),
     index('messages_account_header_idx').on(table.accountId, table.messageIdHeader),
     index('messages_account_email_idx').on(table.accountId, table.emailId),

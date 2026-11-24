@@ -1,6 +1,6 @@
 import type { MessageLocation } from '@relay/engine';
-import type { MailboxId, Message, MessageId, ThreadId } from '@relay/shared/domain';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { type MailboxId, type Message, type MessageId, PENDING_UID } from '@relay/shared/domain';
+import { and, asc, eq, gt } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messagePlacements, messages } from '../../schema';
 import { resolvedMessageId } from '../../support/message-alias';
@@ -25,11 +25,19 @@ export const findAtLocation = async (
   return row === undefined ? null : toMessage(row);
 };
 
+export const findStoredMessage = async (
+  db: DbExecutor,
+  messageId: MessageId,
+): Promise<Message | null> => {
+  const [row] = await db.select(messageSelection).from(messages).where(eq(messages.id, messageId));
+  return row === undefined ? null : toMessage(row);
+};
+
 export const listPlacedUids = async (db: DbExecutor, mailboxId: MailboxId): Promise<number[]> => {
   const rows = await db
     .select({ uid: messagePlacements.uid })
     .from(messagePlacements)
-    .where(eq(messagePlacements.mailboxId, mailboxId))
+    .where(and(eq(messagePlacements.mailboxId, mailboxId), gt(messagePlacements.uid, PENDING_UID)))
     .orderBy(asc(messagePlacements.uid));
   return rows.map((row) => row.uid);
 };
@@ -51,30 +59,3 @@ export const moveMessage = (
     }
     await replacePlacement(tx, row.id, target);
   });
-
-export const deleteAtUids = async (
-  db: DbExecutor,
-  mailboxId: MailboxId,
-  uids: readonly number[],
-): Promise<ThreadId[]> => {
-  if (uids.length === 0) {
-    return [];
-  }
-  const placed = db
-    .select({ id: messagePlacements.messageId })
-    .from(messagePlacements)
-    .where(
-      and(eq(messagePlacements.mailboxId, mailboxId), inArray(messagePlacements.uid, [...uids])),
-    );
-  const rows = await db
-    .delete(messages)
-    .where(
-      and(
-        inArray(messages.id, placed),
-        eq(messages.mailboxId, mailboxId),
-        inArray(messages.uid, [...uids]),
-      ),
-    )
-    .returning({ threadId: messages.threadId });
-  return [...new Set(rows.map((row) => row.threadId))];
-};
