@@ -51,11 +51,14 @@ describe('priority writes in my tasks', () => {
       expect(groupOfRow(CSV_SUBJECT)).toBe('Vysoká');
     });
     chord('Digit1', '+');
-    await waitFor(async () => {
-      expect((await taskOf(base, TASK_TITLE)).priority).toBe('urgent');
+    await waitFor(() => {
+      expect(groupOfRow(CSV_SUBJECT)).toBe('Urgentné');
     });
     act(() => {
       slow.open();
+    });
+    await waitFor(async () => {
+      expect((await taskOf(base, TASK_TITLE)).priority).toBe('urgent');
     });
     await settle(30);
 
@@ -108,6 +111,35 @@ describe('priority writes in my tasks', () => {
       expect(groupOfRow(CSV_SUBJECT)).toBe('Nízka');
     });
     expect((await taskOf(base, TASK_TITLE)).priority).toBe('low');
+  });
+
+  it('asks to update an older server that lists my tasks without the active task', async () => {
+    const base = demoClient();
+    const writes: string[] = [];
+    const client: MailClient = {
+      ...base,
+      listThreads: async (params) => {
+        const page = await base.listThreads(params);
+        return { ...page, items: page.items.map(({ activeTask: _active, ...thread }) => thread) };
+      },
+      updateTask: (taskId, patch) => {
+        writes.push(patch.priority ?? '');
+        return base.updateTask(taskId, patch);
+      },
+    };
+    renderApp({ demo: () => client });
+    await gotoTasks();
+    await waitFor(() => {
+      expect(groupOfRow(CSV_SUBJECT)).toBe('Bez priority');
+    });
+    selectRow(CSV_SUBJECT);
+
+    chord('Digit1', '+');
+
+    await waitFor(() => {
+      expect(toastText()).toContain('nepodporuje priority úloh');
+    });
+    expect(writes).toEqual([]);
   });
 
   it('lets other keys through after P and drops the chord on navigation and overlays', async () => {

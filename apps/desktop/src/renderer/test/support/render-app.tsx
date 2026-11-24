@@ -22,7 +22,7 @@ import { resetTrackpadSwipe } from '../../src/features/shell/trackpad-swipe';
 import { useChat } from '../../src/features/side/chat-store';
 import { INITIAL_SESSION, useSessionStore } from '../../src/session/session-store';
 import { SessionController } from '../../src/session/SessionController';
-import { resetPendingPriorities } from '../../src/features/tasks/pending-priorities';
+import { resetPriorityWrites } from '../../src/features/tasks/priority-write';
 import { resetToasts } from '../../src/state/toast-store';
 import { DEFAULT_LIST_VIEWPORT, setListViewport } from './list-geometry';
 import type { ThemeController } from '../../src/theme/theme-controller';
@@ -53,7 +53,7 @@ export const resetMemoryStores = (): void => {
   useUiStore.setState(INITIAL_UI);
   useChat.setState({ turns: [], queued: null });
   resetToasts();
-  resetPendingPriorities();
+  resetPriorityWrites();
   setFolderEdit(null);
   resetContextMenu();
   forgetOffsets();

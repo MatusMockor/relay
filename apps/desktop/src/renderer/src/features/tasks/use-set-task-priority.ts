@@ -5,7 +5,7 @@ import { useClient } from '../../data/hooks/services-context';
 import { showToast } from '../../state/toast-store';
 import { usePendingPriorityStore } from './pending-priorities';
 import { priorityTitle } from './priority-labels';
-import { type PriorityGateway, writePriority } from './priority-write';
+import { type PriorityGateway, UNSUPPORTED_PRIORITY, writePriority } from './priority-write';
 import { confirmTaskPriority } from './task-priority-cache';
 import { threadPriority } from './thread-priorities';
 
@@ -27,10 +27,10 @@ export const useSetTaskPriority = (): SetThreadPriority => {
   const run = async (
     taskId: TaskId,
     priority: TaskPriority,
-    previous: TaskPriority,
+    stored: TaskPriority,
     undoable: boolean,
   ): Promise<void> => {
-    const result = await writePriority(gateway, taskId, priority);
+    const result = await writePriority(gateway, taskId, priority, stored);
     if (result.kind === 'failed') {
       showToast(result.message);
       return;
@@ -40,19 +40,22 @@ export const useSetTaskPriority = (): SetThreadPriority => {
     }
     showToast(priorityTitle(priority), {
       undo: () => {
-        void run(taskId, previous, priority, false);
+        void run(taskId, result.previous, priority, false);
       },
     });
   };
   return (thread, priority) => {
     const task = thread.activeTask;
-    if (task == null) {
+    if (task === undefined) {
+      showToast(UNSUPPORTED_PRIORITY);
       return;
     }
-    const previous = threadPriority(thread, usePendingPriorityStore.getState().pending);
-    if (previous === priority) {
+    if (task === null) {
       return;
     }
-    void run(task.id, priority, previous, true);
+    if (threadPriority(thread, usePendingPriorityStore.getState().pending) === priority) {
+      return;
+    }
+    void run(task.id, priority, task.priority, true);
   };
 };
