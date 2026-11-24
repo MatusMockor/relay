@@ -23,6 +23,7 @@ import {
 } from '@relay/store-sqlite';
 import type { FeedFetchOptions } from '@relay/calendar';
 import {
+  buildSnippet,
   HttpsUnsubscribeSender,
   isUnsafeRegex,
   MailparserAttachmentExtractor,
@@ -58,7 +59,10 @@ export interface LocalEngine {
 export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
   const { infrastructure } = input;
   const database = openDatabase(infrastructure.paths.database);
-  migrate(database, { migrationsFolder: infrastructure.paths.migrations });
+  migrate(database, {
+    migrationsFolder: infrastructure.paths.migrations,
+    snippetBuilder: buildSnippet,
+  });
   const repositories = createSqliteRepositories(database);
   const mail = createMailAdapters({
     vault: infrastructure.vault,
