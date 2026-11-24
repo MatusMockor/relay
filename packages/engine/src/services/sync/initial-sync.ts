@@ -55,8 +55,9 @@ export class InitialSync {
       await this.releaseWhenSettled(context, round, selected);
       return;
     }
-    const progress = new InitialProgress();
+    const progress = new InitialProgress(passes.length);
     const run: BacklogRun = { context, passes: round.passes, progress, failed: new Set() };
+    await steps.stage(context, 'headers', 0, passes.length);
     const inbox = await this.open(context, passes.filter(isInbox), progress);
     const head = await this.deps.backlog.head(run, inbox);
     const others = await this.open(
@@ -111,6 +112,7 @@ export class InitialSync {
         await this.deps.steps.save(context, pass, mark(window, window.frozen));
         windows.push(window);
       }
+      await this.deps.steps.stage(context, 'headers', progress.opened(), progress.mailboxes);
     }
     progress.add(windows);
     return windows;

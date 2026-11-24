@@ -7,6 +7,8 @@ import { throttleByKey } from './keyed-throttle';
 import { queryKeys } from './query-keys';
 import { taskSystemKeys } from './task-system-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
+import { settleSyncStatus } from './sync-status-cache';
+import { recordSyncProgress } from './use-sync-progress';
 import { recordThreadChange } from './thread-changes';
 
 const invalidate = (client: QueryClient, key: readonly unknown[]) => {
@@ -51,6 +53,10 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   if (event.type === 'sync.history') {
     invalidate(client, queryKeys.historyProgress());
     invalidate(client, queryKeys.offlineStats());
+    return;
+  }
+  if (event.type === 'sync.progress') {
+    recordSyncProgress(client, event.data);
     return;
   }
   if (event.type === 'message.upserted') {
@@ -110,9 +116,11 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     event.type === 'account.status'
   ) {
     invalidate(client, queryKeys.accounts());
-    if (event.type !== 'account.status') {
-      invalidate(client, queryKeys.historyProgress());
+    if (event.type === 'account.status') {
+      settleSyncStatus(client, event.data);
+      return;
     }
+    invalidate(client, queryKeys.historyProgress());
     if (event.type === 'account.removed') {
       invalidate(client, queryKeys.allMailboxes());
       invalidate(client, calendarKeys.all());

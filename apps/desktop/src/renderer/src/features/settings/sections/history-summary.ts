@@ -21,7 +21,11 @@ export const summarizeHistory = (progress: readonly HistoryProgress[]): HistoryS
   }
   const stored = progress.reduce((sum, entry) => sum + entry.stored, 0);
   const total = progress.reduce((sum, entry) => sum + entry.total, 0);
-  if (!progress.some((entry) => entry.state === 'running')) {
+  const running = progress.some((entry) => entry.state === 'running');
+  if (!running && progress.some((entry) => entry.state === 'waiting')) {
+    return { text: 'Začnem sťahovať po dokončení prvej synchronizácie', ratio: null };
+  }
+  if (!running) {
     return { text: 'Pozastavené, skúsim znova o chvíľu', ratio: ratioOf(stored, total) };
   }
   return {

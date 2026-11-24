@@ -1,18 +1,18 @@
 import type { MailAccount, UpdateAccountBody } from '@relay/shared';
-import { AccountSquare, Button, ConfirmDialog, Segmented, Status, Switch } from '@relay/ui';
+import { AccountSquare, Button, ConfirmDialog, Segmented, Switch } from '@relay/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
 import { queryKeys } from '../../../data/hooks/query-keys';
 import { useClient } from '../../../data/hooks/services-context';
 import { useAccounts } from '../../../data/hooks/use-mail-queries';
-import { listTimeLabel } from '../../../lib/dates';
 import { showToast } from '../../../state/toast-store';
 import { setUi } from '../../../state/ui-store';
 import { AddAccountForm } from '../../accounts/AddAccountForm';
 import { accountLike } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
 import { AccountNameRows } from './AccountNameRows';
+import { AccountSyncRow } from './AccountSyncRow';
 import { SectionHeader } from '../SectionHeader';
 
 export const SYNC_OPTIONS = [
@@ -23,12 +23,6 @@ export const SYNC_OPTIONS = [
 ] as const;
 
 const COLORS = ['#6aa8ff', '#74c4a2', '#d9a878', '#d48fa8', '#8ea2ff', '#f2b45a'];
-const STATUS: Readonly<Record<MailAccount['status'], string>> = {
-  connected: 'Pripojené',
-  syncing: 'Synchronizujem…',
-  error: 'Chyba',
-  disconnected: 'Odpojené',
-};
 
 function AccountCard({
   account,
@@ -47,10 +41,6 @@ function AccountCard({
         showToast(describeError(error));
       });
   };
-  const synced =
-    account.lastSyncedAt === null
-      ? 'zatiaľ nesynchronizované'
-      : `posledná synchronizácia ${listTimeLabel(account.lastSyncedAt, new Date())}`;
   return (
     <section className="acc-card" aria-label={account.displayName}>
       <div className="acc-h">
@@ -69,17 +59,7 @@ function AccountCard({
         {account.isPrimary ? <span className="chip pri">Hlavný</span> : null}
       </div>
       <AccountNameRows account={account} onPatch={patch} />
-      <SettingRow
-        title="Stav"
-        description={`${account.settings.imap.host}:${String(account.settings.imap.port)} · ${synced}${account.lastError === null ? '' : ` · ${account.lastError}`}`}
-      >
-        <Status
-          tone={
-            account.status === 'connected' ? 'ok' : account.status === 'syncing' ? 'busy' : 'bad'
-          }
-          label={STATUS[account.status]}
-        />
-      </SettingRow>
+      <AccountSyncRow account={account} />
       <SettingRow
         title="Interval synchronizácie"
         description={`Každých ${String(Math.round(account.syncIntervalSeconds / 60))} min`}

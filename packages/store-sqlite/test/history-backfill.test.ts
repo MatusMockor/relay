@@ -1,5 +1,5 @@
 import type { HistoryCursor } from '@relay/engine';
-import type { Mailbox } from '@relay/shared/domain';
+import type { Mailbox, Message } from '@relay/shared/domain';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createSqliteHistoryBackfills,
@@ -16,7 +16,12 @@ import { createTempDirectory, createTestStore, type TempDirectory } from './supp
 
 type Repositories = ReturnType<typeof createSqliteRepositories>;
 
-const storeUids = async (repositories: Repositories, mailbox: Mailbox, uids: readonly number[]) => {
+const storeUids = async (
+  repositories: Repositories,
+  mailbox: Mailbox,
+  uids: readonly number[],
+  identityOf: (uid: number) => Partial<Pick<Message, 'messageIdHeader' | 'emailId'>> = () => ({}),
+) => {
   for (const uid of uids) {
     await repositories.messages.upsert(
       buildMessage({
@@ -26,6 +31,7 @@ const storeUids = async (repositories: Repositories, mailbox: Mailbox, uids: rea
         accountId: mailbox.accountId,
         uid,
         messageIdHeader: `<${mailbox.id}-${String(uid)}@klient.sk>`,
+        ...identityOf(uid),
       }),
       NO_HEADERS,
     );
@@ -136,6 +142,28 @@ describe('history backfill storage', () => {
     );
     store.database.sqlite.prepare('delete from mailboxes where id = ?').run(inbox.id);
     expect(await backfills.find(inbox.id)).toBeNull();
+    store.database.close();
+  });
+
+  it('counts copies of one message once across mailboxes, legacy rows included', async () => {
+    const store = createTestStore();
+    const { account, inbox, sent } = await seedAccount(store.repositories);
+    const backfills = createSqliteHistoryBackfills(store.database);
+    const identities: Readonly<Record<number, Partial<Message>>> = {
+      1: { messageIdHeader: '<a@klient.sk>', emailId: 'gm-a' },
+      2: { messageIdHeader: '<b@klient.sk>', emailId: null },
+      3: { messageIdHeader: null, emailId: null },
+      7: { messageIdHeader: '<a@klient.sk>', emailId: 'gm-a' },
+      8: { messageIdHeader: '<b@klient.sk>', emailId: 'gm-b' },
+      9: { messageIdHeader: null, emailId: 'gm-c' },
+    };
+    const identityOf = (uid: number) => identities[uid] ?? {};
+    await storeUids(store.repositories, inbox, [1, 2, 3], identityOf);
+    await storeUids(store.repositories, sent, [7, 8, 9], identityOf);
+
+    expect(await backfills.countDistinct(account.id, [inbox.id, sent.id])).toBe(4);
+    expect(await backfills.countDistinct(account.id, [sent.id])).toBe(3);
+    expect(await backfills.countDistinct(account.id, [])).toBe(0);
     store.database.close();
   });
 });

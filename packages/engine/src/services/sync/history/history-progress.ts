@@ -1,6 +1,7 @@
 import type {
   AccountId,
   HistoryProgress,
+  HistoryState,
   Mailbox,
   MailboxRole,
   UserId,
@@ -14,7 +15,7 @@ import { selectMailboxes } from '../mailbox-selection';
 import type { SyncOptions } from '../sync-options';
 import { historyComplete } from './history-complete';
 import { HISTORY_ROLE_ORDER } from './history-mailboxes';
-import { countedMailboxes } from './progress-mailboxes';
+import { countHistory } from './history-count';
 
 export interface HistoryProgressDeps {
   readonly accounts: AccountRepository;
@@ -23,6 +24,19 @@ export interface HistoryProgressDeps {
   readonly store: HistoryBackfillRepository;
   readonly options: SyncOptions;
 }
+
+const stateOf = (
+  done: readonly boolean[],
+  validities: readonly (number | null)[],
+): HistoryState => {
+  if (done.length > 0 && done.every(Boolean)) {
+    return 'done';
+  }
+  if (validities.every((validity) => validity === null)) {
+    return 'waiting';
+  }
+  return 'running';
+};
 
 export class HistoryProgressReader {
   constructor(private readonly deps: HistoryProgressDeps) {}
@@ -34,37 +48,21 @@ export class HistoryProgressReader {
 
   async forAccount(userId: UserId, accountId: AccountId): Promise<HistoryProgress> {
     const targets = this.targets(await this.deps.mailboxes.listByAccount(userId, accountId));
-    const mailboxes = targets.map(([mailbox]) => mailbox);
-    const counted = countedMailboxes(await this.deps.accounts.findById(userId, accountId), targets);
+    const account = await this.deps.accounts.findById(userId, accountId);
+    const count = await countHistory(this.deps.store, account, accountId, targets);
     const states = new Map(
       (await this.deps.syncStates.listByAccount(accountId)).map((state) => [
         state.mailboxId,
-        state,
+        completedSyncState(state)?.uidValidity ?? null,
       ]),
     );
-    const counts = new Map(
-      (await this.deps.store.countsByMailbox(accountId)).map((count) => [
-        count.mailboxId,
-        count.stored,
-      ]),
-    );
+    const validities = targets.map(([mailbox]) => states.get(mailbox.id) ?? null);
     const done = await Promise.all(
-      mailboxes.map(async (mailbox) =>
-        historyComplete(
-          await this.deps.store.find(mailbox.id),
-          completedSyncState(states.get(mailbox.id) ?? null)?.uidValidity ?? null,
-        ),
+      targets.map(async ([mailbox], index) =>
+        historyComplete(await this.deps.store.find(mailbox.id), validities[index] ?? null),
       ),
     );
-    return {
-      accountId,
-      stored: counted.reduce(
-        (sum, mailbox) => sum + Math.min(counts.get(mailbox.id) ?? 0, mailbox.totalCount),
-        0,
-      ),
-      total: counted.reduce((sum, mailbox) => sum + mailbox.totalCount, 0),
-      state: done.length > 0 && done.every(Boolean) ? 'done' : 'running',
-    };
+    return { accountId, ...count, state: stateOf(done, validities) };
   }
 
   private targets(mailboxes: readonly Mailbox[]): [Mailbox, MailboxRole][] {

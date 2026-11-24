@@ -41,6 +41,34 @@ describe('realtime protocol', () => {
     expect(message.type === 'event' && message.event.type).toBe('account.status');
   });
 
+  it('parses sync progress with, without and with an unknown initial sync stage', () => {
+    const progress = (extra: Record<string, unknown>) =>
+      ServerMessageSchema.parse({
+        type: 'event',
+        event: {
+          type: 'sync.progress',
+          at: '2026-11-15T10:00:00.000Z',
+          data: {
+            accountId: 'acc_1',
+            mailboxId: null,
+            phase: 'messages',
+            processed: 120,
+            total: 500,
+            ...extra,
+          },
+        },
+      });
+    const stageOf = (extra: Record<string, unknown>) => {
+      const message = progress(extra);
+      return message.type === 'event' && message.event.type === 'sync.progress'
+        ? message.event.data.stage
+        : 'not progress';
+    };
+    expect(stageOf({ stage: 'inbox' })).toBe('inbox');
+    expect(stageOf({})).toBeUndefined();
+    expect(stageOf({ stage: 'future-stage' })).toBeUndefined();
+  });
+
   it('requires the client hello to carry the api version and a token', () => {
     expect(
       ClientMessageSchema.safeParse({ type: 'hello', apiVersion: 1, accessToken: 'jwt' }).success,
