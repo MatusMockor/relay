@@ -32,6 +32,7 @@ import {
   type SyncTrigger,
 } from '../handlers/local/sync-handlers';
 import { createTaskHandlers } from '../handlers/local/task-handlers';
+import { createTaskSystemHandlers } from '../handlers/local/task-system-handlers';
 import { createMessageHandlers } from '../handlers/local/message-handlers';
 import { createSearchHandlers } from '../handlers/local/search-handlers';
 import { createThreadHandlers } from '../handlers/local/thread-handlers';
@@ -122,6 +123,7 @@ const localInvokeHandlers = (local: LocalIpcDeps): IpcInvokeHandlers =>
     createCalendarHandlers(local.services, local.userId),
     createFailedInvitationHandlers(local.services, local.userId),
     createGoogleCalendarHandlers(local.services, local.userId),
+    createTaskSystemHandlers(local.services, local.userId),
   );
 
 const optional = <Deps, Handlers>(

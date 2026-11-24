@@ -13,6 +13,8 @@ import { useHistoryRecording } from '../history/use-history-recording';
 import { MailActionsProvider } from '../mail/MailActionsProvider';
 import { useNotificationNavigation } from '../mail/use-notification-navigation';
 import { RightPanel } from '../side/RightPanel';
+import { TaskSystemList } from '../task-systems/TaskSystemList';
+import { useTaskSystemFolderValidation } from '../task-systems/use-task-system-folder-validation';
 import { ThreadView } from '../thread/ThreadView';
 import { useLayoutPersistence } from './layout-persistence';
 import { useHistoryInputs } from './use-history-inputs';
@@ -39,8 +41,10 @@ function Shell() {
   useNotificationNavigation();
   const commit = useLayoutPersistence();
   useScopeValidation();
+  useTaskSystemFolderValidation();
   const layout = useLayout();
   const inThread = useUiStore((state) => state.openThreadId !== null);
+  const folder = useUiStore((state) => state.folder);
   const composing = useUiStore((state) => state.overlay?.kind === 'compose');
   const settings = useUserSettings();
   useEffect(() => {
@@ -75,7 +79,13 @@ function Shell() {
       ) : null}
       <main className="a-main">
         <TopBar leftVisible={layout.leftVisible} />
-        {inThread ? <ThreadView /> : <ThreadList />}
+        {inThread ? (
+          <ThreadView />
+        ) : folder.kind === 'taskSystem' ? (
+          <TaskSystemList connectionId={folder.connectionId} />
+        ) : (
+          <ThreadList />
+        )}
       </main>
       {layout.rightPanel > 0 ? (
         <>

@@ -12,6 +12,7 @@ import {
   AutomationIdSchema,
   DraftIdSchema,
   MailboxIdSchema,
+  TaskSystemConnectionIdSchema,
   ThreadIdSchema,
 } from '../domain/ids';
 import { MessageSchema } from '../domain/message';
@@ -135,6 +136,11 @@ export const LabelsUpdatedEventSchema = event(
   z.object({ accountId: AccountIdSchema, labels: z.array(LabelSchema) }),
 );
 
+export const TaskSystemsUpdatedEventSchema = event(
+  'taskSystems.updated',
+  z.object({ connectionId: TaskSystemConnectionIdSchema }),
+);
+
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   ThreadUpsertedEventSchema,
   ThreadRemovedEventSchema,
@@ -157,6 +163,7 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   CalendarUpdatedEventSchema,
   MailboxesUpdatedEventSchema,
   LabelsUpdatedEventSchema,
+  TaskSystemsUpdatedEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
 export type RealtimeEventType = RealtimeEvent['type'];

@@ -5,6 +5,7 @@ import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
 import { throttleByKey } from './keyed-throttle';
 import { queryKeys } from './query-keys';
+import { taskSystemKeys } from './task-system-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
 import { recordThreadChange } from './thread-changes';
 
@@ -79,6 +80,11 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
   }
   if (event.type === 'labels.updated') {
     invalidate(client, queryKeys.labels());
+    return;
+  }
+  if (event.type === 'taskSystems.updated') {
+    invalidate(client, taskSystemKeys.connections());
+    invalidate(client, taskSystemKeys.tasks(event.data.connectionId));
     return;
   }
   if (event.type === 'calendar.updated') {

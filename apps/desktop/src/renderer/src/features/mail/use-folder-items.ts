@@ -25,6 +25,7 @@ export const useFolderItems = (): FolderItems => {
   const isDrafts = folder.kind === 'view' && folder.view === 'drafts';
   const isScheduled = folder.kind === 'view' && folder.view === 'scheduled';
   const isTasks = folder.kind === 'view' && folder.view === 'tasks';
+  const isTaskSystem = folder.kind === 'taskSystem';
   const pending = usePendingPriorities();
   const params = useListParams();
   const threads = useThreadList(params, usesThreadList(folder));
@@ -43,6 +44,9 @@ export const useFolderItems = (): FolderItems => {
         : item.kind === 'draft'
           ? item.draft.accountId
           : item.scheduled.accountId) === scope;
+    if (isTaskSystem) {
+      return { items: [], loading: false };
+    }
     if (isDrafts) {
       return {
         items: draftItems(drafts.data ?? [], scheduled.data ?? []).filter(inScope),
@@ -61,6 +65,7 @@ export const useFolderItems = (): FolderItems => {
       loading: threads.isPending,
     };
   }, [
+    isTaskSystem,
     isTasks,
     pending,
     isDrafts,

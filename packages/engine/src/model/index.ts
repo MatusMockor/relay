@@ -11,4 +11,5 @@ export type * from './pending-work';
 export type * from './remote-mail';
 export type * from './split-match-subject';
 export type * from './sync-state';
+export type * from './task-system';
 export type * from './thread-query';

@@ -11,6 +11,7 @@ export const SettingsSectionSchema = z.enum([
   'labels',
   'automations',
   'jira',
+  'taskSystems',
   'sync',
   'notifications',
   'ai',

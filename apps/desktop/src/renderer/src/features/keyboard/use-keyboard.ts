@@ -27,6 +27,7 @@ import { useLayout } from '../shell/use-layout';
 import { useStepThread } from '../shell/use-step-thread';
 import { PRIORITY_CHORD_KEY } from '../tasks/priority-keys';
 import { usePriorityChord } from '../tasks/use-priority-chord';
+import { useTaskSystemKeys } from '../task-systems/use-task-system-keys';
 import {
   cycleFolder,
   G_VIEWS,
@@ -51,6 +52,7 @@ export const useKeyboard = (): void => {
   const splits = splitsInScope(useSplits().data ?? [], scope);
   const gAt = useRef(0);
   const priorityChord = usePriorityChord();
+  const taskSystemKeys = useTaskSystemKeys();
   const handler = useRef<(event: KeyboardEvent) => void>(() => undefined);
   handler.current = (event: KeyboardEvent) => {
     if (event.defaultPrevented || hasOpenLayer()) {
@@ -123,6 +125,9 @@ export const useKeyboard = (): void => {
       return;
     }
     gAt.current = 0;
+    if (taskSystemKeys(event, claim)) {
+      return;
+    }
     if (priorityChord.consume(event, thread, claim)) {
       return;
     }

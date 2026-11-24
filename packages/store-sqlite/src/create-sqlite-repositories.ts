@@ -40,6 +40,7 @@ import { SqliteSettingsRepository } from './repositories/sqlite-settings-reposit
 import { SqliteSplitRepository } from './repositories/sqlite-split-repository';
 import { SqliteSyncStateRepository } from './repositories/sqlite-sync-state-repository';
 import { SqliteTaskRepository } from './repositories/sqlite-task-repository';
+import { SqliteTaskSystemConnectionRepository } from './repositories/sqlite-task-system-connection-repository';
 import { SqliteThreadRepository } from './repositories/threads/sqlite-thread-repository';
 
 export const createRepositoriesWith = (executor: SqliteExecutor): Repositories => ({
@@ -68,6 +69,7 @@ export const createRepositoriesWith = (executor: SqliteExecutor): Repositories =
   googleCalendars: new SqliteGoogleCalendarRepository(executor),
   googleEvents: new SqliteGoogleEventRepository(executor),
   inviteCandidates: new SqliteInviteCandidateRepository(executor),
+  taskSystemConnections: new SqliteTaskSystemConnectionRepository(executor),
 });
 
 export const createSqliteRepositories = (database: SqliteDatabase): Repositories =>

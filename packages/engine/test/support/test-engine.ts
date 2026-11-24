@@ -33,6 +33,7 @@ import {
 import { type CalendarFakes, createCalendarFakes } from './fakes/calendar-adapters';
 import { createGoogleCalendarFakes, type GoogleCalendarFakes } from './fakes/fake-google-calendar';
 import { MemoryAiRunnerRegistry, StubAiRunner } from './fakes/stub-ai-runner';
+import { createTaskSystemFakes, type TaskSystemFakes } from './fakes/fake-task-systems';
 import { FakeMailProviderFactory } from './mail/fake-mail-provider-factory';
 import { RecordingUnsubscribeSender } from './fakes/recording-unsubscribe-sender';
 import { FakeMailSender } from './mail/fake-mail-sender';
@@ -89,6 +90,7 @@ export interface TestEngine {
   readonly claude: StubAiRunner;
   readonly calendar: CalendarFakes;
   readonly google: GoogleCalendarFakes;
+  readonly taskSystems: TaskSystemFakes;
 }
 
 export const createTestEngine = (options: TestEngineOptions = {}): TestEngine => {
@@ -114,6 +116,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
   runners.register(claude);
   const calendar = createCalendarFakes();
   const google = createGoogleCalendarFakes();
+  const taskSystems = createTaskSystemFakes();
   const services = createEngineServices({
     repositories,
     unitOfWork,
@@ -136,6 +139,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     aiRunnerRegistry: runners,
     calendar,
     googleCalendar: google,
+    taskSystems,
     eventPublisher: events,
     clock,
     idGenerator: ids,
@@ -173,6 +177,7 @@ export const createTestEngine = (options: TestEngineOptions = {}): TestEngine =>
     claude,
     calendar,
     google,
+    taskSystems,
   };
 };
 

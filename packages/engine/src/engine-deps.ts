@@ -25,6 +25,7 @@ import type { MessageUidLookup } from './ports/message-uid-lookup';
 import type { OfflineWindowPolicy } from './ports/offline-window-policy';
 import type { Repositories } from './ports/repositories';
 import type { SplitMatcher } from './ports/split-matcher';
+import type { TaskSystemAdapters } from './ports/task-system-adapters';
 import type { SplitPatternPolicy } from './ports/split-pattern-policy';
 import type { ThreadResolver } from './ports/thread-resolver';
 import type { UnitOfWork } from './ports/unit-of-work';
@@ -100,6 +101,7 @@ export interface EngineDeps {
   readonly aiRunnerRegistry: AiRunnerRegistry;
   readonly calendar: CalendarAdapters;
   readonly googleCalendar?: GoogleCalendarAdapters;
+  readonly taskSystems?: TaskSystemAdapters;
   readonly eventPublisher: EventPublisher;
   readonly clock: Clock;
   readonly idGenerator: IdGenerator;

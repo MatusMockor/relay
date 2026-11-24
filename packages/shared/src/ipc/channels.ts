@@ -11,6 +11,7 @@ import { calendarInvokeChannels } from './calendar-channels';
 import { googleCalendarInvokeChannels } from './google-calendar-channels';
 import { oauthInvokeChannels } from './oauth-channels';
 import { sessionInvokeChannels } from './session-channels';
+import { taskSystemInvokeChannels } from './task-system-channels';
 import { trayInvokeChannels } from './tray-channels';
 import { updateInvokeChannels, updateStreamChannels } from './update-channels';
 import { windowStreamChannels } from './window-channels';
@@ -21,6 +22,7 @@ export const ipcInvokeChannels = {
   ...sessionInvokeChannels,
   ...calendarInvokeChannels,
   ...googleCalendarInvokeChannels,
+  ...taskSystemInvokeChannels,
   ...localInvokeChannels,
   ...automationHistoryInvokeChannels,
   ...attachmentInvokeChannels,

@@ -5,6 +5,7 @@ import type { MailClient } from '../MailClient';
 import { attachmentFileOf } from './attachment-file';
 import { createLocalCalendarClient } from './local-calendar-client';
 import { createLocalGoogleCalendarClient } from './local-google-calendar-client';
+import { createLocalTaskSystemClient } from './local-task-system-client';
 
 const unwrap = async <T>(result: Promise<IpcResult<T>>): Promise<T> => {
   const settled = await result;
@@ -29,6 +30,7 @@ export const createLocalMailClient = (bridge: RelayBridge): MailClient => {
     kind: 'local',
     ...createLocalCalendarClient(bridge),
     ...createLocalGoogleCalendarClient(bridge),
+    ...createLocalTaskSystemClient(bridge),
     listThreads: (query) => unwrap(bridge.invoke('local.threads.list', query)),
     getThread: (threadId) => unwrap(bridge.invoke('local.threads.get', { threadId })),
     getMessageBody: (messageId) => unwrap(bridge.invoke('local.messages.body', { messageId })),

@@ -20,5 +20,6 @@ export * from './settings';
 export * from './splits';
 export * from './sync-state';
 export * from './tasks';
+export * from './task-systems';
 export * from './thread-splits';
 export * from './threads';

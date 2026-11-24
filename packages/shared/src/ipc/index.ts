@@ -14,6 +14,7 @@ export * from './notification-channels';
 export * from './oauth-channels';
 export * from './protocol';
 export * from './session-channels';
+export * from './task-system-channels';
 export * from './tray-channels';
 export * from './update-channels';
 export * from './window-channels';

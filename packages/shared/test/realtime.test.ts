@@ -22,6 +22,7 @@ describe('realtime protocol', () => {
       'sync.history',
       'sync.progress',
       'task.upserted',
+      'taskSystems.updated',
       'thread.removed',
       'thread.upserted',
       'threads.changed',

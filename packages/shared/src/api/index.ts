@@ -21,6 +21,7 @@ export * from './endpoints/settings';
 export * from './endpoints/split-preview';
 export * from './endpoints/splits';
 export * from './endpoints/sync';
+export * from './endpoints/task-systems';
 export * from './endpoints/tasks';
 export * from './endpoints/threads';
 export * from './errors';

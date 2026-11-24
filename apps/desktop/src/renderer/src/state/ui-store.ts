@@ -27,12 +27,18 @@ export type AutomationView =
   | { readonly kind: 'templates' }
   | { readonly kind: 'detail'; readonly key: string };
 
+export interface TaskSystemConnectDraft {
+  readonly siteUrl: string;
+  readonly label: string;
+}
+
 export interface SettingsOverlay {
   readonly kind: 'settings';
   readonly section: SettingsSection;
   readonly adding: boolean;
   readonly automation?: AutomationView;
   readonly split?: string;
+  readonly connect?: TaskSystemConnectDraft;
 }
 
 export type OverlayState =

@@ -24,6 +24,7 @@ const PREFIXES: Readonly<Record<EntityKind, string>> = {
   googleCalendar: 'gcl',
   automation: 'aut',
   automationActivity: 'aua',
+  taskSystemConnection: 'tsc',
 };
 
 export class RandomIdGenerator implements IdGenerator {
