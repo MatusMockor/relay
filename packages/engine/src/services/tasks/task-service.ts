@@ -1,5 +1,5 @@
 import type { TaskListQuery, TaskPage, UpdateTaskBody } from '@relay/shared/api';
-import type { Task, TaskId, UserId } from '@relay/shared/domain';
+import { DEFAULT_TASK_PRIORITY, type Task, type TaskId, type UserId } from '@relay/shared/domain';
 import { NotFoundError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { IdGenerator } from '../../ports/id-generator';
@@ -40,6 +40,7 @@ export class TaskService {
     return this.change(userId, taskId, {
       ...(patch.state === undefined ? {} : { state: patch.state }),
       ...(patch.title === undefined ? {} : { title: patch.title }),
+      ...(patch.priority === undefined ? {} : { priority: patch.priority }),
       updatedAt: this.now(),
     });
   }
@@ -59,6 +60,7 @@ export class TaskService {
       aiWhat: null,
       state: 'open',
       source: 'jira',
+      priority: DEFAULT_TASK_PRIORITY,
       createdAt: now,
       updatedAt: now,
     });

@@ -3,6 +3,7 @@ import type {
   Draft,
   DraftContent,
   Task,
+  TaskPriority,
   ThreadDetail,
   ThreadId,
   ThreadSummary,
@@ -17,6 +18,7 @@ export interface NewMailTask {
   readonly threadId: ThreadId | null;
   readonly title: string;
   readonly aiWhat: string | null;
+  readonly priority?: TaskPriority;
 }
 
 export interface MailToolBackend {

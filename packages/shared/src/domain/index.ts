@@ -42,6 +42,7 @@ export * from './split';
 export * from './split-criteria';
 export * from './split-entry';
 export * from './task';
+export * from './task-priority';
 export * from './held-thread-state';
 export * from './thread-search-field';
 export * from './theme';

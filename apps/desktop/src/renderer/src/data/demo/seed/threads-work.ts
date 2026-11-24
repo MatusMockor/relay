@@ -50,7 +50,12 @@ export const WORK_THREADS: readonly DemoThread[] = [
     ai: '/orders vracia aj zmazané objednávky, bug či zámer?',
     sum: 'Peter v komentári na WEB-482 zistil, že /orders?status=all vracia aj soft-deleted objednávky a frontend ich zobrazuje. Chce vedieť, či je to zámer, ešte pred piatkovým release.',
     list: ['Overiť scope withTrashed v OrderRepository', 'Odpovedať Petrovi v Jire'],
-    task: { title: 'Filtrovanie objednávok v API', what: 'čaká na teba', state: 'waiting' },
+    task: {
+      title: 'Filtrovanie objednávok v API',
+      what: 'čaká na teba',
+      state: 'waiting',
+      priority: 'medium',
+    },
     msgs: [
       ['mh', [-3, 14, 10], 'Martin zmenil stav z Rozpracované na Na kontrole'],
       [
@@ -140,7 +145,12 @@ export const WORK_THREADS: readonly DemoThread[] = [
       'Navrhnúť limit per API kľúč',
       'Dať Tomášovi odhad',
     ],
-    task: { title: 'Rate limit pre partner API', what: 'čaká na teba', state: 'waiting' },
+    task: {
+      title: 'Rate limit pre partner API',
+      what: 'čaká na teba',
+      state: 'waiting',
+      priority: 'high',
+    },
     msgs: [
       [
         'mk',

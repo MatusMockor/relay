@@ -1,3 +1,5 @@
+import type { TaskPriority } from '@relay/shared';
+
 export type DemoAccountKey = 'efa' | 'os' | 'fl';
 export type DemoSplitKey = 'jira' | 'other' | 'clients';
 export type DemoLabelKey =
@@ -47,5 +49,7 @@ export interface DemoThread {
     readonly title: string;
     readonly what: string;
     readonly state: 'open' | 'waiting';
+    readonly priority: TaskPriority;
+    readonly source?: 'ai' | 'manual';
   };
 }

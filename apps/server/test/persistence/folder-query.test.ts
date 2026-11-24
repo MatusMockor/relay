@@ -108,6 +108,7 @@ describe('PgThreadRepository.queryFolder', () => {
       aiWhat: null,
       state: 'open',
       source: 'jira',
+      priority: 'none',
       createdAt: at(9),
       updatedAt: at(9),
     });

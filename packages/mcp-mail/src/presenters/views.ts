@@ -93,6 +93,7 @@ export function taskView(task: Task) {
     what: task.aiWhat,
     state: task.state,
     source: task.source,
+    priority: task.priority,
     updatedAt: task.updatedAt,
   };
 }

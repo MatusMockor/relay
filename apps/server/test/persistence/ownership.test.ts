@@ -91,6 +91,7 @@ describe('references to rows of another user', () => {
       aiWhat: null,
       state: 'open',
       source: 'manual',
+      priority: 'none',
       createdAt: at(0),
       updatedAt: at(0),
     });
@@ -124,6 +125,7 @@ describe('references to rows of another user', () => {
         aiWhat: null,
         state: 'open',
         source: 'manual',
+        priority: 'none',
         createdAt: at(0),
         updatedAt: at(0),
       }),

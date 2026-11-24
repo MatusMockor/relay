@@ -12,6 +12,7 @@ export const toTask = (row: TaskRow): Task =>
     aiWhat: row.aiWhat,
     state: row.state,
     source: row.source,
+    priority: row.priority,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -25,6 +26,7 @@ export const toTaskRow = (task: Task): typeof tasks.$inferInsert => ({
   aiWhat: task.aiWhat,
   state: task.state,
   source: task.source,
+  priority: task.priority,
   createdAt: task.createdAt,
   updatedAt: task.updatedAt,
   updatedTs: toTimestamp(task.updatedAt),

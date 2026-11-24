@@ -37,6 +37,7 @@ export const demoTask = (
     aiWhat: null,
     state,
     source: 'ai',
+    priority: 'none',
     createdAt: stamp,
     updatedAt: stamp,
   };

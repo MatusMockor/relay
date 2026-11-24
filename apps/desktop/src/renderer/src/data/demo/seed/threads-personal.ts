@@ -10,6 +10,13 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     ai: 'Sobota na chate, potvrdiť účasť do piatka',
     sum: 'Ondrej organizuje v sobotu chatu v Terchovej. Chce vedieť do piatka, či ideš, aby mohol potvrdiť počet ľudí.',
     list: ['Odpovedať Ondrejovi do piatka'],
+    task: {
+      title: 'Potvrdiť Ondrejovi chatu',
+      what: 'do piatka',
+      state: 'open',
+      priority: 'none',
+      source: 'manual',
+    },
     msgs: [
       [
         'ob',
@@ -207,6 +214,13 @@ export const PERSONAL_THREADS: readonly DemoThread[] = [
     ai: 'Faktúry za október pre účtovníčku do 25. 11.',
     sum: 'Účtovníčka Mária Hollá pripravuje priznanie k DPH za október. Do stredy 25. 11. potrebuje všetky vydané a prijaté faktúry a výpis z podnikateľského účtu.',
     list: ['Exportovať vydané faktúry z Faktúrky', 'Pridať prijaté faktúry a výpis z účtu'],
+    task: {
+      title: 'Poslať podklady k DPH za október',
+      what: 'do stredy 25. 11.',
+      state: 'open',
+      priority: 'high',
+      source: 'ai',
+    },
     msgs: [
       [
         'mo',

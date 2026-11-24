@@ -187,7 +187,13 @@ describe('AI jobs run by an external worker', () => {
         { workerId: DEVICE, leaseId: claim.leaseId },
         {
           runner: 'claude',
-          output: { kind: 'createTask', threadId, title: 'Zaplatiť', aiWhat: 'Do piatku.' },
+          output: {
+            kind: 'createTask',
+            threadId,
+            title: 'Zaplatiť',
+            aiWhat: 'Do piatku.',
+            priority: 'none',
+          },
         },
       ),
     ).rejects.toBeInstanceOf(NotFoundError);

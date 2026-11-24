@@ -12,6 +12,7 @@ const jiraTask = (id: string, jiraKey: string): Task & { readonly jiraKey: JiraK
   aiWhat: null,
   state: 'open',
   source: 'jira',
+  priority: 'none',
   createdAt: TEST_NOW,
   updatedAt: TEST_NOW,
 });

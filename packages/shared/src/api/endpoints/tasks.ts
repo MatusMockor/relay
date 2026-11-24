@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TaskIdSchema, ThreadIdSchema } from '../../domain/ids';
 import { TaskSchema, TaskStateSchema } from '../../domain/task';
+import { TaskPrioritySchema } from '../../domain/task-priority';
 import { idParamsOf } from '../common';
 import { defineEndpoint } from '../endpoint';
 import { CursorPaginationQuerySchema, pageSchemaOf } from '../pagination';
@@ -17,6 +18,7 @@ export type TaskPage = z.infer<typeof TaskPageSchema>;
 export const UpdateTaskBodySchema = z.object({
   state: TaskStateSchema.optional(),
   title: z.string().trim().min(1).max(500).optional(),
+  priority: TaskPrioritySchema.optional(),
 });
 export type UpdateTaskBody = z.infer<typeof UpdateTaskBodySchema>;
 

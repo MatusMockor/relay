@@ -202,6 +202,7 @@ describe('task prompts', () => {
         threadId,
         title: 'Poslať cenovú ponuku',
         aiWhat: 'Poslať Jane ponuku do piatku.',
+        priority: 'none',
       },
     });
   });

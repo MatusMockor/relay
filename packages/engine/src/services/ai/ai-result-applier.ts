@@ -127,6 +127,7 @@ export class AiResultApplier {
       threadId,
       title: output.title,
       aiWhat: output.aiWhat,
+      priority: output.priority,
     });
     return repositories.tasks.upsert(task);
   }

@@ -12,7 +12,12 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     ai: 'Nový bug: editor stráca obrázky po uložení',
     sum: 'Jana ti priradila bug od klienta Denník Juh. Editor po uložení konceptu stratí vložené obrázky, repro kroky sú v popise.',
     list: ['Zreprodukovať podľa krokov', 'Skontrolovať ukladanie príloh v DraftService'],
-    task: { title: 'Editor stráca obrázky po uložení', what: 'nové', state: 'open' },
+    task: {
+      title: 'Editor stráca obrázky po uložení',
+      what: 'nové',
+      state: 'open',
+      priority: 'urgent',
+    },
     msgs: [
       [
         'jk',
@@ -33,7 +38,12 @@ export const WORK_THREADS_MORE: readonly DemoThread[] = [
     ai: 'Vrátené z QA: zlá diakritika v CSV exporte',
     sum: 'Eva vrátila WEB-479 z QA: CSV export otvorený v Exceli zobrazuje diakritiku ako otázniky. Pravdepodobne chýba UTF-8 BOM.',
     list: ['Pridať BOM na začiatok CSV', 'Otestovať v Exceli a Numbers', 'Vrátiť Eve do QA'],
-    task: { title: 'Export CSV: zlé kódovanie diakritiky', what: 'vrátené z QA', state: 'waiting' },
+    task: {
+      title: 'Export CSV: zlé kódovanie diakritiky',
+      what: 'vrátené z QA',
+      state: 'waiting',
+      priority: 'low',
+    },
     msgs: [
       [
         'es',

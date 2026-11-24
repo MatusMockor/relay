@@ -84,7 +84,13 @@ describe('completing an AI job in one transaction (Postgres)', () => {
       job,
       owner: OWNER,
       runner: 'codex',
-      output: { kind: 'createTask', threadId: thread.id, title: 'Zaplatiť', aiWhat: 'Faktúra' },
+      output: {
+        kind: 'createTask',
+        threadId: thread.id,
+        title: 'Zaplatiť',
+        aiWhat: 'Faktúra',
+        priority: 'high',
+      },
     });
 
     expect(done?.status).toBe('done');
@@ -94,6 +100,7 @@ describe('completing an AI job in one transaction (Postgres)', () => {
       limit: 10,
     });
     expect(tasks.items.map((task) => task.id)).toEqual([`task_${job.id}`]);
+    expect(tasks.items[0]?.priority).toBe('high');
     expect(
       await context.repositories.aiResults.findLatest(userId, thread.id, 'createTask'),
     ).toEqual(expect.objectContaining({ runner: 'codex' }));
@@ -116,6 +123,7 @@ describe('completing an AI job in one transaction (Postgres)', () => {
         threadId: thread.id,
         title: 'Zaplatiť',
         aiWhat: 'Faktúra',
+        priority: 'none',
       }),
     ).rejects.toThrow();
 

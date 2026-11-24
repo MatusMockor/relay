@@ -32,6 +32,7 @@ describe('SqliteThreadRepository.queryFolder spam view', () => {
       aiWhat: null,
       state: 'open',
       source: 'manual',
+      priority: 'none',
       createdAt: STAMP,
       updatedAt: STAMP,
     });

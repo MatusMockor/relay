@@ -140,6 +140,7 @@ export class InMemoryMail implements MailToolQueries, MailToolCommands {
       aiWhat: input.aiWhat,
       state: 'open',
       source: 'ai',
+      priority: input.priority ?? 'none',
       createdAt: NOW,
       updatedAt: NOW,
     };

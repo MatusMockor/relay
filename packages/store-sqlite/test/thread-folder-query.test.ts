@@ -149,6 +149,7 @@ describe('SqliteThreadRepository.queryFolder', () => {
       title: 'Zaplatiť faktúru',
       aiWhat: null,
       source: 'manual' as const,
+      priority: 'none' as const,
       createdAt: '2026-11-10T10:00:00.000Z',
       updatedAt: '2026-11-10T10:00:00.000Z',
     };

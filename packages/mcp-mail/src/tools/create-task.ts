@@ -1,4 +1,4 @@
-import { ThreadIdSchema } from '@relay/shared/domain';
+import { TaskPrioritySchema, ThreadIdSchema } from '@relay/shared/domain';
 import { z } from 'zod';
 import { taskView } from '../presenters/views';
 import { defineMailTool } from './mail-tool';
@@ -13,6 +13,9 @@ export const createTaskTool = defineMailTool({
     title: z.string().min(1).max(500).describe('Short imperative task title'),
     threadId: ThreadIdSchema.optional().describe('Thread the task comes from'),
     what: z.string().min(1).max(2_000).optional().describe('What exactly has to be done'),
+    priority: TaskPrioritySchema.optional().describe(
+      'urgent, high, medium, low or none (default none), based on deadlines and urgency in the mail',
+    ),
   },
   execute: async (args, backend) =>
     taskView(
@@ -20,6 +23,7 @@ export const createTaskTool = defineMailTool({
         title: args.title,
         threadId: args.threadId ?? null,
         aiWhat: args.what ?? null,
+        ...(args.priority === undefined ? {} : { priority: args.priority }),
       }),
     ),
 });

@@ -1,4 +1,12 @@
-import type { JiraKey, Task, TaskId, TaskState, ThreadId, UserId } from '@relay/shared/domain';
+import type {
+  JiraKey,
+  Task,
+  TaskId,
+  TaskPriority,
+  TaskState,
+  ThreadId,
+  UserId,
+} from '@relay/shared/domain';
 import type { Page, PageRequest } from '../model/page';
 
 export interface TaskQuery extends PageRequest {
@@ -11,6 +19,7 @@ export interface TaskChanges {
   readonly title?: string;
   readonly aiWhat?: string | null;
   readonly state?: TaskState;
+  readonly priority?: TaskPriority;
   readonly updatedAt: string;
 }
 
