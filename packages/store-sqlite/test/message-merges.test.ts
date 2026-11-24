@@ -130,6 +130,7 @@ describe.each(locations)('SqliteMessageMerges.merge $name', ({ file }) => {
       uid: 2,
       textBody: 'Krátky text',
       jira: '2026-11-23T10:00:00.000Z',
+      invite: '2026-11-20T10:00:00.000Z',
     });
     insertCopy(store, account, {
       id: 'msg-donor',
@@ -154,7 +155,7 @@ describe.each(locations)('SqliteMessageMerges.merge $name', ({ file }) => {
       headers,
       snippet: 'Posielam faktúru',
       jira_effects_at: '2026-11-21T10:00:00.000Z',
-      invite_effects_at: '2026-11-22T10:00:00.000Z',
+      invite_effects_at: '2026-11-20T10:00:00.000Z',
       mailbox_id: inbox.id,
     });
     expect(ftsCount(store, 'zmluvu')).toBe(1);

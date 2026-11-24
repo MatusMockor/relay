@@ -176,6 +176,36 @@ describe('SqliteMessageMerges reference remapping', () => {
     expectNoLoserReferences(store, LOSERS, ['msg-l']);
   });
 
+  it('gives a free active AI job slot to the first loser job in table order', async () => {
+    const oneLiner = (source: string) => ({
+      kind: 'oneLiner',
+      threadId: MERGE_THREAD,
+      sourceMessageId: source,
+    });
+    ['msg-l', 'msg-m'].forEach((source) => {
+      insertAiJob(store, {
+        id: `job-${source}`,
+        kind: 'oneLiner',
+        status: 'queued',
+        input: oneLiner(source),
+        source,
+      });
+    });
+
+    await mergeGroup();
+
+    expect(
+      rows(
+        `select id, source_message_id as source, json_extract(input, '$.sourceMessageId') as input
+         from ai_jobs order by id`,
+      ),
+    ).toEqual([
+      { id: 'job-msg-l', source: 'msg-k', input: 'msg-k' },
+      { id: 'job-msg-m', source: 'msg-m', input: 'msg-m' },
+    ]);
+    expectMergeInvariants(store);
+  });
+
   it('re-points older aliases when a keeper is merged again', async () => {
     await mergeGroup();
     const { inbox, allMail } = account.boxes;
