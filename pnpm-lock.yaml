@@ -120,6 +120,9 @@ importers:
       imapflow:
         specifier: 1.7.8
         version: 1.7.8
+      imapkit:
+        specifier: 5.3.1
+        version: 5.3.1
       jsdom:
         specifier: 26.1.0
         version: 26.1.0
@@ -129,12 +132,18 @@ importers:
       pg:
         specifier: 8.16.3
         version: 8.16.3
+      playwright:
+        specifier: 1.65.0
+        version: 1.65.0
       react:
         specifier: 19.2.9
         version: 19.2.9
       react-dom:
         specifier: 19.2.9
         version: 19.2.9(react@19.2.9)
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3194,8 +3203,22 @@ packages:
     resolution: {integrity: sha512-wCBiZ77u1tuWde6G/nfOtLaCTYcFDU5yCzARzK10y+rLhzYoL7a7yEemcopcc2Mzow7gZOIjnV2ym1NYmdiJOQ==}
     engines: {node: '>= 4'}
 
+  imap-handler@1.4.0:
+    resolution: {integrity: sha512-/Vsz6s9pHmoy8rRkyVu1TnodNmBHOVBudme8wHLZPCmtR/cJmbLmhYhJTi+qK7ZlFTQyIG/yFlh9wqvnigGkpg==}
+    engines: {node: '>=20.0.0'}
+
   imapflow@1.7.8:
     resolution: {integrity: sha512-dJoCIdZOJh26Rn2PdwEzwj0bRDgGBxxX38pio534FagIHVuR2l0SAfLr6sJo32YfuJHiSs/U2ntNDHnMg3/Hlg==}
+
+  imapkit@5.3.1:
+    resolution: {integrity: sha512-U8V62MSJX5monEwlqfXsKxuPDHyFUJzJWIhOzXKutNE3lYVwuZJvX9UOrnVQY3bWfkCiYWbz19ealRj1x+E/zg==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+    peerDependencies:
+      smtp-server: ^3.19.17
+    peerDependenciesMeta:
+      smtp-server:
+        optional: true
 
   import-fresh@3.3.1:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
@@ -3883,6 +3906,16 @@ packages:
   pkce-challenge@5.0.1:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
+
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.0:
+    resolution: {integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   plist@3.1.0:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
@@ -7449,6 +7482,8 @@ snapshots:
 
   ignore@7.0.14: {}
 
+  imap-handler@1.4.0: {}
+
   imapflow@1.7.8:
     dependencies:
       '@zone-eu/mailsplit': 5.4.16
@@ -7459,6 +7494,10 @@ snapshots:
       libqp: 2.1.1
       pino: 10.3.1
       socks: 2.8.9
+
+  imapkit@5.3.1:
+    dependencies:
+      imap-handler: 1.4.0
 
   import-fresh@3.3.1:
     dependencies:
@@ -8144,6 +8183,12 @@ snapshots:
       thread-stream: 4.2.1
 
   pkce-challenge@5.0.1: {}
+
+  playwright-core@1.65.0: {}
+
+  playwright@1.65.0:
+    dependencies:
+      playwright-core: 1.65.0
 
   plist@3.1.0:
     dependencies:

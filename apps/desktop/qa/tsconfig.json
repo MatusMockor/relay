@@ -1,0 +1,7 @@
+{
+  "extends": "@relay/config/tsconfig/node-library.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["."]
+}
