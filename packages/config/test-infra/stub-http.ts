@@ -47,9 +47,14 @@ export const parseJsonOrNull = (raw: string): unknown => {
 
 export const startStubServer = async (handle: StubHandler): Promise<StubServer> => {
   const server = createServer((request, response) => {
-    void readBody(request).then((raw) => {
-      handle(request, raw, response);
-    });
+    void readBody(request).then(
+      (raw) => {
+        handle(request, raw, response);
+      },
+      () => {
+        response.destroy();
+      },
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;

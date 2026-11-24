@@ -48,6 +48,26 @@ describe('connecting Linear and GitHub Issues', () => {
   beforeEach(resetWithSidebar);
   afterEach(resetStores);
 
+  it('moves between providers with the arrow keys', async () => {
+    const { form } = await openForm(taskSystemClient({ connected: false }));
+    const group = within(form).getByRole('radiogroup', { name: 'Systém' });
+
+    act(() => {
+      fireEvent.keyDown(group, { key: 'ArrowRight' });
+    });
+
+    const linear = within(form).getByRole('radio', { name: 'Linear' });
+    expect(linear.getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(linear);
+    expect(within(form).queryByLabelText('URL webu')).toBeNull();
+    act(() => {
+      fireEvent.keyDown(group, { key: 'ArrowLeft' });
+    });
+    expect(within(form).getByRole('radio', { name: 'Jira' }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+  });
+
   it('asks Linear only for an API key and links to the Linear settings', async () => {
     const { form, opened } = await openForm(taskSystemClient({ connected: false }));
 

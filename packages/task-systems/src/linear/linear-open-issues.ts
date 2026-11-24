@@ -29,12 +29,15 @@ export const listMyOpenLinearIssues = async (
     const first = Math.min(paging.pageSize, paging.maxIssues - tasks.length);
     const page = await pageOf(api, credentials, first, cursor);
     const { nodes, pageInfo } = page.viewer.assignedIssues;
+    const next = pageInfo.endCursor ?? null;
+    if (pageInfo.hasNextPage && next !== null && seen.has(next)) {
+      return { tasks: tasks.slice(0, paging.maxIssues), truncated: true };
+    }
     tasks.push(...nodes.map(toRemoteTask));
-    const next = pageInfo.hasNextPage ? (pageInfo.endCursor ?? null) : null;
-    if (next === null) {
+    if (!pageInfo.hasNextPage) {
       return { tasks: tasks.slice(0, paging.maxIssues), truncated: false };
     }
-    if (seen.has(next)) {
+    if (next === null) {
       return { tasks: tasks.slice(0, paging.maxIssues), truncated: true };
     }
     seen.add(next);

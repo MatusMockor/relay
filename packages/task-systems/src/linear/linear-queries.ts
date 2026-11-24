@@ -8,7 +8,7 @@ export const LINEAR_ASSIGNED_ISSUES_QUERY = `query RelayAssignedIssues($first: I
     assignedIssues(
       first: $first
       after: $after
-      filter: { state: { type: { nin: ["completed", "canceled"] } } }
+      filter: { state: { type: { nin: ["completed", "canceled", "duplicate"] } } }
       orderBy: updatedAt
     ) {
       nodes {

@@ -112,7 +112,7 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
       { first: 100, after: 'cursor-2' },
     ]);
     expect(searches[0]?.query).toContain(
-      'filter: { state: { type: { nin: ["completed", "canceled"] } } }',
+      'filter: { state: { type: { nin: ["completed", "canceled", "duplicate"] } } }',
     );
     expect(searches[0]?.query).toContain('orderBy: updatedAt');
   });
@@ -158,8 +158,29 @@ describe('LinearAdapter against a Linear GraphQL stub', () => {
     const result = await linearAdapterFor(stub).listMyOpenTasks(linearAccess());
 
     expect(result.truncated).toBe(true);
-    expect(result.tasks.map((task) => task.key)).toEqual(['ENG-9', 'ENG-9']);
+    expect(result.tasks.map((task) => task.key)).toEqual(['ENG-9']);
     expect(stub.requests).toHaveLength(4);
+  });
+
+  it('reports a truncated list when Linear announces more issues without a cursor', async () => {
+    stub.failNext({
+      status: 200,
+      body: {
+        data: {
+          viewer: {
+            assignedIssues: {
+              nodes: [linearStubIssue('ENG-7')],
+              pageInfo: { hasNextPage: true, endCursor: null },
+            },
+          },
+        },
+      },
+    });
+
+    const result = await linearAdapterFor(stub).listMyOpenTasks(linearAccess());
+
+    expect(result).toMatchObject({ truncated: true });
+    expect(result.tasks.map((task) => task.key)).toEqual(['ENG-7']);
   });
 
   it('fails on invalid responses and other GraphQL errors', async () => {
