@@ -2,7 +2,6 @@ import type { AccountId, Message, MessageId } from '@relay/shared/domain';
 import type { PendingWorkRepository } from '../../../ports/pending-work-repository';
 import type { MailCopies } from '../../shared/mail-copies';
 import type { PendingProviderOp } from '../../shared/provider-ops';
-import { physicalKeyOf } from './folder-move-plans';
 import type { ResolvedLabelChange } from './label-change-writer';
 
 const plannedKeys = (
@@ -14,9 +13,7 @@ const plannedKeys = (
     changes.flatMap(({ label, change }) =>
       change.providerMessageIds.flatMap((messageId) => {
         const message = byId.get(messageId);
-        return message === undefined
-          ? []
-          : [`${label.remoteName}|${physicalKeyOf(copies, message)}`];
+        return message === undefined ? [] : [`${label.remoteName}|${copies.logicalKeyOf(message)}`];
       }),
     ),
   );
@@ -32,7 +29,7 @@ const superseded = (
   if (change.kind !== 'label' || owner === undefined) {
     return false;
   }
-  return planned.has(`${change.label}|${physicalKeyOf(copies, owner)}`);
+  return planned.has(`${change.label}|${copies.logicalKeyOf(owner)}`);
 };
 
 export const dropSupersededLabelOps = async (

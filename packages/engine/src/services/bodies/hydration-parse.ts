@@ -3,13 +3,15 @@ import type { IdGenerator } from '../../ports/id-generator';
 import type { MessageParser } from '../../ports/message-parser';
 import { alignAttachments } from './hydrated-attachments';
 
+export type HydrationParseInput = Pick<HydrationCandidate, 'messageIdHeader' | 'attachments'>;
+
 export class HydrationParse {
   constructor(
     private readonly parser: MessageParser,
     private readonly ids: IdGenerator,
   ) {}
 
-  async parse(source: Uint8Array, candidate: HydrationCandidate): Promise<HydratedBody | null> {
+  async parse(source: Uint8Array, candidate: HydrationParseInput): Promise<HydratedBody | null> {
     const parsed = await this.parser.parse(source).catch(() => null);
     if (parsed === null) {
       return null;

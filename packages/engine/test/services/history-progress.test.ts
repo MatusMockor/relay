@@ -84,6 +84,31 @@ describe('history progress', () => {
     ]);
   });
 
+  it('counts Gmail messages that share a Message-ID as separate messages', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(
+      engine,
+      { settings: GMAIL_SETTINGS },
+      { gmail: true },
+    );
+    ['gm-a', 'gm-b'].forEach((emailId) => {
+      deliverMail(server, 'INBOX', {
+        id: 'echo',
+        emailId,
+        labels: ['\\Inbox'],
+        date: historyDate(1, 2),
+      });
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    await backfillUntilDone(engine, account.id);
+
+    expect(engine.db.tables.messages.size).toBe(2);
+    expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([
+      { accountId: account.id, stored: 2, total: 2, state: 'done' },
+    ]);
+  });
+
   it('counts Gmail inbox history at once instead of waiting for its All Mail copies', async () => {
     const engine = createTestEngine({ sync: { history: TIGHT } });
     const { account, server } = await seedAccount(

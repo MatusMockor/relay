@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deliverMail, type MailSpec, seedAccount } from '../support/fixtures';
+import { seedGmailAccount } from '../support/gmail-move-setup';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const OLD: MailSpec = { id: 'm1', subject: 'Plan', date: '2026-08-01T08:00:00.000Z' };
@@ -29,7 +30,7 @@ describe('SyncService initial sync of trashed replies to older mail', () => {
 
   it('keeps a Gmail thread in the inbox when its older message has the inbox label', async () => {
     const engine = createTestEngine({ sync: { initialWindowDays: 30 } });
-    const { account, server } = await seedAccount(engine);
+    const { account, server } = await seedGmailAccount(engine);
     deliverMail(server, 'INBOX', OLD);
     deliverMail(server, 'Archive', OLD);
     deliverMail(server, 'Trash', TRASHED_REPLY);

@@ -26,23 +26,23 @@ export class MailCopies {
     return new MailCopies(labelsMessages(account), mailboxAddress(account.email));
   }
 
-  identityOf(message: Message): string {
-    if (!this.linked || message.messageIdHeader === null) {
+  logicalKeyOf(message: Message): string {
+    if (!this.linked || message.emailId === null) {
       return `id:${message.id}`;
     }
-    return message.messageIdHeader;
+    return `email:${message.emailId}`;
   }
 
   filedSentCopies(copies: readonly PlacedCopy[]): ReadonlySet<string> {
     const sent = new Set(
-      copies.filter(({ role }) => role === 'sent').map(({ message }) => this.identityOf(message)),
+      copies.filter(({ role }) => role === 'sent').map(({ message }) => this.logicalKeyOf(message)),
     );
     return new Set(
       copies
         .filter(
           ({ message, role }) =>
             role === 'archive' &&
-            sent.has(this.identityOf(message)) &&
+            sent.has(this.logicalKeyOf(message)) &&
             !this.addressedToSelf(message),
         )
         .map(copyKey),

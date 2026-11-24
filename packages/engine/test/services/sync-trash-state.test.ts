@@ -1,6 +1,7 @@
 import type { ThreadState, ThreadSummary } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, type MailSpec, ME, present, seedAccount } from '../support/fixtures';
+import { seedGmailAccount } from '../support/gmail-move-setup';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
@@ -28,7 +29,7 @@ const gmailDelete = (server: FakeMailServer, copies: readonly Copy[], spec: Mail
 };
 
 const syncedGmailThread = async (engine: TestEngine) => {
-  const seeded = await seedAccount(engine);
+  const seeded = await seedGmailAccount(engine);
   const spec: MailSpec = { id: 'm1', date: '2026-11-14T08:00:00.000Z' };
   const uids = allMail(seeded.server, ['INBOX', 'Archive'], spec);
   await engine.services.sync.syncAccount(USER_ID, seeded.account.id);

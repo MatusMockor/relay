@@ -1,7 +1,7 @@
 import { isPendingPlacement, type LabelId, type MessageId } from '@relay/shared/domain';
 import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
-import { folderSources, movedPlan, physicalKeyOf, placementOf } from './folder-move-plans';
+import { folderSources, movedPlan, placementOf } from './folder-move-plans';
 import { firstPerMessage, uniqueMessageIds } from './located-ids';
 import {
   type LabelChange,
@@ -26,7 +26,7 @@ export const labelCarriers = (
 ): MessageId[] => {
   const chosen = new Map<string, LocatedMessage>();
   for (const located of messages) {
-    const key = physicalKeyOf(copies, located.message);
+    const key = copies.logicalKeyOf(located.message);
     const current = chosen.get(key);
     if (current === undefined || carrierRank(located) < carrierRank(current)) {
       chosen.set(key, located);
@@ -62,7 +62,7 @@ const labelledKeys = (
   new Set(
     messages
       .filter(({ message }) => message.labelIds.includes(labelId))
-      .map(({ message }) => physicalKeyOf(copies, message)),
+      .map(({ message }) => copies.logicalKeyOf(message)),
   );
 
 const addedLabel = (
@@ -111,7 +111,7 @@ export const gmailMove =
       return plan(thread.state);
     }
     const labelled = labelledKeys(copies, labelId, messages);
-    const owned = unlabelled.filter(({ message }) => !labelled.has(physicalKeyOf(copies, message)));
+    const owned = unlabelled.filter(({ message }) => !labelled.has(copies.logicalKeyOf(message)));
     const added = new Set(owned.map(({ message }) => message.id));
     return movedPlan(messages, {
       state: 'done',

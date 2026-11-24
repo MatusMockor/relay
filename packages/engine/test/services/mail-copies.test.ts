@@ -4,23 +4,23 @@ import { MailCopies } from '../../src/services/shared/mail-copies';
 import { deliverMail, seedAccount } from '../support/fixtures';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
-const copiesOf = async (overrides: Partial<MailAccount>) => {
+const keysOf = async (emailIds: readonly [string, string], overrides: Partial<MailAccount>) => {
   const engine = createTestEngine();
   const { account, server } = await seedAccount(engine);
-  deliverMail(server, 'INBOX', { id: 'm1' });
-  deliverMail(server, 'Archive', { id: 'm1' });
+  deliverMail(server, 'INBOX', { id: 'm1', emailId: emailIds[0] });
+  deliverMail(server, 'Archive', { id: 'm1', emailId: emailIds[1] });
   await engine.services.sync.syncAccount(USER_ID, account.id);
   const messages = [...engine.db.tables.messages.values()];
   expect(messages).toHaveLength(2);
   const policy = MailCopies.of({ ...account, ...overrides });
-  return new Set(messages.map((message) => policy.identityOf(message))).size;
+  return new Set(messages.map((message) => policy.logicalKeyOf(message))).size;
 };
 
 describe('MailCopies', () => {
-  it('links the INBOX and All Mail copies of one Gmail message', async () => {
-    expect(await copiesOf({ provider: 'gmail' })).toBe(1);
+  it('links unmerged Gmail rows that share one email id', async () => {
+    expect(await keysOf(['gm-1', 'gm-1'], { provider: 'gmail' })).toBe(1);
     expect(
-      await copiesOf({
+      await keysOf(['gm-1', 'gm-1'], {
         settings: {
           imap: { host: 'IMAP.gmail.com', port: 993, secure: true },
           smtp: { host: 'smtp.gmail.com', port: 465, secure: true },
@@ -30,7 +30,11 @@ describe('MailCopies', () => {
     ).toBe(1);
   });
 
-  it('keeps same Message-ID copies on a plain IMAP server apart', async () => {
-    expect(await copiesOf({})).toBe(2);
+  it('keeps Gmail messages with one Message-ID but different email ids apart', async () => {
+    expect(await keysOf(['gm-1', 'gm-2'], { provider: 'gmail' })).toBe(2);
+  });
+
+  it('keeps plain IMAP copies apart even when the server reports one email id', async () => {
+    expect(await keysOf(['obj-1', 'obj-1'], {})).toBe(2);
   });
 });

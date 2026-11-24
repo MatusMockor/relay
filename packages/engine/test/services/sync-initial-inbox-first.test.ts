@@ -197,7 +197,7 @@ describe('SyncService initial sync inbox first', () => {
     expect(streamed(server)).toEqual(['INBOX:2', 'INBOX:1', 'Archive:1']);
     expect(await inboxThreads(engine)).toEqual([
       ['Subject m2', 1],
-      ['Subject m1', 1],
+      ['Subject m1', 2],
     ]);
     expect(engine.db.tables.messages.size).toBe(3);
   });

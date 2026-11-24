@@ -14,7 +14,6 @@ import { resolveLabelChanges, writeLabelChanges } from './label-change-writer';
 import type { MessageLocator } from './message-locator';
 import { dropSupersededLabelOps } from './superseded-label-ops';
 import { requireUpserted } from './require-upserted';
-import { physicalKeyOf } from './folder-move-plans';
 import type {
   OriginChanges,
   PlannedMove,
@@ -72,10 +71,10 @@ const movedBy = (plan: StateMovePlan, context: ThreadActionContext, copies: Mail
   const keys = new Set(
     context.messages
       .filter((message) => touched.has(message.id))
-      .map((message) => physicalKeyOf(copies, message)),
+      .map((message) => copies.logicalKeyOf(message)),
   );
   return context.messages
-    .filter((message) => touched.has(message.id) || keys.has(physicalKeyOf(copies, message)))
+    .filter((message) => touched.has(message.id) || keys.has(copies.logicalKeyOf(message)))
     .map(({ id }) => id);
 };
 
