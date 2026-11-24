@@ -50,7 +50,11 @@ describe('PgMessageRepository.place races', () => {
       release();
       await finished;
     });
-    const result = await Promise.race([ready, finished.then(() => ready)]);
+    const failedEarly = finished.then((error) => {
+      expect(error).toBeNull();
+      return ready;
+    });
+    const result = await Promise.race([ready, failedEarly]);
     return {
       result,
       commit: async () => {
