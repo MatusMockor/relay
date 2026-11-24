@@ -121,7 +121,11 @@ describe('SqliteMessageRepository', () => {
 
     await messages.updateFlags(messageId('msg-1'), { seen: true, flagged: true, answered: false });
     await messages.updateLabels(messageId('msg-1'), [labelId('lbl-1'), labelId('lbl-1')]);
-    await messages.move(messageId('msg-1'), { mailboxId: seeded.sent.id, uid: 77 });
+    await messages.movePlacement(messageId('msg-1'), {
+      from: seeded.inbox.id,
+      to: { mailboxId: seeded.sent.id, uid: 77 },
+      keepSource: false,
+    });
 
     expect(await messages.findById(LOCAL_USER_ID, messageId('msg-1'))).toMatchObject({
       flags: { seen: true, flagged: true, answered: false },

@@ -5,6 +5,8 @@ export type * from './model';
 export type * from './ports';
 export * from './services';
 export * from './tokens';
+export * from './placements/place-decision';
+export * from './placements/placement-write';
 export * from './subjects/normalize-subject';
 export * from './subjects/subject-fallback';
 export * from './subjects/match-subject';

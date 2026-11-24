@@ -8,16 +8,25 @@ import {
   rankedPlacements,
 } from '@relay/shared/domain';
 import type { ProviderChange, ProviderOpWork } from '../../model/pending-work';
+import { holdsMoveTarget } from '../shared/move-target-held';
 
 type PlacementPicker = (
   op: ProviderOpWork,
   message: Message,
   roleOf: MailboxRoleOf,
-) => MessagePlacement;
+) => MessagePlacement | null;
 
-const moveSource: PlacementPicker = (op, message, roleOf) =>
-  (op.source === undefined ? undefined : placementIn(message, op.source.mailboxId)) ??
-  primaryPlacement(message, roleOf);
+const moveSource: PlacementPicker = (op, message, roleOf) => {
+  const { change, source } = op;
+  if (source === undefined || change.kind !== 'move') {
+    return primaryPlacement(message, roleOf);
+  }
+  const placed = placementIn(message, source.mailboxId);
+  if (placed !== undefined) {
+    return placed;
+  }
+  return holdsMoveTarget(message, change, roleOf) ? null : primaryPlacement(message, roleOf);
+};
 
 const labelCarrier: PlacementPicker = (_op, message, roleOf) => {
   const ranked = rankedPlacements(message, roleOf);
@@ -40,4 +49,4 @@ export const opPlacement = (
   op: ProviderOpWork,
   message: Message,
   roleOf: MailboxRoleOf,
-): MessagePlacement => PICKERS[op.change.kind](op, message, roleOf);
+): MessagePlacement | null => PICKERS[op.change.kind](op, message, roleOf);

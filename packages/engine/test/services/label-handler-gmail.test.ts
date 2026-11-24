@@ -52,7 +52,7 @@ describe('labelling a Gmail thread', () => {
 
     expect(labelled.state).toBe('inbox');
     expect(labelled.labelIds).toEqual([label.id]);
-    expect(localLabels(engine)).toEqual([[label.id], [label.id], [label.id], [label.id]]);
+    expect(localLabels(engine)).toEqual([[label.id], [label.id]]);
     expect(server.labelWrites).toEqual([
       { path: 'Archive', uids: [1, 2], add: ['Klienti'], remove: [] },
     ]);
@@ -60,7 +60,7 @@ describe('labelling a Gmail thread', () => {
     expect(pendingOps(engine)).toEqual([]);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
-    expect(localLabels(engine)).toEqual([[label.id], [label.id], [label.id], [label.id]]);
+    expect(localLabels(engine)).toEqual([[label.id], [label.id]]);
   });
 
   it('removes the label from every copy with one write per message', async () => {
@@ -70,7 +70,7 @@ describe('labelling a Gmail thread', () => {
       deliverMail(gmail, 'INBOX', tagged);
       deliverMail(gmail, 'Archive', tagged);
     });
-    expect(localLabels(engine)).toEqual([[label.id], [label.id]]);
+    expect(localLabels(engine)).toEqual([[label.id]]);
 
     const cleared = await engine.services.actions.apply(USER_ID, thread.id, {
       type: 'removeLabel',
@@ -78,20 +78,20 @@ describe('labelling a Gmail thread', () => {
     });
 
     expect(cleared.labelIds).toEqual([]);
-    expect(localLabels(engine)).toEqual([[], []]);
+    expect(localLabels(engine)).toEqual([[]]);
     expect(server.labelWrites).toEqual([
       { path: 'Archive', uids: [1], add: [], remove: ['Klienti'] },
     ]);
     expect(server.record('INBOX', 1).labels).toEqual(['\\Inbox']);
 
     await engine.services.sync.syncAccount(USER_ID, account.id);
-    expect(localLabels(engine)).toEqual([[], []]);
+    expect(localLabels(engine)).toEqual([[]]);
   });
 
   it('writes to the inbox copy when the message has no All Mail copy yet', async () => {
     const engine = createTestEngine();
     const { server, thread, label } = await gmailThread(engine, (gmail) => {
-      deliverMail(gmail, 'INBOX', FIRST);
+      deliverMail(gmail, 'INBOX', { ...FIRST, allMail: false });
     });
 
     await engine.services.actions.apply(USER_ID, thread.id, {

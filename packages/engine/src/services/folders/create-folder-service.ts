@@ -42,7 +42,6 @@ export const createFolderService = (
     renamer: new FolderRenamer({ mailboxes, labels, unitOfWork, lookup, sessions, events }),
     remover: new FolderRemover({
       mailboxes,
-      messages,
       labels,
       labelRemoval: new LabelRemoval({ unitOfWork, clock }),
       sessions,

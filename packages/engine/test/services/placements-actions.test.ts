@@ -86,7 +86,7 @@ describe('actions on a Gmail message with INBOX and All Mail placements', () => 
 
     expect(providerOps(engine)).toEqual([]);
     expect(server.record('INBOX', placementOf(message, inbox).uid).flags.seen).toBe(true);
-    expect(server.record('Archive', placementOf(message, allMail).uid).flags.seen).toBe(false);
+    expect(server.record('Archive', placementOf(message, allMail).uid).flags.seen).toBe(true);
   });
 
   it('stores read, unread and pin on the primary placement', async () => {
@@ -102,7 +102,7 @@ describe('actions on a Gmail message with INBOX and All Mail placements', () => 
     await engine.services.actions.pin(USER_ID, thread.id);
 
     expect(inboxRecord().flags.flagged).toBe(true);
-    expect(allMailRecord().flags).toEqual({ seen: false, flagged: false, answered: false });
+    expect(allMailRecord().flags).toEqual({ seen: false, flagged: true, answered: false });
     expect(providerOps(engine)).toEqual([]);
   });
 

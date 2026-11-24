@@ -8,20 +8,32 @@ import type {
   ThreadId,
   UserId,
 } from '@relay/shared/domain';
+import { PENDING_UID } from '@relay/shared/domain';
 import type {
   MessageHeaders,
   MessageLocation,
   MessageRepository,
   Page,
   PageRequest,
+  PlacementIdentity,
+  PlacementMatch,
+  PlacementMove,
+  PlacementRemoval,
+  PlaceOutcome,
+  PlaceRequest,
   StoredMatchSubject,
   SubjectSearchWindow,
 } from '../../../src';
 import { matchSubjectOf, normalizeSubject } from '../../../src';
 import { type MemoryDatabase, offsetPage } from './memory-database';
+import { matchPlacementIn, placeIn } from './memory-message-placing';
+import {
+  deleteAtUids,
+  forgetMailboxPlacements,
+  removePlacementOf,
+} from './memory-placement-removal';
+import { movePlacementOf } from './memory-placement-writes';
 import { isPlacedAt, placedAt, placedIn } from './memory-placements';
-
-const PENDING_UID = 0;
 
 export class MemoryMessageRepository implements MessageRepository {
   constructor(private readonly db: MemoryDatabase) {}
@@ -121,6 +133,7 @@ export class MemoryMessageRepository implements MessageRepository {
       this.all()
         .flatMap((message) => placedIn(message, mailboxId))
         .map((placement) => placement.uid)
+        .filter((uid) => uid > PENDING_UID)
         .sort((a, b) => a - b),
     );
   }
@@ -165,30 +178,34 @@ export class MemoryMessageRepository implements MessageRepository {
     return this.patch(messageId, { labelIds: labelIds.filter((id) => id !== labelId) });
   }
 
-  move(messageId: MessageId, target: MessageLocation): Promise<void> {
+  matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {
+    return Promise.resolve(matchPlacementIn(this.db, identity));
+  }
+
+  place(request: PlaceRequest): Promise<PlaceOutcome> {
+    return Promise.resolve(placeIn(this.db, request));
+  }
+
+  movePlacement(messageId: MessageId, move: PlacementMove): Promise<void> {
+    return movePlacementOf(this.db, this.resolve(messageId), move);
+  }
+
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval> {
     const id = this.resolve(messageId);
-    const occupied = this.all().some(
-      (message) => message.id !== id && target.uid !== PENDING_UID && isPlacedAt(message, target),
-    );
-    if (occupied) {
-      return Promise.reject(new Error('Unique constraint failed: messages (mailbox_id, uid)'));
-    }
-    const message = this.db.tables.messages.get(id);
-    if (message !== undefined) {
-      this.db.tables.messages.set(id, placedAt(message, target));
-    }
-    return Promise.resolve();
+    const into = successor === undefined ? null : this.resolve(successor);
+    return Promise.resolve(removePlacementOf(this.db, id, mailboxId, into));
+  }
+
+  forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]> {
+    return Promise.resolve(forgetMailboxPlacements(this.db, mailboxId));
   }
 
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
-    const removed = this.all().filter((message) =>
-      placedIn(message, mailboxId).some((placement) => uids.includes(placement.uid)),
-    );
-    removed.forEach((message) => {
-      this.db.tables.messages.delete(message.id);
-      this.db.tables.messageHeaders.delete(message.id);
-    });
-    return Promise.resolve([...new Set(removed.map((message) => message.threadId))]);
+    return Promise.resolve(deleteAtUids(this.db, mailboxId, uids));
   }
 
   private patch(messageId: MessageId, changes: Partial<Message>): Promise<void> {

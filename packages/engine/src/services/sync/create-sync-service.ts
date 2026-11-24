@@ -25,6 +25,7 @@ import { DeferredStatusProbe } from './deferred-status-probe';
 import { MailboxSynchronizer } from './mailbox-synchronizer';
 import { MessageIngestor } from './message-ingestor';
 import { MessageLabelsResolver } from './message-labels-resolver';
+import { remoteBodyFill } from './create-remote-body-fill';
 import { DEFAULT_SYNC_OPTIONS, type SyncOptions } from './sync-options';
 import { SyncReporter } from './sync-reporter';
 import { SyncService } from './sync-service';
@@ -72,6 +73,8 @@ export const createSyncComponents = (
     labelsResolver,
     ids,
     calendarParts: shared.calendarParts,
+    clock,
+    ...remoteBodyFill(deps),
   });
   const fetchers = createMessageFetchers({
     ingestor,

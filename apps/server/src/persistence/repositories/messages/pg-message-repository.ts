@@ -1,11 +1,16 @@
 import {
-  ConflictError,
   hasFileAttachments,
   type MessageHeaders,
   type MessageLocation,
   type MessageRepository,
   type Page,
   type PageRequest,
+  type PlacementIdentity,
+  type PlacementMatch,
+  type PlacementMove,
+  type PlacementRemoval,
+  type PlaceOutcome,
+  type PlaceRequest,
   type StoredMatchSubject,
   type SubjectSearchWindow,
 } from '@relay/engine';
@@ -22,15 +27,17 @@ import type {
 import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { messageLabels, messages } from '../../schema';
-import { findAccountOwner } from '../../support/account-owner';
 import { decodeCursor, pageOf } from '../../support/cursor';
 import { toIso } from '../../support/timestamps';
-import { toMessageHeaders, toStoredHeaders } from './message-headers';
+import { toMessageHeaders } from './message-headers';
 import { addMessageLabel, removeMessageLabel, replaceMessageLabels } from './message-labels-writer';
 import { resolvedMessageId } from '../../support/message-alias';
-import { deleteAtUids, findAtLocation, listPlacedUids, moveMessage } from './message-locations';
-import { replacePlacement } from './message-placement-writer';
-import { toMessage, toMessageInsert } from './message.mapper';
+import { findAtLocation, findStoredMessage, listPlacedUids } from './message-locations';
+import { matchPlacementIn, placeMessage } from './message-placing';
+import { movePlacementRow, replacePlacement } from './message-placement-writer';
+import { writeMessageRow } from './message-row-writer';
+import { toMessage } from './message.mapper';
+import { deleteAtUids, forgetMailboxPlacements, removePlacementOf } from './placement-removal';
 import { messageSelection } from './message-selection';
 import { replyThreadCondition } from './reply-thread-condition';
 
@@ -143,30 +150,12 @@ export class PgMessageRepository implements MessageRepository {
     return listPlacedUids(this.db, mailboxId);
   }
 
-  async upsert(message: Message, headers: MessageHeaders): Promise<Message> {
+  upsert(message: Message, headers: MessageHeaders): Promise<Message> {
     return this.db.transaction(async (tx) => {
-      const userId = await findAccountOwner(tx, message.accountId);
-      const {
-        id: _id,
-        userId: _userId,
-        ...changes
-      } = toMessageInsert(userId, message, toStoredHeaders(headers));
-      const written = await tx
-        .insert(messages)
-        .values({ ...changes, id: message.id, userId })
-        .onConflictDoUpdate({
-          target: messages.id,
-          set: changes,
-          setWhere: eq(messages.userId, userId),
-        })
-        .returning({ id: messages.id });
-      if (written.length === 0) {
-        throw new ConflictError(`Message ${message.id} belongs to another user`);
-      }
+      await writeMessageRow(tx, message, headers);
       await replacePlacement(tx, message.id, message);
       await replaceMessageLabels(tx, message.id, message.labelIds);
-      const stored = await new PgMessageRepository(tx).findById(userId, message.id);
-      return stored ?? message;
+      return (await findStoredMessage(tx, message.id)) ?? message;
     });
   }
 
@@ -235,8 +224,28 @@ export class PgMessageRepository implements MessageRepository {
     await removeMessageLabel(this.db, messageId, labelId);
   }
 
-  move(messageId: MessageId, target: MessageLocation): Promise<void> {
-    return moveMessage(this.db, messageId, target);
+  matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null> {
+    return matchPlacementIn(this.db, identity);
+  }
+
+  place(request: PlaceRequest): Promise<PlaceOutcome> {
+    return placeMessage(this.db, request);
+  }
+
+  movePlacement(messageId: MessageId, move: PlacementMove): Promise<void> {
+    return this.db.transaction((tx) => movePlacementRow(tx, messageId, move));
+  }
+
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval> {
+    return removePlacementOf(this.db, messageId, mailboxId, successor ?? null);
+  }
+
+  forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]> {
+    return forgetMailboxPlacements(this.db, mailboxId);
   }
 
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {

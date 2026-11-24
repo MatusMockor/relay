@@ -18,6 +18,7 @@ export interface ArrivalEffects {
   readonly live: boolean;
   readonly headers: MessageHeaders;
   readonly jira: JiraClassification | null;
+  readonly arrival: boolean;
 }
 
 export interface SyncJournalOptions {
@@ -39,7 +40,7 @@ export class SyncJournal {
     effects: ArrivalEffects,
   ): Promise<void> {
     await this.filed(work, message, role, splitIds);
-    const arrival = role === 'inbox';
+    const { arrival } = effects;
     if (!effects.publish && !arrival) {
       return;
     }

@@ -18,6 +18,7 @@ import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toDraft, toDraftAttachmentRows, toDraftRow } from '../mappers/draft-mapper';
 import { toTimestamp } from '../mappers/timestamp';
 import { type DraftAttachmentRow, type DraftRow, draftAttachments, drafts } from '../schema';
+import { retargetReplyDrafts } from './reply-draft-retarget';
 import { chunked } from './chunked';
 import { withResolvedReplyTarget } from './draft-reply-target';
 import { leaseStaleBefore } from './stale-lease';
@@ -136,10 +137,7 @@ export class SqliteDraftRepository implements DraftRepository {
 
   retargetReplies(from: MessageId, to: MessageId): Promise<void> {
     return this.executor.execute((db) => {
-      db.update(drafts)
-        .set({ inReplyToMessageId: to })
-        .where(eq(drafts.inReplyToMessageId, from))
-        .run();
+      retargetReplyDrafts(db, from, to);
     });
   }
 

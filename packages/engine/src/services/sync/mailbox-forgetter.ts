@@ -1,4 +1,4 @@
-import type { Mailbox } from '@relay/shared/domain';
+import type { Mailbox, ThreadId } from '@relay/shared/domain';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { UnitOfWork } from '../../ports/unit-of-work';
@@ -15,13 +15,14 @@ export interface MailboxForgetterDeps {
 export class MailboxForgetter {
   constructor(private readonly deps: MailboxForgetterDeps) {}
 
-  async forget(context: Pick<SyncContext, 'journal'>, mailbox: Mailbox): Promise<void> {
-    const uids = await this.deps.messages.listUids(mailbox.id);
-    await this.deps.unitOfWork.run(async (repositories) => {
-      const threadIds = await repositories.messages.deleteByUids(mailbox.id, uids);
-      await context.journal.expunged(repositories.pendingWork, threadIds, mailbox.role);
+  async forget(context: Pick<SyncContext, 'journal'>, mailbox: Mailbox): Promise<ThreadId[]> {
+    const threadIds = await this.deps.unitOfWork.run(async (repositories) => {
+      const forgotten = await repositories.messages.forgetMailbox(mailbox.id);
+      await context.journal.expunged(repositories.pendingWork, forgotten, mailbox.role);
+      return forgotten;
     });
     await this.deps.syncStates.delete(mailbox.id);
     await this.deps.rescans.forget(mailbox.accountId, mailbox.id);
+    return threadIds;
   }
 }

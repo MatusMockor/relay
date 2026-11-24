@@ -18,12 +18,14 @@ import {
 
 export class MapCalendarParser implements CalendarParser {
   private readonly calendars = new Map<string, ParsedCalendar>();
+  readonly parsed: string[] = [];
 
   register(token: string, calendar: ParsedCalendar): void {
     this.calendars.set(token, calendar);
   }
 
   parse(text: string): ParsedCalendar | null {
+    this.parsed.push(text.trim());
     return this.calendars.get(text.trim()) ?? null;
   }
 }

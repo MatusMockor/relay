@@ -1,6 +1,13 @@
 import type { MailboxRole, MessageFlags } from '@relay/shared/domain';
 import type { MailboxChange, RemoteTextSearch, UidListOptions, UidRange } from '../../../src';
 import { present } from '../present';
+import {
+  deliverGmail,
+  forgetUnheld,
+  type GmailMessageState,
+  gmailRecord,
+  touchMemberships,
+} from './fake-gmail-messages';
 
 export interface RemoteMessageRecord {
   readonly uid: number;
@@ -37,6 +44,7 @@ export interface DeliveryOptions {
   readonly labels?: readonly string[] | null;
   readonly emailId?: string | null;
   readonly internalDate?: string;
+  readonly allMail?: boolean;
 }
 
 export interface LabelWrite {
@@ -55,6 +63,7 @@ export class FakeMailServer {
   readonly uidplus: boolean;
   readonly gmail: boolean;
   readonly mailboxes = new Map<string, FakeMailbox>();
+  readonly gmailMessages = new Map<string, GmailMessageState>();
   readonly createdMailboxes: string[] = [];
   readonly renamedMailboxes: { path: string; newPath: string }[] = [];
   readonly deletedMailboxes: string[] = [];
@@ -92,6 +101,7 @@ export class FakeMailServer {
   beforeNextConnect: (() => Promise<void>) | null = null;
   afterMove: ((sourcePath: string) => void) | null = null;
   private modseq = 1n;
+  private gmailIds = 0;
 
   constructor(options: FakeMailServerOptions = {}) {
     this.password = options.password ?? 'secret';
@@ -140,6 +150,9 @@ export class FakeMailServer {
     if (mailbox === null) {
       return null;
     }
+    if (this.gmail) {
+      return deliverGmail(this, mailbox, source, options);
+    }
     const uid = mailbox.uidNext;
     mailbox.uidNext += 1;
     mailbox.messages.set(uid, {
@@ -147,10 +160,10 @@ export class FakeMailServer {
       source: new Uint8Array(source),
       flags: { ...NO_FLAGS, ...options.flags },
       keywords: [...(options.keywords ?? [])],
-      labels: this.gmail ? [...(options.labels ?? [])] : null,
-      emailId: options.emailId ?? (this.gmail ? `gm-${String(this.modseq)}` : null),
+      labels: null,
+      emailId: options.emailId ?? null,
       internalDate: options.internalDate ?? DEFAULT_INTERNAL_DATE,
-      modseq: this.nextModseq(mailbox),
+      modseq: this.bumpModseq(mailbox),
     });
     this.notify({ type: 'exists', mailboxPath: path, count: mailbox.messages.size });
     return uid;
@@ -162,8 +175,7 @@ export class FakeMailServer {
       return false;
     }
     record.flags = { ...record.flags, ...flags };
-    record.modseq = this.nextModseq(this.mailbox(path));
-    this.notify({ type: 'flags', mailboxPath: path, uid });
+    this.touched(path, record);
     return true;
   }
 
@@ -173,8 +185,7 @@ export class FakeMailServer {
       return false;
     }
     record.keywords = [...keywords];
-    record.modseq = this.nextModseq(this.mailbox(path));
-    this.notify({ type: 'flags', mailboxPath: path, uid });
+    this.touched(path, record);
     return true;
   }
 
@@ -184,15 +195,17 @@ export class FakeMailServer {
       return false;
     }
     record.labels = [...labels];
-    record.modseq = this.nextModseq(this.mailbox(path));
-    this.notify({ type: 'flags', mailboxPath: path, uid });
+    this.touched(path, record);
     return true;
   }
 
   expunge(path: string, uid: number): void {
     const mailbox = this.find(path);
-    if (mailbox?.messages.delete(uid) === true) {
-      this.nextModseq(mailbox);
+    const record = mailbox?.messages.get(uid);
+    if (mailbox !== null && record !== undefined) {
+      mailbox.messages.delete(uid);
+      this.bumpModseq(mailbox);
+      forgetUnheld(this, record.emailId);
     }
     this.notify({ type: 'expunge', mailboxPath: path, uid });
   }
@@ -206,7 +219,7 @@ export class FakeMailServer {
     records.forEach((record) => {
       const uid = mailbox.uidNext;
       mailbox.uidNext += 1;
-      mailbox.messages.set(uid, { ...record, uid });
+      mailbox.messages.set(uid, this.renumbered(record, uid));
     });
   }
 
@@ -214,17 +227,37 @@ export class FakeMailServer {
     this.mailboxes.delete(path);
   }
 
+  private touched(path: string, record: RemoteMessageRecord): void {
+    if (this.gmail && record.emailId !== null) {
+      touchMemberships(this, record.emailId);
+      return;
+    }
+    record.modseq = this.bumpModseq(this.mailbox(path));
+    this.notify({ type: 'flags', mailboxPath: path, uid: record.uid });
+  }
+
+  private renumbered(record: RemoteMessageRecord, uid: number): RemoteMessageRecord {
+    const state =
+      this.gmail && record.emailId !== null ? this.gmailMessages.get(record.emailId) : undefined;
+    return state === undefined ? { ...record, uid } : gmailRecord(state, uid, record.modseq);
+  }
+
   highestModseq(mailbox: FakeMailbox): bigint {
     return mailbox.highestModseq;
   }
 
-  private nextModseq(mailbox: FakeMailbox): bigint {
+  nextGmailId(): string {
+    this.gmailIds += 1;
+    return `generated-${String(this.gmailIds)}`;
+  }
+
+  bumpModseq(mailbox: FakeMailbox): bigint {
     this.modseq += 1n;
     mailbox.highestModseq = this.modseq;
     return this.modseq;
   }
 
-  private notify(change: MailboxChange): void {
+  notify(change: MailboxChange): void {
     this.listeners.forEach((listener) => {
       listener(change);
     });

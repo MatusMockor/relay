@@ -3,7 +3,6 @@ import { ConflictError, ProviderError } from '../../errors';
 import type { Clock } from '../../ports/clock';
 import type { LabelRepository } from '../../ports/label-repository';
 import type { MailboxRepository } from '../../ports/mailbox-repository';
-import type { MessageRepository } from '../../ports/message-repository';
 import type { LabelRemoval } from '../labels/label-removal';
 import type { EngineEvents } from '../shared/engine-events';
 import type { MailProviderSessions } from '../shared/mail-provider-sessions';
@@ -17,11 +16,9 @@ import type { EditableFolder } from './folder-lookup';
 import type { FolderThreadRefresher } from './folder-thread-refresh';
 import { onMailServer } from './mail-server-call';
 import { isInTree, type ListedPath } from './mailbox-path';
-import { cachedMessages } from './trashed-copies';
 
 export interface FolderRemoverDeps {
   readonly mailboxes: MailboxRepository;
-  readonly messages: MessageRepository;
   readonly labels: LabelRepository;
   readonly labelRemoval: LabelRemoval;
   readonly sessions: MailProviderSessions;
@@ -98,12 +95,10 @@ export class FolderRemover {
 
   private async drop(folder: EditableFolder): Promise<ThreadId[]> {
     const { account, mailbox } = folder;
-    const uids = await this.deps.messages.listUids(mailbox.id);
-    const leftovers = await cachedMessages(this.deps.messages, mailbox, uids);
     const journal = new SyncJournal(account.id, this.deps.clock);
-    await this.deps.forgetter.forget({ journal }, mailbox);
+    const threadIds = await this.deps.forgetter.forget({ journal }, mailbox);
     const remaining = await this.deps.mailboxes.listForSync(account.id);
     await this.deps.mailboxes.deleteMissing(account.id, keptPaths(remaining, mailbox));
-    return leftovers.map((message) => message.threadId);
+    return threadIds;
   }
 }

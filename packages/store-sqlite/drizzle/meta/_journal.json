@@ -267,6 +267,13 @@
       "when": 1795530069846,
       "tag": "0037_message_placements",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1795535468807,
+      "tag": "0038_message_effect_gates",
+      "breakpoints": true
     }
   ]
 }

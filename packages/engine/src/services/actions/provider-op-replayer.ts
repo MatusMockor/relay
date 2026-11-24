@@ -15,6 +15,7 @@ import type { PendingProviderOp } from '../shared/provider-ops';
 import type { RoleMailboxEnsurer } from '../shared/role-mailbox-ensurer';
 import { MovedCopyMerger } from './moved-copy-merger';
 import { MoveTargetResolver } from './move-target-resolver';
+import { keepsSource } from './placement-transition';
 import { type OpBatch, ProviderOpBatches } from './provider-op-batches';
 import { writeStoreChange } from './store-change-writer';
 
@@ -117,14 +118,19 @@ export class ProviderOpReplayer {
       return;
     }
     const uidMap = await this.move(account, provider, mailbox.path, uids, target.path);
+    const keepSource = keepsSource(account, mailbox.role, target.role);
     for (const { message, placement } of batch.entries) {
       const uid = uidMap.get(placement.uid) ?? PENDING_UID;
       const twin = await this.merger.twinOf(account, message, target, uid);
       if (twin !== null) {
-        await this.merger.merge(account, message, placement, twin);
+        await this.merger.merge(account, message, placement, twin, keepSource);
         continue;
       }
-      await this.deps.messages.move(message.id, { mailboxId: target.id, uid });
+      await this.deps.messages.movePlacement(message.id, {
+        from: placement.mailboxId,
+        to: { mailboxId: target.id, uid },
+        keepSource,
+      });
     }
   }
 

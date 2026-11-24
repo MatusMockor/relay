@@ -71,11 +71,15 @@ describe('PgMessageRepository placements', () => {
     );
   });
 
-  it('rewrites the placement on move and reads locations through it', async () => {
+  it('moves the placement and reads locations through it', async () => {
     const { seeded, first, second } = await seedTwo();
     const { inbox, sent } = seeded.mailboxes;
 
-    await context.repositories.messages.move(first.id, { mailboxId: sent.id, uid: 0 });
+    await context.repositories.messages.movePlacement(first.id, {
+      from: inbox.id,
+      to: { mailboxId: sent.id, uid: 0 },
+      keepSource: false,
+    });
 
     await expect(placementsOf([first.id, second.id])).resolves.toEqual([
       { messageId: first.id, mailboxId: sent.id, uid: 0 },
@@ -88,7 +92,7 @@ describe('PgMessageRepository placements', () => {
       context.repositories.messages.findByLocation({ mailboxId: sent.id, uid: 0 }),
     ).resolves.toMatchObject({ id: first.id, placements: [{ mailboxId: sent.id, uid: 0 }] });
     await expect(context.repositories.messages.listUids(inbox.id)).resolves.toEqual([9]);
-    await expect(context.repositories.messages.listUids(sent.id)).resolves.toEqual([0]);
+    await expect(context.repositories.messages.listUids(sent.id)).resolves.toEqual([]);
   });
 
   it('deletes the messages and placements at the given uids', async () => {
@@ -118,7 +122,11 @@ describe('PgMessageRepository placements', () => {
       flagged: true,
       answered: false,
     });
-    await context.repositories.messages.move(alias, { mailboxId: sent.id, uid: 3 });
+    await context.repositories.messages.movePlacement(alias, {
+      from: seeded.mailboxes.inbox.id,
+      to: { mailboxId: sent.id, uid: 3 },
+      keepSource: false,
+    });
 
     await expect(
       context.repositories.messages.findById(seeded.user.id, alias),

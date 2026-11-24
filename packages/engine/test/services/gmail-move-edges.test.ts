@@ -32,8 +32,7 @@ describe('Gmail move edge cases', () => {
   it('keeps a label that the All Mail copy already had when the move is undone', async () => {
     const engine = createTestEngine();
     const { server, target, label, act } = await gmailMoveThread(engine, (gmail) => {
-      deliverMail(gmail, 'INBOX', GMAIL_FIRST);
-      deliverMail(gmail, 'Archive', { ...GMAIL_FIRST, labels: ['\\Inbox', 'Klienti'] });
+      inboxAndAllMail(gmail, { ...GMAIL_FIRST, labels: ['\\Inbox', 'Klienti'] });
     });
 
     await act({ type: 'move', mailboxId: target.id });
@@ -72,7 +71,7 @@ describe('Gmail move edge cases', () => {
     expect(server.mailbox('INBOX').messages.size).toBe(1);
   });
 
-  it('points a reply draft at the surviving copy when archiving merges the INBOX row', async () => {
+  it('keeps a reply draft on the message when archiving drops its INBOX placement', async () => {
     const engine = createTestEngine();
     const { account, thread, act } = await gmailMoveThread(engine, inboxAndAllMail);
     const inbox = present(await engine.repositories.mailboxes.findByRole(account.id, 'inbox'));

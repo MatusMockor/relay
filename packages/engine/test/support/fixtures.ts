@@ -68,6 +68,7 @@ export interface MailSpec {
   readonly keywords?: readonly string[];
   readonly labels?: readonly string[];
   readonly emailId?: string;
+  readonly allMail?: boolean;
 }
 
 export const deliverMail = (server: FakeMailServer, path: string, spec: MailSpec): number => {
@@ -89,6 +90,7 @@ export const deliverMail = (server: FakeMailServer, path: string, spec: MailSpec
     labels: spec.labels,
     emailId: spec.emailId,
     internalDate: spec.internalDate ?? date,
+    allMail: spec.allMail,
   });
 };
 

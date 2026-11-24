@@ -80,6 +80,37 @@ describe('PgDraftRepository', () => {
     expect(kept?.inReplyToMessageId).toBe(twin.id);
   });
 
+  it('retargets reply drafts to the successor only when the last placement is removed', async () => {
+    const seeded = await seedAccount(context.repositories);
+    const { thread, message } = await seedThread(context.repositories, seeded);
+    const { messages, drafts } = context.repositories;
+    const { inbox, sent } = seeded.mailboxes;
+    const twin = await messages.upsert(
+      buildMessage(thread, sent, { messageIdHeader: message.messageIdHeader }),
+      new Map(),
+    );
+    await messages.movePlacement(message.id, {
+      from: message.mailboxId,
+      to: { mailboxId: sent.id, uid: 50 },
+      keepSource: true,
+    });
+    const draft = await drafts.create(
+      seeded.user.id,
+      buildDraft(seeded, { inReplyToThreadId: thread.id, inReplyToMessageId: message.id }),
+    );
+    const replied = async () =>
+      (await drafts.findById(seeded.user.id, draft.id))?.inReplyToMessageId;
+
+    await expect(messages.removePlacement(message.id, inbox.id, twin.id)).resolves.toMatchObject({
+      retired: false,
+    });
+    await expect(replied()).resolves.toBe(message.id);
+    await expect(messages.removePlacement(message.id, sent.id, twin.id)).resolves.toMatchObject({
+      retired: true,
+    });
+    await expect(replied()).resolves.toBe(twin.id);
+  });
+
   it('creates and updates drafts with ordered attachments the user owns', async () => {
     const store = new PgAttachmentStore(context.db);
     const seeded = await seedAccount(context.repositories);

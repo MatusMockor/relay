@@ -42,7 +42,7 @@ describe('automation addLabel on Gmail', () => {
 
     expect(failedActions(engine)).toEqual([]);
     expect(server.labelWrites).toEqual([
-      { path: 'INBOX', uids: [1], add: ['Klienti'], remove: [] },
+      { path: 'Archive', uids: [1], add: ['Klienti'], remove: [] },
     ]);
     expect(server.record('INBOX', 1).labels).toEqual(['\\Inbox', 'Klienti']);
     expect(threadBySubject(engine, 'Faktúra 12').labelIds).toEqual([label.id]);

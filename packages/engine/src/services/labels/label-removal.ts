@@ -1,4 +1,4 @@
-import type { Label, UserId } from '@relay/shared/domain';
+import type { Label, ThreadId, UserId } from '@relay/shared/domain';
 import type { ProviderChange } from '../../model/pending-work';
 import type { Clock } from '../../ports/clock';
 import type { Repositories } from '../../ports/repositories';
@@ -40,16 +40,19 @@ const queuePurge = async (repositories: Repositories, label: Label, now: string)
   });
 };
 
-const dropMailbox = async (repositories: Repositories, label: Label): Promise<void> => {
+const dropMailbox = async (repositories: Repositories, label: Label): Promise<ThreadId[]> => {
   const all = await repositories.mailboxes.listForSync(label.accountId);
-  if (!all.some((mailbox) => mailbox.path === label.remoteName)) {
-    return;
+  const dropped = all.find((mailbox) => mailbox.path === label.remoteName);
+  if (dropped === undefined) {
+    return [];
   }
-  const kept = all.filter((mailbox) => mailbox.path !== label.remoteName);
+  const threadIds = await repositories.messages.forgetMailbox(dropped.id);
+  const kept = all.filter((mailbox) => mailbox.id !== dropped.id);
   await repositories.mailboxes.deleteMissing(
     label.accountId,
     kept.map((mailbox) => mailbox.path),
   );
+  return threadIds;
 };
 
 export class LabelRemoval {
@@ -58,14 +61,14 @@ export class LabelRemoval {
   run(userId: UserId, label: Label): Promise<ThreadRefreshOutcome[]> {
     const now = this.deps.clock.now().toISOString();
     return this.deps.unitOfWork.run(async (repositories) => {
-      const threadIds = await repositories.messages.listThreadIdsByLabel(label.id);
+      const labelled = await repositories.messages.listThreadIdsByLabel(label.id);
       await dropPendingWrites(repositories, label);
       await repositories.labels.delete(userId, label.id);
-      await (label.kind === 'keyword'
-        ? queuePurge(repositories, label, now)
+      const placed = await (label.kind === 'keyword'
+        ? queuePurge(repositories, label, now).then((): ThreadId[] => [])
         : dropMailbox(repositories, label));
       const outcomes: ThreadRefreshOutcome[] = [];
-      for (const threadId of threadIds) {
+      for (const threadId of new Set([...labelled, ...placed])) {
         outcomes.push(await refreshThread(repositories, userId, label.accountId, threadId));
       }
       return outcomes;

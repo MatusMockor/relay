@@ -14,6 +14,7 @@ import {
   type DraftSendRenewal,
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { retargetReplyDrafts } from './memory-reply-retarget';
 
 export class MemoryDraftRepository implements DraftRepository {
   failDeleteRevision: string | null = null;
@@ -32,14 +33,7 @@ export class MemoryDraftRepository implements DraftRepository {
   }
 
   retargetReplies(from: MessageId, to: MessageId): Promise<void> {
-    this.db.tables.drafts.forEach((stored, draftId) => {
-      if (stored.draft.inReplyToMessageId === from) {
-        this.db.tables.drafts.set(draftId, {
-          ...stored,
-          draft: { ...stored.draft, inReplyToMessageId: to },
-        });
-      }
-    });
+    retargetReplyDrafts(this.db, from, to);
     return Promise.resolve();
   }
 

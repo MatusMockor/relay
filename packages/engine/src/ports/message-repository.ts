@@ -1,4 +1,12 @@
 import type { Page, PageRequest } from '../model/page';
+import type {
+  PlacementIdentity,
+  PlacementMatch,
+  PlacementMove,
+  PlacementRemoval,
+  PlaceOutcome,
+  PlaceRequest,
+} from '../model/placement-ingest';
 import type { MessageHeaders, SplitMatchSubject } from '../model/split-match-subject';
 import type {
   AccountId,
@@ -51,6 +59,14 @@ export interface MessageRepository {
   updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void>;
   addLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
   removeLabel(messageId: MessageId, labelId: LabelId): Promise<void>;
-  move(messageId: MessageId, target: MessageLocation): Promise<void>;
+  matchPlacement(identity: PlacementIdentity): Promise<PlacementMatch | null>;
+  place(request: PlaceRequest): Promise<PlaceOutcome>;
+  movePlacement(messageId: MessageId, move: PlacementMove): Promise<void>;
+  removePlacement(
+    messageId: MessageId,
+    mailboxId: MailboxId,
+    successor?: MessageId,
+  ): Promise<PlacementRemoval>;
+  forgetMailbox(mailboxId: MailboxId): Promise<ThreadId[]>;
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]>;
 }

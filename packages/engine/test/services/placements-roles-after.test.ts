@@ -31,7 +31,7 @@ describe('roles after a planned move', () => {
   it('keeps the unmoved inbox placement when a spam placement moves to All Mail', async () => {
     const engine = createTestEngine();
     const setup = await gmailJoinedMessage(engine, (server: FakeMailServer) => {
-      deliverMail(server, 'INBOX', SPEC);
+      deliverMail(server, 'INBOX', { ...SPEC, allMail: false });
       deliverMail(server, 'Spam', SPEC);
     });
     expect(setup.message.placements).toHaveLength(2);
