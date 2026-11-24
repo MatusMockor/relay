@@ -3,7 +3,7 @@ import { type AccountId, type MailboxId, MailboxIdSchema } from '@relay/shared/d
 import { and, asc, count, countDistinct, eq, inArray, sql } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toHistoryBackfillRow, toHistoryCursor } from '../mappers/history-backfill-mapper';
-import { historyBackfill, messages } from '../schema';
+import { historyBackfill, mailboxes, messagePlacements, messages } from '../schema';
 import { chunked } from './chunked';
 
 export class SqliteHistoryBackfillRepository implements HistoryBackfillRepository {
@@ -36,10 +36,15 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
       chunked([...new Set(uids)])
         .flatMap((chunk) =>
           db
-            .select({ uid: messages.uid })
-            .from(messages)
-            .where(and(eq(messages.mailboxId, mailboxId), inArray(messages.uid, chunk)))
-            .orderBy(asc(messages.uid))
+            .select({ uid: messagePlacements.uid })
+            .from(messagePlacements)
+            .where(
+              and(
+                eq(messagePlacements.mailboxId, mailboxId),
+                inArray(messagePlacements.uid, chunk),
+              ),
+            )
+            .orderBy(asc(messagePlacements.uid))
             .all()
             .map((row) => row.uid),
         )
@@ -50,11 +55,12 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
   countsByMailbox(accountId: AccountId): Promise<HistoryMailboxCount[]> {
     return this.executor.execute((db) =>
       db
-        .select({ mailboxId: messages.mailboxId, stored: count() })
-        .from(messages)
-        .where(eq(messages.accountId, accountId))
-        .groupBy(messages.mailboxId)
-        .orderBy(asc(messages.mailboxId))
+        .select({ mailboxId: messagePlacements.mailboxId, stored: count() })
+        .from(messagePlacements)
+        .innerJoin(mailboxes, eq(mailboxes.id, messagePlacements.mailboxId))
+        .where(eq(mailboxes.accountId, accountId))
+        .groupBy(messagePlacements.mailboxId)
+        .orderBy(asc(messagePlacements.mailboxId))
         .all()
         .map((row) => ({ mailboxId: MailboxIdSchema.parse(row.mailboxId), stored: row.stored })),
     );
@@ -74,7 +80,16 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
           })
           .from(messages)
           .where(
-            and(eq(messages.accountId, accountId), inArray(messages.mailboxId, [...mailboxIds])),
+            and(
+              eq(messages.accountId, accountId),
+              inArray(
+                messages.id,
+                db
+                  .select({ id: messagePlacements.messageId })
+                  .from(messagePlacements)
+                  .where(inArray(messagePlacements.mailboxId, [...mailboxIds])),
+              ),
+            ),
           )
           .get()?.stored ?? 0,
     );

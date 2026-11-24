@@ -55,6 +55,7 @@ export class MemoryTables {
   readonly mailboxes = new Map<MailboxId, Mailbox>();
   readonly messages = new Map<MessageId, Message>();
   readonly messageHeaders = new Map<MessageId, MessageHeaders>();
+  readonly messageAliases = new Map<MessageId, MessageId>();
   readonly threads = new Map<ThreadId, ThreadSummary>();
   readonly labels = new Map<LabelId, Label>();
   readonly splits = new Map<UserId, Split[]>();

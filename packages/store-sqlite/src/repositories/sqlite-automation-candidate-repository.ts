@@ -17,11 +17,11 @@ import { and, desc, eq, exists, gte, inArray, notInArray, type SQL, sql } from '
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toTimestamp } from '../mappers/timestamp';
-import { toMessage } from '../mappers/message-mapper';
-import { mailboxes, messages, threads } from '../schema';
+import { messages, threads } from '../schema';
 import { candidateSubjects } from './candidate-subjects-query';
 import { chunked } from './chunked';
-import { readMessageLabels } from './message-label-reader';
+import { hydrateMessages } from './message-hydrator';
+import { placedOutsideRoles } from './placement-conditions';
 
 interface ThreadRow {
   readonly id: string;
@@ -36,7 +36,7 @@ const threadColumns = {
 };
 
 const receivedSince = (since: number): SQL | undefined =>
-  and(gte(messages.dateTs, since), notInArray(mailboxes.role, [...RECENT_EXCLUDED_ROLES]));
+  and(gte(messages.dateTs, since), placedOutsideRoles(RECENT_EXCLUDED_ROLES));
 
 export class SqliteAutomationCandidateRepository implements AutomationCandidateRepository {
   constructor(private readonly executor: SqliteExecutor) {}
@@ -60,7 +60,6 @@ export class SqliteAutomationCandidateRepository implements AutomationCandidateR
       const received = db
         .select({ one: sql`1` })
         .from(messages)
-        .innerJoin(mailboxes, eq(mailboxes.id, messages.mailboxId))
         .where(and(eq(messages.threadId, threads.id), receivedSince(since)));
       const recent = db
         .select(threadColumns)
@@ -88,11 +87,7 @@ export class SqliteAutomationCandidateRepository implements AutomationCandidateR
           .from(messages)
           .where(and(eq(messages.userId, userId), inArray(messages.id, chunk)))
           .all();
-        const labels = readMessageLabels(
-          db,
-          rows.map((row) => row.id),
-        );
-        return rows.map((row) => toMessage(row, labels.get(row.id) ?? []));
+        return hydrateMessages(db, rows);
       }),
     );
   }

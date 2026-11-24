@@ -1,6 +1,7 @@
 import type { AttachmentMeta, MailboxId } from '@relay/shared/domain';
 import type { InviteCandidate, InviteCandidateRepository } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { placedIn } from './memory-placements';
 
 const CALENDAR_TYPES = new Set(['text/calendar', 'application/ics', 'application/x-ics']);
 
@@ -13,20 +14,19 @@ export class MemoryInviteCandidateRepository implements InviteCandidateRepositor
 
   listAfter(mailboxId: MailboxId, afterUid: number, limit: number): Promise<InviteCandidate[]> {
     const candidates = [...this.db.tables.messages.values()]
-      .filter(
-        (message) =>
-          message.mailboxId === mailboxId &&
-          message.uid > afterUid &&
-          message.attachments.some(isCalendar),
+      .filter((message) => message.attachments.some(isCalendar))
+      .flatMap((message) =>
+        placedIn(message, mailboxId)
+          .filter((placement) => placement.uid > afterUid)
+          .map((placement) => ({
+            messageId: message.id,
+            threadId: message.threadId,
+            uid: placement.uid,
+            date: message.date,
+          })),
       )
       .sort((a, b) => a.uid - b.uid)
-      .slice(0, limit)
-      .map((message) => ({
-        messageId: message.id,
-        threadId: message.threadId,
-        uid: message.uid,
-        date: message.date,
-      }));
+      .slice(0, limit);
     return Promise.resolve(candidates);
   }
 }

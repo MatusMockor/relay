@@ -8,6 +8,9 @@ const dateOf = (message: Message): number => Date.parse(message.date);
 
 const isRemote = (message: Message): boolean => message.bodyState === 'remote';
 
+const hasKnownUid = (message: Message): boolean =>
+  message.placements.some((placement) => placement.uid !== PENDING_UID);
+
 export class MemoryMessageBodies implements MessageBodyStore {
   constructor(private readonly db: MemoryDatabase) {}
 
@@ -29,7 +32,7 @@ export class MemoryMessageBodies implements MessageBodyStore {
 
   evictBefore(accountId: AccountId, before: Date, limit: number): Promise<number> {
     const due = this.ofAccount(accountId)
-      .filter((message) => !isRemote(message) && message.uid !== PENDING_UID)
+      .filter((message) => !isRemote(message) && hasKnownUid(message))
       .filter((message) => dateOf(message) < before.getTime())
       .slice(0, limit);
     due.forEach((message) => {
@@ -52,19 +55,24 @@ export class MemoryMessageBodies implements MessageBodyStore {
     const skipped = new Set(excluding);
     const floor = since?.getTime() ?? Number.NEGATIVE_INFINITY;
     const candidates = this.ofAccount(accountId)
-      .filter((message) => isRemote(message) && message.uid !== PENDING_UID)
+      .filter((message) => isRemote(message))
       .filter((message) => dateOf(message) >= floor && !skipped.has(message.id))
       .sort((left, right) => dateOf(right) - dateOf(left))
-      .slice(0, limit)
-      .map((message) => ({
-        messageId: message.id,
-        threadId: message.threadId,
-        mailboxId: message.mailboxId,
-        uid: message.uid,
-        messageIdHeader: message.messageIdHeader,
-        snippet: message.snippet,
-        attachments: message.attachments,
-      }));
+      .flatMap((message) =>
+        message.placements
+          .filter((placement) => placement.uid !== PENDING_UID)
+          .slice(0, 1)
+          .map((placement) => ({
+            messageId: message.id,
+            threadId: message.threadId,
+            mailboxId: placement.mailboxId,
+            uid: placement.uid,
+            messageIdHeader: message.messageIdHeader,
+            snippet: message.snippet,
+            attachments: message.attachments,
+          })),
+      )
+      .slice(0, limit);
     return Promise.resolve(candidates);
   }
 

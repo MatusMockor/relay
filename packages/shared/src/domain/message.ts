@@ -30,7 +30,13 @@ export type AttachmentMeta = z.infer<typeof AttachmentMetaSchema>;
 export const MessageBodyStateSchema = z.enum(['local', 'remote']);
 export type MessageBodyState = z.infer<typeof MessageBodyStateSchema>;
 
-export const MessageSchema = z.object({
+export const MessagePlacementSchema = z.object({
+  mailboxId: MailboxIdSchema,
+  uid: z.number().int().nonnegative(),
+});
+export type MessagePlacement = z.infer<typeof MessagePlacementSchema>;
+
+const MessageFieldsSchema = z.object({
   id: MessageIdSchema,
   threadId: ThreadIdSchema,
   accountId: AccountIdSchema,
@@ -54,7 +60,13 @@ export const MessageSchema = z.object({
   labelIds: z.array(LabelIdSchema),
   attachments: z.array(AttachmentMetaSchema),
   bodyState: MessageBodyStateSchema.optional(),
+  placements: z.array(MessagePlacementSchema).min(1).optional(),
 });
+
+export const MessageSchema = MessageFieldsSchema.transform((message) => ({
+  ...message,
+  placements: message.placements ?? [{ mailboxId: message.mailboxId, uid: message.uid }],
+}));
 export type Message = z.infer<typeof MessageSchema>;
 
 export const isBodyLocal = (message: Pick<Message, 'bodyState'>): boolean =>

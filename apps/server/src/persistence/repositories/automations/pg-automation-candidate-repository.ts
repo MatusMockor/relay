@@ -15,7 +15,8 @@ import type {
 } from '@relay/shared/domain';
 import { and, desc, eq, exists, gte, inArray, notInArray, type SQL, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
-import { mailboxes, messages, threads } from '../../schema';
+import { messages, threads } from '../../schema';
+import { placedOutsideRoles } from '../messages/placement-conditions';
 import { toIso } from '../../support/timestamps';
 import { toMessage } from '../messages/message.mapper';
 import { messageSelection } from '../messages/message-selection';
@@ -34,7 +35,7 @@ const threadColumns = {
 };
 
 const receivedSince = (since: Date): SQL | undefined =>
-  and(gte(messages.date, since), notInArray(mailboxes.role, [...RECENT_EXCLUDED_ROLES]));
+  and(gte(messages.date, since), placedOutsideRoles(RECENT_EXCLUDED_ROLES));
 
 export class PgAutomationCandidateRepository implements AutomationCandidateRepository {
   constructor(private readonly db: DbExecutor) {}
@@ -54,7 +55,6 @@ export class PgAutomationCandidateRepository implements AutomationCandidateRepos
     const received = this.db
       .select({ one: sql`1` })
       .from(messages)
-      .innerJoin(mailboxes, eq(mailboxes.id, messages.mailboxId))
       .where(and(eq(messages.threadId, threads.id), receivedSince(since)));
     const recent = await this.db
       .select(threadColumns)

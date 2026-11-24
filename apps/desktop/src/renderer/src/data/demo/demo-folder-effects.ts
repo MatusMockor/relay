@@ -1,4 +1,5 @@
 import type { Mailbox, ThreadSummary } from '@relay/shared';
+import { placedIn } from './demo-message-location';
 import type { DemoState } from './demo-state';
 
 export const relabelDemoTree = (state: DemoState, from: string, to: string, root: Mailbox) => {
@@ -25,7 +26,7 @@ export const trashDemoFolder = (state: DemoState, folder: Mailbox): ThreadSummar
       return;
     }
     record.messages = record.messages.map((message) =>
-      message.mailboxId === folder.id ? { ...message, mailboxId: trash.id } : message,
+      message.mailboxId === folder.id ? placedIn(message, trash.id) : message,
     );
     const held = record.messages.every((message) => message.mailboxId === trash.id);
     record.summary = held ? { ...record.summary, state: 'trash' } : record.summary;

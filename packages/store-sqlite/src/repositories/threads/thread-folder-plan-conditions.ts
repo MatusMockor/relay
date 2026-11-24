@@ -1,6 +1,6 @@
 import type { AccountId, UserId } from '@relay/shared/domain';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
-import { messages, threads } from '../../schema';
+import { messagePlacements, messages, threads } from '../../schema';
 import type { ThreadFolderPlan } from './thread-folder-plan';
 
 export interface PlanConditions {
@@ -15,7 +15,7 @@ const orderFirst: PlanConditions = {
       accountId === null ? undefined : eq(threads.accountId, accountId),
     ),
   inMailbox: (mailboxId) =>
-    sql`exists (select 1 from ${messages} where ${messages.mailboxId} = ${mailboxId} and ${messages.threadId} = ${threads.id})`,
+    sql`exists (select 1 from ${messages} where ${messages.threadId} = ${threads.id} and exists (select 1 from ${messagePlacements} where ${messagePlacements.messageId} = ${messages.id} and ${messagePlacements.mailboxId} = ${mailboxId}))`,
 };
 
 const mailboxFirst: PlanConditions = {
@@ -25,7 +25,7 @@ const mailboxFirst: PlanConditions = {
       accountId === null ? undefined : sql`+${threads.accountId} = ${accountId}`,
     ),
   inMailbox: (mailboxId) =>
-    sql`${threads.id} in (select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${mailboxId})`,
+    sql`${threads.id} in (select ${messages.threadId} from ${messagePlacements} inner join ${messages} on ${messages.id} = ${messagePlacements.messageId} where ${messagePlacements.mailboxId} = ${mailboxId})`,
 };
 
 export const planConditionsOf = (plan: ThreadFolderPlan): PlanConditions =>

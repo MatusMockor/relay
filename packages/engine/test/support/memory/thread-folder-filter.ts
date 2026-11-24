@@ -8,6 +8,7 @@ import {
 } from '@relay/shared/domain';
 import type { ThreadFolderQuery } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { placedIn } from './memory-placements';
 import { hasSearchTerms, ThreadSearchMatch } from './thread-search-match';
 
 const unheld = (thread: ThreadSummary): boolean => !isHeldThreadState(thread.state);
@@ -93,13 +94,15 @@ export class ThreadFolderFilter {
     return [...this.db.tables.messages.values()].some(
       (message) =>
         message.threadId === thread.id &&
-        this.db.tables.mailboxes.get(message.mailboxId)?.role === 'sent',
+        message.placements.some(
+          (placement) => this.db.tables.mailboxes.get(placement.mailboxId)?.role === 'sent',
+        ),
     );
   }
 
   private hasMessageIn(thread: ThreadSummary, mailboxId: MailboxId): boolean {
     return [...this.db.tables.messages.values()].some(
-      (message) => message.threadId === thread.id && message.mailboxId === mailboxId,
+      (message) => message.threadId === thread.id && placedIn(message, mailboxId).length > 0,
     );
   }
 

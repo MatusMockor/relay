@@ -1,7 +1,14 @@
 import type { ThreadFolderQuery } from '@relay/engine';
 import type { UserId } from '@relay/shared/domain';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
-import { messageLabels, messages, splits, threadSplits, threads } from '../../schema';
+import {
+  messageLabels,
+  messagePlacements,
+  messages,
+  splits,
+  threadSplits,
+  threads,
+} from '../../schema';
 import type { CursorPayload } from '../../support/cursor';
 import { folderViewFilter, hasOpenTask, notHeld } from './folder-view-filters';
 import { toSearchTerms } from './search-query';
@@ -36,7 +43,9 @@ const mailboxFilter = (query: ThreadFolderQuery): SQL | undefined => {
     return undefined;
   }
   return sql`${threads.id} in (
-    select ${messages.threadId} from ${messages} where ${messages.mailboxId} = ${query.mailboxId}
+    select ${messages.threadId} from ${messagePlacements}
+    join ${messages} on ${messages.id} = ${messagePlacements.messageId}
+    where ${messagePlacements.mailboxId} = ${query.mailboxId}
   )`;
 };
 

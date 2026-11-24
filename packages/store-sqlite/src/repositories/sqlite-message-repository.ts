@@ -21,12 +21,15 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { toMessage, toMessageHeaders, toMessageRow } from '../mappers/message-mapper';
+import { toMessageHeaders, toMessageRow } from '../mappers/message-mapper';
 import { type MessageRow, messageLabels, messages } from '../schema';
 import { accountOwnerOf } from './account-owner';
 import { chunked } from './chunked';
 import { listMatchSubjects } from './match-subject-query';
-import { readMessageLabels } from './message-label-reader';
+import { resolveMessageId } from './message-alias-resolver';
+import { hydrateMessages } from './message-hydrator';
+import { deleteRowsAtUids, findRowsAtLocation, listPlacedUids } from './message-location-queries';
+import { replacePlacement } from './message-placement-writer';
 import { findThreadIdByReplyTo } from './reply-thread-query';
 
 export class SqliteMessageRepository implements MessageRepository {
@@ -39,7 +42,7 @@ export class SqliteMessageRepository implements MessageRepository {
         db
           .select()
           .from(messages)
-          .where(and(eq(messages.userId, userId), eq(messages.id, messageId)))
+          .where(and(eq(messages.userId, userId), eq(messages.id, resolveMessageId(db, messageId))))
           .all(),
       ),
     );
@@ -50,7 +53,7 @@ export class SqliteMessageRepository implements MessageRepository {
       const row = db
         .select({ headers: messages.headers })
         .from(messages)
-        .where(and(eq(messages.userId, userId), eq(messages.id, messageId)))
+        .where(and(eq(messages.userId, userId), eq(messages.id, resolveMessageId(db, messageId))))
         .get();
       return row === undefined ? null : toMessageHeaders(row.headers);
     });
@@ -71,16 +74,7 @@ export class SqliteMessageRepository implements MessageRepository {
   }
 
   findByLocation(location: MessageLocation): Promise<Message | null> {
-    return this.executor.execute((db) =>
-      this.first(
-        db,
-        db
-          .select()
-          .from(messages)
-          .where(and(eq(messages.mailboxId, location.mailboxId), eq(messages.uid, location.uid)))
-          .all(),
-      ),
-    );
+    return this.executor.execute((db) => this.first(db, findRowsAtLocation(db, location)));
   }
 
   findByMessageIdHeaders(accountId: AccountId, headers: readonly string[]): Promise<Message[]> {
@@ -159,15 +153,7 @@ export class SqliteMessageRepository implements MessageRepository {
   }
 
   listUids(mailboxId: MailboxId): Promise<number[]> {
-    return this.executor.execute((db) =>
-      db
-        .select({ uid: messages.uid })
-        .from(messages)
-        .where(eq(messages.mailboxId, mailboxId))
-        .orderBy(asc(messages.uid))
-        .all()
-        .map((row) => row.uid),
-    );
+    return this.executor.execute((db) => listPlacedUids(db, mailboxId));
   }
 
   upsert(message: Message, headers: MessageHeaders): Promise<Message> {
@@ -178,8 +164,9 @@ export class SqliteMessageRepository implements MessageRepository {
         .values(row)
         .onConflictDoUpdate({ target: messages.id, set: changes })
         .run();
+      replacePlacement(db, message.id, message);
       this.replaceLabels(db, message.id, message.labelIds);
-      return message;
+      return { ...message, placements: [{ mailboxId: message.mailboxId, uid: message.uid }] };
     });
   }
 
@@ -189,51 +176,54 @@ export class SqliteMessageRepository implements MessageRepository {
 
   updateFlags(messageId: MessageId, flags: MessageFlags): Promise<void> {
     return this.executor.execute((db) => {
-      db.update(messages).set(flags).where(eq(messages.id, messageId)).run();
+      db.update(messages)
+        .set(flags)
+        .where(eq(messages.id, resolveMessageId(db, messageId)))
+        .run();
     });
   }
 
   updateLabels(messageId: MessageId, labelIds: readonly LabelId[]): Promise<void> {
     return this.executor.execute((db) => {
-      this.replaceLabels(db, messageId, labelIds);
+      this.replaceLabels(db, resolveMessageId(db, messageId), labelIds);
     });
   }
 
   addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
     return this.executor.execute((db) => {
-      db.insert(messageLabels).values({ messageId, labelId }).onConflictDoNothing().run();
+      db.insert(messageLabels)
+        .values({ messageId: resolveMessageId(db, messageId), labelId })
+        .onConflictDoNothing()
+        .run();
     });
   }
 
   removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
     return this.executor.execute((db) => {
+      const id = resolveMessageId(db, messageId);
       db.delete(messageLabels)
-        .where(and(eq(messageLabels.messageId, messageId), eq(messageLabels.labelId, labelId)))
+        .where(and(eq(messageLabels.messageId, id), eq(messageLabels.labelId, labelId)))
         .run();
     });
   }
 
   move(messageId: MessageId, target: MessageLocation): Promise<void> {
     return this.executor.execute((db) => {
-      db.update(messages)
+      const id = resolveMessageId(db, messageId);
+      const moved = db
+        .update(messages)
         .set({ mailboxId: target.mailboxId, uid: target.uid })
-        .where(eq(messages.id, messageId))
+        .where(eq(messages.id, id))
         .run();
+      if (moved.changes === 0) {
+        return;
+      }
+      replacePlacement(db, id, target);
     });
   }
 
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
-    return this.executor.execute((db) => {
-      const threadIds = chunked(uids).flatMap((chunk) =>
-        db
-          .delete(messages)
-          .where(and(eq(messages.mailboxId, mailboxId), inArray(messages.uid, chunk)))
-          .returning({ threadId: messages.threadId })
-          .all()
-          .map((row) => row.threadId),
-      );
-      return [...new Set(threadIds)].sort().map((threadId) => ThreadIdSchema.parse(threadId));
-    });
+    return this.executor.execute((db) => deleteRowsAtUids(db, mailboxId, uids));
   }
 
   private replaceLabels(db: RelayDb, messageId: string, labelIds: readonly string[]): void {
@@ -252,10 +242,6 @@ export class SqliteMessageRepository implements MessageRepository {
   }
 
   private hydrate(db: RelayDb, rows: MessageRow[]): Message[] {
-    const labelsByMessage = readMessageLabels(
-      db,
-      rows.map((row) => row.id),
-    );
-    return rows.map((row) => toMessage(row, labelsByMessage.get(row.id) ?? []));
+    return hydrateMessages(db, rows);
   }
 }

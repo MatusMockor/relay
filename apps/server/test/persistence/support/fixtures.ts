@@ -117,31 +117,37 @@ export const buildMessage = (
   thread: ThreadSummary,
   mailbox: Mailbox,
   overrides: Partial<Message> = {},
-): Message => ({
-  id: newId('message'),
-  threadId: thread.id,
-  accountId: thread.accountId,
-  mailboxId: mailbox.id,
-  uid: nextUid(),
-  messageIdHeader: `<${randomBytes(6).toString('hex')}@firma.sk>`,
-  emailId: null,
-  inReplyTo: null,
-  references: [],
-  from: { name: 'Eva Nováková', email: 'eva@firma.sk' },
-  to: [{ name: null, email: 'jan@relay.test' }],
-  cc: [],
-  bcc: [],
-  replyTo: [],
-  subject: thread.subject,
-  date: thread.lastMessageAt,
-  snippet: thread.snippet,
-  textBody: 'Ahoj, posielam podklady.',
-  htmlBody: null,
-  flags: { seen: false, flagged: false, answered: false },
-  labelIds: [],
-  attachments: [],
-  ...overrides,
-});
+): Message => {
+  const message = {
+    id: newId('message'),
+    threadId: thread.id,
+    accountId: thread.accountId,
+    mailboxId: mailbox.id,
+    uid: nextUid(),
+    messageIdHeader: `<${randomBytes(6).toString('hex')}@firma.sk>`,
+    emailId: null,
+    inReplyTo: null,
+    references: [],
+    from: { name: 'Eva Nováková', email: 'eva@firma.sk' },
+    to: [{ name: null, email: 'jan@relay.test' }],
+    cc: [],
+    bcc: [],
+    replyTo: [],
+    subject: thread.subject,
+    date: thread.lastMessageAt,
+    snippet: thread.snippet,
+    textBody: 'Ahoj, posielam podklady.',
+    htmlBody: null,
+    flags: { seen: false, flagged: false, answered: false },
+    labelIds: [],
+    attachments: [],
+    ...overrides,
+  };
+  return {
+    ...message,
+    placements: overrides.placements ?? [{ mailboxId: message.mailboxId, uid: message.uid }],
+  };
+};
 
 export const defaultSettings = (): UserSettings => structuredClone(DEFAULT_USER_SETTINGS);
 

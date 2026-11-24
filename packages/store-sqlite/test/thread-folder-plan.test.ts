@@ -50,6 +50,9 @@ describe(`SqliteThreadRepository.queryFolder plans with ${String(THREAD_COUNT)} 
 
     expect(threadStepOf(plan)).toMatch(ORDER_INDEX_STEP);
     expect(usesTempBTree(plan)).toBe(false);
+    expect(plan.some((detail) => detail.includes('message_placements_mailbox_uid_idx'))).toBe(
+      false,
+    );
   });
 
   it.each(sparse)('reads the sparse $name view from its messages', (scenario) => {

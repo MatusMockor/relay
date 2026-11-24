@@ -5,6 +5,7 @@ import { messages } from '../../src/schema';
 import { buildMessage, messageId, NO_HEADERS, threadId } from './fixtures';
 import type { SeededAccount } from './seed';
 import type { TestStore } from './test-database';
+import { mirrorPlacements } from './placement-mirror';
 
 const BATCH = 500;
 const DAY_MS = 86_400_000;
@@ -35,6 +36,7 @@ export const seedBodyRows = (store: TestStore, rows: readonly Message[]): void =
       store.database.db.insert(messages).values(batch).run();
     }
   })();
+  mirrorPlacements(store);
 };
 
 export const ftsCount = (store: TestStore, term: string): number =>

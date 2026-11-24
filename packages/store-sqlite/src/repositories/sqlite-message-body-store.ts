@@ -8,10 +8,11 @@ import {
   type OfflineStats,
   ThreadIdSchema,
 } from '@relay/shared/domain';
-import { and, asc, count, desc, eq, gte, inArray, lt, max, ne, notInArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, inArray, lt, max, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
-import { messages } from '../schema';
+import { messagePlacements, messages } from '../schema';
+import { placedWithKnownUid } from './placement-conditions';
 
 const PENDING_UID = 0;
 const AttachmentsSchema = z.array(AttachmentMetaSchema);
@@ -21,7 +22,7 @@ const remoteSince = (accountId: AccountId, since: Date | null, excluding: readon
     eq(messages.accountId, accountId),
     eq(messages.bodyState, 'remote'),
     since === null ? undefined : gte(messages.dateTs, since.getTime()),
-    ne(messages.uid, PENDING_UID),
+    gt(messagePlacements.uid, PENDING_UID),
     excluding.length === 0 ? undefined : notInArray(messages.id, [...excluding]),
   );
 
@@ -55,7 +56,7 @@ export class SqliteMessageBodyStore implements MessageBodyStore {
             eq(messages.accountId, accountId),
             eq(messages.bodyState, 'local'),
             lt(messages.dateTs, before.getTime()),
-            ne(messages.uid, PENDING_UID),
+            placedWithKnownUid,
           ),
         )
         .orderBy(asc(messages.dateTs))
@@ -79,13 +80,14 @@ export class SqliteMessageBodyStore implements MessageBodyStore {
         .select({
           id: messages.id,
           threadId: messages.threadId,
-          mailboxId: messages.mailboxId,
-          uid: messages.uid,
+          mailboxId: messagePlacements.mailboxId,
+          uid: messagePlacements.uid,
           messageIdHeader: messages.messageIdHeader,
           snippet: messages.snippet,
           attachments: messages.attachments,
         })
         .from(messages)
+        .innerJoin(messagePlacements, eq(messagePlacements.messageId, messages.id))
         .where(remoteSince(accountId, since, excluding))
         .orderBy(desc(messages.dateTs), desc(messages.seq))
         .limit(limit)

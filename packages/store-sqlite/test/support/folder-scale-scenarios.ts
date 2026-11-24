@@ -10,7 +10,8 @@ import { folderQuery } from './folder-scenario';
 export const SCALE_PAGE_LIMIT = 200;
 
 const PRIMARY_KEY_STEP = /^SEARCH threads USING INDEX sqlite_autoindex_threads_1 \(id=\?\)/;
-const MAILBOX_STEP = /^SEARCH messages .*INDEX messages_mailbox_thread_idx \(mailbox_id=\?/;
+const MAILBOX_STEP =
+  /^SEARCH message_placements .*INDEX message_placements_mailbox_uid_idx \(mailbox_id=\?/;
 
 export interface Scenario {
   readonly name: string;

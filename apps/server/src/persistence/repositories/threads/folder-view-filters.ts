@@ -2,7 +2,6 @@ import { type FolderView, HELD_THREAD_STATES } from '@relay/shared/domain';
 import { notInArray, type SQL, sql } from 'drizzle-orm';
 import {
   drafts,
-  mailboxes,
   messages,
   scheduledSends,
   splits,
@@ -10,6 +9,7 @@ import {
   threadSplits,
   threads,
 } from '../../schema';
+import { placedInRole } from '../messages/placement-conditions';
 
 export const notHeld = notInArray(threads.state, [...HELD_THREAD_STATES]);
 
@@ -26,8 +26,7 @@ export const hasOpenTask = sql`exists(
 
 const hasSentMessage = sql`exists(
   select 1 from ${messages}
-  join ${mailboxes} on ${mailboxes.id} = ${messages.mailboxId}
-  where ${messages.threadId} = ${threads.id} and ${mailboxes.role} = 'sent'
+  where ${messages.threadId} = ${threads.id} and ${placedInRole('sent')}
 )`;
 
 const hasDraft = sql`exists(

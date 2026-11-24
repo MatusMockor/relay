@@ -1,7 +1,7 @@
 import { CANDIDATE_MESSAGES_PER_THREAD, type StoredMatchSubject } from '@relay/engine';
-import { and, asc, eq, inArray, lte, type SQL, sql } from 'drizzle-orm';
+import { and, asc, inArray, lte, type SQL, sql } from 'drizzle-orm';
 import type { RelayDb } from '../database/sqlite-database';
-import { mailboxes, messages } from '../schema';
+import { messages } from '../schema';
 import { chunked } from './chunked';
 import { matchSubjectColumns, toStoredMatchSubject } from './match-subject-row';
 
@@ -33,7 +33,6 @@ export const candidateSubjects = (
         ),
       })
       .from(messages)
-      .innerJoin(mailboxes, eq(mailboxes.id, messages.mailboxId))
       .where(and(inArray(messages.threadId, chunk), filter))
       .as('ranked');
     db.select()

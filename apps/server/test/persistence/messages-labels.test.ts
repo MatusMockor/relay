@@ -171,6 +171,7 @@ describe('PgMessageRepository', () => {
       labelIds: [own.id],
       mailboxId: seeded.mailboxes.sent.id,
       uid: 99,
+      placements: [{ mailboxId: seeded.mailboxes.sent.id, uid: 99 }],
     });
   });
 

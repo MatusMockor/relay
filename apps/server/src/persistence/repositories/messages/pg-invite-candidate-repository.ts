@@ -2,7 +2,7 @@ import type { InviteCandidate, InviteCandidateRepository } from '@relay/engine';
 import type { MailboxId } from '@relay/shared/domain';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
-import { messages } from '../../schema';
+import { messagePlacements, messages } from '../../schema';
 
 const hasCalendarPart = sql`exists (
   select 1 from jsonb_array_elements(${messages.attachments}) as part(value)
@@ -22,12 +22,19 @@ export class PgInviteCandidateRepository implements InviteCandidateRepository {
       .select({
         messageId: messages.id,
         threadId: messages.threadId,
-        uid: messages.uid,
+        uid: messagePlacements.uid,
         date: messages.date,
       })
-      .from(messages)
-      .where(and(eq(messages.mailboxId, mailboxId), gt(messages.uid, afterUid), hasCalendarPart))
-      .orderBy(asc(messages.uid))
+      .from(messagePlacements)
+      .innerJoin(messages, eq(messages.id, messagePlacements.messageId))
+      .where(
+        and(
+          eq(messagePlacements.mailboxId, mailboxId),
+          gt(messagePlacements.uid, afterUid),
+          hasCalendarPart,
+        ),
+      )
+      .orderBy(asc(messagePlacements.uid))
       .limit(limit);
     return rows.map((row) => ({ ...row, date: row.date.toISOString() }));
   }

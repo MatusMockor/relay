@@ -5,6 +5,7 @@ import type {
   RepairedMessageBody,
 } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { placedIn } from './memory-placements';
 
 const REPLACEMENT_CHARACTER = '\uFFFD';
 
@@ -18,16 +19,19 @@ export class MemoryMessageBodyRepairs implements MessageBodyRepairRepository {
 
   listAfter(mailboxId: MailboxId, afterUid: number, limit: number): Promise<BodyRepairCandidate[]> {
     const candidates = [...this.db.tables.messages.values()]
-      .filter((message) => message.mailboxId === mailboxId && message.uid > afterUid)
       .filter(isCorrupted)
+      .flatMap((message) =>
+        placedIn(message, mailboxId)
+          .filter((placement) => placement.uid > afterUid)
+          .map((placement) => ({
+            messageId: message.id,
+            threadId: message.threadId,
+            uid: placement.uid,
+            messageIdHeader: message.messageIdHeader,
+          })),
+      )
       .sort((left, right) => left.uid - right.uid)
-      .slice(0, limit)
-      .map((message) => ({
-        messageId: message.id,
-        threadId: message.threadId,
-        uid: message.uid,
-        messageIdHeader: message.messageIdHeader,
-      }));
+      .slice(0, limit);
     return Promise.resolve(candidates);
   }
 

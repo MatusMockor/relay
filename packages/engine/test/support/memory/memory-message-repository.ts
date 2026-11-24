@@ -19,6 +19,7 @@ import type {
 } from '../../../src';
 import { matchSubjectOf, normalizeSubject } from '../../../src';
 import { type MemoryDatabase, offsetPage } from './memory-database';
+import { isPlacedAt, placedAt, placedIn } from './memory-placements';
 
 const PENDING_UID = 0;
 
@@ -26,7 +27,7 @@ export class MemoryMessageRepository implements MessageRepository {
   constructor(private readonly db: MemoryDatabase) {}
 
   findById(userId: UserId, messageId: MessageId): Promise<Message | null> {
-    const message = this.db.tables.messages.get(messageId);
+    const message = this.db.tables.messages.get(this.resolve(messageId));
     if (message === undefined || !this.db.ownsAccount(userId, message.accountId)) {
       return Promise.resolve(null);
     }
@@ -37,7 +38,9 @@ export class MemoryMessageRepository implements MessageRepository {
     if ((await this.findById(userId, messageId)) === null) {
       return null;
     }
-    return this.db.tables.messageHeaders.get(messageId) ?? new Map<string, string[]>();
+    return (
+      this.db.tables.messageHeaders.get(this.resolve(messageId)) ?? new Map<string, string[]>()
+    );
   }
 
   listByThread(userId: UserId, threadId: ThreadId): Promise<Message[]> {
@@ -50,10 +53,7 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   findByLocation(location: MessageLocation): Promise<Message | null> {
-    const match = this.all().find(
-      (message) => message.mailboxId === location.mailboxId && message.uid === location.uid,
-    );
-    return Promise.resolve(match ?? null);
+    return Promise.resolve(this.all().find((message) => isPlacedAt(message, location)) ?? null);
   }
 
   findByEmailId(accountId: AccountId, emailId: string): Promise<Message[]> {
@@ -119,16 +119,17 @@ export class MemoryMessageRepository implements MessageRepository {
   listUids(mailboxId: MailboxId): Promise<number[]> {
     return Promise.resolve(
       this.all()
-        .filter((message) => message.mailboxId === mailboxId)
-        .map((message) => message.uid)
+        .flatMap((message) => placedIn(message, mailboxId))
+        .map((placement) => placement.uid)
         .sort((a, b) => a - b),
     );
   }
 
   upsert(message: Message, headers: MessageHeaders): Promise<Message> {
-    this.db.tables.messages.set(message.id, message);
+    const stored = placedAt(message, message);
+    this.db.tables.messages.set(message.id, stored);
     this.db.tables.messageHeaders.set(message.id, headers);
-    return Promise.resolve(message);
+    return Promise.resolve(stored);
   }
 
   listMatchSubjects(accountId: AccountId, page: PageRequest): Promise<Page<StoredMatchSubject>> {
@@ -155,32 +156,33 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   addLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
-    const labelIds = this.db.tables.messages.get(messageId)?.labelIds ?? [];
+    const labelIds = this.db.tables.messages.get(this.resolve(messageId))?.labelIds ?? [];
     return this.patch(messageId, { labelIds: [...new Set([...labelIds, labelId])] });
   }
 
   removeLabel(messageId: MessageId, labelId: LabelId): Promise<void> {
-    const labelIds = this.db.tables.messages.get(messageId)?.labelIds ?? [];
+    const labelIds = this.db.tables.messages.get(this.resolve(messageId))?.labelIds ?? [];
     return this.patch(messageId, { labelIds: labelIds.filter((id) => id !== labelId) });
   }
 
   move(messageId: MessageId, target: MessageLocation): Promise<void> {
+    const id = this.resolve(messageId);
     const occupied = this.all().some(
-      (message) =>
-        message.id !== messageId &&
-        message.mailboxId === target.mailboxId &&
-        message.uid === target.uid &&
-        target.uid !== PENDING_UID,
+      (message) => message.id !== id && target.uid !== PENDING_UID && isPlacedAt(message, target),
     );
     if (occupied) {
       return Promise.reject(new Error('Unique constraint failed: messages (mailbox_id, uid)'));
     }
-    return this.patch(messageId, { mailboxId: target.mailboxId, uid: target.uid });
+    const message = this.db.tables.messages.get(id);
+    if (message !== undefined) {
+      this.db.tables.messages.set(id, placedAt(message, target));
+    }
+    return Promise.resolve();
   }
 
   deleteByUids(mailboxId: MailboxId, uids: readonly number[]): Promise<ThreadId[]> {
-    const removed = this.all().filter(
-      (message) => message.mailboxId === mailboxId && uids.includes(message.uid),
+    const removed = this.all().filter((message) =>
+      placedIn(message, mailboxId).some((placement) => uids.includes(placement.uid)),
     );
     removed.forEach((message) => {
       this.db.tables.messages.delete(message.id);
@@ -190,11 +192,16 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   private patch(messageId: MessageId, changes: Partial<Message>): Promise<void> {
-    const message = this.db.tables.messages.get(messageId);
+    const id = this.resolve(messageId);
+    const message = this.db.tables.messages.get(id);
     if (message !== undefined) {
-      this.db.tables.messages.set(messageId, { ...message, ...changes });
+      this.db.tables.messages.set(id, { ...message, ...changes });
     }
     return Promise.resolve();
+  }
+
+  private resolve(messageId: MessageId): MessageId {
+    return this.db.tables.messageAliases.get(messageId) ?? messageId;
   }
 
   private all(): Message[] {

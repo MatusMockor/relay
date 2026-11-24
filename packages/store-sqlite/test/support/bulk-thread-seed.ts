@@ -1,6 +1,7 @@
 import type { MailAccount, Mailbox, ThreadState } from '@relay/shared/domain';
 import { LOCAL_USER_ID } from '../../src';
 import type { TestStore } from './test-database';
+import { mirrorPlacements } from './placement-mirror';
 
 export interface BulkMailboxes {
   readonly inbox: Mailbox;
@@ -124,4 +125,5 @@ export const bulkSeedThreads = (store: TestStore, input: BulkSeedInput): void =>
       }
     }
   })();
+  mirrorPlacements(store);
 };

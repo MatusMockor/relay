@@ -16,26 +16,16 @@ import type {
 import { and, desc, eq } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { drafts } from '../../schema';
-import { assertOwned } from '../../support/ownership';
 import { leaseStaleBefore } from '../../support/stale-lease';
 import { toDate } from '../../support/timestamps';
 import { replaceDraftAttachments } from './draft-attachments-store';
+import { withDraftReferences } from './draft-references';
 import { draftSelection } from './draft-selection';
 import { toDraft, toDraftInsert, toDraftUpdate } from './draft.mapper';
 
 type StoredDraftRow = typeof drafts.$inferSelect & { attachments: DraftAttachment[] };
 
 const toStoredDraft = ({ attachments, ...row }: StoredDraftRow): Draft => toDraft(row, attachments);
-
-const assertDraftReferences = async (
-  db: DbExecutor,
-  userId: UserId,
-  content: Partial<DraftContent>,
-): Promise<void> => {
-  await assertOwned(db, 'Account', userId, content.accountId ?? null);
-  await assertOwned(db, 'Thread', userId, content.inReplyToThreadId ?? null);
-  await assertOwned(db, 'Message', userId, content.inReplyToMessageId ?? null);
-};
 
 export class PgDraftRepository implements DraftRepository {
   constructor(private readonly db: DbExecutor) {}
@@ -71,8 +61,8 @@ export class PgDraftRepository implements DraftRepository {
 
   async create(userId: UserId, draft: Draft): Promise<Draft> {
     return this.db.transaction(async (tx) => {
-      await assertDraftReferences(tx, userId, draft);
-      await tx.insert(drafts).values(toDraftInsert(userId, draft));
+      const referenced = await withDraftReferences(tx, userId, draft);
+      await tx.insert(drafts).values(toDraftInsert(userId, referenced));
       await replaceDraftAttachments(
         tx,
         userId,
@@ -91,10 +81,10 @@ export class PgDraftRepository implements DraftRepository {
     revision: DraftRevision,
   ): Promise<Draft | null> {
     return this.db.transaction(async (tx) => {
-      await assertDraftReferences(tx, userId, changes);
+      const referenced = await withDraftReferences(tx, userId, changes);
       const rows = await tx
         .update(drafts)
-        .set({ ...toDraftUpdate(changes), updatedAt: toDate(revision.next) })
+        .set({ ...toDraftUpdate(referenced), updatedAt: toDate(revision.next) })
         .where(
           and(
             eq(drafts.userId, userId),

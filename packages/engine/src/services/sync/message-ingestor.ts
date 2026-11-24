@@ -69,7 +69,12 @@ export class MessageIngestor {
     }
     const pending = await this.findPending(target, parsed);
     if (pending !== null) {
-      return this.refreshKnown(target, { ...pending, ...location }, remote, true);
+      return this.refreshKnown(
+        target,
+        { ...pending, ...location, placements: [location] },
+        remote,
+        true,
+      );
     }
     return this.create(target, remote, parsed, bodyState);
   }
