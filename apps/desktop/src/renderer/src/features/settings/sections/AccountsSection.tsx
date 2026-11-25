@@ -3,7 +3,7 @@ import { AccountSquare, Button, ConfirmDialog, Segmented, Switch } from '@relay/
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
-import { refreshAccounts } from '../../../data/hooks/account-list-refresh';
+import { refreshAccountsNow } from '../../../data/hooks/account-list-refresh';
 import { queryKeys } from '../../../data/hooks/query-keys';
 import { useClient } from '../../../data/hooks/services-context';
 import { useAccounts } from '../../../data/hooks/use-mail-queries';
@@ -40,7 +40,7 @@ function AccountCard({
     client
       .updateAccount(account.id, body)
       .then(() => {
-        refreshAccounts(queryClient);
+        refreshAccountsNow(queryClient);
       })
       .catch((error: unknown) => {
         showToast(describeError(error));

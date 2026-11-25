@@ -8,7 +8,7 @@ const scheduled = new WeakSet<QueryClient>();
 const reorderPending = (client: QueryClient): boolean =>
   client.isMutating({ mutationKey: accountReorderMutationKey }) > 0;
 
-const refreshNow = (client: QueryClient): void => {
+export const refreshAccountsNow = (client: QueryClient): void => {
   if (reorderPending(client)) {
     deferred.add(client);
     return;
@@ -23,7 +23,7 @@ export const refreshAccounts = (client: QueryClient): void => {
   scheduled.add(client);
   setTimeout(() => {
     scheduled.delete(client);
-    refreshNow(client);
+    refreshAccountsNow(client);
   }, INVALIDATION_WINDOW_MS);
 };
 
@@ -32,7 +32,7 @@ export const settleAccountReorders = async (client: QueryClient): Promise<void> 
   await client.invalidateQueries({ queryKey: queryKeys.accounts() });
   setTimeout(() => {
     if (deferred.delete(client)) {
-      refreshNow(client);
+      refreshAccountsNow(client);
     }
   }, 0);
 };
