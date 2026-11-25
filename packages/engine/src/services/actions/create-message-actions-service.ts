@@ -20,6 +20,7 @@ export const DEFAULT_FOLDER_READ_PAGE_SIZE = 200;
 export interface MessageActionComponents {
   readonly actions: MessageActionsService;
   readonly folderRead: FolderReadService;
+  readonly mirror: ProviderMirror;
 }
 
 export const createMessageActionComponents = (
@@ -85,5 +86,5 @@ export const createMessageActionComponents = (
     events: shared.events,
     pageSize: deps.options.actions?.folderReadPageSize ?? DEFAULT_FOLDER_READ_PAGE_SIZE,
   });
-  return { actions, folderRead };
+  return { actions, folderRead, mirror };
 };

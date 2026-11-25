@@ -27,6 +27,7 @@ export interface ProviderOpReplayerDeps {
   readonly unitOfWork: UnitOfWork;
   readonly clock: Clock;
   readonly logger: Logger;
+  readonly batchSize?: number;
 }
 
 export class ProviderOpReplayer {

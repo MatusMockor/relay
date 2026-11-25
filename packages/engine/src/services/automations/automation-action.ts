@@ -5,6 +5,7 @@ import type {
   AutomationActionType,
   UserId,
 } from '@relay/shared/domain';
+import type { ProviderOpSink } from '../actions/provider-op-sink';
 import type { InboxArrival } from '../sync/sync-arrivals';
 import type { ActionEffect } from './action-effect';
 
@@ -12,6 +13,7 @@ export interface AutomationActionContext {
   readonly userId: UserId;
   readonly automation: Automation;
   readonly arrival: InboxArrival;
+  readonly mirror?: ProviderOpSink;
 }
 
 export interface AutomationActionHandler<Action extends AutomationAction = AutomationAction> {

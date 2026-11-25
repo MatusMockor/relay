@@ -5,7 +5,7 @@ import type { UnitOfWork } from '../../../ports/unit-of-work';
 import { type PendingProviderOp, recordProviderOps } from '../../shared/provider-ops';
 import { refreshThread } from '../../shared/thread-refresh';
 import type { MailboxEvents, MailboxEventScope } from '../../sync/mailbox-events';
-import type { ProviderMirror } from '../provider-mirror';
+import type { ProviderOpSink } from '../provider-op-sink';
 import type { ThreadActionContext } from '../thread-action-context';
 import { requireUpserted } from './require-upserted';
 import { adjustUnreadCounts } from './unread-counts';
@@ -14,7 +14,7 @@ export type WritableFlag = 'seen' | 'flagged';
 
 export interface FlagWriterDeps {
   readonly unitOfWork: UnitOfWork;
-  readonly mirror: ProviderMirror;
+  readonly mirror: ProviderOpSink;
   readonly clock: Clock;
   readonly mailboxEvents: MailboxEvents;
 }
@@ -37,7 +37,7 @@ export class FlagWriter {
     const staged = await this.deps.unitOfWork.run((repositories) =>
       this.stage(repositories, context, targets, flag, value),
     );
-    await this.deps.mirror.apply(context.account, staged.ops);
+    await (context.mirror ?? this.deps.mirror).apply(context.account, staged.ops);
     await this.publishCounts(context, [staged]);
     return staged.thread;
   }

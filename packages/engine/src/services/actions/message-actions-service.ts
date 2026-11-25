@@ -25,9 +25,14 @@ import {
   type TrackedChange,
   writtenBy,
 } from './message-changes';
+import type { ProviderOpSink } from './provider-op-sink';
 import type { ThreadActionContext } from './thread-action-context';
 
 export type { MessageRevert, TrackedAction, TrackedChange } from './message-changes';
+
+export interface TrackedActionOptions {
+  readonly mirror?: ProviderOpSink;
+}
 
 export interface MessageActionsServiceDeps {
   readonly threads: ThreadRepository;
@@ -59,8 +64,9 @@ export class MessageActionsService implements ThreadReadMarker {
     userId: UserId,
     threadId: ThreadId,
     action: TrackedAction,
+    options: TrackedActionOptions = {},
   ): Promise<TrackedChange> {
-    const context = await this.context(userId, threadId);
+    const context: ThreadActionContext = { ...(await this.context(userId, threadId)), ...options };
     const written = writtenBy(action, context.messages);
     const outcome = await this.locationOrFlags(context, action).catch(
       async (error: unknown): Promise<StateMoveOutcome> => ({

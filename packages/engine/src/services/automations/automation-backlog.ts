@@ -12,8 +12,10 @@ import type { AutomationRunRepository } from '../../ports/automation-run-reposit
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
 import type { ThreadRepository } from '../../ports/thread-repository';
+import type { ProviderOpSink } from '../actions/provider-op-sink';
 import type { AutomationActionExecutor } from './automation-action-executor';
 import type { AutomationBacklogMatcher, BacklogMatch } from './automation-backlog-matcher';
+import { BacklogEffects } from './backlog-effects';
 import type { AutomationActivityRecorder } from './history/automation-activity-recorder';
 
 export const BACKLOG_LIMIT = 500;
@@ -28,6 +30,7 @@ export interface AutomationBacklogDeps {
   readonly matcher: AutomationBacklogMatcher;
   readonly executor: AutomationActionExecutor;
   readonly recorder: AutomationActivityRecorder;
+  readonly mirror: ProviderOpSink;
   readonly clock: Clock;
 }
 
@@ -53,10 +56,7 @@ export class AutomationBacklog {
       );
     }
     const selected = matches.sort(newestFirst).slice(0, BACKLOG_LIMIT);
-    const outcomes: Outcome[] = [];
-    for (const match of selected) {
-      outcomes.push(await this.applyTo(userId, { ...automation, actions }, match));
-    }
+    const outcomes = await this.applyAll(userId, { ...automation, actions }, selected);
     return {
       matched: selected.length,
       applied: outcomes.filter((outcome) => outcome === 'applied').length,
@@ -64,10 +64,28 @@ export class AutomationBacklog {
     };
   }
 
+  private async applyAll(
+    userId: UserId,
+    automation: Automation,
+    selected: readonly BacklogMatch[],
+  ): Promise<Outcome[]> {
+    const effects = new BacklogEffects(this.deps.mirror, this.deps.recorder);
+    const outcomes: Outcome[] = [];
+    try {
+      for (const match of selected) {
+        outcomes.push(await this.applyTo(userId, automation, match, effects));
+      }
+      return outcomes;
+    } finally {
+      await effects.settle();
+    }
+  }
+
   private async applyTo(
     userId: UserId,
     automation: Automation,
     match: BacklogMatch,
+    effects: BacklogEffects,
   ): Promise<Outcome> {
     const thread = await this.deps.threads.findByIdForAccount(match.accountId, match.threadId);
     const gate = match.messageIds.at(-1);
@@ -83,7 +101,7 @@ export class AutomationBacklog {
         claimed.push(messageId);
       }
     }
-    if (await this.execute(userId, automation, gate)) {
+    if (await this.execute(userId, automation, gate, effects)) {
       return 'applied';
     }
     await this.deps.runs.release(automation.id, claimed);
@@ -94,6 +112,7 @@ export class AutomationBacklog {
     userId: UserId,
     automation: Automation,
     messageId: MessageId,
+    effects: BacklogEffects,
   ): Promise<boolean> {
     const message = await this.deps.messages.findById(userId, messageId);
     if (message === null) {
@@ -101,9 +120,10 @@ export class AutomationBacklog {
     }
     const headers =
       (await this.deps.messages.findHeaders(userId, messageId)) ?? new Map<string, string[]>();
-    const context = { userId, automation, arrival: { message, headers, jira: null, live: false } };
+    const arrival = { message, headers, jira: null, live: false };
+    const context = { userId, automation, arrival, mirror: effects.mirror };
     const outcomes = await this.deps.executor.execute(context, automation.actions);
-    await this.deps.recorder.record(context, 'apply', outcomes);
+    effects.executedOn(context, outcomes);
     return outcomes.every(({ outcome }) => outcome === 'ok');
   }
 

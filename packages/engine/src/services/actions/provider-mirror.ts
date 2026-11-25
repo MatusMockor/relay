@@ -3,6 +3,7 @@ import type { Logger } from '../../ports/logger';
 import { errorMessage, type MailProviderSessions } from '../shared/mail-provider-sessions';
 import type { PendingProviderOp } from '../shared/provider-ops';
 import type { ProviderOpReplayer } from './provider-op-replayer';
+import type { ProviderOpSink } from './provider-op-sink';
 
 export interface ProviderMirrorDeps {
   readonly sessions: MailProviderSessions;
@@ -10,7 +11,7 @@ export interface ProviderMirrorDeps {
   readonly logger: Logger;
 }
 
-export class ProviderMirror {
+export class ProviderMirror implements ProviderOpSink {
   constructor(private readonly deps: ProviderMirrorDeps) {}
 
   async apply(account: MailAccount, ops: readonly PendingProviderOp[]): Promise<void> {

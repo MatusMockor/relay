@@ -8,7 +8,7 @@ import { MailCopies } from '../../shared/mail-copies';
 import { forgetMoveOrigins, recordMoveOrigins } from '../../shared/move-origins';
 import { recordProviderOps } from '../../shared/provider-ops';
 import { refreshThread } from '../../shared/thread-refresh';
-import type { ProviderMirror } from '../provider-mirror';
+import type { ProviderOpSink } from '../provider-op-sink';
 import type { ThreadActionContext } from '../thread-action-context';
 import { resolveLabelChanges, writeLabelChanges } from './label-change-writer';
 import type { MessageLocator } from './message-locator';
@@ -27,7 +27,7 @@ export interface StateMoveHandlerDeps {
   readonly locator: MessageLocator;
   readonly labels: LabelRepository;
   readonly unitOfWork: UnitOfWork;
-  readonly mirror: ProviderMirror;
+  readonly mirror: ProviderOpSink;
   readonly clock: Clock;
 }
 
@@ -150,7 +150,7 @@ export class StateMoveHandler {
         origins,
       };
     });
-    await this.deps.mirror.apply(context.account, ops);
+    await (context.mirror ?? this.deps.mirror).apply(context.account, ops);
     return {
       thread,
       moved: movedBy(plan, context, copies),

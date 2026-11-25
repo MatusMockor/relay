@@ -3,7 +3,7 @@ import type { Automation, Label, LabelId, Mailbox, ThreadSummary } from '@relay/
 import { expect } from 'vitest';
 import { addAutomations, automationInput } from './automations';
 import { present, seedAccount, type SeededAccount } from './fixtures';
-import { createTestEngine, type TestEngine, USER_ID } from './test-engine';
+import { createTestEngine, type TestEngine, type TestEngineOptions, USER_ID } from './test-engine';
 
 export interface FolderSetup extends SeededAccount {
   readonly engine: TestEngine;
@@ -11,8 +11,8 @@ export interface FolderSetup extends SeededAccount {
   readonly label: Label;
 }
 
-export const folderSetup = async (): Promise<FolderSetup> => {
-  const engine = createTestEngine();
+export const folderSetup = async (options: TestEngineOptions = {}): Promise<FolderSetup> => {
+  const engine = createTestEngine(options);
   const seeded = await seedAccount(engine);
   seeded.server.addMailbox('Faktúry', 'custom');
   seeded.server.addMailbox('Junk', 'spam');

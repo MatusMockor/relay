@@ -14,6 +14,8 @@ import { mailboxRoleOf } from '../shared/mailbox-role-of';
 import type { PendingProviderOp } from '../shared/provider-ops';
 import { opPlacement } from './op-placement';
 
+export const MAX_BATCH_UIDS = 500;
+
 export interface BatchEntry {
   readonly message: Message;
   readonly placement: MessagePlacement;
@@ -30,6 +32,7 @@ export interface ProviderOpBatchesDeps {
   readonly messages: MessageRepository;
   readonly mailboxes: MailboxRepository;
   readonly pendingWork: PendingWorkRepository;
+  readonly batchSize?: number;
 }
 
 export class ProviderOpBatches {
@@ -39,7 +42,8 @@ export class ProviderOpBatches {
     if (ops.length === 0) {
       return [];
     }
-    const batches = new Map<string, OpBatch>();
+    const open = new Map<string, OpBatch>();
+    const batches: OpBatch[] = [];
     const settled: PendingProviderOp[] = [];
     const roleOf = await this.roleOf(account);
     for (const op of ops) {
@@ -53,16 +57,31 @@ export class ProviderOpBatches {
         continue;
       }
       const key = `${placement.mailboxId}|${JSON.stringify(op.payload.change)}`;
-      const known = batches.get(key) ?? (await this.batch(placement, op));
+      const known = await this.openBatch(open.get(key), placement, op);
       if (known === null) {
         continue;
       }
+      if (known !== open.get(key)) {
+        batches.push(known);
+        open.set(key, known);
+      }
       known.ops.push(op);
       known.entries.push({ message, placement });
-      batches.set(key, known);
     }
     await this.deps.pendingWork.remove(settled);
-    return [...batches.values()];
+    return batches;
+  }
+
+  private openBatch(
+    current: OpBatch | undefined,
+    placement: MessagePlacement,
+    op: PendingProviderOp,
+  ): Promise<OpBatch | null> {
+    const limit = Math.min(this.deps.batchSize ?? MAX_BATCH_UIDS, MAX_BATCH_UIDS);
+    if (current !== undefined && current.entries.length < limit) {
+      return Promise.resolve(current);
+    }
+    return this.batch(placement, op);
   }
 
   private async roleOf(account: MailAccount): Promise<MailboxRoleOf> {
