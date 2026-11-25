@@ -163,7 +163,7 @@ One repository operation, `MessageRepository.place(...)`, used by full ingest, s
 3. Placeholder adoption by Message-ID (identity rule above).
 4. Otherwise create the message and its first placement (thread resolution, labels, Jira, splits, calendar parts).
 
-Fetching is unchanged: the full source per new UID. The initial sync keeps its order (#121): inbox windows first, the newest `firstBatchSize` with their parents flushed before the backlog. An All Mail copy of a stored message becomes a placement instead of a second row. Skipping that download (a header fetch of X-GM-MSGID before the source) is a follow-up.
+The initial sync uses a 14-day window by default (older mail follows in `HistoryBackfill`) and runs in phases: `INBOX` first (newest `firstBatchSize` and first page flushed right away, searching only `Sent` and `Archive` for missing parent `Message-ID`s via Gmail `X-GM-RAW rfc822msgid:` or `SINCE` + `HEADER Message-ID`), then the rest of `INBOX`, `Sent` and `Archive`, and finally deferred mailboxes (`Trash`, `Spam`, custom folders). `fetchThreadHeaders` carries flags, Gmail labels and `X-GM-MSGID`, so during initial sync a Gmail copy whose `emailId` already has a local body attaches its placement directly without re-downloading the full raw source.
 
 Effects:
 

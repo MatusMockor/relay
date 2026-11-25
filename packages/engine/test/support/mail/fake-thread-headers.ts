@@ -27,5 +27,13 @@ export const threadHeadersOf = (record: RemoteMessageRecord): RemoteThreadHeader
     messageId: headerIds(headers, 'message-id')[0] ?? null,
     inReplyTo: headerIds(headers, 'in-reply-to'),
     references: headerIds(headers, 'references'),
+    meta: {
+      uid: record.uid,
+      flags: { ...record.flags },
+      keywords: [...record.keywords],
+      labels: record.labels === null ? null : [...record.labels],
+      emailId: record.emailId,
+      internalDate: record.internalDate,
+    },
   };
 };

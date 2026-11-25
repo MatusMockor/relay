@@ -30,6 +30,13 @@ export type UidScope =
 
 export type UidListOptions = { readonly fresh?: boolean } & UidScope;
 
+export type RelatedSearchMatch = 'all' | 'message-id';
+
+export interface RelatedSearchOptions {
+  readonly match?: RelatedSearchMatch;
+  readonly since?: Date;
+}
+
 export interface MailProvider {
   connect(): Promise<void>;
   listMailboxes(): Promise<RemoteMailbox[]>;
@@ -68,6 +75,7 @@ export interface MailProvider {
     mailboxPath: string,
     uidValidity: number,
     messageIds: readonly string[],
+    options?: RelatedSearchOptions,
   ): Promise<number[]>;
   searchText(
     mailboxPath: string,

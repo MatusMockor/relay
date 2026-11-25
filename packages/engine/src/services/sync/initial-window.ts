@@ -1,5 +1,5 @@
 import type { MailboxRole } from '@relay/shared/domain';
-import type { RemoteThreadHeaders } from '../../model/remote-mail';
+import type { RemoteMessageMeta, RemoteThreadHeaders } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { MessageRepository } from '../../ports/message-repository';
@@ -18,6 +18,7 @@ export interface WindowEntry {
   readonly subject: string;
   readonly sentAt: string;
   readonly wanted: boolean;
+  readonly meta?: RemoteMessageMeta;
 }
 
 export interface MailboxWindow {
@@ -90,6 +91,7 @@ export const windowEntry = (
     subject: header.subject,
     sentAt: header.date,
     wanted,
+    ...(header.meta === undefined ? {} : { meta: header.meta }),
   };
 };
 

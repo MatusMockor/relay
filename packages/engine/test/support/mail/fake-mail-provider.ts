@@ -7,6 +7,7 @@ import {
   type MailProvider,
   type MoveResult,
   type RawMessage,
+  type RelatedSearchOptions,
   type RemoteFlagChange,
   type RemoteMailbox,
   type RemoteEmailId,
@@ -156,8 +157,13 @@ export class FakeMailProvider implements MailProvider {
     return asyncItems(scanFlagChanges(opened, path, sinceModseq, uids));
   }
 
-  searchRelated(path: string, validity: number, ids: readonly string[]): Promise<number[]> {
-    return this.withMailbox(path, (box, s) => searchRelatedRecords(s, box, validity, ids));
+  searchRelated(
+    path: string,
+    validity: number,
+    ids: readonly string[],
+    options?: RelatedSearchOptions,
+  ): Promise<number[]> {
+    return this.withMailbox(path, (box, s) => searchRelatedRecords(s, box, validity, ids, options));
   }
 
   searchText(path: string, validity: number, query: RemoteTextSearch) {

@@ -3,7 +3,7 @@ import { deliverMail, ME, seedAccount } from '../support/fixtures';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T12:00:00.000Z`;
 
 const streamed = (server: FakeMailServer): string[] =>
   server.streamedMessages.map(({ path, uid }) => `${path}:${String(uid)}`);
@@ -228,5 +228,62 @@ describe('SyncService initial sync inbox first', () => {
     expect(engine.db.tables.threads.size).toBe(4);
     expect(states(engine)).toEqual([null, null, null, null]);
     expect(engine.events.ofType('message.upserted')).toHaveLength(0);
+  });
+
+  it('syncs Trash and Spam after INBOX, Sent and Archive and skips them during ancestor lookup', async () => {
+    const engine = createTestEngine({
+      sync: { batchSize: 4, firstBatchSize: 2, firstPageConversations: 4 },
+    });
+    const { account, server } = await seedAccount(engine);
+    server.addMailbox('Spam', 'spam');
+    deliverMail(server, 'INBOX', {
+      id: 'gh-1',
+      subject: 'Re: PR #1',
+      date: day(14),
+      inReplyTo: 'missing-root',
+      references: ['missing-root'],
+    });
+    deliverMail(server, 'INBOX', { id: 'in-1', date: day(13) });
+    deliverMail(server, 'INBOX', {
+      id: 'gh-2',
+      subject: 'Re: PR #1',
+      date: day(12),
+      inReplyTo: 'missing-root',
+      references: ['missing-root'],
+    });
+    deliverMail(server, 'Sent', { id: 'sent-1', from: ME, date: day(11), seen: true });
+    deliverMail(server, 'Archive', { id: 'arch-1', date: day(10) });
+    deliverMail(server, 'Spam', { id: 'spam-1', date: day(15) });
+    deliverMail(server, 'Trash', { id: 'trash-1', date: day(15) });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const order = streamed(server);
+    expect(order.indexOf('Archive:1')).toBeLessThan(order.indexOf('Trash:1'));
+    expect(order.indexOf('Archive:1')).toBeLessThan(order.indexOf('Spam:1'));
+    expect(order.indexOf('Sent:1')).toBeLessThan(order.indexOf('Trash:1'));
+    expect(order.indexOf('Sent:1')).toBeLessThan(order.indexOf('Spam:1'));
+    const ancestorSearches = server.relatedSearches.filter(
+      (search) => search.options.match === 'message-id',
+    );
+    expect(ancestorSearches.map((search) => search.path)).toEqual(['Sent', 'Archive']);
+    expect(ancestorSearches.every((search) => search.options.since !== undefined)).toBe(true);
+  });
+
+  it('stops searching Archive once Sent already matched the missing parent', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'Sent', { id: 's1', subject: 'Ponuka', from: ME, date: day(12) });
+    deliverMail(server, 'INBOX', {
+      id: 'r1',
+      subject: 'Re: Ponuka',
+      date: day(14),
+      inReplyTo: 's1',
+      references: ['s1'],
+    });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(server.relatedSearches.map((search) => search.path)).toEqual(['Sent']);
   });
 });

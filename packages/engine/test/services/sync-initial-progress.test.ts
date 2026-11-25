@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deliverMail, seedAccount } from '../support/fixtures';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T12:00:00.000Z`;
 
 const staged = (engine: TestEngine) =>
   engine.events
@@ -31,13 +31,12 @@ describe('initial sync progress', () => {
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
     expect(staged(engine)).toEqual([
-      ['headers', 0, 4],
-      ['headers', 1, 4],
+      ['headers', 0, 3],
+      ['headers', 1, 3],
       ['inbox', 0, 4],
       ['inbox', 4, 4],
-      ['headers', 2, 4],
-      ['headers', 3, 4],
-      ['headers', 4, 4],
+      ['headers', 2, 3],
+      ['headers', 3, 3],
       ['backlog', 4, 15],
       ['backlog', 9, 15],
       ['backlog', 14, 15],

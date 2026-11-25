@@ -5,7 +5,7 @@ import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
 const DAY_MS = 86_400_000;
-const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T12:00:00.000Z`;
 
 const streamedUids = (server: FakeMailServer): number[] =>
   server.streamedMessages.map((entry) => entry.uid);
@@ -27,9 +27,9 @@ describe('SyncService initial sync regressions', () => {
   it('resumes the window frozen by the first attempt, including mail that arrived since', async () => {
     const engine = createTestEngine({ sync: { batchSize: 1, initialMessageLimit: 3 } });
     const { account, server } = await seedAccount(engine);
-    deliverMail(server, 'INBOX', { id: 'm1', date: '2026-10-20T08:00:00.000Z' });
-    deliverMail(server, 'INBOX', { id: 'm2', date: day(1) });
-    deliverMail(server, 'INBOX', { id: 'm3', date: day(2) });
+    deliverMail(server, 'INBOX', { id: 'm1', date: day(1) });
+    deliverMail(server, 'INBOX', { id: 'm2', date: day(2) });
+    deliverMail(server, 'INBOX', { id: 'm3', date: day(3) });
     server.interruptStreamAfter = 1;
 
     const interrupted = await engine.services.sync.syncAccount(USER_ID, account.id);
@@ -37,7 +37,7 @@ describe('SyncService initial sync regressions', () => {
     expect(interrupted.ok).toBe(false);
     expect(storedUids(engine)).toEqual([3]);
     expect(await inboxState(engine, account.id)).toMatchObject({
-      initialWindow: { floorUid: 1, cutoff: '2026-10-16T10:00:00.000Z' },
+      initialWindow: { floorUid: 1, cutoff: '2026-11-01T10:00:00.000Z' },
     });
     deliverMail(server, 'INBOX', { id: 'm4', date: day(14) });
     engine.clock.advance(10 * DAY_MS);

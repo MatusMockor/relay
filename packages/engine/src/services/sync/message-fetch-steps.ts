@@ -1,5 +1,5 @@
 import type { SyncStage } from '@relay/shared/realtime';
-import type { RawMessage } from '../../model/remote-mail';
+import type { RawMessage, RemoteMessageMeta } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
@@ -65,6 +65,28 @@ export class MessageFetchSteps {
     if (outcome.kind === 'created') {
       context.stats.newMessages += 1;
     }
+  }
+
+  async tryAttachMeta(
+    context: SyncContext,
+    pass: MailboxPass,
+    meta: RemoteMessageMeta,
+    mode: IngestMode,
+  ): Promise<boolean> {
+    const outcome = await this.deps.ingestor.tryAttachMeta(
+      {
+        userId: context.userId,
+        account: context.account,
+        mailbox: pass.mailbox,
+        splits: context.splits,
+        journal: context.journal,
+        publish: mode.publish,
+        live: mode.live,
+        holdCalendar: mode.holdCalendar,
+      },
+      meta,
+    );
+    return outcome !== null;
   }
 
   flush(context: SyncContext): Promise<void> {

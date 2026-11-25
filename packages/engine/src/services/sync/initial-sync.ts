@@ -36,6 +36,9 @@ const mark = (window: MailboxWindow, initialWindow: InitialSyncWindow | null): S
 };
 
 const isInbox = (pass: MailboxPass): boolean => pass.role === 'inbox';
+const isPrimaryOther = (pass: MailboxPass): boolean =>
+  pass.role === 'sent' || pass.role === 'archive';
+const isDeferred = (pass: MailboxPass): boolean => !isInbox(pass) && !isPrimaryOther(pass);
 
 export class InitialSync {
   constructor(private readonly deps: InitialSyncDeps) {}
@@ -55,17 +58,30 @@ export class InitialSync {
       await this.releaseWhenSettled(context, round, selected);
       return;
     }
-    const progress = new InitialProgress(passes.length);
-    const run: BacklogRun = { context, passes: round.passes, progress, failed: new Set() };
-    await steps.stage(context, 'headers', 0, passes.length);
-    const inbox = await this.open(context, passes.filter(isInbox), progress);
-    const head = await this.deps.backlog.head(run, inbox);
-    const others = await this.open(
+    const inboxPasses = passes.filter(isInbox);
+    const primaryOtherPasses = passes.filter(isPrimaryOther);
+    const deferredPasses = passes.filter(isDeferred);
+    const primaryCount = inboxPasses.length + primaryOtherPasses.length;
+    const headerCount = primaryCount > 0 ? primaryCount : deferredPasses.length;
+    const progress = new InitialProgress(headerCount);
+    const run: BacklogRun = {
       context,
-      passes.filter((pass) => !isInbox(pass)),
+      passes: round.passes,
       progress,
-    );
-    await this.deps.backlog.rest(run, [...inbox, ...others], head);
+      failed: new Set(),
+      missedAncestors: new Map(),
+    };
+    await steps.stage(context, 'headers', 0, headerCount);
+    const inbox = await this.open(context, inboxPasses, progress, true);
+    const head = await this.deps.backlog.head(run, inbox);
+    const primaryOthers = await this.open(context, primaryOtherPasses, progress, true);
+    if (primaryCount > 0) {
+      await this.deps.backlog.rest(run, [...inbox, ...primaryOthers], head, true);
+    }
+    if (deferredPasses.length > 0) {
+      const deferred = await this.open(context, deferredPasses, progress, primaryCount === 0);
+      await this.deps.backlog.rest(run, deferred, head, primaryCount === 0);
+    }
     await steps.flush(context);
     const completed = progress
       .all()
@@ -102,6 +118,7 @@ export class InitialSync {
     context: SyncContext,
     passes: readonly MailboxPass[],
     progress: InitialProgress,
+    emitHeaders: boolean,
   ): Promise<MailboxWindow[]> {
     const windows: MailboxWindow[] = [];
     for (const pass of passes) {
@@ -112,7 +129,9 @@ export class InitialSync {
         await this.deps.steps.save(context, pass, mark(window, window.frozen));
         windows.push(window);
       }
-      await this.deps.steps.stage(context, 'headers', progress.opened(), progress.mailboxes);
+      if (emitHeaders) {
+        await this.deps.steps.stage(context, 'headers', progress.opened(), progress.mailboxes);
+      }
     }
     progress.add(windows);
     return windows;

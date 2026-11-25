@@ -85,3 +85,36 @@ export function NoHits({ query }: { readonly query: string }) {
     </div>
   );
 }
+
+export function InitialSyncState({
+  accountName,
+  text,
+  ratio,
+}: {
+  readonly accountName: string | null;
+  readonly text: string;
+  readonly ratio: number | null;
+}) {
+  const title = accountName === null ? 'Načítavam poštu…' : `Načítavam ${accountName}…`;
+  return (
+    <div className="zero small" role="status" aria-live="polite">
+      <div className="zero-in">
+        <span className="zero-ic sync-spin" aria-hidden="true">
+          <Icon name="refresh" size={18} />
+        </span>
+        <h2>{title}</h2>
+        <p>{text}</p>
+        <div
+          className={ratio === null ? 'sync-bar indeterminate' : 'sync-bar'}
+          role="progressbar"
+          aria-label={title}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={ratio === null ? undefined : Math.round(ratio * 100)}
+        >
+          <i style={ratio === null ? undefined : { width: `${String(ratio * 100)}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -15,6 +15,10 @@ export const clearSyncProgress = (client: QueryClient, accountId: AccountId): vo
   client.setQueryData<SyncProgress | null>(queryKeys.syncProgress(accountId), null);
 };
 
-export const useSyncProgress = (accountId: AccountId): SyncProgress | null =>
-  useQuery<SyncProgress | null>({ queryKey: queryKeys.syncProgress(accountId), queryFn: skipToken })
-    .data ?? null;
+const NO_PROGRESS_KEY = ['mail', 'sync', 'progress', 'none'] as const;
+
+export const useSyncProgress = (accountId: AccountId | null): SyncProgress | null =>
+  useQuery<SyncProgress | null>({
+    queryKey: accountId === null ? NO_PROGRESS_KEY : queryKeys.syncProgress(accountId),
+    queryFn: skipToken,
+  }).data ?? null;

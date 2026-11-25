@@ -1,5 +1,11 @@
 import type { MailboxRole, MessageFlags } from '@relay/shared/domain';
-import type { MailboxChange, RemoteTextSearch, UidListOptions, UidRange } from '../../../src';
+import type {
+  MailboxChange,
+  RelatedSearchOptions,
+  RemoteTextSearch,
+  UidListOptions,
+  UidRange,
+} from '../../../src';
 import { present } from '../present';
 import {
   deliverGmail,
@@ -95,6 +101,11 @@ export class FakeMailServer {
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;
+  readonly relatedSearches: {
+    path: string;
+    ids: string[];
+    options: RelatedSearchOptions;
+  }[] = [];
   readonly textSearches: { path: string; query: RemoteTextSearch }[] = [];
   beforeTextSearch: ((path: string) => Promise<void>) | null = null;
   rejectTextSearch = false;

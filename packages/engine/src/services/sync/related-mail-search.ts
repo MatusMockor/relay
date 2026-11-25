@@ -1,4 +1,5 @@
 import type { Logger } from '../../ports/logger';
+import type { RelatedSearchOptions } from '../../ports/mail-provider';
 import type { MessageRepository } from '../../ports/message-repository';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { type WindowEntry, windowEntry } from './initial-window';
@@ -19,10 +20,11 @@ export class RelatedMailSearch {
     pass: MailboxPass,
     ids: readonly string[],
     chunk: readonly WindowEntry[],
+    options?: RelatedSearchOptions,
   ): Promise<WindowEntry[] | null> {
     try {
       return await skipOnUidValidityChange(this.deps.logger, context, pass.mailbox, () =>
-        this.findIn(context, pass, ids, chunk),
+        this.findIn(context, pass, ids, chunk, options),
       );
     } catch (error) {
       this.deps.logger.warn('Looking up related mail failed, retrying next time', {
@@ -39,10 +41,11 @@ export class RelatedMailSearch {
     pass: MailboxPass,
     ids: readonly string[],
     chunk: readonly WindowEntry[],
+    options?: RelatedSearchOptions,
   ): Promise<WindowEntry[]> {
     const { path } = pass.mailbox;
     const { uidValidity } = pass.status;
-    const found = await context.provider.searchRelated(path, uidValidity, ids);
+    const found = await context.provider.searchRelated(path, uidValidity, ids, options);
     if (found.length === 0) {
       return [];
     }

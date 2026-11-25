@@ -45,7 +45,7 @@ describe('ImapMailProvider initial sync reads against GreenMail', () => {
     const headers = await harness.provider.fetchThreadHeaders('INBOX', uidValidity, [3, 1, 2]);
 
     const sent = '2026-11-15T09:00:00.000Z';
-    expect(headers.map(({ internalDate: _date, ...rest }) => rest)).toEqual([
+    expect(headers.map(({ internalDate: _date, meta: _meta, ...rest }) => rest)).toEqual([
       {
         uid: 1,
         date: sent,
@@ -73,6 +73,13 @@ describe('ImapMailProvider initial sync reads against GreenMail', () => {
     ]);
     headers.forEach((header) => {
       expect(Number.isNaN(Date.parse(header.internalDate))).toBe(false);
+      expect(header.meta).toMatchObject({
+        uid: header.uid,
+        flags: { seen: false, flagged: false, answered: false },
+        emailId: null,
+        labels: null,
+        internalDate: header.internalDate,
+      });
     });
   });
 
