@@ -144,13 +144,14 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     unitOfWork,
     clock,
     logger: deps.logger,
+    batchSize: deps.options.actions?.providerBatchSize,
   });
   const inbox = new InboxQueryService({
     threads: repositories.threads,
     splits: repositories.splits,
     accounts: repositories.accounts,
   });
-  const { actions, folderRead } = createMessageActionComponents(deps, {
+  const { actions, folderRead, mirror } = createMessageActionComponents(deps, {
     events,
     sessions,
     reminders,
@@ -169,6 +170,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
     events,
     settings: userSettings,
     actions,
+    mirror,
     factory: ai.factory,
     tasks,
     forwarder,

@@ -4,7 +4,7 @@ import type { Clock } from '../../../ports/clock';
 import type { LabelRepository } from '../../../ports/label-repository';
 import type { UnitOfWork } from '../../../ports/unit-of-work';
 import { refreshThread } from '../../shared/thread-refresh';
-import type { ProviderMirror } from '../provider-mirror';
+import type { ProviderOpSink } from '../provider-op-sink';
 import type { ThreadActionContext } from '../thread-action-context';
 import { labelTargets } from './action-targets';
 import { gmailWrite, keywordWrite, type LabelWrite } from './label-writes';
@@ -15,7 +15,7 @@ export interface LabelHandlerDeps {
   readonly labels: LabelRepository;
   readonly locator: MessageLocator;
   readonly unitOfWork: UnitOfWork;
-  readonly mirror: ProviderMirror;
+  readonly mirror: ProviderOpSink;
   readonly clock: Clock;
 }
 
@@ -49,7 +49,7 @@ export class LabelHandler {
       );
       return { outcome: refreshed, ops: recorded };
     });
-    await this.deps.mirror.apply(context.account, ops);
+    await (context.mirror ?? this.deps.mirror).apply(context.account, ops);
     return requireUpserted(outcome, context.thread.id);
   }
 

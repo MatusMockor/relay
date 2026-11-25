@@ -35,9 +35,9 @@ export class TrackedAutomationAction implements AutomationActionHandler {
     private readonly tracked: TrackedAction,
   ) {}
 
-  async run({ userId, arrival }: AutomationActionContext): Promise<ActionEffect> {
+  async run({ userId, arrival, mirror }: AutomationActionContext): Promise<ActionEffect> {
     return trackedEffect(
-      await this.actions.applyTracked(userId, arrival.message.threadId, this.tracked),
+      await this.actions.applyTracked(userId, arrival.message.threadId, this.tracked, { mirror }),
     );
   }
 }
@@ -48,14 +48,16 @@ export class AddLabelAutomationAction
   constructor(private readonly actions: MessageActionsService) {}
 
   async run(
-    { userId, arrival }: AutomationActionContext,
+    { userId, arrival, mirror }: AutomationActionContext,
     { labelId }: AutomationActionOf<'addLabel'>,
   ): Promise<ActionEffect> {
     return trackedEffect(
-      await this.actions.applyTracked(userId, arrival.message.threadId, {
-        type: 'addLabel',
-        labelId,
-      }),
+      await this.actions.applyTracked(
+        userId,
+        arrival.message.threadId,
+        { type: 'addLabel', labelId },
+        { mirror },
+      ),
     );
   }
 }
@@ -66,14 +68,16 @@ export class MoveToAutomationAction
   constructor(private readonly actions: MessageActionsService) {}
 
   async run(
-    { userId, arrival }: AutomationActionContext,
+    { userId, arrival, mirror }: AutomationActionContext,
     { mailboxId }: AutomationActionOf<'moveTo'>,
   ): Promise<ActionEffect> {
     return trackedEffect(
-      await this.actions.applyTracked(userId, arrival.message.threadId, {
-        type: 'move',
-        mailboxId,
-      }),
+      await this.actions.applyTracked(
+        userId,
+        arrival.message.threadId,
+        { type: 'move', mailboxId },
+        { mirror },
+      ),
     );
   }
 }

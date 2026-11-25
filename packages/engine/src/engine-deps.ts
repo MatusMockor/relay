@@ -61,6 +61,7 @@ export interface CalendarOptions {
 
 export interface ActionOptions {
   readonly folderReadPageSize: number;
+  readonly providerBatchSize: number;
 }
 
 export interface EngineOptions {

@@ -1,5 +1,6 @@
 import type { EngineDeps } from '../../engine-deps';
 import type { MessageActionsService } from '../actions/message-actions-service';
+import type { ProviderOpSink } from '../actions/provider-op-sink';
 import type { AiJobFactory } from '../ai/ai-job-factory';
 import type { EngineEvents } from '../shared/engine-events';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
@@ -47,6 +48,7 @@ export const createAutomationComponents = (
     readonly events: EngineEvents;
     readonly settings: UserSettingsReader;
     readonly actions: MessageActionsService;
+    readonly mirror: ProviderOpSink;
     readonly factory: AiJobFactory;
     readonly tasks: TaskService;
     readonly forwarder: MailForwarder;
@@ -98,6 +100,7 @@ export const createAutomationComponents = (
         matcher,
         executor,
         recorder: history.recorder,
+        mirror: shared.mirror,
         clock: deps.clock,
       }),
       preview: new AutomationPreview({
