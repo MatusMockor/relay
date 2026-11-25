@@ -16,7 +16,7 @@ const collect = async (items: AsyncIterable<RawMessage>): Promise<RawMessage[]> 
   return collected;
 };
 
-const byMailbox = (chunk: readonly WindowEntry[]): Map<MailboxId, WindowEntry[]> => {
+export const byMailbox = (chunk: readonly WindowEntry[]): Map<MailboxId, WindowEntry[]> => {
   const grouped = new Map<MailboxId, WindowEntry[]>();
   chunk.forEach((entry) => {
     const id = entry.pass.mailbox.id;

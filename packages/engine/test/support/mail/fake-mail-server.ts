@@ -101,6 +101,7 @@ export class FakeMailServer {
   failIdleStop: string | null = null;
   partialMoves = false;
   failSearchIn: string | null = null;
+  onThreadHeaders: ((path: string) => void) | null = null;
   readonly relatedSearches: {
     path: string;
     ids: string[];

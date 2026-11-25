@@ -53,7 +53,7 @@ export const DEFAULT_COPY_MERGE_OPTIONS: CopyMergeOptions = {
 };
 
 export const DEFAULT_SYNC_OPTIONS: SyncOptions = {
-  initialWindowDays: 14,
+  initialWindowDays: 30,
   initialMessageLimit: 500,
   initialFolderMessageLimit: 200,
   mailboxRoles: ['inbox', 'sent', 'archive', 'trash', 'spam', 'custom'],

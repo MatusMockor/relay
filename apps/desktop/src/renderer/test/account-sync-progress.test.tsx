@@ -45,6 +45,12 @@ describe('initial sync progress on the account row', () => {
     });
     expect(barValue(card)).toBe('67');
 
+    await sync.progress('folders', 30, 120);
+    await waitFor(() => {
+      expect(statusText(card)).toContain('Sťahujem poštu z ostatných priečinkov… 30 / 120');
+    });
+    expect(barValue(card)).toBe('25');
+
     await sync.emit({
       type: 'sync.progress',
       at: SYNC_AT,
@@ -56,7 +62,7 @@ describe('initial sync progress on the account row', () => {
         total: 9,
       },
     });
-    expect(statusText(card)).toContain('Sťahujem nedávnu poštu… 1 200 / 1 800');
+    expect(statusText(card)).toContain('Sťahujem poštu z ostatných priečinkov… 30 / 120');
 
     await sync.finish();
     await waitFor(() => {

@@ -136,8 +136,15 @@ export class FakeMailProvider implements MailProvider {
     return streamRecords(opened.server, path, recordsOf(opened.mailbox, uids));
   }
 
-  fetchThreadHeaders(path: string, uidValidity: number, uids: readonly number[]) {
-    return this.readRecords<RemoteThreadHeaders>(path, uidValidity, uids, threadHeadersOf);
+  async fetchThreadHeaders(path: string, uidValidity: number, uids: readonly number[]) {
+    const read = await this.readRecords<RemoteThreadHeaders>(
+      path,
+      uidValidity,
+      uids,
+      threadHeadersOf,
+    );
+    this.server?.onThreadHeaders?.(path);
+    return read;
   }
 
   fetchSummaries(path: string, uidValidity: number, uids: readonly number[]) {

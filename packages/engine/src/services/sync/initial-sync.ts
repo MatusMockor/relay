@@ -2,6 +2,7 @@ import type { MailboxId } from '@relay/shared/domain';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
+import { deferredPhase, primaryPhase, SINGLE_PHASE } from './backlog-phase';
 import type { CalendarPartsSink } from './calendar-parts-sink';
 import { completedSyncState } from './completed-sync-state';
 import type { BacklogRun, InitialBacklog } from './initial-backlog';
@@ -74,13 +75,16 @@ export class InitialSync {
     await steps.stage(context, 'headers', 0, headerCount);
     const inbox = await this.open(context, inboxPasses, progress, true);
     const head = await this.deps.backlog.head(run, inbox);
-    const primaryOthers = await this.open(context, primaryOtherPasses, progress, true);
-    if (primaryCount > 0) {
-      await this.deps.backlog.rest(run, [...inbox, ...primaryOthers], head, true);
-    }
-    if (deferredPasses.length > 0) {
+    const primary = [...inbox, ...(await this.open(context, primaryOtherPasses, progress, true))];
+    const deferring = deferredPasses.length > 0;
+    const done =
+      primaryCount > 0
+        ? await this.deps.backlog.rest(run, primary, head, primaryPhase(deferring))
+        : head;
+    if (deferring) {
       const deferred = await this.open(context, deferredPasses, progress, primaryCount === 0);
-      await this.deps.backlog.rest(run, deferred, head, primaryCount === 0);
+      const phase = primaryCount === 0 ? SINGLE_PHASE : deferredPhase(deferred);
+      await this.deps.backlog.rest(run, [...primary, ...deferred], done, phase);
     }
     await steps.flush(context);
     const completed = progress

@@ -56,6 +56,44 @@ describe('ThreadList initial sync UX', () => {
     expect(await screen.findByText('Sťahujem najnovšiu doručenú poštu… 8 / 15')).toBeTruthy();
   });
 
+  it('shows the staged progress of a later account while an earlier one syncs incrementally', async () => {
+    const queryClient = testQueryClient();
+    const state = buildDemoState();
+    const [first, second] = state.accounts;
+    expect(first).toBeDefined();
+    expect(second).toBeDefined();
+    if (first === undefined || second === undefined) {
+      return;
+    }
+    state.accounts = [
+      { ...first, status: 'syncing' },
+      { ...second, status: 'syncing' },
+    ];
+
+    renderApp({
+      queryClient,
+      demo: () => createDemoMailClient({ state, aiStepMs: 0 }),
+    });
+    await screen.findByRole('listbox', { name: 'Konverzácie' });
+
+    act(() => {
+      applyRealtimeEvent(queryClient, {
+        type: 'sync.progress',
+        at: '2026-11-15T10:00:00.000Z',
+        data: {
+          accountId: second.id,
+          mailboxId: null,
+          phase: 'messages',
+          processed: 20,
+          total: 80,
+          stage: 'backlog',
+        },
+      });
+    });
+
+    expect(await screen.findByText('Sťahujem nedávnu poštu… 20 / 80')).toBeTruthy();
+  });
+
   it('shows a non-blocking sync strip once initial messages arrive and hides it when done', async () => {
     const queryClient = testQueryClient();
     const state = buildDemoState();

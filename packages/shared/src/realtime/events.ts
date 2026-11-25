@@ -26,7 +26,7 @@ import { ThreadSummarySchema } from '../domain/thread';
 export const SyncPhaseSchema = z.enum(['connecting', 'mailboxes', 'messages', 'idle']);
 export type SyncPhase = z.infer<typeof SyncPhaseSchema>;
 
-export const SyncStageSchema = z.enum(['headers', 'inbox', 'backlog']);
+export const SyncStageSchema = z.enum(['headers', 'inbox', 'backlog', 'folders']);
 export type SyncStage = z.infer<typeof SyncStageSchema>;
 
 const event = <const Type extends string, Data extends z.ZodType>(type: Type, data: Data) =>

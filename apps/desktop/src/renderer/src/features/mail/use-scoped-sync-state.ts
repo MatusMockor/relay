@@ -1,4 +1,5 @@
-import { useSyncProgress } from '../../data/hooks/use-sync-progress';
+import type { MailAccount } from '@relay/shared';
+import { type SyncProgress, useSyncProgresses } from '../../data/hooks/use-sync-progress';
 import { summarizeSyncProgress } from '../settings/sections/sync-progress-summary';
 import { useAccountsModel } from './use-accounts-model';
 
@@ -13,25 +14,35 @@ export interface ScopedSyncState {
   readonly banner: ScopedSyncBanner | null;
 }
 
+interface SyncingAccount {
+  readonly account: MailAccount;
+  readonly progress: SyncProgress | null;
+}
+
 const CONNECTING_TEXT = 'Pripájam sa a načítavam poštu…';
+
+const NOT_SYNCING: ScopedSyncState = { isInitialSync: false, accountName: null, banner: null };
+
+const initialSyncOf = (syncing: readonly SyncingAccount[]): SyncingAccount | null =>
+  syncing.find(({ progress }) => progress?.stage !== undefined) ??
+  syncing.find(({ account }) => account.lastSyncedAt === null) ??
+  null;
 
 export const useScopedSyncState = (): ScopedSyncState => {
   const model = useAccountsModel();
   const scoped = model.current !== null ? [model.current] : model.accounts;
-  const syncing =
-    scoped.find((account) => account.status === 'syncing' && account.lastSyncedAt === null) ??
-    scoped.find((account) => account.status === 'syncing') ??
-    null;
-  const progress = useSyncProgress(syncing?.id ?? null);
-  const isInitialSync =
-    syncing !== null && (syncing.lastSyncedAt === null || progress?.stage !== undefined);
-  if (!isInitialSync) {
-    return { isInitialSync: false, accountName: null, banner: null };
+  const progresses = useSyncProgresses(scoped.map((account) => account.id));
+  const syncing = scoped
+    .map((account, index) => ({ account, progress: progresses[index] ?? null }))
+    .filter(({ account }) => account.status === 'syncing');
+  const chosen = initialSyncOf(syncing);
+  if (chosen === null) {
+    return NOT_SYNCING;
   }
-  const summary = summarizeSyncProgress(progress);
+  const summary = summarizeSyncProgress(chosen.progress);
   return {
     isInitialSync: true,
-    accountName: syncing.displayName,
+    accountName: chosen.account.displayName,
     banner: summary ?? { text: CONNECTING_TEXT, ratio: null },
   };
 };

@@ -11,6 +11,7 @@ const LABELS: Readonly<Record<SyncStage, (processed: string, total: string) => s
   headers: (processed, total) => `Načítavam zoznamy správ… ${processed} / ${total} priečinkov`,
   inbox: (processed, total) => `Sťahujem najnovšiu doručenú poštu… ${processed} / ${total}`,
   backlog: (processed, total) => `Sťahujem nedávnu poštu… ${processed} / ${total}`,
+  folders: (processed, total) => `Sťahujem poštu z ostatných priečinkov… ${processed} / ${total}`,
 };
 
 export const summarizeSyncProgress = (

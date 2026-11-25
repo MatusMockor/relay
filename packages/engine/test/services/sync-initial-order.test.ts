@@ -115,7 +115,7 @@ describe('SyncService initial sync ordering', () => {
       4, 5,
     ]);
     expect(await inboxState(engine, account.id)).toMatchObject({
-      initialWindow: { floorUid: 1, cutoff: '2026-11-01T10:00:00.000Z' },
+      initialWindow: { floorUid: 1, cutoff: '2026-10-16T10:00:00.000Z' },
     });
     server.streamedMessages.length = 0;
     engine.events.clear();

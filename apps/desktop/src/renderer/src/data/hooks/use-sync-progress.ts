@@ -1,5 +1,11 @@
 import type { AccountId, RealtimeEventData } from '@relay/shared';
-import { type QueryClient, skipToken, useQuery } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  queryOptions,
+  skipToken,
+  useQueries,
+  useQuery,
+} from '@tanstack/react-query';
 import { queryKeys } from './query-keys';
 
 export type SyncProgress = RealtimeEventData<'sync.progress'>;
@@ -22,3 +28,13 @@ export const useSyncProgress = (accountId: AccountId | null): SyncProgress | nul
     queryKey: accountId === null ? NO_PROGRESS_KEY : queryKeys.syncProgress(accountId),
     queryFn: skipToken,
   }).data ?? null;
+
+export const useSyncProgresses = (accountIds: readonly AccountId[]): (SyncProgress | null)[] =>
+  useQueries({
+    queries: accountIds.map((accountId) =>
+      queryOptions<SyncProgress | null>({
+        queryKey: queryKeys.syncProgress(accountId),
+        queryFn: skipToken,
+      }),
+    ),
+  }).map((result) => result.data ?? null);

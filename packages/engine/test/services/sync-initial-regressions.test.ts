@@ -37,7 +37,7 @@ describe('SyncService initial sync regressions', () => {
     expect(interrupted.ok).toBe(false);
     expect(storedUids(engine)).toEqual([3]);
     expect(await inboxState(engine, account.id)).toMatchObject({
-      initialWindow: { floorUid: 1, cutoff: '2026-11-01T10:00:00.000Z' },
+      initialWindow: { floorUid: 1, cutoff: '2026-10-16T10:00:00.000Z' },
     });
     deliverMail(server, 'INBOX', { id: 'm4', date: day(14) });
     engine.clock.advance(10 * DAY_MS);

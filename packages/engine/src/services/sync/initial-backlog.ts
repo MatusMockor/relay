@@ -1,11 +1,13 @@
 import type { MailboxId } from '@relay/shared/domain';
-import type { RawMessage } from '../../model/remote-mail';
+import type { RawMessage, RemoteMessageMeta } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Logger } from '../../ports/logger';
 import { chunked } from '../shared/chunked';
 import { labelsMessages } from '../shared/mail-copies';
-import { conversationGroups, conversationOrder, orderEntries } from './conversation-order';
+import type { BacklogPhase } from './backlog-phase';
+import { conversationGroups, orderEntries } from './conversation-order';
 import { firstBatch } from './first-batch';
+import { freshMeta } from './fresh-meta';
 import { isHeldRole } from './held-roles';
 import type { InboxAncestors } from './inbox-ancestors';
 import { entryKey, fetchChunk } from './initial-chunk';
@@ -14,6 +16,7 @@ import type { MailboxWindow, WindowEntry } from './initial-window';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { MessageFetchSteps } from './message-fetch-steps';
 import type { SyncContext } from './sync-context';
+import { withoutOrphanReplies } from './subject-replies';
 import type { SyncOptions } from './sync-options';
 import type { TrashRelatives } from './trash-relatives';
 
@@ -107,29 +110,35 @@ export class InitialBacklog {
     run: BacklogRun,
     windows: readonly MailboxWindow[],
     done: ReadonlySet<string>,
-    emitWhenEmpty = true,
-  ): Promise<void> {
-    const wanted = conversationOrder(windows, inInbox).filter(
-      (entry) => entry.wanted && !done.has(keyOf(entry)),
-    );
-    if (wanted.length === 0 && !emitWhenEmpty) {
-      return;
+    phase: BacklogPhase,
+  ): Promise<ReadonlySet<string>> {
+    const pending = (entry: WindowEntry): boolean => entry.wanted && !done.has(keyOf(entry));
+    const conversations = conversationGroups(windows, inInbox);
+    const kept = phase.holdSubjectReplies
+      ? conversations.map((conversation) => withoutOrphanReplies(conversation, pending))
+      : conversations;
+    const wanted = kept.flat().filter(pending);
+    const processed = new Set([...done, ...wanted.map(keyOf)]);
+    if (wanted.length === 0 && !phase.emitWhenEmpty) {
+      return processed;
     }
-    await this.backlogProgress(run);
+    await this.phaseProgress(run, phase);
     for (const chunk of chunked(wanted, this.deps.options.batchSize)) {
       await this.chunk(run, chunk, []);
-      await this.backlogProgress(run);
+      await this.phaseProgress(run, phase);
     }
+    return processed;
   }
 
-  private backlogProgress(run: BacklogRun): Promise<void> {
-    const { processed, total } = run.progress.totals();
-    return this.deps.steps.stage(run.context, 'backlog', processed, total);
+  private phaseProgress(run: BacklogRun, phase: BacklogPhase): Promise<void> {
+    const { processed, total } = run.progress.totals(phase.counted);
+    return this.deps.steps.stage(run.context, phase.stage, processed, total);
   }
 
   private async attachHeld(
     context: SyncContext,
     entries: readonly WindowEntry[],
+    metas: ReadonlyMap<string, RemoteMessageMeta>,
     attached: Set<string>,
     failed: Set<MailboxId>,
   ): Promise<Map<string, RawMessage>> {
@@ -139,10 +148,8 @@ export class InitialBacklog {
       if (failed.has(entry.pass.mailbox.id)) {
         continue;
       }
-      if (
-        entry.meta !== undefined &&
-        (await steps.tryAttachMeta(context, entry.pass, entry.meta, BACKLOG))
-      ) {
+      const meta = metas.get(keyOf(entry));
+      if (meta !== undefined && (await steps.tryAttachMeta(context, entry.pass, meta, BACKLOG))) {
         attached.add(keyOf(entry));
         continue;
       }
@@ -171,20 +178,24 @@ export class InitialBacklog {
     const pendingEmailIds = new Set<string>();
     const relativeKeys = new Set(found.entries.map(keyOf));
     const labelBased = labelsMessages(context.account);
+    const metas = labelBased
+      ? await freshMeta(context, logger, ordered, failed)
+      : new Map<string, RemoteMessageMeta>();
     for (const entry of ordered) {
       const mailboxId = entry.pass.mailbox.id;
       const key = keyOf(entry);
       const held = isHeldRole(entry.pass.role);
+      const meta = metas.get(key);
       if (
         !held &&
         !failed.has(mailboxId) &&
-        entry.meta !== undefined &&
-        (await steps.tryAttachMeta(context, entry.pass, entry.meta, BACKLOG))
+        meta !== undefined &&
+        (await steps.tryAttachMeta(context, entry.pass, meta, BACKLOG))
       ) {
         attached.add(key);
         continue;
       }
-      const emailId = entry.meta?.emailId ?? null;
+      const emailId = meta?.emailId ?? null;
       if (
         labelBased &&
         emailId !== null &&
@@ -207,7 +218,7 @@ export class InitialBacklog {
     if (!found.complete || !allResolved(found.entries, fetched, attached)) {
       deferHeld(base, failed);
     }
-    const heldFetched = await this.attachHeld(context, heldPending, attached, failed);
+    const heldFetched = await this.attachHeld(context, heldPending, metas, attached, failed);
     heldFetched.forEach((raw, key) => fetched.set(key, raw));
     const fallback: WindowEntry[] = [];
     for (const entry of ordered) {
@@ -220,10 +231,11 @@ export class InitialBacklog {
         continue;
       }
       if (deferredAttach.has(key)) {
+        const meta = metas.get(key);
         if (
           !failed.has(mailboxId) &&
-          entry.meta !== undefined &&
-          (await steps.tryAttachMeta(context, entry.pass, entry.meta, BACKLOG))
+          meta !== undefined &&
+          (await steps.tryAttachMeta(context, entry.pass, meta, BACKLOG))
         ) {
           attached.add(key);
           if (!uncounted.has(entry)) {
