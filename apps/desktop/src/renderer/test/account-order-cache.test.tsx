@@ -25,7 +25,11 @@ import { MemoryTokenStore } from '../src/data/remote/TokenStore';
 import { suggestSenderName } from '../src/features/accounts/suggested-sender-name';
 import { useAccountsModel } from '../src/features/mail/use-accounts-model';
 import { type Gate, gate } from './features-support';
-import { type ContractServer, startContractServer } from './support/contract-server';
+import {
+  type ContractServer,
+  type HandlerResult,
+  startContractServer,
+} from './support/contract-server';
 import { tokens } from './support/fixtures';
 import { resetStores } from './support/render-app';
 
@@ -147,7 +151,7 @@ describe('account order cache', () => {
     body: { error: { code: 'conflict', message: 'Poradie sa zmenilo' } },
   };
 
-  const queueTwoMoves = async (answers: readonly (() => object)[]) => {
+  const queueTwoMoves = async (answers: readonly (() => HandlerResult)[]) => {
     const held = gate();
     let call = 0;
     server.handle('accounts.reorder', () => {
