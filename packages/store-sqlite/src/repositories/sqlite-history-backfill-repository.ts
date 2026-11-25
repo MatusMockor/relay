@@ -1,6 +1,6 @@
 import type { HistoryBackfillRepository, HistoryCursor, HistoryMailboxCount } from '@relay/engine';
 import { type AccountId, type MailboxId, MailboxIdSchema } from '@relay/shared/domain';
-import { and, asc, count, countDistinct, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, inArray, sql } from 'drizzle-orm';
 import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toHistoryBackfillRow, toHistoryCursor } from '../mappers/history-backfill-mapper';
 import { historyBackfill, mailboxes, messagePlacements, messages } from '../schema';
@@ -73,7 +73,11 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
     return this.executor.execute(
       (db) =>
         db
-          .select({ stored: countDistinct(messagePlacements.messageId) })
+          .select({
+            stored: countDistinct(
+              sql`coalesce(${messages.emailId}, ${messagePlacements.messageId})`,
+            ),
+          })
           .from(messagePlacements)
           .innerJoin(messages, eq(messages.id, messagePlacements.messageId))
           .where(

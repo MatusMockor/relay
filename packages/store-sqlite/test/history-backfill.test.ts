@@ -175,4 +175,27 @@ describe('history backfill storage', () => {
     expect(await backfills.countDistinct(account.id, [])).toBe(0);
     store.database.close();
   });
+
+  it('counts unmerged rows of one Gmail message once and rows without an email id apart', async () => {
+    const store = createTestStore();
+    const seeded = await seedAccount(store.repositories);
+    const { account, inbox } = seeded;
+    const { allMail } = await seedPlacementMailboxes(store, seeded);
+    const backfills = createSqliteHistoryBackfills(store.database);
+    const legacyRow = (id: string, mailbox: Mailbox, uid: number, emailId: string | null) =>
+      store.repositories.messages.upsert(
+        newMessage(seeded, id, at(mailbox, uid), {
+          emailId,
+          messageIdHeader: '<legacy@klient.sk>',
+        }),
+        NO_HEADERS,
+      );
+    await legacyRow('legacy-inbox', inbox, 1, 'gm-a');
+    await legacyRow('legacy-all-mail', allMail, 30, 'gm-a');
+    await legacyRow('unresolved-inbox', inbox, 2, null);
+    await legacyRow('unresolved-all-mail', allMail, 31, null);
+
+    expect(await backfills.countDistinct(account.id, [inbox.id, allMail.id])).toBe(3);
+    store.database.close();
+  });
 });

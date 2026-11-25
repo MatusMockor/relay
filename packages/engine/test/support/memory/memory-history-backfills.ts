@@ -40,10 +40,10 @@ export class MemoryHistoryBackfills implements HistoryBackfillRepository {
 
   countDistinct(accountId: AccountId, mailboxIds: readonly MailboxId[]): Promise<number> {
     const wanted = new Set(mailboxIds);
-    const placed = [...this.db.tables.messages.values()].filter(
-      (message) => message.accountId === accountId && isPlacedInAny(message, wanted),
-    );
-    return Promise.resolve(placed.length);
+    const keys = [...this.db.tables.messages.values()]
+      .filter((message) => message.accountId === accountId && isPlacedInAny(message, wanted))
+      .map((message) => message.emailId ?? message.id);
+    return Promise.resolve(new Set(keys).size);
   }
 
   flagScanOffset(mailboxId: MailboxId): Promise<number | null> {
