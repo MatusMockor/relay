@@ -78,6 +78,21 @@ describe('initial Gmail sync metadata attach revalidation', () => {
     expect(engine.db.tables.messages.size).toBe(1);
   });
 
+  it('reads the headers of a fresh account without copies only once', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedGmailAccount(engine);
+    deliverMail(server, 'INBOX', { ...kept(1), allMail: false });
+    const reads: string[] = [];
+    server.onThreadHeaders = (path) => {
+      reads.push(path);
+    };
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(await placementUids(engine, account.id, 'inbox')).toEqual([1]);
+    expect(reads.filter((path) => path === 'INBOX')).toHaveLength(1);
+  });
+
   it('revalidates the copies of one chunk with a single header fetch per mailbox', async () => {
     const engine = createTestEngine();
     const { account, server } = await seedGmailAccount(engine);

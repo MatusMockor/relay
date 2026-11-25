@@ -15,8 +15,11 @@ export const withoutOrphanReplies = (
   const held = new Set<string>();
   let anchored = false;
   return conversation.filter((entry) => {
-    const orphan = linkedTo(entry, held) || (subjectOnlyReply(entry) && !anchored);
-    if (!pending(entry) || !orphan) {
+    if (!pending(entry)) {
+      anchored = anchored || entry.wanted;
+      return true;
+    }
+    if (!linkedTo(entry, held) && !(subjectOnlyReply(entry) && !anchored)) {
       anchored = true;
       return true;
     }

@@ -71,6 +71,7 @@ export class InitialSync {
       progress,
       failed: new Set(),
       missedAncestors: new Map(),
+      settled: new Set(),
     };
     await steps.stage(context, 'headers', 0, headerCount);
     const inbox = await this.open(context, inboxPasses, progress, true);

@@ -6,17 +6,38 @@ import type { WindowEntry } from './initial-window';
 import type { SyncContext } from './sync-context';
 import { skipOnUidValidityChange } from './uid-validity-guard';
 
-const attachable = (entry: WindowEntry, failed: ReadonlySet<MailboxId>): boolean =>
-  !failed.has(entry.pass.mailbox.id) && (entry.meta?.emailId ?? null) !== null;
+export type CanAttachMeta = (entry: WindowEntry, meta: RemoteMessageMeta) => Promise<boolean>;
+
+const attachCandidates = async (
+  entries: readonly WindowEntry[],
+  failed: ReadonlySet<MailboxId>,
+  canAttach: CanAttachMeta,
+): Promise<WindowEntry[]> => {
+  const seen = new Set<string>();
+  const candidates: WindowEntry[] = [];
+  for (const entry of entries) {
+    const { meta } = entry;
+    const emailId = meta?.emailId ?? null;
+    if (meta === undefined || emailId === null || failed.has(entry.pass.mailbox.id)) {
+      continue;
+    }
+    if (seen.has(emailId) || (await canAttach(entry, meta))) {
+      candidates.push(entry);
+    }
+    seen.add(emailId);
+  }
+  return candidates;
+};
 
 export const freshMeta = async (
   context: SyncContext,
   logger: Logger,
   entries: readonly WindowEntry[],
   failed: Set<MailboxId>,
+  canAttach: CanAttachMeta,
 ): Promise<Map<string, RemoteMessageMeta>> => {
   const fresh = new Map<string, RemoteMessageMeta>();
-  const candidates = entries.filter((entry) => attachable(entry, failed));
+  const candidates = await attachCandidates(entries, failed, canAttach);
   for (const [mailboxId, group] of byMailbox(candidates)) {
     const first = group[0];
     if (first === undefined) {

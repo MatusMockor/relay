@@ -43,4 +43,20 @@ describe('initial sync progress with deferred mailboxes', () => {
     const stages = staged(engine).map(([stage]) => stage);
     expect(stages.lastIndexOf('backlog')).toBeLessThan(stages.indexOf('folders'));
   });
+
+  it('counts a held reply in the folders stage instead of leaving the backlog unfinished', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'INBOX', { id: 'n1', subject: 'Novinky', date: day(13) });
+    deliverMail(server, 'INBOX', { id: 'r1', subject: 'Re: Rozpočet', date: day(14) });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    const backlog = staged(engine).filter(([stage]) => stage === 'backlog');
+    expect(backlog.at(-1)?.[1]).toBe(backlog.at(-1)?.[2]);
+    expect(staged(engine).filter(([stage]) => stage === 'folders')).toEqual([
+      ['folders', 0, 1],
+      ['folders', 1, 1],
+    ]);
+  });
 });

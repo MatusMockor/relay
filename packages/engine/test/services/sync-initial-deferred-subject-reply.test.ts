@@ -56,6 +56,40 @@ describe('initial sync of replies without reply headers and deferred mailboxes',
     ]);
   });
 
+  it('does not let an original outside the window keep its reply in the primary phase', async () => {
+    const engine = createTestEngine({ sync: { initialWindowDays: 2 } });
+    const { account, server } = await seedAccount(engine);
+    server.addMailbox('Projekty', 'custom');
+    const original = { id: 'p1', subject: 'Rozpočet', from: ME, date: day(11) };
+    deliverMail(server, 'Sent', original);
+    deliverMail(server, 'Projekty', original);
+    deliverMail(server, 'INBOX', { id: 'r1', subject: 'Re: Rozpočet', date: day(14) });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(streamed(server)).toEqual(['Projekty:1', 'INBOX:1']);
+    expect(await inboxThreads(engine)).toEqual([['Rozpočet', 2]]);
+  });
+
+  it('downloads a held reply once when a trash relative lookup already ingested it', async () => {
+    const engine = createTestEngine({ sync: { batchSize: 1 } });
+    const { account, server } = await seedAccount(engine);
+    deliverMail(server, 'Trash', { id: 't1', subject: 'Plán', date: day(10) });
+    deliverMail(server, 'INBOX', { id: 'h1', subject: 'Re: Termín', date: day(12) });
+    deliverMail(server, 'INBOX', {
+      id: 'r1',
+      subject: 'Re: Termín',
+      date: day(13),
+      inReplyTo: 'h1',
+      references: ['h1', 't1'],
+    });
+
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    expect(streamed(server).filter((entry) => entry === 'INBOX:2')).toHaveLength(1);
+    expect(engine.db.tables.messages.size).toBe(3);
+  });
+
   it('keeps the order of the primary mailboxes when no mailbox is deferred', async () => {
     const engine = createTestEngine({ sync: { mailboxRoles: ['inbox', 'sent', 'archive'] } });
     const { account, server } = await seedAccount(engine);
