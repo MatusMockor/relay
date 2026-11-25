@@ -50,6 +50,24 @@ describe('body donors on Gmail', () => {
     });
   });
 
+  it('lends the body of an unmerged row with the same email id and no Message-ID', async () => {
+    const engine = createTestEngine();
+    const { server, pairs } = await seedLegacyDuplicates(engine, [
+      { ...ECHO, body: 'Spoločné telo' },
+    ]);
+    [...engine.db.tables.messages.values()].forEach((message) => {
+      engine.db.tables.messages.set(message.id, { ...message, messageIdHeader: null });
+    });
+    const keeper = present(engine.db.tables.messages.get(present(pairs[0]).keeperId));
+    makeRemote(engine, keeper);
+    server.failConnect = 'offline';
+
+    await expect(engine.services.bodies.get(USER_ID, keeper.id)).resolves.toMatchObject({
+      status: 'ok',
+      textBody: 'Spoločné telo',
+    });
+  });
+
   it('lends the body between unresolved rows without an email id', async () => {
     await expect(
       bodyOfLegacyKeeper({ ...ECHO, body: 'Spoločné telo', unresolved: true }),
