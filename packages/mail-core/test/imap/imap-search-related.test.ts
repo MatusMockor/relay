@@ -41,6 +41,27 @@ describe('ImapMailProvider related mail search against GreenMail', () => {
     expect(await harness.provider.searchRelated('INBOX', uidValidity, [])).toEqual([]);
   });
 
+  it('matches only Message-ID when match is message-id, including a single id and since date', async () => {
+    await appendMail('Plan', { messageId: '<plan@relay.test>' });
+    await appendMail('Re: Plan', {
+      messageId: '<plan-reply@relay.test>',
+      inReplyTo: '<plan@relay.test>',
+    });
+    const { uidValidity } = await harness.provider.status('INBOX');
+
+    const exact = await harness.provider.searchRelated(
+      'INBOX',
+      uidValidity,
+      ['<plan@relay.test>'],
+      {
+        match: 'message-id',
+        since: new Date(Date.now() - 86_400_000),
+      },
+    );
+
+    expect(exact).toEqual([1]);
+  });
+
   it('searches more ids than fit into one command', async () => {
     const ids = Array.from({ length: 45 }, (_, index) => `<bulk-${String(index)}@relay.test>`);
     await appendMail('Bulk', { messageId: ids[44] ?? '' });

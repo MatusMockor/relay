@@ -1,11 +1,13 @@
 import type { ParsedMessage } from '../../model/parsed-message';
-import type { RawMessage, RemoteMessageSummary } from '../../model/remote-mail';
+import type { PlacementIdentity, PlacementMatch } from '../../model/placement-ingest';
+import type { RawMessage, RemoteMessageMeta, RemoteMessageSummary } from '../../model/remote-mail';
 import { errorMessage } from '../shared/mail-provider-sessions';
 import { CreatedIngest } from './created-ingest';
 import { summaryMessage } from './history/summary-message';
 import type { FetchedMessage, IngestOutcome, IngestTarget } from './ingest-target';
 import type { MessageIngestorDeps } from './ingestor-deps';
 import { PlacedIngest } from './placed-ingest';
+import { needsParse } from './placement-effects';
 import { identityOf } from './placement-identity';
 
 export type { IngestOutcome, IngestTarget } from './ingest-target';
@@ -39,6 +41,48 @@ export class MessageIngestor {
         parse: () => summaryMessage(this.deps.parser, summary),
       },
     );
+  }
+
+  async canAttachMeta(target: IngestTarget, remote: RemoteMessageMeta): Promise<boolean> {
+    return (await this.metaMatch(target, remote)) !== null;
+  }
+
+  async tryAttachMeta(
+    target: IngestTarget,
+    remote: RemoteMessageMeta,
+  ): Promise<IngestOutcome | null> {
+    const found = await this.metaMatch(target, remote);
+    if (found === null) {
+      return null;
+    }
+    const { identity, match } = found;
+    return this.placed.apply(
+      target,
+      {
+        remote,
+        source: null,
+        bodyState: 'local',
+        parse: () => Promise.reject(new Error('Unexpected parse during metadata placement')),
+      },
+      identity,
+      match,
+      null,
+    );
+  }
+
+  private async metaMatch(
+    target: IngestTarget,
+    remote: RemoteMessageMeta,
+  ): Promise<{ identity: PlacementIdentity; match: PlacementMatch } | null> {
+    const identity = identityOf(target, remote, null);
+    if (!identity.labelBased || identity.emailId === null) {
+      return null;
+    }
+    const match = await this.deps.messages.matchPlacement(identity);
+    if (match === null || match.message.bodyState === 'remote' || needsParse(target, match)) {
+      return null;
+    }
+    return { identity, match };
   }
 
   private async ingestRemote(

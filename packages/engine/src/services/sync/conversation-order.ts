@@ -91,10 +91,13 @@ export const orderEntries = (
   leads: Lead = NO_LEAD,
 ): WindowEntry[] => orderConversations(groups, leads).flat();
 
-export const conversationGroups = (windows: readonly MailboxWindow[]): WindowEntry[][] =>
+export const conversationGroups = (
+  windows: readonly MailboxWindow[],
+  leads: Lead = NO_LEAD,
+): WindowEntry[][] =>
   orderConversations(
     windows.map((window) => window.entries),
-    NO_LEAD,
+    leads,
   );
 
 export const conversationOrder = (

@@ -7,6 +7,7 @@ import {
   type MailProvider,
   type MoveResult,
   type RawMessage,
+  type RelatedSearchOptions,
   type RemoteFlagChange,
   type RemoteMailbox,
   type RemoteEmailId,
@@ -135,8 +136,15 @@ export class FakeMailProvider implements MailProvider {
     return streamRecords(opened.server, path, recordsOf(opened.mailbox, uids));
   }
 
-  fetchThreadHeaders(path: string, uidValidity: number, uids: readonly number[]) {
-    return this.readRecords<RemoteThreadHeaders>(path, uidValidity, uids, threadHeadersOf);
+  async fetchThreadHeaders(path: string, uidValidity: number, uids: readonly number[]) {
+    const read = await this.readRecords<RemoteThreadHeaders>(
+      path,
+      uidValidity,
+      uids,
+      threadHeadersOf,
+    );
+    this.server?.onThreadHeaders?.(path);
+    return read;
   }
 
   fetchSummaries(path: string, uidValidity: number, uids: readonly number[]) {
@@ -156,8 +164,13 @@ export class FakeMailProvider implements MailProvider {
     return asyncItems(scanFlagChanges(opened, path, sinceModseq, uids));
   }
 
-  searchRelated(path: string, validity: number, ids: readonly string[]): Promise<number[]> {
-    return this.withMailbox(path, (box, s) => searchRelatedRecords(s, box, validity, ids));
+  searchRelated(
+    path: string,
+    validity: number,
+    ids: readonly string[],
+    options?: RelatedSearchOptions,
+  ): Promise<number[]> {
+    return this.withMailbox(path, (box, s) => searchRelatedRecords(s, box, validity, ids, options));
   }
 
   searchText(path: string, validity: number, query: RemoteTextSearch) {

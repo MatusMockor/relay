@@ -4,7 +4,7 @@ import { deliverMail, ME, present, seedAccount } from '../support/fixtures';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T12:00:00.000Z`;
 
 const streamedUids = (server: FakeMailServer): number[] =>
   server.streamedMessages.map((entry) => entry.uid);

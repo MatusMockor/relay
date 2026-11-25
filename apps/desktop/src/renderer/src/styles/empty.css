@@ -87,3 +87,64 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent-tint-40), transparent);
 }
+.sync-bar {
+  width: 200px;
+  height: 5px;
+  border-radius: 3px;
+  margin-top: 8px;
+  background: var(--line-soft);
+  overflow: hidden;
+  position: relative;
+}
+.sync-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.sync-bar.indeterminate i {
+  width: 40%;
+  animation: sync-slide 1.3s ease-in-out infinite;
+}
+.sync-spin svg {
+  animation: sync-rotate 1.6s linear infinite;
+}
+.sync-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 26px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.sync-strip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sync-strip .sync-bar {
+  flex: none;
+  width: 120px;
+  height: 4px;
+  margin-top: 0;
+}
+@keyframes sync-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+@keyframes sync-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

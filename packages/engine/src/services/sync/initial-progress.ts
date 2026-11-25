@@ -48,8 +48,11 @@ export class InitialProgress {
     return this.of(this.windows);
   }
 
-  totals(): ProgressTotals {
-    return this.all().reduce(
+  totals(mailboxes: ReadonlySet<MailboxId> | null = null): ProgressTotals {
+    const counted = this.all().filter(
+      ({ window }) => mailboxes === null || mailboxes.has(window.pass.mailbox.id),
+    );
+    return counted.reduce(
       (sum, { window, processed }) => ({
         processed: sum.processed + Math.min(processed, window.total),
         total: sum.total + window.total,

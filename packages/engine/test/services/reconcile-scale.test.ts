@@ -59,7 +59,7 @@ describe('mailbox reconciler at scale', () => {
     expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(0);
 
     const stored = storedUidsIn(engine, archive.id);
-    const gone = present(stored[3]);
+    const gone = present(stored[1]);
     seeded.server.expunge('Archive', gone);
     await engine.services.sync.syncAccount(USER_ID, seeded.account.id);
     expect(plainListings(seeded.server.uidListings, 'Archive')).toBe(1);

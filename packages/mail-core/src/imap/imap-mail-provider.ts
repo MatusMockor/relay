@@ -7,6 +7,7 @@ import type {
   MailProvider,
   MoveResult,
   RawMessage,
+  RelatedSearchOptions,
   RemoteEmailId,
   RemoteFlagChange,
   RemoteMailbox,
@@ -150,8 +151,9 @@ export class ImapMailProvider implements MailProvider {
     mailboxPath: string,
     uidValidity: number,
     messageIds: readonly string[],
+    options?: RelatedSearchOptions,
   ): Promise<number[]> {
-    return searchRelated(this.connection, mailboxPath, uidValidity, messageIds);
+    return searchRelated(this.connection, mailboxPath, uidValidity, messageIds, options);
   }
 
   searchText(

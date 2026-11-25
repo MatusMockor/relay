@@ -8,7 +8,7 @@ import { createTestEngine, type TestEngine } from '../support/test-engine';
 
 const LATER = '2026-11-30T09:00:00.000Z';
 const at = (hour: number): string => `2026-11-15T${String(hour).padStart(2, '0')}:00:00.000Z`;
-const day = (date: number): string => `2026-11-0${String(date)}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-0${String(date)}T12:00:00.000Z`;
 
 const masterRow = (engine: TestEngine) => rows(engine).find((row) => row.recurrenceId === null);
 

@@ -82,6 +82,7 @@ export interface RemoteThreadHeaders {
   readonly messageId: string | null;
   readonly inReplyTo: readonly string[];
   readonly references: readonly string[];
+  readonly meta?: RemoteMessageMeta;
 }
 
 export interface RemoteFlagChange {

@@ -4,7 +4,7 @@ import { seedGmailAccount } from '../support/gmail-move-setup';
 import type { FakeMailServer } from '../support/mail/fake-mail-server';
 import { createTestEngine, type TestEngine, USER_ID } from '../support/test-engine';
 
-const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T08:00:00.000Z`;
+const day = (date: number): string => `2026-11-${String(date).padStart(2, '0')}T12:00:00.000Z`;
 
 const streamed = (server: FakeMailServer): string[] =>
   server.streamedMessages.map(({ path, uid }) => `${path}:${String(uid)}`);
@@ -53,9 +53,11 @@ describe('initial Gmail sync inbox first', () => {
       'INBOX:1',
     ]);
     expect(order.indexOf('Sent:1')).toBeGreaterThan(order.indexOf('INBOX:1'));
-    expect(order.filter((entry) => entry.startsWith('Archive')).sort()).toEqual(
-      [1, 2, 3, 4, 5, 6, 7, 8, 9].map((uid) => `Archive:${String(uid)}`).sort(),
-    );
+    expect(order.filter((entry) => entry.startsWith('Archive')).sort()).toEqual([
+      'Archive:6',
+      'Archive:7',
+      'Archive:8',
+    ]);
     expect(report.newMessages).toBe(9);
     expect(engine.db.tables.messages.size).toBe(9);
     expect(engine.db.tables.threads.size).toBe(9);

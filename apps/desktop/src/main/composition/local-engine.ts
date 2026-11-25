@@ -2,7 +2,6 @@ import {
   type AiMailToolsEndpoint,
   type AiRunnerRegistry,
   createEngineServices,
-  DEFAULT_HISTORY_OPTIONS,
   type EngineServices,
   type GoogleCalendarAdapters,
   type HistoryOptions,
@@ -35,6 +34,7 @@ import { FileAttachmentBlobCatalog } from '../storage/file-attachment-blob-catal
 import { FileAttachmentStore } from '../storage/file-attachment-store';
 import { createCalendarAdapters } from './calendar-adapters';
 import { createMailAdapters, type MailAdapters } from './mail-adapters';
+import { localSyncOptions } from './local-sync-options';
 import type { MainInfrastructure } from './main-infrastructure';
 
 export interface LocalEngineInput {
@@ -105,9 +105,7 @@ export const createLocalEngine = (input: LocalEngineInput): LocalEngine => {
       aiRunnerLocation: 'local',
       settings: { pinnedAiLocation: 'local' },
       ai: { mailTools: input.mailTools },
-      ...(input.historyOptions === undefined
-        ? {}
-        : { sync: { history: { ...DEFAULT_HISTORY_OPTIONS, ...input.historyOptions } } }),
+      sync: localSyncOptions(input.historyOptions),
       ...(input.googleSyncSeconds === undefined
         ? {}
         : { calendar: { googleSyncSeconds: input.googleSyncSeconds } }),

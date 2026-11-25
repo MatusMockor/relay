@@ -1,13 +1,10 @@
-import { normalizeSubject } from '../../subjects/normalize-subject';
 import type { WindowEntry } from './initial-window';
+import { subjectOnlyReply } from './subject-replies';
 
 export interface FirstBatchLimits {
   readonly messages: number;
   readonly conversations: number;
 }
-
-const subjectOnlyReply = (entry: WindowEntry): boolean =>
-  entry.parentIds.length === 0 && normalizeSubject(entry.subject).hadReplyPrefix;
 
 export const firstBatch = (
   conversations: readonly (readonly WindowEntry[])[],

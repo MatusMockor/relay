@@ -1,11 +1,11 @@
 import type { SyncStage } from '@relay/shared/realtime';
-import type { RawMessage } from '../../model/remote-mail';
+import type { RawMessage, RemoteMessageMeta } from '../../model/remote-mail';
 import type { InitialSyncWindow } from '../../model/sync-state';
 import type { Clock } from '../../ports/clock';
 import type { Logger } from '../../ports/logger';
 import type { SyncStateRepository } from '../../ports/sync-state-repository';
 import type { ChangeFlusher } from './change-flusher';
-import type { MessageIngestor } from './message-ingestor';
+import type { IngestTarget, MessageIngestor } from './message-ingestor';
 import type { MailboxPass } from './mailbox-synchronizer';
 import type { SyncContext } from './sync-context';
 import type { SyncReporter } from './sync-reporter';
@@ -31,6 +31,17 @@ export interface SyncMark {
   readonly initialWindow: InitialSyncWindow | null;
 }
 
+const targetOf = (context: SyncContext, pass: MailboxPass, mode: IngestMode): IngestTarget => ({
+  userId: context.userId,
+  account: context.account,
+  mailbox: pass.mailbox,
+  splits: context.splits,
+  journal: context.journal,
+  publish: mode.publish,
+  live: mode.live,
+  holdCalendar: mode.holdCalendar,
+});
+
 export class MessageFetchSteps {
   constructor(private readonly deps: MessageFetchStepsDeps) {}
 
@@ -40,19 +51,7 @@ export class MessageFetchSteps {
     raw: RawMessage,
     mode: IngestMode,
   ): Promise<void> {
-    const outcome = await this.deps.ingestor.ingest(
-      {
-        userId: context.userId,
-        account: context.account,
-        mailbox: pass.mailbox,
-        splits: context.splits,
-        journal: context.journal,
-        publish: mode.publish,
-        live: mode.live,
-        holdCalendar: mode.holdCalendar,
-      },
-      raw,
-    );
+    const outcome = await this.deps.ingestor.ingest(targetOf(context, pass, mode), raw);
     if (outcome.kind === 'skipped') {
       this.deps.logger.warn('Skipping a message that could not be parsed', {
         accountId: context.account.id,
@@ -65,6 +64,25 @@ export class MessageFetchSteps {
     if (outcome.kind === 'created') {
       context.stats.newMessages += 1;
     }
+  }
+
+  canAttachMeta(
+    context: SyncContext,
+    pass: MailboxPass,
+    meta: RemoteMessageMeta,
+    mode: IngestMode,
+  ): Promise<boolean> {
+    return this.deps.ingestor.canAttachMeta(targetOf(context, pass, mode), meta);
+  }
+
+  async tryAttachMeta(
+    context: SyncContext,
+    pass: MailboxPass,
+    meta: RemoteMessageMeta,
+    mode: IngestMode,
+  ): Promise<boolean> {
+    const outcome = await this.deps.ingestor.tryAttachMeta(targetOf(context, pass, mode), meta);
+    return outcome !== null;
   }
 
   flush(context: SyncContext): Promise<void> {
