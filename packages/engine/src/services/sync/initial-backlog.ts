@@ -127,6 +127,32 @@ export class InitialBacklog {
     return this.deps.steps.stage(run.context, 'backlog', processed, total);
   }
 
+  private async attachHeld(
+    context: SyncContext,
+    entries: readonly WindowEntry[],
+    attached: Set<string>,
+    failed: Set<MailboxId>,
+  ): Promise<Map<string, RawMessage>> {
+    const { steps, logger } = this.deps;
+    const unattached: WindowEntry[] = [];
+    for (const entry of entries) {
+      if (failed.has(entry.pass.mailbox.id)) {
+        continue;
+      }
+      if (
+        entry.meta !== undefined &&
+        (await steps.tryAttachMeta(context, entry.pass, entry.meta, BACKLOG))
+      ) {
+        attached.add(keyOf(entry));
+        continue;
+      }
+      unattached.push(entry);
+    }
+    return unattached.length === 0
+      ? new Map<string, RawMessage>()
+      : fetchChunk(context, logger, unattached, failed);
+  }
+
   private async chunk(
     run: BacklogRun,
     chunk: readonly WindowEntry[],
@@ -140,6 +166,7 @@ export class InitialBacklog {
     const ordered = uncounted.size === 0 ? chunk : orderEntries([chunk, ancestors, found.entries]);
     const attached = new Set<string>();
     const pending: WindowEntry[] = [];
+    const heldPending: WindowEntry[] = [];
     const deferredAttach = new Set<string>();
     const pendingEmailIds = new Set<string>();
     const relativeKeys = new Set(found.entries.map(keyOf));
@@ -147,7 +174,9 @@ export class InitialBacklog {
     for (const entry of ordered) {
       const mailboxId = entry.pass.mailbox.id;
       const key = keyOf(entry);
+      const held = isHeldRole(entry.pass.role);
       if (
+        !held &&
         !failed.has(mailboxId) &&
         entry.meta !== undefined &&
         (await steps.tryAttachMeta(context, entry.pass, entry.meta, BACKLOG))
@@ -169,7 +198,7 @@ export class InitialBacklog {
       if (labelBased && emailId !== null) {
         pendingEmailIds.add(emailId);
       }
-      pending.push(entry);
+      (held ? heldPending : pending).push(entry);
     }
     const fetched =
       pending.length === 0
@@ -178,6 +207,8 @@ export class InitialBacklog {
     if (!found.complete || !allResolved(found.entries, fetched, attached)) {
       deferHeld(base, failed);
     }
+    const heldFetched = await this.attachHeld(context, heldPending, attached, failed);
+    heldFetched.forEach((raw, key) => fetched.set(key, raw));
     const fallback: WindowEntry[] = [];
     for (const entry of ordered) {
       const mailboxId = entry.pass.mailbox.id;
