@@ -1,5 +1,6 @@
 import { Global, Module, type Provider } from '@nestjs/common';
 import {
+  AccountOrderService,
   AccountService,
   AiService,
   AttachmentContentService,
@@ -63,6 +64,7 @@ const SERVICE_PROVIDERS: Provider[] = [
   service(AttachmentContentService, 'attachments'),
   service(AttachmentSweeper, 'attachmentSweeper'),
   service(AccountService, 'accounts'),
+  service(AccountOrderService, 'accountOrder'),
   service(SettingsService, 'settings'),
   service(CalendarService, 'calendar'),
   service(FailedInvitationService, 'failedInvitations'),
@@ -95,6 +97,7 @@ const SERVICE_PROVIDERS: Provider[] = [
     AttachmentContentService,
     AttachmentSweeper,
     AccountService,
+    AccountOrderService,
     SettingsService,
     CalendarService,
     FailedInvitationService,

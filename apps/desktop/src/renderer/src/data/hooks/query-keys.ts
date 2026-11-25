@@ -8,6 +8,8 @@ import type {
 } from '@relay/shared';
 import type { TaskListParams, ThreadListParams } from '../MailClient';
 
+export const accountReorderMutationKey = ['accounts', 'reorder'] as const;
+
 export const queryKeys = {
   all: ['mail'] as const,
   threadLists: () => ['mail', 'threads', 'list'] as const,

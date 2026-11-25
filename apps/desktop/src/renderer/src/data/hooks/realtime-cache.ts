@@ -4,6 +4,7 @@ import { applyAiJobUpdate } from './ai-job-cache';
 import { calendarKeys } from './calendar-keys';
 import { invalidateBatched } from './invalidation-batch';
 import { throttleByKey } from './keyed-throttle';
+import { refreshAccounts } from './account-list-refresh';
 import { queryKeys } from './query-keys';
 import { taskSystemKeys } from './task-system-keys';
 import { removeThreadFromLists, writeThreadToLists } from './thread-cache';
@@ -110,12 +111,16 @@ export const applyRealtimeEvent = (client: QueryClient, event: RealtimeEvent): v
     invalidate(client, queryKeys.scheduled());
     return;
   }
+  if (event.type === 'accounts.reordered') {
+    refreshAccounts(client);
+    return;
+  }
   if (
     event.type === 'account.upserted' ||
     event.type === 'account.removed' ||
     event.type === 'account.status'
   ) {
-    invalidate(client, queryKeys.accounts());
+    refreshAccounts(client);
     if (event.type === 'account.status') {
       settleSyncStatus(client, event.data);
       return;

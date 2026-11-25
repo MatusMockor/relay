@@ -123,6 +123,7 @@ export interface AccountManager {
   createAccount(body: CreateAccountBody): Promise<MailAccount>;
   updateAccount(accountId: AccountId, patch: UpdateAccountBody): Promise<MailAccount>;
   removeAccount(accountId: AccountId): Promise<void>;
+  reorderAccounts(accountIds: readonly AccountId[]): Promise<MailAccount[]>;
   testConnection(body: TestConnectionBody): Promise<TestConnectionResponse>;
   listMailboxes(accountId: AccountId): Promise<Mailbox[]>;
   syncNow(accountId?: AccountId): Promise<void>;

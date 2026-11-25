@@ -1,0 +1,35 @@
+.ao-note {
+  margin: 0;
+}
+.ao-list {
+  margin-top: 12px;
+}
+.ao-row {
+  padding: 10px 14px 10px 8px;
+}
+.ao-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.ao-main b,
+.ao-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ao-main b {
+  color: var(--fg);
+  font-size: var(--fs-base);
+  font-weight: var(--w-semibold);
+}
+.ao-main span {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.ao-keys {
+  flex: none;
+  display: inline-flex;
+  gap: 4px;
+}

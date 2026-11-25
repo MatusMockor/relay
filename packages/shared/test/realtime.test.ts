@@ -7,6 +7,7 @@ describe('realtime protocol', () => {
       'account.removed',
       'account.status',
       'account.upserted',
+      'accounts.reordered',
       'ai.job.updated',
       'automation.notified',
       'automations.updated',

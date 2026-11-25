@@ -1,13 +1,9 @@
 import type { HistoryCursor } from '@relay/engine';
 import type { Mailbox } from '@relay/shared/domain';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  createSqliteHistoryBackfills,
-  createSqliteRepositories,
-  migrate,
-  openDatabase,
-} from '../src';
+import { createSqliteHistoryBackfills, migrate, openDatabase } from '../src';
 import { writeMigrationsBefore } from './support/partial-migrations';
+import { seedLegacyAccount } from './support/legacy-account';
 import { seedAccount } from './support/seed';
 import { createTempDirectory, createTestStore, type TempDirectory } from './support/test-database';
 
@@ -55,7 +51,7 @@ describe('history flag scan offset storage', () => {
     migrate(database, {
       migrationsFolder: writeMigrationsBefore('0030_history_flag_scan_offset', directory.path),
     });
-    const { inbox } = await seedAccount(createSqliteRepositories(database));
+    const { inbox } = await seedLegacyAccount(database);
     database.sqlite
       .prepare(
         'insert into history_backfill (mailbox_id, account_id, uid_validity, below_uid, done_at, updated_at) values (?, ?, 7, 1, null, ?)',

@@ -7,6 +7,11 @@ import type { SqliteExecutor } from '../executor/sqlite-executor';
 import { toAccountRow, toMailAccount } from '../mappers/account-mapper';
 import { accounts } from '../schema';
 
+const IN_ACCOUNT_ORDER = [asc(accounts.sortOrder), asc(accounts.createdAt), asc(accounts.id)];
+
+const nextPosition = (userId: UserId) =>
+  sql<number>`(select coalesce(max(${accounts.sortOrder}), -1) + 1 from ${accounts} where ${accounts.userId} = ${userId})`;
+
 const ownedBy = (userId: UserId, accountId: AccountId) =>
   and(eq(accounts.userId, userId), eq(accounts.id, accountId));
 
@@ -19,10 +24,14 @@ export class SqliteAccountRepository implements AccountRepository {
         .select()
         .from(accounts)
         .where(eq(accounts.userId, userId))
-        .orderBy(asc(accounts.createdAt), asc(accounts.id))
+        .orderBy(...IN_ACCOUNT_ORDER)
         .all()
         .map(toMailAccount),
     );
+  }
+
+  listByUserForUpdate(userId: UserId): Promise<MailAccount[]> {
+    return this.listByUser(userId);
   }
 
   findById(userId: UserId, accountId: AccountId): Promise<MailAccount | null> {
@@ -46,7 +55,7 @@ export class SqliteAccountRepository implements AccountRepository {
         .select()
         .from(accounts)
         .where(ne(accounts.status, 'disconnected'))
-        .orderBy(asc(accounts.createdAt), asc(accounts.id))
+        .orderBy(...IN_ACCOUNT_ORDER)
         .all()
         .map(toMailAccount),
     );
@@ -54,7 +63,9 @@ export class SqliteAccountRepository implements AccountRepository {
 
   create(account: MailAccount): Promise<MailAccount> {
     return this.executor.execute((db) => {
-      db.insert(accounts).values(toAccountRow(account)).run();
+      db.insert(accounts)
+        .values({ ...toAccountRow(account), sortOrder: nextPosition(account.userId) })
+        .run();
       if (account.isPrimary) {
         this.makePrimary(db, account.userId, account.id);
       }
@@ -89,6 +100,18 @@ export class SqliteAccountRepository implements AccountRepository {
       }
       this.makePrimary(db, userId, accountId);
     });
+  }
+
+  reorder(userId: UserId, orderedIds: readonly AccountId[]): Promise<number> {
+    return this.executor.execute((db) =>
+      orderedIds.reduce(
+        (written, accountId, position) =>
+          written +
+          db.update(accounts).set({ sortOrder: position }).where(ownedBy(userId, accountId)).run()
+            .changes,
+        0,
+      ),
+    );
   }
 
   updateStatus(accountId: AccountId, change: AccountStatusChange): Promise<void> {

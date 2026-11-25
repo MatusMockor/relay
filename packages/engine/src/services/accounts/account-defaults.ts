@@ -1,4 +1,4 @@
-import type { HexColor, MailAccount } from '@relay/shared/domain';
+import { type HexColor, type MailAccount, oldestAccount } from '@relay/shared/domain';
 
 export const DEFAULT_SYNC_INTERVAL_SECONDS = 300;
 
@@ -16,6 +16,6 @@ export const accountColor = (index: number): HexColor =>
 
 export const defaultSenderName = (existing: readonly MailAccount[]): string | null => {
   const named = existing.filter((account) => account.senderName !== null);
-  const source = named.find((account) => account.isPrimary) ?? named[0];
+  const source = named.find((account) => account.isPrimary) ?? oldestAccount(named);
   return source?.senderName ?? null;
 };

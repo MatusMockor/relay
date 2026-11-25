@@ -1,4 +1,5 @@
 export * from './account';
+export * from './oldest-account';
 export * from './address';
 export * from './ai';
 export * from './ai-model-catalog';

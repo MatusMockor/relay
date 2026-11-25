@@ -3,6 +3,7 @@ import { AccountSquare, Button, ConfirmDialog, Segmented, Switch } from '@relay/
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { describeError } from '../../../data/errors';
+import { refreshAccountsNow } from '../../../data/hooks/account-list-refresh';
 import { queryKeys } from '../../../data/hooks/query-keys';
 import { useClient } from '../../../data/hooks/services-context';
 import { useAccounts } from '../../../data/hooks/use-mail-queries';
@@ -11,7 +12,9 @@ import { setUi } from '../../../state/ui-store';
 import { AddAccountForm } from '../../accounts/AddAccountForm';
 import { accountLike } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
+import { SettingsGroup } from '../SettingsGroup';
 import { AccountNameRows } from './AccountNameRows';
+import { AccountOrderList } from './AccountOrderList';
 import { AccountSyncRow } from './AccountSyncRow';
 import { SectionHeader } from '../SectionHeader';
 
@@ -36,7 +39,9 @@ function AccountCard({
   const patch = (body: UpdateAccountBody) => {
     client
       .updateAccount(account.id, body)
-      .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.accounts() }))
+      .then(() => {
+        refreshAccountsNow(queryClient);
+      })
       .catch((error: unknown) => {
         showToast(describeError(error));
       });
@@ -117,6 +122,7 @@ function AccountCard({
 
 export function AccountsSection({ adding }: { readonly adding: boolean }) {
   const accounts = useAccounts();
+  const list = accounts.data ?? [];
   const client = useClient();
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<MailAccount | null>(null);
@@ -154,7 +160,9 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
         Každý účet sa synchronizuje samostatne. Heslá a tokeny ostávajú na serveri alebo v
         zabezpečenom úložisku zariadenia.
       </SectionHeader>
-      {(accounts.data ?? []).map((account) => (
+      <AccountOrderList accounts={list} />
+      {list.length > 1 ? <SettingsGroup title="Nastavenia účtov" /> : null}
+      {list.map((account) => (
         <AccountCard
           key={account.id}
           account={account}

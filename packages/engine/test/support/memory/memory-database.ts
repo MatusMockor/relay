@@ -57,6 +57,7 @@ export interface StoredEffectGates {
 
 export class MemoryTables {
   readonly accounts = new Map<AccountId, MailAccount>();
+  readonly accountPositions = new Map<AccountId, number>();
   readonly mailboxes = new Map<MailboxId, Mailbox>();
   readonly messages = new Map<MessageId, Message>();
   readonly messageHeaders = new Map<MessageId, MessageHeaders>();

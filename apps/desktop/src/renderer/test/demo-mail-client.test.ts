@@ -44,6 +44,32 @@ describe('demo mail client', () => {
     expect(emails).not.toContain('prvy@firma.sk');
   });
 
+  it('keeps the account order chosen by the user and rejects an incomplete one', async () => {
+    const client = demoClient();
+    const events: RealtimeEvent[] = [];
+    client.subscribe((event) => events.push(event));
+    const ids = (await client.listAccounts()).map((account) => account.id);
+    const order = [...ids.slice(1), ...ids.slice(0, 1)];
+
+    const reordered = await client.reorderAccounts(order);
+    await pause(0);
+
+    expect(reordered.map((account) => account.id)).toEqual(order);
+    expect((await client.listAccounts()).map((account) => account.id)).toEqual(order);
+    expect(
+      events.flatMap((event) =>
+        event.type === 'accounts.reordered' ? [event.data.accountIds] : [],
+      ),
+    ).toEqual([order]);
+    await expect(client.reorderAccounts(order.slice(1))).rejects.toMatchObject({
+      code: 'validation_failed',
+    });
+    await expect(client.reorderAccounts([...order, ...order.slice(0, 1)])).rejects.toMatchObject({
+      code: 'validation_failed',
+    });
+    expect((await client.listAccounts()).map((account) => account.id)).toEqual(order);
+  });
+
   it('removes the drafts and scheduled sends of a removed account', async () => {
     const client = demoClient();
     expect((await client.listDrafts()).some((draft) => draft.accountId === EFA)).toBe(true);

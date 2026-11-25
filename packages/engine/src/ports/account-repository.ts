@@ -23,6 +23,7 @@ export interface AccountStatusChange {
 
 export interface AccountRepository {
   listByUser(userId: UserId): Promise<MailAccount[]>;
+  listByUserForUpdate(userId: UserId): Promise<MailAccount[]>;
   findById(userId: UserId, accountId: AccountId): Promise<MailAccount | null>;
   findByEmail(userId: UserId, email: string): Promise<MailAccount | null>;
   listSyncable(): Promise<MailAccount[]>;
@@ -33,6 +34,7 @@ export interface AccountRepository {
     changes: AccountChanges,
   ): Promise<MailAccount | null>;
   setPrimary(userId: UserId, accountId: AccountId): Promise<void>;
+  reorder(userId: UserId, orderedIds: readonly AccountId[]): Promise<number>;
   updateStatus(accountId: AccountId, change: AccountStatusChange): Promise<void>;
   delete(userId: UserId, accountId: AccountId): Promise<boolean>;
 }

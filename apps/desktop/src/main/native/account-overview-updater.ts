@@ -19,6 +19,7 @@ const RELEVANT = new Set<RealtimeEvent['type']>([
   'account.removed',
   'account.upserted',
   'account.status',
+  'accounts.reordered',
 ]);
 
 export interface AccountOverviewUpdaterDeps {

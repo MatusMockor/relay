@@ -1,6 +1,7 @@
 import type { AccountId, MailAccount, UserId } from '@relay/shared/domain';
 import type { AccountChanges, AccountRepository, AccountStatusChange } from '../../../src';
 import type { MemoryDatabase } from './memory-database';
+import { inAccountOrder, nextAccountPosition } from './memory-account-order';
 
 export class MemoryAccountRepository implements AccountRepository {
   beforeUpdate: (() => Promise<void>) | null = null;
@@ -10,8 +11,15 @@ export class MemoryAccountRepository implements AccountRepository {
 
   listByUser(userId: UserId): Promise<MailAccount[]> {
     return Promise.resolve(
-      [...this.db.tables.accounts.values()].filter((account) => account.userId === userId),
+      inAccountOrder(
+        this.db.tables,
+        [...this.db.tables.accounts.values()].filter((account) => account.userId === userId),
+      ),
     );
+  }
+
+  listByUserForUpdate(userId: UserId): Promise<MailAccount[]> {
+    return this.listByUser(userId);
   }
 
   findById(userId: UserId, accountId: AccountId): Promise<MailAccount | null> {
@@ -27,10 +35,14 @@ export class MemoryAccountRepository implements AccountRepository {
   }
 
   listSyncable(): Promise<MailAccount[]> {
-    return Promise.resolve([...this.db.tables.accounts.values()]);
+    return Promise.resolve(inAccountOrder(this.db.tables, [...this.db.tables.accounts.values()]));
   }
 
   async create(account: MailAccount): Promise<MailAccount> {
+    this.db.tables.accountPositions.set(
+      account.id,
+      nextAccountPosition(this.db.tables, account.userId),
+    );
     this.db.tables.accounts.set(account.id, account);
     if (account.isPrimary) {
       await this.setPrimary(account.userId, account.id);
@@ -66,6 +78,18 @@ export class MemoryAccountRepository implements AccountRepository {
     return Promise.resolve();
   }
 
+  reorder(userId: UserId, orderedIds: readonly AccountId[]): Promise<number> {
+    const owned = orderedIds.filter(
+      (accountId) => this.db.tables.accounts.get(accountId)?.userId === userId,
+    );
+    orderedIds.forEach((accountId, position) => {
+      if (owned.includes(accountId)) {
+        this.db.tables.accountPositions.set(accountId, position);
+      }
+    });
+    return Promise.resolve(owned.length);
+  }
+
   updateStatus(accountId: AccountId, change: AccountStatusChange): Promise<void> {
     const account = this.db.tables.accounts.get(accountId);
     if (account === undefined) {
@@ -86,6 +110,7 @@ export class MemoryAccountRepository implements AccountRepository {
       return Promise.resolve(false);
     }
     tables.accounts.delete(accountId);
+    tables.accountPositions.delete(accountId);
     removeWhere(tables.mailboxes, (mailbox) => mailbox.accountId === accountId);
     removeWhere(tables.messages, (message) => message.accountId === accountId);
     removeWhere(tables.threads, (thread) => thread.accountId === accountId);

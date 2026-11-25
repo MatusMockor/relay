@@ -95,6 +95,11 @@ export const AccountRemovedEventSchema = event(
   z.object({ accountId: AccountIdSchema }),
 );
 
+export const AccountsReorderedEventSchema = event(
+  'accounts.reordered',
+  z.object({ accountIds: z.array(AccountIdSchema) }),
+);
+
 export const DraftUpsertedEventSchema = event('draft.upserted', z.object({ draft: DraftSchema }));
 
 export const DraftRemovedEventSchema = event('draft.removed', z.object({ draftId: DraftIdSchema }));
@@ -158,6 +163,7 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   SyncHistoryEventSchema,
   AccountUpsertedEventSchema,
   AccountRemovedEventSchema,
+  AccountsReorderedEventSchema,
   DraftUpsertedEventSchema,
   DraftRemovedEventSchema,
   ScheduledSendUpsertedEventSchema,
