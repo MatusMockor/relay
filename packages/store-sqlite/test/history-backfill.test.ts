@@ -1,6 +1,6 @@
 import type { HistoryCursor } from '@relay/engine';
-import type { Mailbox, Message } from '@relay/shared/domain';
-import { afterEach, describe, expect, it } from 'vitest';
+import type { Mailbox } from '@relay/shared/domain';
+import { afterEach, assert, describe, expect, it } from 'vitest';
 import {
   createSqliteHistoryBackfills,
   createSqliteRepositories,
@@ -10,18 +10,20 @@ import {
 } from '../src';
 import { buildMessage, messageId, NO_HEADERS, threadId } from './support/fixtures';
 import { insertLegacyMessage } from './support/legacy-message';
+import {
+  at,
+  gmailIdentity,
+  newMessage,
+  placeRequest,
+  seedPlacementMailboxes,
+} from './support/place-fixtures';
 import { writeMigrationsBefore } from './support/partial-migrations';
 import { seedAccount } from './support/seed';
 import { createTempDirectory, createTestStore, type TempDirectory } from './support/test-database';
 
 type Repositories = ReturnType<typeof createSqliteRepositories>;
 
-const storeUids = async (
-  repositories: Repositories,
-  mailbox: Mailbox,
-  uids: readonly number[],
-  identityOf: (uid: number) => Partial<Pick<Message, 'messageIdHeader' | 'emailId'>> = () => ({}),
-) => {
+const storeUids = async (repositories: Repositories, mailbox: Mailbox, uids: readonly number[]) => {
   for (const uid of uids) {
     await repositories.messages.upsert(
       buildMessage({
@@ -31,7 +33,6 @@ const storeUids = async (
         accountId: mailbox.accountId,
         uid,
         messageIdHeader: `<${mailbox.id}-${String(uid)}@klient.sk>`,
-        ...identityOf(uid),
       }),
       NO_HEADERS,
     );
@@ -145,25 +146,56 @@ describe('history backfill storage', () => {
     store.database.close();
   });
 
-  it('counts copies of one message once across mailboxes, legacy rows included', async () => {
+  it('counts the messages with a placement in the counted mailboxes', async () => {
     const store = createTestStore();
-    const { account, inbox, sent } = await seedAccount(store.repositories);
+    const seeded = await seedAccount(store.repositories);
+    const { account, inbox, sent } = seeded;
+    const { allMail } = await seedPlacementMailboxes(store, seeded);
     const backfills = createSqliteHistoryBackfills(store.database);
-    const identities: Readonly<Record<number, Partial<Message>>> = {
-      1: { messageIdHeader: '<a@klient.sk>', emailId: 'gm-a' },
-      2: { messageIdHeader: '<b@klient.sk>', emailId: null },
-      3: { messageIdHeader: null, emailId: null },
-      7: { messageIdHeader: '<a@klient.sk>', emailId: 'gm-a' },
-      8: { messageIdHeader: '<b@klient.sk>', emailId: 'gm-b' },
-      9: { messageIdHeader: null, emailId: 'gm-c' },
+    const place = async (id: string, mailbox: Mailbox, uid: number, emailId: string) => {
+      const location = at(mailbox, uid);
+      const outcome = await store.repositories.messages.place(
+        placeRequest(
+          gmailIdentity(seeded, mailbox, uid, { emailId }),
+          newMessage(seeded, id, location, { emailId, messageIdHeader: '<echo@klient.sk>' }),
+        ),
+      );
+      assert(outcome.kind !== 'unmatched', `${id} was not placed`);
+      return outcome.message.id;
     };
-    const identityOf = (uid: number) => identities[uid] ?? {};
-    await storeUids(store.repositories, inbox, [1, 2, 3], identityOf);
-    await storeUids(store.repositories, sent, [7, 8, 9], identityOf);
+    const joined = await place('joined', inbox, 1, 'gm-a');
+    expect(await place('joined-sent', sent, 7, 'gm-a')).toBe(joined);
+    await place('echo', sent, 8, 'gm-b');
+    await place('archived', allMail, 30, 'gm-c');
 
-    expect(await backfills.countDistinct(account.id, [inbox.id, sent.id])).toBe(4);
-    expect(await backfills.countDistinct(account.id, [sent.id])).toBe(3);
+    expect(await backfills.countDistinct(account.id, [inbox.id, sent.id])).toBe(2);
+    expect(await backfills.countDistinct(account.id, [inbox.id])).toBe(1);
+    expect(await backfills.countDistinct(account.id, [sent.id])).toBe(2);
+    expect(await backfills.countDistinct(account.id, [inbox.id, sent.id, allMail.id])).toBe(3);
     expect(await backfills.countDistinct(account.id, [])).toBe(0);
+    store.database.close();
+  });
+
+  it('counts unmerged rows of one Gmail message once and rows without an email id apart', async () => {
+    const store = createTestStore();
+    const seeded = await seedAccount(store.repositories);
+    const { account, inbox } = seeded;
+    const { allMail } = await seedPlacementMailboxes(store, seeded);
+    const backfills = createSqliteHistoryBackfills(store.database);
+    const legacyRow = (id: string, mailbox: Mailbox, uid: number, emailId: string | null) =>
+      store.repositories.messages.upsert(
+        newMessage(seeded, id, at(mailbox, uid), {
+          emailId,
+          messageIdHeader: '<legacy@klient.sk>',
+        }),
+        NO_HEADERS,
+      );
+    await legacyRow('legacy-inbox', inbox, 1, 'gm-a');
+    await legacyRow('legacy-all-mail', allMail, 30, 'gm-a');
+    await legacyRow('unresolved-inbox', inbox, 2, null);
+    await legacyRow('unresolved-all-mail', allMail, 31, null);
+
+    expect(await backfills.countDistinct(account.id, [inbox.id, allMail.id])).toBe(3);
     store.database.close();
   });
 });

@@ -1,7 +1,7 @@
 import type { LabelId, MailboxRole, ThreadState } from '@relay/shared/domain';
 import type { MailCopies } from '../../shared/mail-copies';
 import type { MoveOrigin } from '../../shared/move-origins';
-import { isAt, physicalKeyOf } from './folder-move-plans';
+import { isAt } from './folder-move-plans';
 import { labelChange } from './gmail-move-plans';
 import { firstPerMessage, uniqueMessageIds } from './located-ids';
 import { rolesAfter } from './physical-messages';
@@ -94,12 +94,7 @@ export const undoMove: StateMovePlanner = (messages, thread, copies) => {
   }
   const moves = returnMoves(recorded);
   return {
-    ...plan(
-      returnedState(
-        rolesAfter(copies, messages, moves, (message) => physicalKeyOf(copies, message)),
-      ),
-      moves,
-    ),
+    ...plan(returnedState(rolesAfter(copies, messages, moves)), moves),
     markedDone: recorded.some(({ moveOrigin }) => moveOrigin?.markedDone === true) || undefined,
     origins: [
       {

@@ -75,20 +75,15 @@ export class SqliteHistoryBackfillRepository implements HistoryBackfillRepositor
         db
           .select({
             stored: countDistinct(
-              sql`coalesce(${messages.messageIdHeader}, ${messages.emailId}, ${messages.id})`,
+              sql`coalesce(${messages.emailId}, ${messagePlacements.messageId})`,
             ),
           })
-          .from(messages)
+          .from(messagePlacements)
+          .innerJoin(messages, eq(messages.id, messagePlacements.messageId))
           .where(
             and(
               eq(messages.accountId, accountId),
-              inArray(
-                messages.id,
-                db
-                  .select({ id: messagePlacements.messageId })
-                  .from(messagePlacements)
-                  .where(inArray(messagePlacements.mailboxId, [...mailboxIds])),
-              ),
+              inArray(messagePlacements.mailboxId, [...mailboxIds]),
             ),
           )
           .get()?.stored ?? 0,

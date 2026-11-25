@@ -51,14 +51,14 @@ export class MessageBodyService {
   }
 
   private async load(userId: UserId, message: Message): Promise<MessageBodyResult> {
-    const copies = await this.deps.copies.otherCopies(message);
-    const stored = copies.find(isBodyLocal);
-    if (stored !== undefined) {
-      return fetched(stored);
-    }
     const account = await this.deps.accounts.findById(userId, message.accountId);
     if (account === null) {
       return GONE;
+    }
+    const copies = await this.deps.copies.otherCopies(account, message);
+    const stored = copies.find(isBodyLocal);
+    if (stored !== undefined) {
+      return fetched(stored);
     }
     for (const candidate of [message, ...copies.slice(0, MAX_BODY_COPIES)]) {
       const outcome = await this.deps.fetcher.fetch(account, candidate);

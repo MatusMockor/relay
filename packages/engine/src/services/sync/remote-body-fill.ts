@@ -12,15 +12,7 @@ export class RemoteBodyFill {
     if (source === null || message.bodyState !== 'remote') {
       return false;
     }
-    const body = await this.parse.parse(source, {
-      messageId: message.id,
-      threadId: message.threadId,
-      mailboxId: message.mailboxId,
-      uid: message.uid,
-      messageIdHeader: message.messageIdHeader,
-      snippet: message.snippet,
-      attachments: message.attachments,
-    });
+    const body = await this.parse.parse(source, message);
     if (body === null) {
       return false;
     }

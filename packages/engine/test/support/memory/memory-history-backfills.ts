@@ -42,7 +42,7 @@ export class MemoryHistoryBackfills implements HistoryBackfillRepository {
     const wanted = new Set(mailboxIds);
     const keys = [...this.db.tables.messages.values()]
       .filter((message) => message.accountId === accountId && isPlacedInAny(message, wanted))
-      .map((message) => message.messageIdHeader ?? message.emailId ?? message.id);
+      .map((message) => message.emailId ?? message.id);
     return Promise.resolve(new Set(keys).size);
   }
 

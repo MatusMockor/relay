@@ -40,7 +40,7 @@ export const onePerMessage = (
 ): LocatedMessage[] => {
   const chosen = new Map<string, LocatedMessage>();
   for (const located of messages) {
-    const key = copies.identityOf(located.message);
+    const key = copies.logicalKeyOf(located.message);
     const current = chosen.get(key);
     chosen.set(key, current === undefined ? located : merged(current, located));
   }
@@ -99,7 +99,6 @@ export const rolesAfter = (
   copies: MailCopies,
   messages: readonly LocatedMessage[],
   moves: readonly PlannedMove[],
-  keyOf: (message: Message) => string = (message) => copies.identityOf(message),
 ): Role[] => {
   const targets = new Map(
     moves.map((move) => [placementKey(move.messageId, move.source.mailboxId), move.role]),
@@ -110,7 +109,7 @@ export const rolesAfter = (
   });
   const byKey = new Map<string, PlacedRow>();
   for (const row of rowsOf(placed, copies.filedRoles(placed))) {
-    const key = keyOf(row.message);
+    const key = copies.logicalKeyOf(row.message);
     const current = byKey.get(key);
     if (current === undefined || better(row, current)) {
       byKey.set(key, row);

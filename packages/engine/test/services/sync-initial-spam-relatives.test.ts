@@ -105,7 +105,7 @@ describe('SyncService initial sync of spam replies to older mail', () => {
     server.failSearchIn = null;
     await engine.services.sync.syncAccount(USER_ID, account.id);
 
-    expect(states(engine)).toEqual([['inbox', 2]]);
+    expect(states(engine)).toEqual([['inbox', 3]]);
     expect(await spamWindow(engine, account.id)).toBeNull();
   });
 });

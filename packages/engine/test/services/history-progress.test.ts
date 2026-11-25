@@ -2,6 +2,7 @@ import type { HistoryProgress } from '@relay/shared/domain';
 import { describe, expect, it } from 'vitest';
 import { deliverMail, ME, seedAccount } from '../support/fixtures';
 import { backfillUntilDone, historyDate, seedHistory } from '../support/history';
+import { seedLegacyDuplicates } from '../support/legacy-duplicates';
 import { createTestEngine, USER_ID } from '../support/test-engine';
 
 const TIGHT = { sliceMessages: 10, sliceMs: 15_000, batch: 5, sliceSearches: 64 };
@@ -82,6 +83,44 @@ describe('history progress', () => {
     expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([
       { accountId: account.id, stored: 11, total: 11, state: 'done' },
     ]);
+  });
+
+  it('counts Gmail messages that share a Message-ID as separate messages', async () => {
+    const engine = createTestEngine();
+    const { account, server } = await seedAccount(
+      engine,
+      { settings: GMAIL_SETTINGS },
+      { gmail: true },
+    );
+    ['gm-a', 'gm-b'].forEach((emailId) => {
+      deliverMail(server, 'INBOX', {
+        id: 'echo',
+        emailId,
+        labels: ['\\Inbox'],
+        date: historyDate(1, 2),
+      });
+    });
+    await engine.services.sync.syncAccount(USER_ID, account.id);
+
+    await backfillUntilDone(engine, account.id);
+
+    expect(engine.db.tables.messages.size).toBe(2);
+    expect(await engine.services.sync.historyProgress(USER_ID)).toEqual([
+      { accountId: account.id, stored: 2, total: 2, state: 'done' },
+    ]);
+  });
+
+  it('counts the unmerged rows of one Gmail message once', async () => {
+    const engine = createTestEngine();
+    const { account, allMail } = await seedLegacyDuplicates(engine, [
+      { id: 'legacy', labels: ['\\Inbox'], date: '2026-11-14T08:00:00.000Z' },
+    ]);
+    expect(engine.db.tables.messages.size).toBe(2);
+    engine.db.tables.mailboxes.set(allMail.id, { ...allMail, totalCount: 10 });
+
+    const [progress] = await engine.services.sync.historyProgress(USER_ID);
+
+    expect(progress).toMatchObject({ accountId: account.id, stored: 1, total: 10 });
   });
 
   it('counts Gmail inbox history at once instead of waiting for its All Mail copies', async () => {

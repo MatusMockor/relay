@@ -1,4 +1,5 @@
 import type { MailAccount, MailboxRole, Message, MessagePlacement } from '@relay/shared/domain';
+import { sameGmailBody, sameGmailMail } from './copy-matching';
 import { mailboxAddress } from './mailbox-address';
 import { placementKey } from './placement-key';
 
@@ -26,32 +27,38 @@ export class MailCopies {
     return new MailCopies(labelsMessages(account), mailboxAddress(account.email));
   }
 
-  identityOf(message: Message): string {
-    if (!this.linked || message.messageIdHeader === null) {
+  logicalKeyOf(message: Message): string {
+    if (!this.linked || message.emailId === null) {
       return `id:${message.id}`;
     }
-    return message.messageIdHeader;
+    return `email:${message.emailId}`;
   }
 
   filedSentCopies(copies: readonly PlacedCopy[]): ReadonlySet<string> {
-    const sent = new Set(
-      copies.filter(({ role }) => role === 'sent').map(({ message }) => this.identityOf(message)),
-    );
+    const sent = copies.filter(({ role }) => role === 'sent').map(({ message }) => message);
     return new Set(
       copies
         .filter(
           ({ message, role }) =>
             role === 'archive' &&
-            sent.has(this.identityOf(message)) &&
+            sent.some((other) => this.sameMail(message, other)) &&
             !this.addressedToSelf(message),
         )
         .map(copyKey),
     );
   }
 
+  sharesBody(message: Message, donor: Message): boolean {
+    return !this.linked || sameGmailBody(message, donor);
+  }
+
   filedRoles(copies: readonly PlacedCopy[]): (MailboxRole | undefined)[] {
     const filed = this.filedSentCopies(copies);
     return copies.map((copy) => (filed.has(copyKey(copy)) ? 'sent' : copy.role));
+  }
+
+  private sameMail(left: Message, right: Message): boolean {
+    return this.linked ? sameGmailMail(left, right) : left.id === right.id;
   }
 
   private addressedToSelf(message: Message): boolean {

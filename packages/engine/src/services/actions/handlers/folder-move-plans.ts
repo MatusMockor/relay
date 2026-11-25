@@ -1,4 +1,4 @@
-import type { LabelId, MailboxRole, Message, ThreadState } from '@relay/shared/domain';
+import type { LabelId, MailboxRole, ThreadState } from '@relay/shared/domain';
 import type { MoveOriginWork } from '../../../model/pending-work';
 import type { MailCopies } from '../../shared/mail-copies';
 import { uniqueMessageIds } from './located-ids';
@@ -19,9 +19,6 @@ export const isAt = (located: LocatedMessage, target: MoveTarget): boolean =>
   target.mailboxId === undefined
     ? located.role === target.role
     : located.mailboxId === target.mailboxId;
-
-export const physicalKeyOf = (copies: MailCopies, message: Message): string =>
-  message.emailId ?? copies.identityOf(message);
 
 export const placementOf = (located: LocatedMessage, labelId?: LabelId): MoveOriginWork[] => {
   const { message, role, mailboxId } = located;
@@ -47,7 +44,7 @@ const physicalGroups = (
 ): LocatedMessage[][] => {
   const groups = new Map<string, LocatedMessage[]>();
   for (const located of messages) {
-    const key = physicalKeyOf(copies, located.message);
+    const key = copies.logicalKeyOf(located.message);
     groups.set(key, [...(groups.get(key) ?? []), located]);
   }
   return [...groups.values()];

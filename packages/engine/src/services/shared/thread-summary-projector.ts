@@ -23,18 +23,6 @@ export interface ThreadProjection {
   readonly state?: ThreadState;
 }
 
-const uniqueMessages = (messages: readonly Message[]): Message[] => {
-  const seen = new Set<string>();
-  return [...messages].sort(byDateAscending).filter((message) => {
-    const key = message.messageIdHeader ?? `id:${message.id}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-};
-
 const participantsOf = (messages: readonly Message[]): Address[] => {
   const byEmail = new Map<string, Address>();
   messages
@@ -56,7 +44,7 @@ const participantsOf = (messages: readonly Message[]): Address[] => {
 const union = <Item>(...lists: readonly (readonly Item[])[]): Item[] => [...new Set(lists.flat())];
 
 export const projectThreadSummary = (projection: ThreadProjection): ThreadSummary | null => {
-  const messages = uniqueMessages(projection.messages);
+  const messages = [...projection.messages].sort(byDateAscending);
   const first = messages[0];
   const last = messages[messages.length - 1];
   if (first === undefined || last === undefined) {
