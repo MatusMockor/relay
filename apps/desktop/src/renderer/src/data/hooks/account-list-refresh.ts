@@ -28,6 +28,7 @@ export const refreshAccounts = (client: QueryClient): void => {
 };
 
 export const settleAccountReorders = async (client: QueryClient): Promise<void> => {
+  deferred.delete(client);
   await client.invalidateQueries({ queryKey: queryKeys.accounts() });
   setTimeout(() => {
     if (deferred.delete(client)) {

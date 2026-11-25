@@ -115,7 +115,7 @@ describe('account order cache', () => {
       (account) => account.id,
     );
 
-  it('keeps the optimistic order while account events arrive and refetches once it settles', async () => {
+  it('keeps the optimistic order while account events arrive and refetches exactly once it settles', async () => {
     const held = gate();
     const reordered = [...stored].reverse();
     server.handle('accounts.reorder', () => {
@@ -136,8 +136,52 @@ describe('account order cache', () => {
     expect(shownIds()).toEqual(reordered.map((account) => account.id));
 
     held.open();
-    await waitUntil(() => lists() === before + 2 && queryClient.isFetching() === 0);
+    await waitUntil(() => lists() === before + 1 && queryClient.isFetching() === 0);
+    await pause(INVALIDATION_WINDOW_MS * 3);
+    expect(lists()).toBe(before + 1);
     expect(shownIds()).toEqual(reordered.map((account) => account.id));
+  });
+
+  const rejected = {
+    status: 409,
+    body: { error: { code: 'conflict', message: 'Poradie sa zmenilo' } },
+  };
+
+  const queueTwoMoves = async (answers: readonly (() => object)[]) => {
+    const held = gate();
+    let call = 0;
+    server.handle('accounts.reorder', () => {
+      const answer = answers[call] ?? answers[answers.length - 1];
+      call += 1;
+      return { ...(answer?.() ?? rejected), holdUntil: held.wait() };
+    });
+    const hook = await render();
+    const before = lists();
+    listHold = gate();
+    const original = stored.map((account) => account.id);
+    const first = [...stored].reverse();
+    const second = [...stored.slice(1), ...stored.slice(0, 1)];
+    act(() => {
+      hook.result.current.reorder.mutate(first);
+      hook.result.current.reorder.mutate(second);
+    });
+    await waitUntil(() => shownIds().join() === second.map((account) => account.id).join());
+    held.open();
+    await waitUntil(() => lists() === before + 1);
+    return { original, first: first.map((account) => account.id) };
+  };
+
+  it('restores the confirmed order when both queued moves fail', async () => {
+    const { original } = await queueTwoMoves([() => rejected, () => rejected]);
+
+    expect(shownIds()).toEqual(original);
+  });
+
+  it('keeps the first saved move when only the queued second move fails', async () => {
+    const saved = [...stored].reverse();
+    const { first } = await queueTwoMoves([() => ({ body: saved }), () => rejected]);
+
+    expect(shownIds()).toEqual(first);
   });
 
   it('refetches an order saved on another device while the local reorder settled', async () => {
