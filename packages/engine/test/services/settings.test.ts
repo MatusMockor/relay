@@ -17,7 +17,8 @@ describe('SettingsService', () => {
       density: 'compact',
       ai: {
         location: 'server',
-        defaultRunner: 'claude',
+        defaultModel: { runner: 'claude', model: null, effort: null },
+        backgroundModel: { runner: 'claude', model: 'claude-haiku-5-5', effort: 'low' },
         features: { oneLiners: true, summaries: false, replySuggestions: true, jiraTriage: true },
       },
       jira: { taskEvents: ['mention', 'assigned'] },
@@ -46,6 +47,24 @@ describe('SettingsService', () => {
       'comment',
       'status',
     ]);
+  });
+});
+
+describe('SettingsService AI models', () => {
+  it('replaces one model choice and keeps the other', async () => {
+    const engine = createTestEngine();
+    const defaultModel = { runner: 'codex', model: 'gpt-6-astra', effort: 'high' } as const;
+
+    await engine.services.settings.update(USER_ID, { ai: { defaultModel } });
+    const updated = await engine.services.settings.update(USER_ID, {
+      ai: { backgroundModel: { runner: 'codex', model: null, effort: null } },
+    });
+
+    expect(updated.ai).toMatchObject({
+      defaultModel,
+      backgroundModel: { runner: 'codex', model: null, effort: null },
+    });
+    expect((await engine.services.settings.get(USER_ID)).ai).toEqual(updated.ai);
   });
 });
 

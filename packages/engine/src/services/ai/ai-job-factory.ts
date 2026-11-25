@@ -16,6 +16,7 @@ import { latestThreadMessage } from '../shared/latest-thread-message';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
 import { assertAiFeatureEnabled } from './ai-feature-gate';
 import { draftIdOf, isThreadScoped, threadIdOf } from './ai-input-context';
+import { resolveAiModel } from './ai-model-resolver';
 
 export interface AiJobFactoryDeps {
   readonly jobs: AiJobRepository;
@@ -79,15 +80,16 @@ export class AiJobFactory {
     assertAiFeatureEnabled(settings, body.input.kind);
     await this.assertReferences(userId, body);
     const now = this.deps.clock.now().toISOString();
+    const { runner, model, effort } = resolveAiModel(body, settings.ai);
     return {
       id: this.deps.ids.generate('aiJob'),
       userId,
       kind: body.input.kind,
       status: claim === undefined ? 'queued' : 'running',
       runnerLocation: location ?? settings.ai.location,
-      runner: body.runner ?? settings.ai.defaultRunner,
-      ...(body.model === undefined || body.model === null ? {} : { model: body.model }),
-      ...(body.effort === undefined || body.effort === null ? {} : { effort: body.effort }),
+      runner,
+      ...(model === null ? {} : { model }),
+      ...(effort === null ? {} : { effort }),
       input: await this.withSource(userId, body.input),
       output: null,
       error: null,

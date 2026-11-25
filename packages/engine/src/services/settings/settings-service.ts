@@ -1,26 +1,15 @@
-import type { UserId, UserSettings, UserSettingsPatch } from '@relay/shared/domain';
+import {
+  mergeUserSettings,
+  type UserId,
+  type UserSettings,
+  type UserSettingsPatch,
+} from '@relay/shared/domain';
 import { ConflictError } from '../../errors';
 import type { SettingsRepository } from '../../ports/settings-repository';
 import type { QueuedAiJobRelocator } from '../ai/queued-ai-job-relocator';
 import type { EngineEvents } from '../shared/engine-events';
 import { KeyedSerializer } from '../shared/keyed-serializer';
 import type { UserSettingsReader } from '../shared/user-settings-reader';
-
-export const mergeUserSettings = (
-  current: UserSettings,
-  patch: UserSettingsPatch,
-): UserSettings => ({
-  notifications: patch.notifications ?? current.notifications,
-  density: patch.density ?? current.density,
-  ai: {
-    location: patch.ai?.location ?? current.ai.location,
-    defaultRunner: patch.ai?.defaultRunner ?? current.ai.defaultRunner,
-    features: { ...current.ai.features, ...patch.ai?.features },
-  },
-  jira: {
-    taskEvents: patch.jira?.taskEvents ?? current.jira.taskEvents,
-  },
-});
 
 const MAX_SAVE_ATTEMPTS = 5;
 

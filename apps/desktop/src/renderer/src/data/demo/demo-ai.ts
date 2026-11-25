@@ -101,7 +101,7 @@ export const runDemoAi = (
     words.slice(index * 6, index * 6 + 6).join(''),
   );
   const events: AiEvent[] = [
-    { type: 'started', runner: state.settings.ai.defaultRunner },
+    { type: 'started', runner: state.settings.ai.defaultModel.runner },
     { type: 'toolCall', name: 'search_mail' },
     ...chunks.map((text): AiEvent => ({ type: 'delta', text })),
     { type: 'completed', output },

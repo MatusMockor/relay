@@ -37,7 +37,7 @@ export const useContactContext = (recipient: Address) => {
   );
   const run = () => {
     stop.current?.();
-    const runner = settings.data?.ai.defaultRunner ?? 'claude';
+    const runner = settings.data?.ai.defaultModel.runner ?? 'claude';
     const question = contextQuestion(recipient);
     const started = performance.now();
     setTurn(freshTurn(question));

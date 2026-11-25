@@ -17,8 +17,9 @@
 .mpb .ef {
   color: var(--muted);
   font-size: var(--fs-xs);
-  padding-left: 7px;
-  border-left: 1px solid var(--line);
+}
+.mpb .ef.warn {
+  color: var(--warn);
 }
 .mdlp .seg {
   margin: 6px 4px 4px;

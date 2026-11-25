@@ -14,12 +14,6 @@ export interface ModelChoice {
 
 export const RUNNERS: readonly AiRunnerKind[] = ['claude', 'codex'];
 
-export const defaultChoice = (runner: AiRunnerKind): ModelChoice => ({
-  runner,
-  model: null,
-  effort: null,
-});
-
 export const effectiveModel = (choice: ModelChoice): string =>
   choice.model ?? defaultAiModel(choice.runner).id;
 
@@ -64,4 +58,13 @@ export const withSelection = (
 export const withEffort = (choice: ModelChoice, effort: AiEffort): ModelChoice => ({
   ...choice,
   effort,
+});
+
+export const inheritsSettings = (choice: ModelChoice): boolean =>
+  choice.model === null && choice.effort === null;
+
+export const withSettings = (choice: ModelChoice): ModelChoice => ({
+  ...choice,
+  model: null,
+  effort: null,
 });

@@ -1,4 +1,4 @@
-import type { AiJobInput, ThreadId } from '@relay/shared';
+import type { AiJobInput, AiRunRequest, ThreadId } from '@relay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../data/hooks/query-keys';
 import { useClient } from '../../data/hooks/services-context';
@@ -8,14 +8,24 @@ import { reduceTurn } from './chat-turn-reducer';
 import { systemTimeZone } from '../calendar/calendar-time';
 
 export interface ChatRunOptions {
-  readonly choice: ModelChoice;
+  readonly override: ModelChoice | null;
   readonly runnerLabel: string;
   readonly threadId: ThreadId | null;
 }
 
 export const CREATE_TASK_QUESTION = 'Vytvor úlohu z tohto vlákna';
 
-export const useChatRuns = ({ choice, runnerLabel, threadId }: ChatRunOptions) => {
+const requestOf = (input: AiJobInput, override: ModelChoice | null): AiRunRequest =>
+  override === null
+    ? { input }
+    : {
+        input,
+        runner: override.runner,
+        model: effectiveModel(override),
+        effort: effectiveEffort(override),
+      };
+
+export const useChatRuns = ({ override, runnerLabel, threadId }: ChatRunOptions) => {
   const client = useClient();
   const queryClient = useQueryClient();
   const { turns } = useChat();
@@ -23,9 +33,7 @@ export const useChatRuns = ({ choice, runnerLabel, threadId }: ChatRunOptions) =
   const start = (question: string, input: AiJobInput) => {
     const id = startTurn(question);
     const started = performance.now();
-    const model = effectiveModel(choice);
-    const effort = effectiveEffort(choice);
-    const stop = client.runAi({ input, runner: choice.runner, model, effort }, (event) => {
+    const stop = client.runAi(requestOf(input, override), (event) => {
       updateTurn(id, reduceTurn(event, runnerLabel, started));
       if (event.type === 'completed' && event.output.kind === 'createTask') {
         void queryClient.invalidateQueries({ queryKey: queryKeys.taskLists() });

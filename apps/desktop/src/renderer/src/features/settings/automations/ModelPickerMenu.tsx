@@ -1,25 +1,36 @@
-import { AI_EFFORT_LABELS, AI_MODEL_CATALOG, effortsFor } from '@relay/shared';
+import { AI_EFFORT_LABELS, AI_MODEL_CATALOG, defaultAiModel, effortsFor } from '@relay/shared';
 import { type AnchorRect, Popover, ProviderLogo } from '@relay/ui';
 import {
   effectiveModel,
+  inheritsSettings,
   type ModelChoice,
   RUNNERS,
   withEffort,
   withModel,
   withRunner,
+  withSelection,
+  withSettings,
 } from '../../ai/model-choice/model-choice';
-import { RUNNER_LABELS } from '../../ai/model-choice/model-labels';
+import { RUNNER_LABELS, SETTINGS_CHOICE_LABEL } from '../../ai/model-choice/model-labels';
 
 export interface ModelPickerMenuProps {
   readonly anchor: AnchorRect;
   readonly value: ModelChoice;
   readonly onChange: (next: ModelChoice) => void;
   readonly onClose: () => void;
+  readonly settingsOption?: boolean;
 }
 
-export function ModelPickerMenu({ anchor, value, onChange, onClose }: ModelPickerMenuProps) {
-  const model = effectiveModel(value);
-  const efforts = effortsFor(value.runner, model);
+export function ModelPickerMenu({
+  anchor,
+  value,
+  onChange,
+  onClose,
+  settingsOption = false,
+}: ModelPickerMenuProps) {
+  const inherits = settingsOption && inheritsSettings(value);
+  const model = inherits ? null : effectiveModel(value);
+  const efforts = model === null ? [] : effortsFor(value.runner, model);
   return (
     <Popover
       anchor={anchor}
@@ -35,10 +46,14 @@ export function ModelPickerMenu({ anchor, value, onChange, onClose }: ModelPicke
             key={runner}
             type="button"
             role="radio"
-            aria-checked={runner === value.runner}
-            className={runner === value.runner ? 'on' : undefined}
+            aria-checked={!inherits && runner === value.runner}
+            className={!inherits && runner === value.runner ? 'on' : undefined}
             onClick={() => {
-              onChange(withRunner(value, runner));
+              onChange(
+                inherits
+                  ? withSelection(value, runner, defaultAiModel(runner).id)
+                  : withRunner(value, runner),
+              );
             }}
           >
             <ProviderLogo runner={runner} size={14} />
@@ -48,6 +63,20 @@ export function ModelPickerMenu({ anchor, value, onChange, onClose }: ModelPicke
       </div>
       <div role="radiogroup" aria-label="Model">
         <div className="grp">Model</div>
+        {settingsOption ? (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={inherits}
+            className={inherits ? 'pi on' : 'pi'}
+            onClick={() => {
+              onChange(withSettings(value));
+            }}
+          >
+            {SETTINGS_CHOICE_LABEL}
+            {inherits ? <small>✓</small> : null}
+          </button>
+        ) : null}
         {AI_MODEL_CATALOG[value.runner].map((option) => (
           <button
             key={option.id}

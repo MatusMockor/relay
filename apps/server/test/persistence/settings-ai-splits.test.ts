@@ -35,6 +35,32 @@ describe('PgSettingsRepository', () => {
     ).resolves.toBe(true);
     await expect(context.repositories.settings.find(user.id)).resolves.toEqual(next);
   });
+
+  it('upgrades settings stored with the legacy default runner', async () => {
+    const user = await context.repositories.users.create(buildUser(), 'hash');
+    const { features } = defaultSettings().ai;
+    const legacy = {
+      ...defaultSettings(),
+      ai: { location: 'server', defaultRunner: 'codex', features },
+    };
+    await context.db.execute(
+      sql`insert into user_settings (user_id, settings) values (${user.id}, ${JSON.stringify(legacy)}::jsonb)`,
+    );
+
+    const stored = await context.repositories.settings.find(user.id);
+
+    expect(stored?.ai).toEqual({
+      ...defaultSettings().ai,
+      location: 'server',
+      defaultModel: { runner: 'codex', model: null, effort: null },
+      backgroundModel: { runner: 'codex', model: null, effort: 'low' },
+    });
+    const next = { ...defaultSettings(), density: 'compact' as const };
+    await expect(
+      context.repositories.settings.saveIfUnchanged(user.id, stored, next),
+    ).resolves.toBe(true);
+    await expect(context.repositories.settings.find(user.id)).resolves.toEqual(next);
+  });
 });
 
 describe('PgSplitRepository', () => {

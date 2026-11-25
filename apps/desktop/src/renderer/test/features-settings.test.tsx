@@ -16,6 +16,8 @@ import { type ContractServer, startContractServer } from './support/contract-ser
 import { tokens } from './support/fixtures';
 import { renderApp, resetStores, storageWith } from './support/render-app';
 
+const CODEX_ASTRA = { runner: 'codex', model: 'gpt-6-astra', effort: null } as const;
+
 const openSection = (section: SettingsSection) => {
   act(() => {
     setUi({ overlay: { kind: 'settings', section, adding: false } });
@@ -77,26 +79,21 @@ describe('settings in synced mode', () => {
   };
 
   const aiLocationsOnceLoaded = async (sheet: HTMLElement) => {
-    const runner = await within(sheet).findByRole('radiogroup', { name: 'Predvolený runner' });
-    await waitFor(() => {
-      expect(
-        within(runner).getByRole('radio', { name: 'Codex' }).getAttribute('aria-checked'),
-      ).toBe('true');
-    });
+    await within(sheet).findByRole('button', { name: /^Predvolený model: Codex, GPT-6 Astra/ });
     return within(within(sheet).getByRole('radiogroup', { name: 'Kde beží AI' }))
       .getAllByRole('radio')
       .map((radio) => radio.textContent);
   };
 
   it('offers only server AI in a browser session', async () => {
-    serveSettings({ location: 'server', defaultRunner: 'codex' });
+    serveSettings({ location: 'server', defaultModel: CODEX_ASTRA });
     renderApp({ platform: await syncedPlatform() });
     await waitForSync();
     expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server']);
   });
 
   it('still shows a local AI location saved on another device in a browser session', async () => {
-    serveSettings({ location: 'local', defaultRunner: 'codex' });
+    serveSettings({ location: 'local', defaultModel: CODEX_ASTRA });
     renderApp({ platform: await syncedPlatform() });
     await waitForSync();
     expect(await aiLocationsOnceLoaded(openSection('ai'))).toEqual(['Server', 'Lokálne']);

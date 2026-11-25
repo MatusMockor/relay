@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { AiRunnerKindSchema } from './ai';
 import { AutomationActionsSchema } from './automation-action';
-import { AiEffortSchema, AiModelIdSchema, refineAiModelChoice } from './ai-model-catalog';
+import { refineAiModelChoice } from './ai-model-catalog';
+import { AiModelSelectionSchema } from './ai-model-selection';
 import { AccountIdSchema, AutomationIdSchema, UserIdSchema } from './ids';
 import {
   AutomationConditionSchema,
@@ -27,10 +27,7 @@ export {
 export const AutomationPresetSchema = z.enum(['jiraTasks']);
 export type AutomationPreset = z.infer<typeof AutomationPresetSchema>;
 
-export const AutomationAiSchema = z.object({
-  runner: AiRunnerKindSchema,
-  model: AiModelIdSchema.nullable(),
-  effort: AiEffortSchema.nullable(),
+export const AutomationAiSchema = AiModelSelectionSchema.extend({
   instructions: z.string().trim().min(1).max(2_000).nullable(),
 });
 export type AutomationAi = z.infer<typeof AutomationAiSchema>;

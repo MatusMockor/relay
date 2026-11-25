@@ -28,18 +28,15 @@ describe('AI chat composer', () => {
     resetStores();
   });
 
-  it('replaces the runner toggle with a model trigger and runs the model and reasoning it shows', async () => {
+  it('shows the settings model and leaves it to the engine until the user picks another', async () => {
     const pane = openAiPane();
 
     expect(within(pane).queryByRole('group', { name: 'Spustiť cez' })).toBeNull();
     expect(modelTrigger(pane).getAttribute('aria-label')).toBe('Model: Claude Code, Opus 5.5');
     expect(reasoningTrigger(pane).textContent).toBe('Stredný');
-    expect(await ask(pane, 'Čo dnes vybaviť?', requests)).toMatchObject({
-      input: { kind: 'chatAnswer', question: 'Čo dnes vybaviť?' },
-      runner: 'claude',
-      model: 'claude-opus-5-5',
-      effort: 'medium',
-    });
+    const request = await ask(pane, 'Čo dnes vybaviť?', requests);
+    expect(request).toMatchObject({ input: { kind: 'chatAnswer', question: 'Čo dnes vybaviť?' } });
+    expect(Object.keys(request ?? {})).toEqual(['input']);
   });
 
   it('runs the default reasoning of a picked model without touching the reasoning menu', async () => {
