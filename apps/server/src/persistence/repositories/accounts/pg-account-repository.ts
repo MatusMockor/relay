@@ -5,13 +5,19 @@ import {
   ConflictError,
 } from '@relay/engine';
 import type { AccountId, MailAccount, UserId } from '@relay/shared/domain';
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { DbExecutor } from '../../database/database';
 import { mailAccounts } from '../../schema';
 import { isUniqueViolation } from '../../support/postgres-errors';
-import { lockUser } from '../../support/ownership';
+import { lockUser, lockUserAccounts } from '../../support/ownership';
 import { toDate } from '../../support/timestamps';
 import { toAccountInsert, toAccountUpdate, toMailAccount } from './account.mapper';
+import {
+  IN_ACCOUNT_ORDER,
+  lockAccountsOf,
+  nextAccountPosition,
+  writeAccountPositions,
+} from './account-positions';
 
 const ownedBy = (userId: UserId, accountId: AccountId) =>
   and(eq(mailAccounts.userId, userId), eq(mailAccounts.id, accountId));
@@ -24,8 +30,12 @@ export class PgAccountRepository implements AccountRepository {
       .select()
       .from(mailAccounts)
       .where(eq(mailAccounts.userId, userId))
-      .orderBy(asc(mailAccounts.createdAt), asc(mailAccounts.id));
+      .orderBy(...IN_ACCOUNT_ORDER);
     return rows.map(toMailAccount);
+  }
+
+  async listByUserForUpdate(userId: UserId): Promise<MailAccount[]> {
+    return (await lockAccountsOf(this.db, userId)).map(toMailAccount);
   }
 
   async findById(userId: UserId, accountId: AccountId): Promise<MailAccount | null> {
@@ -48,18 +58,21 @@ export class PgAccountRepository implements AccountRepository {
       .select()
       .from(mailAccounts)
       .where(ne(mailAccounts.status, 'disconnected'))
-      .orderBy(asc(mailAccounts.createdAt), asc(mailAccounts.id));
+      .orderBy(...IN_ACCOUNT_ORDER);
     return rows.map(toMailAccount);
   }
 
   async create(account: MailAccount): Promise<MailAccount> {
     try {
       return await this.db.transaction(async (tx) => {
+        await lockUserAccounts(tx, account.userId);
         if (account.isPrimary) {
-          await lockUser(tx, account.userId);
           await new PgAccountRepository(tx).clearPrimary(account.userId);
         }
-        const [row] = await tx.insert(mailAccounts).values(toAccountInsert(account)).returning();
+        const [row] = await tx
+          .insert(mailAccounts)
+          .values({ ...toAccountInsert(account), sortOrder: nextAccountPosition(account.userId) })
+          .returning();
         return row === undefined ? account : toMailAccount(row);
       });
     } catch (error) {
@@ -104,6 +117,10 @@ export class PgAccountRepository implements AccountRepository {
     await this.update(userId, accountId, { isPrimary: true });
   }
 
+  reorder(userId: UserId, orderedIds: readonly AccountId[]): Promise<number> {
+    return writeAccountPositions(this.db, userId, orderedIds);
+  }
+
   async updateStatus(accountId: AccountId, change: AccountStatusChange): Promise<void> {
     await this.db
       .update(mailAccounts)
@@ -115,12 +132,15 @@ export class PgAccountRepository implements AccountRepository {
       .where(eq(mailAccounts.id, accountId));
   }
 
-  async delete(userId: UserId, accountId: AccountId): Promise<boolean> {
-    const rows = await this.db
-      .delete(mailAccounts)
-      .where(ownedBy(userId, accountId))
-      .returning({ id: mailAccounts.id });
-    return rows.length > 0;
+  delete(userId: UserId, accountId: AccountId): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      await lockUserAccounts(tx, userId);
+      const rows = await tx
+        .delete(mailAccounts)
+        .where(ownedBy(userId, accountId))
+        .returning({ id: mailAccounts.id });
+      return rows.length > 0;
+    });
   }
 
   private async lockOwned(userId: UserId, accountId: AccountId): Promise<MailAccount | null> {

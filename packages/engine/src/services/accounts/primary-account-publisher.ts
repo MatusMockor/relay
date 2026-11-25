@@ -1,4 +1,4 @@
-import type { MailAccount, UserId } from '@relay/shared/domain';
+import { type MailAccount, oldestAccount, type UserId } from '@relay/shared/domain';
 import type { AccountRepository } from '../../ports/account-repository';
 import type { EngineEvents } from '../shared/engine-events';
 
@@ -29,7 +29,7 @@ export class PrimaryAccountPublisher {
 
   async promoteFirst(userId: UserId): Promise<void> {
     const remaining = await this.accounts.listByUser(userId);
-    const next = remaining[0];
+    const next = oldestAccount(remaining);
     if (next === undefined || remaining.some((account) => account.isPrimary)) {
       return;
     }

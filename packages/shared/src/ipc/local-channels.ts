@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { OkResponseSchema } from '../api/common';
 import {
   CreateAccountBodySchema,
+  ReorderAccountsBodySchema,
   TestConnectionBodySchema,
   TestConnectionResponseSchema,
   UpdateAccountBodySchema,
@@ -127,6 +128,7 @@ export const localInvokeChannels = {
     MailAccountSchema,
   ),
   'local.accounts.delete': invokeChannel(accountRef, OkResponseSchema),
+  'local.accounts.reorder': invokeChannel(ReorderAccountsBodySchema, z.array(MailAccountSchema)),
   'local.accounts.testConnection': invokeChannel(
     TestConnectionBodySchema,
     TestConnectionResponseSchema,

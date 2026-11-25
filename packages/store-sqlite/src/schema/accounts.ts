@@ -18,6 +18,7 @@ export const accounts = sqliteTable(
     lastError: text('last_error'),
     lastSyncedAt: text('last_synced_at'),
     createdAt: text('created_at').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
   },
   (table) => [
     index('accounts_user_idx').on(table.userId, table.createdAt),

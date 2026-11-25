@@ -30,6 +30,7 @@ export const mailAccounts = pgTable(
     lastError: text('last_error'),
     lastSyncedAt: timestampTz('last_synced_at'),
     createdAt: timestampTz('created_at').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
   },
   (table) => [
     index('mail_accounts_user_idx').on(table.userId, table.createdAt),

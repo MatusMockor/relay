@@ -1,4 +1,5 @@
 export type { AccountPreferences, NewAccountInput } from './accounts/account-registration';
+export * from './accounts/account-order-service';
 export * from './accounts/account-service';
 export * from './ai/ai-service';
 export * from './ai/create-ai-service';

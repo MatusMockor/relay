@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { refreshAccounts } from './account-list-refresh';
 import { reconcileCachedAiJobs } from './ai-job-cache';
 import { invalidateBatched } from './invalidation-batch';
 import { queryKeys } from './query-keys';
@@ -13,7 +14,6 @@ const RECONNECT_KEYS = [
   queryKeys.taskLists(),
   queryKeys.drafts(),
   queryKeys.scheduled(),
-  queryKeys.accounts(),
   queryKeys.splits(),
   queryKeys.automations(),
   queryKeys.settings(),
@@ -38,6 +38,7 @@ export const useRealtimeSync = (): void => {
         RECONNECT_KEYS.forEach((key) => {
           invalidateBatched(queryClient, key);
         });
+        refreshAccounts(queryClient);
         void reconcileCachedAiJobs(queryClient, client);
       }),
     [client, queryClient],

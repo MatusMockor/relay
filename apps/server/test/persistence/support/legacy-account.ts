@@ -16,7 +16,7 @@ const withClient = async (
   }
 };
 
-const insertLegacyAccount = (databaseUrl: string, account: MailAccount): Promise<void> =>
+export const insertLegacyAccount = (databaseUrl: string, account: MailAccount): Promise<void> =>
   withClient(databaseUrl, async (client) => {
     await client.query(
       `INSERT INTO mail_accounts (id, user_id, provider, display_name, email, color, is_primary, sync_interval_seconds, settings, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,

@@ -1,4 +1,4 @@
-import type { MailAccount } from '@relay/shared';
+import { type MailAccount, oldestAccount } from '@relay/shared';
 import { useAccounts } from '../../data/hooks/use-mail-queries';
 import { useSessionStore } from '../../session/session-store';
 
@@ -12,7 +12,7 @@ export const suggestSenderName = (
   userName: string | null,
 ): string => {
   const named = accounts.filter((account) => account.senderName !== null);
-  const source = named.find((account) => account.isPrimary) ?? named[0];
+  const source = named.find((account) => account.isPrimary) ?? oldestAccount(named);
   return source?.senderName ?? userName ?? '';
 };
 

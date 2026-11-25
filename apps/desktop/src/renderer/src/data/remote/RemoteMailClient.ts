@@ -75,6 +75,8 @@ const remoteMethods = (http: HttpApi): RemoteMailMethods => ({
   removeAccount: async (id) => {
     await http.call(api.accounts.remove, { params: { id } });
   },
+  reorderAccounts: (accountIds) =>
+    http.call(api.accounts.reorder, { body: { accountIds: [...accountIds] } }),
   testConnection: (body) => http.call(api.accounts.testConnection, { body }),
   syncNow: async (accountId) => {
     await http.call(api.sync.now, { body: accountId === undefined ? {} : { accountId } });

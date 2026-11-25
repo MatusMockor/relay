@@ -1,4 +1,5 @@
 import type { EngineDeps } from './engine-deps';
+import { AccountOrderService } from './services/accounts/account-order-service';
 import type { AccountService } from './services/accounts/account-service';
 import { createAccountService } from './services/accounts/create-account-service';
 import { createMessageActionComponents } from './services/actions/create-message-actions-service';
@@ -69,6 +70,7 @@ import { UnsubscribeService } from './services/unsubscribe/unsubscribe-service';
 
 export interface EngineServices {
   readonly accounts: AccountService;
+  readonly accountOrder: AccountOrderService;
   readonly settings: SettingsService;
   readonly inbox: InboxQueryService;
   readonly labels: LabelQueryService;
@@ -215,6 +217,7 @@ export const createEngineServices = (deps: EngineDeps): EngineServices => {
   forwarder.bind(new ComposeMailForwarder(compose, bodies, deps.logger));
   return {
     accounts: createAccountService(deps, { events, attachmentSweeper, readSessions }),
+    accountOrder: new AccountOrderService({ unitOfWork, events }),
     settings: new SettingsService({
       settings: repositories.settings,
       reader: userSettings,

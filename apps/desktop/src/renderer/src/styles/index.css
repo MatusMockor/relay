@@ -28,6 +28,7 @@
 @import './settings-parts.css';
 @import './theme-picker.css';
 @import './accounts.css';
+@import './account-order.css';
 @import './automations.css';
 @import './automation-list.css';
 @import './automation-conditions.css';

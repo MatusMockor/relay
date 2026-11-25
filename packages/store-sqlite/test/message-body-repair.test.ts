@@ -11,6 +11,7 @@ import {
 import { buildMessage, messageId, NO_HEADERS, threadId } from './support/fixtures';
 import { insertLegacyMessage } from './support/legacy-message';
 import { writeMigrationsBefore } from './support/partial-migrations';
+import { seedLegacyAccount } from './support/legacy-account';
 import { seedAccount } from './support/seed';
 import { createTempDirectory, createTestStore, type TempDirectory } from './support/test-database';
 
@@ -126,7 +127,7 @@ describe('message body repair storage', () => {
       migrationsFolder: writeMigrationsBefore('0027_message_body_repair', directory.path),
     });
     const repositories = createSqliteRepositories(database);
-    const { account, inbox, sent } = await seedAccount(repositories);
+    const { account, inbox, sent } = await seedLegacyAccount(database);
     insertLegacyMessage(database, {
       id: 'broken',
       userId: account.userId,

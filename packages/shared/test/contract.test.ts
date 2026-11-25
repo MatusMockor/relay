@@ -29,6 +29,7 @@ describe('api contract', () => {
         'GET /accounts',
         'POST /accounts',
         'PATCH /accounts/:id',
+        'PUT /accounts/order',
         'DELETE /accounts/:id',
         'POST /accounts/test-connection',
         'GET /accounts/:id/mailboxes',

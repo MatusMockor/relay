@@ -1,4 +1,4 @@
-import type { AccountId, MailAccount } from '@relay/shared';
+import { type AccountId, type MailAccount, oldestAccount } from '@relay/shared';
 import { useMemo } from 'react';
 import { useAccounts } from '../../data/hooks/use-mail-queries';
 import { useUiStore } from '../../state/ui-store';
@@ -32,7 +32,7 @@ export const useAccountsModel = (): AccountsModel => {
       multi: accounts.length > 1,
       unified: scope === 'all' && accounts.length > 1,
       current,
-      primary: accounts.find((account) => account.isPrimary) ?? accounts[0] ?? null,
+      primary: accounts.find((account) => account.isPrimary) ?? oldestAccount(accounts) ?? null,
       accountName: (id) => byId.get(id)?.displayName ?? '',
     };
   }, [data, scope]);

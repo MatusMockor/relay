@@ -55,6 +55,11 @@ export const UpdateAccountBodySchema = AccountPreferencesSchema.extend({
 });
 export type UpdateAccountBody = z.infer<typeof UpdateAccountBodySchema>;
 
+export const ReorderAccountsBodySchema = z.object({
+  accountIds: z.array(AccountIdSchema),
+});
+export type ReorderAccountsBody = z.infer<typeof ReorderAccountsBodySchema>;
+
 export const TestConnectionBodySchema = z.object({
   settings: ImapSmtpSettingsSchema,
   password: z.string().min(1),
@@ -110,6 +115,13 @@ export const accountsEndpoints = {
     params: accountIdParams,
     body: UpdateAccountBodySchema,
     response: MailAccountSchema,
+  }),
+  reorder: defineEndpoint({
+    method: 'PUT',
+    path: '/accounts/order',
+    auth: 'user',
+    body: ReorderAccountsBodySchema,
+    response: z.array(MailAccountSchema),
   }),
   remove: defineEndpoint({
     method: 'DELETE',

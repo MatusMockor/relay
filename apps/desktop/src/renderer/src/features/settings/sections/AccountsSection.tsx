@@ -11,7 +11,9 @@ import { setUi } from '../../../state/ui-store';
 import { AddAccountForm } from '../../accounts/AddAccountForm';
 import { accountLike } from '../../mail/use-accounts-model';
 import { SettingRow } from '../SettingRow';
+import { SettingsGroup } from '../SettingsGroup';
 import { AccountNameRows } from './AccountNameRows';
+import { AccountOrderList } from './AccountOrderList';
 import { AccountSyncRow } from './AccountSyncRow';
 import { SectionHeader } from '../SectionHeader';
 
@@ -117,6 +119,7 @@ function AccountCard({
 
 export function AccountsSection({ adding }: { readonly adding: boolean }) {
   const accounts = useAccounts();
+  const list = accounts.data ?? [];
   const client = useClient();
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<MailAccount | null>(null);
@@ -154,7 +157,9 @@ export function AccountsSection({ adding }: { readonly adding: boolean }) {
         Každý účet sa synchronizuje samostatne. Heslá a tokeny ostávajú na serveri alebo v
         zabezpečenom úložisku zariadenia.
       </SectionHeader>
-      {(accounts.data ?? []).map((account) => (
+      <AccountOrderList accounts={list} />
+      {list.length > 1 ? <SettingsGroup title="Nastavenia účtov" /> : null}
+      {list.map((account) => (
         <AccountCard
           key={account.id}
           account={account}

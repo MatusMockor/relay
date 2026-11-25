@@ -41,6 +41,10 @@ export const assertOwned = async (
   }
 };
 
+export const lockUserAccounts = async (db: DbExecutor, userId: UserId): Promise<void> => {
+  await db.execute(sql`select 1 from ${users} where ${users.id} = ${userId} for no key update`);
+};
+
 export const lockUser = async (db: DbExecutor, userId: UserId): Promise<void> => {
   await db.execute(sql`select 1 from ${users} where ${users.id} = ${userId} for update`);
 };

@@ -8,6 +8,7 @@ import {
 import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
+import { createDemoAccountOrder } from './demo-account-order';
 import { demoAccountFrom, demoTestConnection } from './demo-accounts';
 import { DEMO_OFFLINE_STATS, DemoHistory } from './demo-history';
 import { runDemoAi } from './demo-ai';
@@ -176,6 +177,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
         dropAccountData(state, accountId);
         emit({ type: 'account.removed', at: now().toISOString(), data: { accountId } });
       }),
+    ...createDemoAccountOrder(state, now, emit),
     testConnection: (body) => Promise.resolve(demoTestConnection(body)),
     syncNow: () => Promise.resolve(),
     historyProgress: () => run(() => history.progress(state.accounts)),

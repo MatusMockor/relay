@@ -18,6 +18,7 @@ import {
   seedPlacementMailboxes,
 } from './support/place-fixtures';
 import { writeMigrationsBefore } from './support/partial-migrations';
+import { seedLegacyAccount } from './support/legacy-account';
 import { seedAccount } from './support/seed';
 import { createTempDirectory, createTestStore, type TempDirectory } from './support/test-database';
 
@@ -69,7 +70,7 @@ describe('history backfill storage', () => {
       migrationsFolder: writeMigrationsBefore('0029_history_backfill', directory.path),
     });
     const repositories = createSqliteRepositories(database);
-    const { account, inbox } = await seedAccount(repositories);
+    const { account, inbox } = await seedLegacyAccount(database);
     insertLegacyMessage(database, { id: 'msg-1', userId: account.userId, mailbox: inbox, uid: 1 });
 
     migrate(database);

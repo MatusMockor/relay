@@ -15,7 +15,7 @@ describe('SqliteAccountRepository', () => {
     store.database.close();
   });
 
-  it('creates, finds and lists accounts scoped to the user', async () => {
+  it('creates, finds and lists accounts scoped to the user in the order they were added', async () => {
     const { accounts } = store.repositories;
     const first = buildAccount();
     const second = buildAccount({
@@ -27,7 +27,7 @@ describe('SqliteAccountRepository', () => {
     await accounts.create(first);
     await accounts.create(buildAccount({ id: accountId('acc-x'), userId: userId('someone-else') }));
 
-    expect(await accounts.listByUser(LOCAL_USER_ID)).toEqual([first, second]);
+    expect(await accounts.listByUser(LOCAL_USER_ID)).toEqual([second, first]);
     expect(await accounts.findById(LOCAL_USER_ID, first.id)).toEqual(first);
     expect(await accounts.findById(LOCAL_USER_ID, accountId('acc-x'))).toBeNull();
   });

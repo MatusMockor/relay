@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { AccountService } from '@relay/engine';
+import { AccountOrderService, AccountService } from '@relay/engine';
 import { api, type OkResponse, type TestConnectionResponse } from '@relay/shared/api';
 import type { MailAccount, Mailbox } from '@relay/shared/domain';
 import { CurrentPrincipal } from '../auth/decorators/current-principal.decorator';
@@ -12,6 +12,7 @@ import { AccountCreationService } from './account-creation.service';
 export class AccountsController {
   constructor(
     private readonly accounts: AccountService,
+    private readonly order: AccountOrderService,
     private readonly creation: AccountCreationService,
   ) {}
 
@@ -42,6 +43,14 @@ export class AccountsController {
     @ApiRequest(api.accounts.update) request: RequestOf<typeof api.accounts.update>,
   ): Promise<MailAccount> {
     return this.accounts.update(principal.userId, request.params.id, request.body);
+  }
+
+  @ApiRoute(api.accounts.reorder)
+  reorder(
+    @CurrentPrincipal() principal: Principal,
+    @ApiRequest(api.accounts.reorder) request: RequestOf<typeof api.accounts.reorder>,
+  ): Promise<MailAccount[]> {
+    return this.order.reorder(principal.userId, request.body.accountIds);
   }
 
   @ApiRoute(api.accounts.remove)

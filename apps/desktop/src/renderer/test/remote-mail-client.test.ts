@@ -163,6 +163,21 @@ describe('RemoteMailClient', () => {
     expect(server.requests.at(-1)).toMatchObject({ method: 'POST', url: '/sync' });
   });
 
+  it('saves the account order on the server', async () => {
+    server.handle('accounts.reorder', () => ({ body: [] }));
+    await connect().reorderAccounts([
+      AccountIdSchema.parse('acc-2'),
+      AccountIdSchema.parse('acc-1'),
+    ]);
+    expect(server.requests.at(-1)).toMatchObject({
+      key: 'accounts.reorder',
+      method: 'PUT',
+      url: '/accounts/order',
+      authorization: 'Bearer access-1',
+      body: { accountIds: ['acc-2', 'acc-1'] },
+    });
+  });
+
   it('stores checklist ticks on the server', async () => {
     server.handle('threads.updateChecklist', (request) => ({
       body: { checklist: [{ id: 'c1', text: 'Pozrieť MR', ...(request.body as object) }] },
