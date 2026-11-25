@@ -53,7 +53,7 @@ function RuleFromMailContent({ threadId, onClose }: RuleFromMailContentProps) {
         newsletter: isNewsletterSource(message, detail.data.messages, ownEmails, unsubscribe.data),
       })}
       existing={supportedAutomations(automations.data)}
-      runner={settings.data?.ai.defaultRunner ?? 'claude'}
+      runner={settings.data?.ai.defaultModel.runner ?? 'claude'}
       onClose={onClose}
     />
   );

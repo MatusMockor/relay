@@ -83,7 +83,7 @@ describe('Nastavenia > Automatizácie > detail', () => {
       within(models)
         .getAllByRole('radio')
         .map((item) => item.textContent),
-    ).toEqual(['GPT-6.1 Sol✓', 'GPT-6 Astra', 'GPT-6 Luna']);
+    ).toEqual(['Podľa nastavení', 'GPT-6.1 Sol✓', 'GPT-6 Astra', 'GPT-6 Luna']);
     click(within(models).getByRole('radio', { name: /GPT-6 Luna/ }));
     await settle();
     const instructions = within(sheet).getByRole('textbox', { name: 'Inštrukcie pre AI' });

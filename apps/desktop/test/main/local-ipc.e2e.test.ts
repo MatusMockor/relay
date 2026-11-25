@@ -147,10 +147,13 @@ describe('local mode IPC through the engine (SQLite + GreenMail)', () => {
     const updated = expectOk(
       await bridge.invoke('local.settings.update', {
         notifications: 'digest',
-        ai: { defaultRunner: 'codex' },
+        ai: { defaultModel: { runner: 'codex', model: 'gpt-6-astra', effort: 'high' } },
       }),
     );
-    expect(updated).toMatchObject({ notifications: 'digest', ai: { defaultRunner: 'codex' } });
+    expect(updated).toMatchObject({
+      notifications: 'digest',
+      ai: { defaultModel: { runner: 'codex', model: 'gpt-6-astra', effort: 'high' } },
+    });
     expect(harness.events.map((event) => event.type)).toContain('settings.updated');
 
     const splits = expectOk(

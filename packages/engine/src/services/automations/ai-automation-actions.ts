@@ -1,23 +1,26 @@
-import { type AiJobInput, aiModelChoiceIssue } from '@relay/shared/domain';
+import type { CreateAiJobBody } from '@relay/shared/api';
+import { type AiJobInput, type Automation, aiModelChoiceIssue } from '@relay/shared/domain';
 import type { AiJobFactory } from '../ai/ai-job-factory';
 import { AutomationActionRefusal } from './automation-action-refusal';
 import { type ActionEffect, NO_EFFECT } from './action-effect';
 import type { AutomationActionContext, AutomationActionHandler } from './automation-action';
 import { runsLegacyJiraTasks } from './automation-presets';
 
+const jobBody = (automation: Automation, input: AiJobInput): CreateAiJobBody => {
+  const { runner, model, effort } = automation.ai;
+  if (model === null && effort === null) {
+    return { input };
+  }
+  const known = aiModelChoiceIssue({ runner, model, effort }) === null;
+  return { input, runner, model: known ? model : null, effort: known ? effort : null };
+};
+
 const enqueue = async (
   factory: AiJobFactory,
   { userId, automation }: AutomationActionContext,
   input: AiJobInput,
 ): Promise<ActionEffect> => {
-  const { runner, model, effort } = automation.ai;
-  const known = aiModelChoiceIssue({ runner, model, effort }) === null;
-  await factory.enqueue(userId, {
-    input,
-    runner,
-    model: known ? model : null,
-    effort: known ? effort : null,
-  });
+  await factory.enqueue(userId, jobBody(automation, input));
   return NO_EFFECT;
 };
 

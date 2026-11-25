@@ -27,7 +27,7 @@ export function AutomationsSection() {
   const opened =
     view.kind === 'detail' ? editor.rules.find((rule) => rule.key === view.key) : undefined;
   useStagedCleanup(editor.rules, opened?.key ?? null, editor.discard);
-  const runner = settings.data?.ai.defaultRunner ?? 'claude';
+  const runner = settings.data?.ai.defaultModel.runner ?? 'claude';
   const showList = () => {
     showAutomationView({ kind: 'list' });
   };

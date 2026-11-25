@@ -70,7 +70,7 @@ describe('AI chat composer keys and focus', () => {
     await waitFor(() => {
       expect(requests).toHaveLength(1);
     });
-    expect(requests[0]).toMatchObject({ effort: 'medium' });
+    expect(Object.keys(requests[0] ?? {})).toEqual(['input']);
   });
 
   it('dismisses an open menu without taking focus back when focus moves out of it', () => {

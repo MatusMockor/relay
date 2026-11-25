@@ -1,4 +1,10 @@
-import type { AiOutput, RealtimeEvent, ThreadId, ThreadSummary } from '@relay/shared';
+import {
+  type AiOutput,
+  mergeUserSettings,
+  type RealtimeEvent,
+  type ThreadId,
+  type ThreadSummary,
+} from '@relay/shared';
 import { EventBus } from '../event-bus';
 import { MailClientError } from '../errors';
 import type { MailClient, Unsubscribe } from '../MailClient';
@@ -222,16 +228,7 @@ export const createDemoMailClient = (options: DemoMailClientOptions = {}): MailC
     getSettings: () => Promise.resolve(state.settings),
     updateSettings: (patch) =>
       run(() => {
-        state.settings = {
-          ...state.settings,
-          ...patch,
-          ai: {
-            ...state.settings.ai,
-            ...patch.ai,
-            features: { ...state.settings.ai.features, ...patch.ai?.features },
-          },
-          jira: { ...state.settings.jira, ...patch.jira },
-        };
+        state.settings = mergeUserSettings(state.settings, patch);
         emit({
           type: 'settings.updated',
           at: now().toISOString(),

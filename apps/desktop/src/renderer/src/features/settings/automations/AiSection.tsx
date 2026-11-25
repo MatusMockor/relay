@@ -31,6 +31,7 @@ export function AiSection({ input, disabled, onChange }: AiSectionProps) {
         <span>Model</span>
         <ModelPicker
           value={input.ai}
+          settingsOption
           disabled={disabled}
           onChange={(choice) => {
             onChange({ ai: { ...input.ai, ...choice } });

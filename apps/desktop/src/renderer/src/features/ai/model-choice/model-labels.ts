@@ -14,3 +14,5 @@ export const modelLabel = (choice: ModelChoice): string => {
 export const shortLabel = (label: string): string => label.replace(/^Claude /, '');
 
 export const shortModelLabel = (choice: ModelChoice): string => shortLabel(modelLabel(choice));
+
+export const SETTINGS_CHOICE_LABEL = 'Podľa nastavení';

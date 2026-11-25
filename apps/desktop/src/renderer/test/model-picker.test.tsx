@@ -7,11 +7,17 @@ import { ModelPicker } from '../src/features/settings/automations/ModelPicker';
 
 const choices: ModelChoice[] = [];
 
-function Harness({ initial }: { readonly initial: ModelChoice }) {
+interface HarnessProps {
+  readonly initial: ModelChoice;
+  readonly settingsOption?: boolean;
+}
+
+function Harness({ initial, settingsOption = false }: HarnessProps) {
   const [value, setValue] = useState(initial);
   return (
     <ModelPicker
       value={value}
+      settingsOption={settingsOption}
       onChange={(next) => {
         choices.push(next);
         setValue(next);
@@ -75,7 +81,7 @@ describe('ModelPicker', () => {
       { runner: 'codex', model: 'gpt-6-astra', effort: null },
       { runner: 'codex', model: 'gpt-6-astra', effort: 'high' },
     ]);
-    expect(trigger().textContent).toBe('GPT-6 AstraVysoký');
+    expect(trigger().textContent).toBe('GPT-6 Astra· Vysoký');
   });
 
   it('keeps a supported effort and drops an unsupported one when the provider changes', () => {
@@ -95,5 +101,37 @@ describe('ModelPicker', () => {
     });
 
     expect(screen.queryByRole('dialog', { name: 'Model AI' })).toBeNull();
+  });
+
+  it('offers following the settings only when asked and shows it on the trigger', () => {
+    render(<Harness initial={{ runner: 'claude', model: null, effort: null }} settingsOption />);
+    expect(trigger().getAttribute('aria-label')).toBe('Model AI: Podľa nastavení');
+    expect(trigger().textContent).toBe('Podľa nastavení');
+
+    const menu = open();
+    expect(optionsOf(menu, 'Model')).toEqual([
+      'Podľa nastavení✓',
+      'Claude Opus 5.5',
+      'Claude Sonnet 5.5',
+      'Claude Haiku 5.5',
+    ]);
+    expect(within(menu).queryByRole('radiogroup', { name: 'Reasoning' })).toBeNull();
+    pick(menu, 'Poskytovateľ', 'Claude Code');
+    pick(menu, 'Model', 'Podľa nastavení');
+
+    expect(choices).toEqual([
+      { runner: 'claude', model: 'claude-opus-5-5', effort: null },
+      { runner: 'claude', model: null, effort: null },
+    ]);
+  });
+
+  it('keeps the explicit CLI default without the settings option', () => {
+    render(<Harness initial={{ runner: 'claude', model: null, effort: null }} />);
+
+    expect(optionsOf(open(), 'Model')).toEqual([
+      'Claude Opus 5.5✓',
+      'Claude Sonnet 5.5',
+      'Claude Haiku 5.5',
+    ]);
   });
 });

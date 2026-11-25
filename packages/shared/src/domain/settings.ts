@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AiRunnerKindSchema, AiRunnerLocationSchema } from './ai';
+import { AiSettingsPatchSchema, AiSettingsSchema, DEFAULT_AI_SETTINGS } from './ai-settings';
 import { AccountIdSchema } from './ids';
 import { type JiraEventKind, JiraTaskEventsSchema } from './jira-event';
 import { DEFAULT_OFFLINE_WINDOW, OfflineWindowSchema } from './offline-window';
@@ -11,21 +11,6 @@ export type NotificationMode = z.infer<typeof NotificationModeSchema>;
 
 export const DensitySchema = z.enum(['compact', 'normal']);
 export type Density = z.infer<typeof DensitySchema>;
-
-export const AiFeaturesSchema = z.object({
-  oneLiners: z.boolean(),
-  summaries: z.boolean(),
-  replySuggestions: z.boolean(),
-  jiraTriage: z.boolean(),
-});
-export type AiFeatures = z.infer<typeof AiFeaturesSchema>;
-
-export const AiSettingsSchema = z.object({
-  location: AiRunnerLocationSchema,
-  defaultRunner: AiRunnerKindSchema,
-  features: AiFeaturesSchema,
-});
-export type AiSettings = z.infer<typeof AiSettingsSchema>;
 
 export const JiraSettingsSchema = z.object({
   taskEvents: JiraTaskEventsSchema,
@@ -47,13 +32,7 @@ export type UserSettings = z.infer<typeof UserSettingsSchema>;
 export const UserSettingsPatchSchema = z.object({
   notifications: NotificationModeSchema.optional(),
   density: DensitySchema.optional(),
-  ai: z
-    .object({
-      location: AiRunnerLocationSchema.optional(),
-      defaultRunner: AiRunnerKindSchema.optional(),
-      features: AiFeaturesSchema.partial().optional(),
-    })
-    .optional(),
+  ai: AiSettingsPatchSchema.optional(),
   jira: JiraSettingsSchema.partial().optional(),
 });
 export type UserSettingsPatch = z.infer<typeof UserSettingsPatchSchema>;
@@ -61,11 +40,7 @@ export type UserSettingsPatch = z.infer<typeof UserSettingsPatchSchema>;
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   notifications: 'off',
   density: 'normal',
-  ai: {
-    location: 'local',
-    defaultRunner: 'claude',
-    features: { oneLiners: true, summaries: true, replySuggestions: true, jiraTriage: true },
-  },
+  ai: DEFAULT_AI_SETTINGS,
   jira: defaultJiraSettings(),
 };
 

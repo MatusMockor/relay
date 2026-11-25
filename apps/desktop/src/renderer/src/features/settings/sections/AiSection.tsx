@@ -1,4 +1,4 @@
-import type { AiFeatures, AiRunnerInfo, AiRunnerKind, AiRunnerLocation } from '@relay/shared';
+import type { AiFeatures, AiRunnerLocation } from '@relay/shared';
 import { Segmented, Status, Switch } from '@relay/ui';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../data/hooks/query-keys';
@@ -8,74 +8,15 @@ import { SettingRow } from '../SettingRow';
 import { SettingsGroup } from '../SettingsGroup';
 import { useUpdateSettings } from '../use-update-settings';
 import { SectionHeader } from '../SectionHeader';
+import { ModelRows } from './ai/ModelRows';
+import { RunnerRows } from './ai/RunnerRows';
 
-const RUNNER_LABEL: Readonly<Record<AiRunnerKind, string>> = {
-  claude: 'Claude Code',
-  codex: 'Codex',
-};
 const FEATURES: readonly (readonly [keyof AiFeatures, string, string])[] = [
   ['oneLiners', 'Jednoriadkové zhrnutia', 'Zhrnutie pri každom maile v zozname'],
   ['summaries', 'Zhrnutia vlákien', 'Zhrnutie a checklist nad vláknom'],
   ['replySuggestions', 'Návrhy odpovedí', 'Navrhnuté odpovede pod mailom'],
   ['jiraTriage', 'Jira triáž', 'Notifikácie z Jiry triedi do Úloh a splitu Jira'],
 ];
-
-const runnerStatus = (info: AiRunnerInfo | undefined) => {
-  if (info === undefined || !info.installed) {
-    return <Status tone="off" label="Nenainštalované" />;
-  }
-  if (info.authenticated === false) {
-    return <Status tone="warn" label="Čaká na prihlásenie" />;
-  }
-  return (
-    <Status
-      tone="ok"
-      label={info.version === null ? 'Pripravené' : `Pripravené · ${info.version}`}
-    />
-  );
-};
-
-const SIGN_IN_PLACE: Readonly<Record<AiRunnerLocation, string>> = {
-  server: 'v termináli na serveri Relay',
-  local: 'v termináli na tomto počítači',
-};
-
-function RunnerRows({
-  title,
-  where,
-  runners,
-}: {
-  readonly title: string;
-  readonly where: AiRunnerLocation;
-  readonly runners: readonly AiRunnerInfo[];
-}) {
-  return (
-    <>
-      <SettingsGroup title={title} />
-      {(['claude', 'codex'] as const).map((kind) => {
-        const info = runners.find((runner) => runner.runner === kind);
-        return (
-          <SettingRow
-            key={kind}
-            title={RUNNER_LABEL[kind]}
-            description={
-              info?.installed === true && info.authenticated === false ? (
-                <>
-                  Prihlás sa {SIGN_IN_PLACE[where]} príkazom <code>{kind}</code>, potom Nastavenia
-                  zavri a znova otvor
-                </>
-              ) : (
-                <code>{info?.executablePath ?? `${kind} CLI`}</code>
-              )
-            }
-          >
-            {runnerStatus(info)}
-          </SettingRow>
-        );
-      })}
-    </>
-  );
-}
 
 export function AiSection() {
   const services = useServices();
@@ -125,19 +66,13 @@ export function AiSection() {
           <Status tone="ok" label="Lokálne" />
         )}
       </SettingRow>
-      <SettingRow title="Predvolený runner" description="Dá sa prepnúť aj priamo v paneli AI">
-        <Segmented<AiRunnerKind>
-          label="Predvolený runner"
-          value={ai?.defaultRunner ?? 'claude'}
-          options={[
-            { value: 'claude', label: 'Claude Code' },
-            { value: 'codex', label: 'Codex' },
-          ]}
-          onChange={(value) => {
-            update.mutate({ ai: { defaultRunner: value } });
-          }}
-        />
-      </SettingRow>
+      <ModelRows
+        ai={ai}
+        runners={synced && location === 'local' ? local.data : remote.data}
+        onChange={(key, choice) => {
+          update.mutate({ ai: { [key]: choice } });
+        }}
+      />
       <RunnerRows
         title={synced ? 'Na serveri' : 'Na tomto počítači'}
         where={synced ? 'server' : 'local'}

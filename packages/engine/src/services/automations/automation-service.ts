@@ -129,7 +129,7 @@ export class AutomationService {
     return jiraTasksPreset(
       userId,
       this.deps.ids.generate('automation'),
-      settings.ai.defaultRunner,
+      settings.ai.backgroundModel.runner,
       order,
     );
   }
